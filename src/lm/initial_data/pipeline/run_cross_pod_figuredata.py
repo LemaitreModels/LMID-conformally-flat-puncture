@@ -1,7 +1,7 @@
 """PARASOL — figure data for the 4D "gradient-enhanced := cross" paper update.
 
-Produces the two JSONs the cross model needs so fig06_guess_vs_memory and
-fig01_polish_staircase show the 4D value+gradient family as the FULL-BILINEAR
+Produces the two JSONs the cross model needs so fig05_guess_vs_memory and
+fig04_polish_staircase show the 4D value+gradient family as the FULL-BILINEAR
 CROSS model (`hermite_smolyak_cross`), re-encoded by POD:
 
   1. reports/P3/guess_vs_memory_4d_cross_gapfill_1000.json  — the POD rank-sweep
@@ -40,7 +40,8 @@ from lm.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
 from lm.initial_data.parametric.hermite_smolyak_cross import load_hermite_smolyak_cross
 from lm.initial_data.parametric.hermite_smolyak_pod_cross import (
     build_pod_hermite_smolyak_cross, truncate_pod_cross)
-from lm.initial_data.pipeline.run_cross_fielderror_chi import offnode_points, stats
+from lm.initial_data.pipeline.run_cross_fielderror_chi import (
+    offnode_points, pod_rank_ladder, stats)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REP3 = os.path.join(HERE, "reports", "P3")
@@ -86,8 +87,7 @@ def main(n_points=1000, seed=0, r75_out=None):
     print(f"[figdata] wrote r=75 cross POD -> {os.path.basename(r75_out)}", flush=True)
 
     # ---- guess-vs-memory rank sweep (equilibrated bare-guess residual) ----
-    ranks = sorted(set(int(round(x)) for x in np.geomspace(1, r_full, 10)))
-    ranks = [r for r in ranks if 1 <= r <= r_full]
+    ranks = pod_rank_ladder(r_full)
     print(f"[figdata] sweep ranks={ranks}", flush=True)
     pts = offnode_points(box, n_points, seed)
     Phi, mean = pod.Phi, pod.mean

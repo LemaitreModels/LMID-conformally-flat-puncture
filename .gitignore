@@ -16,6 +16,10 @@ reports/
 # documented fallback so `pdflatex` always works — see docs/DATA.md.
 paper/figures/figdata/*.json
 
+# Table build outputs (recomputed by `make tabdata`). The rendered tab??_*.tex ARE
+# committed, so `pdflatex` always works — as the figure PDFs are.
+paper/tables/tabdata/*.json
+
 # LaTeX build artifacts
 paper/*.aux
 paper/*.log

@@ -7,7 +7,7 @@ error ``||u^(k) - u_true||_2 / ||u_true||_2`` per step is unavailable from disk.
 
 This script re-runs the polish for the 4-D quasi-circular model over the IDENTICAL
 1000 seed-0 off-node points, recording the FIELD at every Newton step, and reports
-the relative-L2 field error per step for the two families the fig01 staircase shows:
+the relative-L2 field error per step for the two families the fig04 staircase shows:
 
   * ``cold`` — cold NK from the zero field (U0=None), the surrogate-free start.
   * ``pod``  — warm start from the shipped r=75 value+gradient (cross) POD guess.

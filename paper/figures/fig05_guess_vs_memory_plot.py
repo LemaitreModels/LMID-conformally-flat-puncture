@@ -31,6 +31,9 @@ from _figdata import load
 from _figstyle import figdims
 
 
+RANK_GID = "rank-label"
+
+
 def sweep_xy(cur):
     mem = np.array([c["mem_bytes"] for c in cur]) / 1e6
     med = np.array([c["median"] for c in cur])
@@ -48,12 +51,10 @@ def plot_family(ax, spec):
                 label=spec["label"])
 
     def _r_label(x, hi_i, lo_i, r):
-        if ann == "above":
-            ax.annotate(f"{r}", (x, hi_i), fontsize=6.4, color=color, ha="center",
-                        va="bottom", xytext=(0, 3), textcoords="offset points", zorder=5)
-        else:
-            ax.annotate(f"{r}", (x, lo_i), fontsize=6.4, color=color, ha="center",
-                        va="top", xytext=(0, -3), textcoords="offset points", zorder=5)
+        xy, va, dy = ((x, hi_i), "bottom", 3) if ann == "above" else ((x, lo_i), "top", -3)
+        a = ax.annotate(f"{r}", xy, fontsize=6.4, color=color, ha="center", va=va,
+                        xytext=(0, dy), textcoords="offset points", zorder=5)
+        a.set_gid(RANK_GID)
     for x, hi_i, lo_i, r in zip(mem, hi, lo, rs):
         _r_label(x, hi_i, lo_i, r)
     bare, bm = spec["bare"], spec["bare_mem"]
@@ -63,6 +64,41 @@ def plot_family(ax, spec):
                 fmt="*", color=color, ms=15, elinewidth=1.0, capsize=4, capthick=1.0,
                 zorder=4, label="_nolegend_")
     _r_label(bm, bare["max"], bare["min"], spec["bare_r"])
+
+
+def declutter(fig, axes, pad=2.0, max_iter=8):
+    """Nudge overlapping rank labels apart horizontally.
+
+    The last swept rank sits close to the full-rank star in log-memory (0.2 decade in
+    the 8D column), so their labels collide.  Each label is centred on its own marker,
+    so the fix is a symmetric split: shift the left label left and the right label
+    right by half the overlap, leaving both nearer their own point than the other's.
+    Measured on the drawn figure, so it self-corrects if the rank ladder changes.
+    """
+    to_pt = 72.0 / fig.dpi
+    fig.canvas.draw()
+    for ax in axes:
+        anns = [t for t in ax.texts if t.get_gid() == RANK_GID]
+        for _ in range(max_iter):
+            rnd = fig.canvas.get_renderer()
+            boxes = [a.get_window_extent(rnd) for a in anns]
+            moved = False
+            for i in range(len(anns)):
+                for j in range(i + 1, len(anns)):
+                    bi, bj = boxes[i], boxes[j]
+                    if not bi.overlaps(bj):
+                        continue
+                    ov = min(bi.x1, bj.x1) - max(bi.x0, bj.x0) + pad
+                    if ov <= 0:      # they overlap only vertically; leave them be
+                        continue
+                    lo, hi = (i, j) if bi.x0 <= bj.x0 else (j, i)
+                    for k, sgn in ((lo, -1.0), (hi, +1.0)):
+                        dx, dy = anns[k].get_position()
+                        anns[k].set_position((dx + sgn * 0.5 * ov * to_pt, dy))
+                    moved = True
+            if not moved:
+                break
+            fig.canvas.draw()
 
 
 def _note(ax, text, loc):
@@ -96,6 +132,7 @@ def main():
     axes[0, 0].set_ylabel(r"bare-guess constraint residual $\|R\|_\infty$")
     axes[1, 0].set_ylabel(r"bare-guess field error $\|u-u_{\rm true}\|_2/\|u_{\rm true}\|_2$")
     fig.tight_layout()
+    declutter(fig, axes.ravel())
     stem = os.path.join(HERE, "fig05_guess_vs_memory")
     fig.savefig(stem + ".pdf")
     plt.close(fig)

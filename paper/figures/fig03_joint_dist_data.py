@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Data for fig04_joint_dist: distill the best/median/worst curves to figdata/.
+"""Data for fig03_joint_dist: distill the best/median/worst curves to figdata/.
 
 Sources (raw):
   joint_dist_4d          reports/3D_parametric/qc_chi/joint_dist_d4_qc_chi_b27.json        (4D bare)
@@ -10,7 +10,7 @@ Sources (raw):
 Both 8D files share the 4D schema (a "joint" list of {level, nodes, best, median, worst}), so the
 8D right panel mirrors the 4D left panel exactly.
 
-Run:  python fig04_joint_dist_data.py
+Run:  python fig03_joint_dist_data.py
 """
 import os
 import sys
@@ -32,7 +32,7 @@ def build():
         left=dict(bare=_series("joint_dist_4d"), cross=_series("joint_dist_cross_4d")),
         right=dict(bare=_series("joint_dist_8d"), cross=_series("joint_dist_hermite_8d")),
     )
-    p = dump("fig04_joint_dist", out)
+    p = dump("fig03_joint_dist", out)
     print(f"wrote {os.path.relpath(p)}  (4D + 8D, {len(out['left']['bare']['levels'])} levels)")
 
 

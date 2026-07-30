@@ -2,7 +2,7 @@
 
 The committed figure data lives in one place, ``figdata/<stem>.json``, one per figure.  Each is
 produced by its own ``<stem>_data.py`` from raw run SOURCE artifacts declared in ``registry.py``.
-Sources shared by several figures (e.g. fig09/fig10) are listed once and never rebuilt
+Sources shared by several figures (e.g. fig08/fig09) are listed once and never rebuilt
 twice.
 
 Usage

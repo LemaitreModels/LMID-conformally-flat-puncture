@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Data for fig01_polish_staircase: distill the per-Newton-step staircases to figdata/.
+"""Data for fig04_polish_staircase: distill the per-Newton-step staircases to figdata/.
 
 Two columns (4D | 8D), two rows (constraint residual | field error), each with a cold-start and a
 value+gradient POD-warm-start curve (median + min/max over 1000 off-node points per step).
@@ -21,7 +21,7 @@ The value-only POD source carries both rows (residual_rows + field_rows from run
 absent the value curve falls back to the two full-value tables.  The 8D field-error file shares the
 4D schema, so the bottom-right panel mirrors the bottom-left.
 
-Run:  python fig01_polish_staircase_data.py
+Run:  python fig04_polish_staircase_data.py
 """
 import os
 import sys
@@ -99,7 +99,7 @@ def build():
             fld_value=fld_value,
             fld_pod=_field(fe["pod"]),
         ))
-    p = dump("fig01_polish_staircase", dict(cols=cols))
+    p = dump("fig04_polish_staircase", dict(cols=cols))
     print(f"wrote {os.path.relpath(p)}  (4D + 8D, residual + field rows, cold|value|value+grad)")
 
 

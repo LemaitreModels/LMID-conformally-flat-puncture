@@ -3,7 +3,7 @@ DIMENSIONLESS-SPIN (chi) parameterization (chi-rebuild S4).
 
 Add-only chi twin of ``build_pod_hermite_model.py``.  It does NOT copy that
 module's body; it imports it, swaps the 4-D QC box to the chi box
-``d4_qc_chi = (b∈[2,4], q∈[1,3], chi_Ay∈[-0.99,0.99], chi_By∈[-0.99,0.99])``
+``d4_qc_chi_b27`` = the production 4-D aligned box of ``production_box``
 (rev-2 R4 separation range), and dispatches to ``build_pod_hermite_model.main()``
 verbatim — so the Newton–Krylov solve, the QC chain-rule tangent, the H5d POD
 compression, the save, and the certified spot-check are reused byte-for-byte and
@@ -32,18 +32,15 @@ import sys
 
 import build_pod_hermite_model as bh  # noqa: E402  (committed builder, reused verbatim)
 
-CHI_MAX = 0.99
+from lm.initial_data.pipeline import production_box as pb  # noqa: E402
 
-# swap the module-level box to the chi box (main() reads BOX/FIXED as globals)
-# b in [2,7]: the wide production separation range (feasibility de-risked by
-# derisk_b27.py — every hard corner certified <= 7.2e-12).  Must match the value
-# corpus box for --reuse-value.
-bh.BOX = [
-    {"name": "b",      "min": 2.0, "max": 7.0},
-    {"name": "q",      "min": 1.0, "max": 3.0},
-    {"name": "chi_Ay", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_By", "min": -CHI_MAX, "max": CHI_MAX},
-]
+CHI_MAX = pb.CHI_MAX
+
+# swap the module-level box to the chi box (main() reads BOX/FIXED as globals).
+# The production separation range's feasibility was de-risked by derisk_b27.py
+# (every hard corner certified <= 7.2e-12).  Must match the value corpus box for
+# --reuse-value, which is why both come from production_box.
+bh.BOX = pb.aligned_box()
 # FIXED = {"qc": 1.0} is identical for the chi QC family — no change needed.
 
 

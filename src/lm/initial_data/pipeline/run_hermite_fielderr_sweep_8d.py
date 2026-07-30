@@ -1,7 +1,7 @@
 """PARASOL — PLAIN 8-D FIELD-ERROR POD-rank sweep (value-only AND value+gradient).
 
 The 8-D analogue of the 4-D CROSS field-error sweep ``run_cross_fielderr_sweep.py``.
-Produces the TWO fig06 bottom-right figure-data sources (registry-pinned):
+Produces the TWO fig05 bottom-right figure-data sources (registry-pinned):
 
   gvm_8d_field         -> reports/P3/guess_vs_memory_8d_field_<n>.json
                           (VALUE-only plain POD — value basis + value-only interp)
@@ -11,7 +11,8 @@ Produces the TWO fig06 bottom-right figure-data sources (registry-pinned):
 
 Both compute the relative-L2 field error ``||decode_r - u_true|| / ||u_true||`` of
 the rank-r plain-Hermite-Smolyak POD guess against the certified NK solve
-``u_true``, as the POD rank r is swept over a 10-point geomspace(1..r_full), over
+``u_true``, as the POD rank r is swept over ``pod_rank_ladder(r_full)`` (every other
+rung of a 10-point geomspace(1..r_full), plus r_full itself), over
 the IDENTICAL 1000 seed-0 off-node points as the other 8-D field sweeps
 (``offnode_points`` imported from ``run_cross_fielderror_chi``, same sampler/seed).
 
@@ -80,7 +81,8 @@ from lm.initial_data.parametric.hermite_smolyak import (
 )
 from lm.initial_data.parametric.hermite_smolyak_pod import pod_basis_pool
 # reuse the EXACT seed-shared off-node sampling + stats of the other field sweeps
-from lm.initial_data.pipeline.run_cross_fielderror_chi import offnode_points, stats
+from lm.initial_data.pipeline.run_cross_fielderror_chi import (
+    offnode_points, pod_rank_ladder, stats)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REP3 = os.path.join(HERE, "reports", "P3")
@@ -140,8 +142,7 @@ def _sweep_flavor(flavor, view, include_derivatives, mem_fn, bare_mem_bytes,
           f"rank_stacked(1e-6)={diag['rank_stacked'].get(1e-6)}  "
           f"({time.time()-t0:.0f}s)", flush=True)
 
-    ranks = sorted(set(int(round(x)) for x in np.geomspace(1, r_full, 10)))
-    ranks = [r for r in ranks if 1 <= r <= r_full]
+    ranks = pod_rank_ladder(r_full)
     print(f"[hf8d:{flavor}] sweep ranks={ranks}", flush=True)
 
     fe = {r: [] for r in ranks}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Data for fig02_peraxis_hermite: distill the DISTRIBUTIONAL per-axis curves.
+"""Data for fig01_peraxis_hermite: distill the DISTRIBUTIONAL per-axis curves.
 
 Source (raw): reports/3D_parametric/qc_chi/peraxis_dist_chi.json (key
 "peraxis_dist_chi"), produced by ``run_qc_peraxis_dist_chi.py --assemble``.  Unlike
@@ -13,7 +13,7 @@ median-fitted geometric rate (dec/Q) via the same ``_rate`` convention as the
 original run (log-linear fit over the [1e-9, 1] window).  The heavy ``raw`` samples
 and ``base_points`` meta are dropped so the committed figdata stays small.
 
-Run:  python fig02_peraxis_hermite_data.py
+Run:  python fig01_peraxis_hermite_data.py
 """
 import os
 import sys
@@ -55,7 +55,7 @@ def build():
             "rate_value": _rate(Qs, d["value"]["median"]),
             "rate_hermite": _rate(Qs, d["hermite"]["median"]),
         }
-    p = dump("fig02_peraxis_hermite", out)
+    p = dump("fig01_peraxis_hermite", out)
     print(f"wrote {os.path.relpath(p)}  ({len(out['A_per_axis'])} axes, "
           f"n_samples={out['meta']['n_samples']})")
 

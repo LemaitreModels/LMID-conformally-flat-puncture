@@ -1,6 +1,6 @@
 PY ?= python
 
-.PHONY: install test figdata figures models oracle clean
+.PHONY: install test figdata figures tabdata tables models oracle clean
 
 install:
 	pip install -e ".[dev]"
@@ -14,6 +14,13 @@ figdata:
 
 figures: figdata
 	cd paper/figures && for f in fig??_*_plot.py; do echo ">> $$f"; $(PY) "$$f"; done
+
+# --- tables: recompute data from the solver, then render the LaTeX bodies ---
+tabdata:
+	$(PY) paper/tables/make_tabdata.py --all
+
+tables: tabdata
+	cd paper/tables && for f in tab??_*_tex.py; do echo ">> $$f"; $(PY) "$$f"; done
 
 # --- heavy tier (documented, mostly cluster) ---
 models:

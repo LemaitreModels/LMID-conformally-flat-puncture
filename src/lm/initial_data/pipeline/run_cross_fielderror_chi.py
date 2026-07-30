@@ -85,6 +85,25 @@ def stats(a):
                 p95=float(np.percentile(a, 95)), max=float(a.max()))
 
 
+def thin_ranks(dense, every=2):
+    """Keep every ``every``-th rung of a POD rank ladder, always keeping the last.
+
+    ``every=1`` returns the dense ladder.  The default ``every=2`` halves the sweep
+    cost (and the number of plotted points in Fig. 5, which was too crowded at the
+    dense ladder) while keeping both endpoints, so the curve still spans the whole
+    memory range.  The final rung is always kept because the full-rank point supplies
+    the bare-guess reference for the field-error panels.
+    """
+    dense = sorted(set(int(r) for r in dense))
+    return sorted(set(dense[:-1][::every] + dense[-1:]))
+
+
+def pod_rank_ladder(r_full, n=10, every=2):
+    """The shared POD rank sweep: ``thin_ranks`` of an ``n``-point geomspace(1, r_full)."""
+    dense = [int(round(x)) for x in np.geomspace(1, r_full, n)]
+    return [r for r in thin_ranks(dense, every) if 1 <= r <= r_full]
+
+
 def field_err(interp, u_true):
     d = np.asarray(interp) - np.asarray(u_true)
     return float(np.linalg.norm(d) / max(np.linalg.norm(u_true), 1e-300))

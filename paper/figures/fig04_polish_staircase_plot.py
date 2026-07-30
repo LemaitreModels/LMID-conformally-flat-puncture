@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generates fig01_polish_staircase.pdf (paper Fig. 1).
+"""Generates fig04_polish_staircase.pdf (paper Fig. 4).
 
 A 2x2 grid with a SHARED Newton-step x-axis per column. Columns are 4D | 8D; each panel draws three
 curves as a median line with 1000-point min--max whiskers on every Newton polish step:
@@ -12,10 +12,10 @@ The bottom row makes the decoupling concrete: the POD warm start is already fiel
 guess (~5e-5) while its residual is O(1e-2); both then fall to the numerical floor. Field error is
 measured against the converged (certified) iterate.
 
-Reads ONLY figdata/fig01_polish_staircase.json (build it with fig01_polish_staircase_data.py).
+Reads ONLY figdata/fig04_polish_staircase.json (build it with fig04_polish_staircase_data.py).
 No reports/, no jax.
 
-Run:  python fig01_polish_staircase_plot.py
+Run:  python fig04_polish_staircase_plot.py
 """
 import os
 import sys
@@ -111,7 +111,7 @@ def _plot_field(ax, col):
 
 
 def main():
-    d = load("fig01_polish_staircase")
+    d = load("fig04_polish_staircase")
     cols = d["cols"]
     fig, axes = plt.subplots(2, 2, figsize=figdims(2, 2), sharex="col", sharey="row")
     xmax = 0
@@ -132,10 +132,10 @@ def main():
                     transform=axes[0, 0].get_yaxis_transform(), fontsize=8.2,
                     color="k", alpha=0.8)
     fig.tight_layout()
-    stem = os.path.join(HERE, "fig01_polish_staircase")
+    stem = os.path.join(HERE, "fig04_polish_staircase")
     fig.savefig(stem + ".pdf")
     plt.close(fig)
-    print("wrote fig01_polish_staircase.pdf")
+    print("wrote fig04_polish_staircase.pdf")
 
 
 if __name__ == "__main__":

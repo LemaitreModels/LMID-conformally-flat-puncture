@@ -1,18 +1,18 @@
 #!/usr/bin/env python
-"""Generates fig02_peraxis_hermite.pdf (paper Fig. 2).
+"""Generates fig01_peraxis_hermite.pdf (paper Fig. 1).
 
 Per-axis held-out interpolation error, value vs value+gradient (Hermite), as a
 2x4 grid of panels (shared y-range) over the eight quasi-circular axes.  Each curve
 is a DISTRIBUTION over the paper's random base points: the median (marker)
 carries a fitted geometric rate (dec/Q, shown in the legend), and the min-max
-whiskers span the best-to-worst held-out error across those base points (cf. Fig. 4).
+whiskers span the best-to-worst held-out error across those base points (cf. Fig. 3).
 
-Colours match Fig. 4/5: value = C0 (tab:blue), gradient-enhanced = C1 (tab:orange).
+Colours match Fig. 3/5: value = C0 (tab:blue), gradient-enhanced = C1 (tab:orange).
 
-Reads ONLY figdata/fig02_peraxis_hermite.json (build it with
-fig02_peraxis_hermite_data.py). No reports/, no jax.
+Reads ONLY figdata/fig01_peraxis_hermite.json (build it with
+fig01_peraxis_hermite_data.py). No reports/, no jax.
 
-Run:  python fig02_peraxis_hermite_plot.py
+Run:  python fig01_peraxis_hermite_plot.py
 """
 import os
 import sys
@@ -42,7 +42,7 @@ def _arr(vals):
 
 
 def _series(ax, Qs, st, color, marker, label):
-    """Median (marker) with min-max whiskers spanning best..worst (cf. Fig. 4)."""
+    """Median (marker) with min-max whiskers spanning best..worst (cf. Fig. 3)."""
     med, best, worst = _arr(st["median"]), _arr(st["best"]), _arr(st["worst"])
     ax.errorbar(Qs, med, yerr=[med - best, worst - med],
                 fmt=marker + "-", color=color, ms=5, lw=1.7, elinewidth=1.0,
@@ -50,7 +50,7 @@ def _series(ax, Qs, st, color, marker, label):
 
 
 def main():
-    A = load("fig02_peraxis_hermite")["A_per_axis"]
+    A = load("fig01_peraxis_hermite")["A_per_axis"]
     names = [n for n in A]
 
     ncol = 4
@@ -80,10 +80,10 @@ def main():
     for r in range(nrow):
         axs[r][0].set_ylabel("held-out error", fontsize=17)
     fig.tight_layout()
-    stem = os.path.join(HERE, "fig02_peraxis_hermite")
+    stem = os.path.join(HERE, "fig01_peraxis_hermite")
     fig.savefig(stem + ".pdf")
     plt.close(fig)
-    print("wrote fig02_peraxis_hermite.pdf")
+    print("wrote fig01_peraxis_hermite.pdf")
 
 
 if __name__ == "__main__":

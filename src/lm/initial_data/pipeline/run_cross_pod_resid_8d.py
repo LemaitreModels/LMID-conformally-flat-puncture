@@ -1,5 +1,5 @@
 """8D y-pair-cross residual POD gapfill — residual sibling of guess_vs_memory_8d_hermite_field.
-Add-only clone of run_cross_pod_figuredata.py (4D) for the 8D cross model, so fig06 top-right
+Add-only clone of run_cross_pod_figuredata.py (4D) for the 8D cross model, so fig05 top-right
 value+gradient matches the bottom-right (same model, same ranks/memory)."""
 from __future__ import annotations
 import argparse, json, os, sys, time
@@ -11,7 +11,7 @@ from lm.initial_data.parametric.parametric_nd import _load_npz, _unpack_meta
 from lm.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
 from lm.initial_data.parametric.hermite_smolyak_cross import load_hermite_smolyak_cross
 from lm.initial_data.parametric.hermite_smolyak_pod_cross import build_pod_hermite_smolyak_cross
-from lm.initial_data.pipeline.run_cross_fielderror_chi import offnode_points, stats
+from lm.initial_data.pipeline.run_cross_fielderror_chi import offnode_points, pod_rank_ladder, stats
 HERE = os.path.dirname(os.path.abspath(__file__)); REP3 = os.path.join(HERE, "reports", "P3")
 def _mem(r, N, nfeat, d, npair):
     return 8.0 * (nfeat * r + N * r + N * d * r + N * npair * r + nfeat)
@@ -31,8 +31,7 @@ def main():
     npair = len(mc.cross_pairs_global); r_full = (1 + d + npair) * N
     pod, _ = build_pod_hermite_smolyak_cross(mc, r=r_full); r_full = int(pod.r)
     print(f"[resid8d] r_full={r_full} N={N} nfeat={nfeat} d={d} npair={npair} ({time.time()-t0:.0f}s)", flush=True)
-    ranks = sorted(set(int(round(x)) for x in np.geomspace(1, r_full, 10)))
-    ranks = [r for r in ranks if 1 <= r <= r_full]
+    ranks = pod_rank_ladder(r_full)
     print(f"[resid8d] ranks={ranks}", flush=True)
     pts = offnode_points(box, a.n_points, a.seed)
     Phi = pod.Phi; mean = np.asarray(pod.mean, dtype=float).reshape(-1)

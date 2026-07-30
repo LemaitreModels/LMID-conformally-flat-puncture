@@ -53,6 +53,7 @@ from lm.initial_data.parametric.hermite_smolyak import HermiteSmolyakSolverND
 from lm.initial_data.parametric.hermite_smolyak_pod import (
     PODHermiteSmolyak, load_pod_hermite_smolyak,
 )
+from lm.initial_data.pipeline.run_cross_fielderror_chi import thin_ranks
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPDIR = os.path.join(HERE, "reports", "P3")
@@ -198,7 +199,7 @@ def sweep_dimension(dim, n_points, seed):
     box = [(float(a[0]), float(a[1])) for a in meta["box"]]
     names = list(meta["axis_names"]); fixed = meta.get("fixed", {}) or {}
     d = len(box)
-    ranks = [r for r in cfg["ranks"] if r <= r_ship]
+    ranks = thin_ranks([r for r in cfg["ranks"] if r <= r_ship])
 
     print(f"[{dim}D] loading POD ({os.path.getsize(cfg['pod'])/1e6:.0f} MB) "
           f"r_ship={r_ship} N={N} nfeat={nfeat} d={d} ...", flush=True)

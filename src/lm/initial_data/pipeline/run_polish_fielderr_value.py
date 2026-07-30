@@ -1,7 +1,7 @@
 """PARASOL — per-Newton-step FIELD ERROR for the VALUE-ONLY warm start (4-D + 8-D).
 
 Companion to ``run_polish_fielderr.py`` (which records the ``cold`` and value+gradient
-``pod`` families).  fig01's bottom row compares the field error per Newton step of the
+``pod`` families).  fig04's bottom row compares the field error per Newton step of the
 warm starts against the cold start; the committed field-error files carry ``cold`` and
 ``pod`` (value+gradient) only.  This script adds the missing third family:
 
@@ -18,7 +18,7 @@ whiskers.  The only new ingredient is the value-only guess ``model.evaluate(thet
 
 The recorded per-step residual staircase (``residual_rows``) reproduces the committed
 value residual tables — a built-in cross-check that the model and the seed-0 sampling
-match the fig01 top row.
+match the fig04 top row.
 
 Add-only.  Imports committed ``parasol`` modules read-only; edits nothing.
 

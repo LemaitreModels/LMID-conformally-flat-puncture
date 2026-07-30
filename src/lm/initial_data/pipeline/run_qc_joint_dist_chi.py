@@ -16,8 +16,8 @@ same 1000 random off-node points; the per-point held-out errors
 count.
 
 Boxes (from build_surrogate_chi.py, verbatim):
-  d4_qc_chi_b27    = (b in [2,7], q in [1,3], chi_Ay, chi_By in [-0.99,0.99])   [S3 -- READY]
-  spin8_qc_chi_b27 = (b, q, chi_Ax..chi_Bz in [-0.99,0.99])                     [S6 -- gated on assembly]
+  d4_qc_chi_b27    = production_box.aligned_box()   [S3 -- READY]
+  spin8_qc_chi_b27 = production_box.spin8_box()     [S6 -- gated on assembly]
 
 Modes:
   (default)   1000 truth solves + build L=1..5 from store + best/median/worst.
@@ -38,6 +38,7 @@ import numpy as np
 from lm.initial_data.solver import solver_3d as s3
 from lm.initial_data.parametric import parametric_nd_3d as p3
 from lm.initial_data.parametric import solve_store as ss
+from lm.initial_data.pipeline import production_box as pb
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPDIR = os.path.join(HERE, "reports", "3D_parametric", "qc_chi")
@@ -48,27 +49,13 @@ os.makedirs(PARTDIR, exist_ok=True)
 
 NA, NB, NPHI = 44, 32, 8
 CODE_TAG = "chi-rebuild"
-QC = {"qc": 1.0}
-CHI = 0.99
+QC = dict(pb.FIXED_QC)
+CHI = pb.CHI_MAX
 
-# boxes verbatim from build_surrogate_chi.py (production b in [2,7])
+# boxes from production_box (same edges build_surrogate_chi.py registers)
 BOXES = {
-    "d4_qc_chi_b27": [
-        {"name": "b", "min": 2.0, "max": 7.0},
-        {"name": "q", "min": 1.0, "max": 3.0},
-        {"name": "chi_Ay", "min": -CHI, "max": CHI},
-        {"name": "chi_By", "min": -CHI, "max": CHI},
-    ],
-    "spin8_qc_chi_b27": [
-        {"name": "b", "min": 2.0, "max": 7.0},
-        {"name": "q", "min": 1.0, "max": 3.0},
-        {"name": "chi_Ax", "min": -CHI, "max": CHI},
-        {"name": "chi_Ay", "min": -CHI, "max": CHI},
-        {"name": "chi_Az", "min": -CHI, "max": CHI},
-        {"name": "chi_Bx", "min": -CHI, "max": CHI},
-        {"name": "chi_By", "min": -CHI, "max": CHI},
-        {"name": "chi_Bz", "min": -CHI, "max": CHI},
-    ],
+    "d4_qc_chi_b27": pb.aligned_box(),
+    "spin8_qc_chi_b27": pb.spin8_box(),
 }
 
 

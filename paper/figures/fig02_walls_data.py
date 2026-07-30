@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""Data for fig03_walls: distill the plotted arrays to figdata/.
+"""Data for fig02_walls: distill the plotted arrays to figdata/.
 
 Source (raw): reports/3D_parametric/qc/walls_d4_qc_dense.json  (key "walls_dense").
-This ONE figure now carries both analyticity walls (formerly fig03 + fig04): the
-separation/merger wall (block B_wall_b) and the spin wall (block C_wall_spin).
+This ONE figure now carries both analyticity walls (formerly two separate figures):
+the separation/merger wall (block B_wall_b) and the spin wall (block C_wall_spin).
 
 For each fit range we keep the held-out convergence curve (Qs, errs), the geometric
 rate, the inferred nearest real singularity theta*, and the fit-window size n_fit.
@@ -11,7 +11,7 @@ We also precompute the geometric fit LINE (slope, intercept of log10(err) vs Q o
 the first n_fit points) so the plotter can draw data + fit with no refitting; the
 fit slope reproduces the reported rate exactly (asserted here).
 
-Run:  python fig03_walls_data.py
+Run:  python fig02_walls_data.py
 """
 import os
 import sys
@@ -56,7 +56,7 @@ def build():
                       theta_star=w["chi_star"], n_fit=w["n_fit_points"],
                       fit_slope=slope, fit_intercept=intercept))
 
-    p = dump("fig03_walls", dict(B_wall_b=B, C_wall_spin=C))
+    p = dump("fig02_walls", dict(B_wall_b=B, C_wall_spin=C))
     print(f"wrote {os.path.relpath(p)}  ({len(B)} separation ranges, {len(C)} spin ranges)")
 
 

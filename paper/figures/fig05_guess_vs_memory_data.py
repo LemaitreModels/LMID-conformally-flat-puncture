@@ -5,7 +5,8 @@ A 2x2 grid: rows = (bare-guess constraint residual, bare-guess field error), col
 Each panel carries a "value" (C0) and a "value+gradient [full-bilinear cross]" (C1) curve, each a
 POD rank sweep + a full-rank bare-guess star. This script computes, per panel/curve, the exact
 plot_family inputs (the rank-sweep points, the bare star + its memory, and the annotations), so the
-plotter draws from figdata alone.
+plotter draws from figdata alone. Rank ladders are thinned to every other rung (see ``_thin``) to
+keep the panels legible.
 
 Sources (raw): gvm_all, gvm_4d_{value,cross,field,cross_field}, gvm_8d_{value,field,hermite_field},
                polish_table_{4d,4d_cross,8d_hermite,8d_value}  (registry keys).
@@ -25,10 +26,21 @@ from _figdata import load_source, dump
 
 VAL_C, HERM_C = "C0", "C1"
 POD5 = ("r", "mem_bytes", "min", "median", "max")
+DENSE_LADDER = 10   # rungs a pre-thinning run produced; see pipeline thin_ranks()
+
+
+def _thin(cur):
+    """Keep every other rung of a dense rank ladder, plus the full-rank one.
+
+    Matches ``pipeline.run_cross_fielderror_chi.thin_ranks`` (which the producers now
+    apply at sweep time, so newer runs arrive already thinned and pass through here
+    untouched); this keeps the panels legible for runs made with the dense ladder.
+    """
+    return cur if len(cur) < DENSE_LADDER else [*cur[:-1][::2], cur[-1]]
 
 
 def _pod5(cur):
-    return [{k: c[k] for k in POD5} for c in cur]
+    return [{k: c[k] for k in POD5} for c in _thin(cur)]
 
 
 def _mmm(rec):

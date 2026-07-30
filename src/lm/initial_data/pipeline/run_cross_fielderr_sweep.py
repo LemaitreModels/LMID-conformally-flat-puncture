@@ -12,7 +12,7 @@ carries the VALUE and PLAIN-HERMITE (gradient-only) corpora. The gradient-only
 model drops the mixed 2nd partial d^2U/dchi_Ay dchi_By and so *loses jointly*
 (field error ~3.8e-4 vs value ~7.9e-5). The shipped 4-D "value + gradient" model
 is the CROSS model (commits 4f78e98 / 055c722), whose field error is ~2.4e-5,
-BELOW value. fig06's field-error bottom row must therefore show value + CROSS
+BELOW value. fig05's field-error bottom row must therefore show value + CROSS
 (matching its residual top row), not value + plain-Hermite.
 
 u_true is the cross model's own certified NK solve (warm from the full-rank cross
@@ -48,7 +48,8 @@ from lm.initial_data.parametric.parametric_nd import _load_npz, _unpack_meta, at
 from lm.initial_data.parametric.hermite_smolyak_cross import load_hermite_smolyak_cross
 from lm.initial_data.parametric.hermite_smolyak_pod_cross import build_pod_hermite_smolyak_cross
 # reuse the EXACT seed-shared off-node sampling + stats of the residual sweep
-from lm.initial_data.pipeline.run_cross_fielderror_chi import offnode_points, stats
+from lm.initial_data.pipeline.run_cross_fielderror_chi import (
+    offnode_points, pod_rank_ladder, stats)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REP3 = os.path.join(HERE, "reports", "P3")
@@ -96,8 +97,7 @@ def main(n_points=1000, seed=0, u_tol=1e-11, u_steps=12):
     attach_solve_fn_3d(mc, prob, names, M_tot=1.0, fixed=fixed, use_cache=False, solver="nk")
 
     # SAME rank grid as run_cross_pod_figuredata (so mem_bytes align with the residual sweep)
-    ranks = sorted(set(int(round(x)) for x in np.geomspace(1, r_full, 10)))
-    ranks = [r for r in ranks if 1 <= r <= r_full]
+    ranks = pod_rank_ladder(r_full)
     print(f"[xfield] sweep ranks={ranks}", flush=True)
 
     pts = offnode_points(box, n_points, seed)

@@ -6,10 +6,13 @@ then dispatches to build_surrogate.main() verbatim — so the store/save/certifi
 spot-check machinery is reused byte-for-byte and the committed module is
 untouched.
 
-Boxes added:
-  * ``d4_qc_chi``   = (b in [1.5,4], q in [1,3], chi_Ay in [-0.99,0.99],
-                       chi_By in [-0.99,0.99]),  fixed {"qc":1.0}
-  * ``spin8_qc_chi``= (b, q, chi_Ax..chi_Bz all in [-0.99,0.99]), fixed {"qc":1.0}
+Boxes added (all edges from ``production_box``).  The ``_b27`` pair is the
+PRODUCTION box the shipped models are built on; the suffix is a historical
+identifier (it encoded the old b in [2,7]) and no longer describes the range:
+  * ``d4_qc_chi``       = legacy narrow b in [B_MIN_NARROW, B_MAX_NARROW]
+  * ``spin8_qc_chi``    = the same legacy b range, all six chi components
+  * ``d4_qc_chi_b27``   = PRODUCTION (b in [B_MIN, B_MAX], q, chi_Ay, chi_By)
+  * ``spin8_qc_chi_b27``= PRODUCTION, all six chi components
 
 The chi_* axes are value axes already handled by ``parametric_nd_3d.theta_to_slice3d``
 (S_Xi = chi_Xi * m_X^2), so the value-only Smolyak/dense build works with only
@@ -39,46 +42,21 @@ import sys
 
 import build_surrogate as bs  # noqa: E402  (committed module, reused verbatim)
 
-CHI_MAX = 0.99
+from lm.initial_data.pipeline import production_box as pb  # noqa: E402
 
-bs.BOXES["d4_qc_chi"] = [
-    {"name": "b", "min": 2.0, "max": 4.0},          # rev-2 R4 production range (b>=2)
-    {"name": "q", "min": 1.0, "max": 3.0},
-    {"name": "chi_Ay", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_By", "min": -CHI_MAX, "max": CHI_MAX},
-]
-bs.BOXES["spin8_qc_chi"] = [
-    {"name": "b", "min": 2.0, "max": 4.0},          # rev-2 R4 production range (b>=2)
-    {"name": "q", "min": 1.0, "max": 3.0},
-    {"name": "chi_Ax", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_Ay", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_Az", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_Bx", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_By", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_Bz", "min": -CHI_MAX, "max": CHI_MAX},
-]
-bs.FIXED["d4_qc_chi"] = {"qc": 1.0}
-bs.FIXED["spin8_qc_chi"] = {"qc": 1.0}
+CHI_MAX = pb.CHI_MAX
 
-# --- wide-separation variants (b in [2,7]); feasibility de-risked by derisk_b27.py ---
-bs.BOXES["d4_qc_chi_b27"] = [
-    {"name": "b",      "min": 2.0, "max": 7.0},
-    {"name": "q",      "min": 1.0, "max": 3.0},
-    {"name": "chi_Ay", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_By", "min": -CHI_MAX, "max": CHI_MAX},
-]
-bs.BOXES["spin8_qc_chi_b27"] = [
-    {"name": "b",      "min": 2.0, "max": 7.0},
-    {"name": "q",      "min": 1.0, "max": 3.0},
-    {"name": "chi_Ax", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_Ay", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_Az", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_Bx", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_By", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_Bz", "min": -CHI_MAX, "max": CHI_MAX},
-]
-bs.FIXED["d4_qc_chi_b27"] = {"qc": 1.0}
-bs.FIXED["spin8_qc_chi_b27"] = {"qc": 1.0}
+# --- legacy narrow-separation variants (NOT production; historical edges) ---
+bs.BOXES["d4_qc_chi"] = pb.aligned_box(b_min=pb.B_MIN_NARROW, b_max=pb.B_MAX_NARROW)
+bs.BOXES["spin8_qc_chi"] = pb.spin8_box(b_min=pb.B_MIN_NARROW, b_max=pb.B_MAX_NARROW)
+bs.FIXED["d4_qc_chi"] = dict(pb.FIXED_QC)
+bs.FIXED["spin8_qc_chi"] = dict(pb.FIXED_QC)
+
+# --- production wide-separation variants; feasibility de-risked by derisk_b27.py ---
+bs.BOXES["d4_qc_chi_b27"] = pb.aligned_box()
+bs.BOXES["spin8_qc_chi_b27"] = pb.spin8_box()
+bs.FIXED["d4_qc_chi_b27"] = dict(pb.FIXED_QC)
+bs.FIXED["spin8_qc_chi_b27"] = dict(pb.FIXED_QC)
 
 
 if __name__ == "__main__":

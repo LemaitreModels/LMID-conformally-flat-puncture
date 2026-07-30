@@ -43,21 +43,15 @@ import numpy as np
 from lm.initial_data.solver import solver_3d as s3
 from lm.initial_data.parametric import solve_store as ss
 from lm.initial_data.parametric.parametric_nd_smolyak import isotropic_index_set, _node_key
+from lm.initial_data.pipeline import production_box as pb
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STORE = os.path.join(HERE, "reports", "3D_parametric", "solve_store_chi")
 NA, NB, NPHI = 44, 32, 8
-CHI = 0.99
+CHI = pb.CHI_MAX
 CODE_TAG = "chi-rebuild"
-FIXED = {"qc": 1.0}
-BOX = [{"name": "b", "min": 2.0, "max": 7.0},
-       {"name": "q", "min": 1.0, "max": 3.0},
-       {"name": "chi_Ax", "min": -CHI, "max": CHI},
-       {"name": "chi_Ay", "min": -CHI, "max": CHI},
-       {"name": "chi_Az", "min": -CHI, "max": CHI},
-       {"name": "chi_Bx", "min": -CHI, "max": CHI},
-       {"name": "chi_By", "min": -CHI, "max": CHI},
-       {"name": "chi_Bz", "min": -CHI, "max": CHI}]
+FIXED = dict(pb.FIXED_QC)
+BOX = pb.spin8_box()
 
 
 def _t(m):

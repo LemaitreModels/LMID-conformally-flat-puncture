@@ -6,10 +6,12 @@ uniformly-random off-node points.
 on that table). Same methodology as ``run_polish_table_qc.py`` (which is the OLD
 ℓ=4 S-parameterized model), only the box, the model, and the Smolyak level change:
 
-    b       in [2, 7] M          (coordinate separation, production range)
-    q       in [1, 3]            (mass ratio)
-    chi_Ay  in [-0.99, 0.99]     (dimensionless aligned spin of hole A, χ=S/m²)
-    chi_By  in [-0.99, 0.99]     (dimensionless aligned spin of hole B)
+    b       in [B_MIN, B_MAX] M            (coordinate separation, production range)
+    q       in [Q_MIN, Q_MAX]              (mass ratio)
+    chi_Ay  in [-CHI_MAX, CHI_MAX]         (dimensionless aligned spin of hole A, χ=S/m²)
+    chi_By  in [-CHI_MAX, CHI_MAX]         (dimensionless aligned spin of hole B)
+
+with all edges taken from ``production_box``,
 
 at fixed quasi-circular tangential momentum (``qc=1.0``), on the production 3-D
 spatial grid (Na=44, Nb=32, Nphi=8), against the shipped 4-D χ Smolyak model
@@ -46,18 +48,16 @@ import numpy as np
 from lm.initial_data.solver import solver_3d as s3
 from lm.initial_data.parametric import parametric_nd_smolyak as sm
 from lm.initial_data.parametric.parametric import cheb_param_nodes
+from lm.initial_data.pipeline import production_box as pb
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPDIR = os.path.join(HERE, "reports", "P3")
 MODELDIR = os.path.join(HERE, "reports", "3D_parametric", "models_chi")
 
-# --- the paper's 4-D quasi-circular box, chi parameterization, b∈[2,7] ----
-BOX = [{"name": "b", "min": 2.0, "max": 7.0},
-       {"name": "q", "min": 1.0, "max": 3.0},
-       {"name": "chi_Ay", "min": -0.99, "max": 0.99},
-       {"name": "chi_By", "min": -0.99, "max": 0.99}]
+# --- the paper's 4-D quasi-circular box, chi parameterization ----
+BOX = pb.aligned_box()
 NAMES = [a["name"] for a in BOX]
-FIXED = {"qc": 1.0}
+FIXED = dict(pb.FIXED_QC)
 NA, NB, NPHI, M_TOT = 44, 32, 8, 1.0
 GAP_MIN = 1e-4  # off-node guard
 MODEL_NAME = "surrogate_smolyak_d4_qc_chi_b27_L5.npz"
@@ -126,9 +126,9 @@ def _stats(a):
 def main(n_points=1000, seed=0, level=5):
     os.makedirs(REPDIR, exist_ok=True)
     t0 = time.time()
-    print(f"[qc-chi] model: Smolyak L={level} over box {{b:[2,7], q:[1,3], "
-          f"chi_Ay:[-0.99,0.99], chi_By:[-0.99,0.99]}} (qc=1.0)  "
-          f"grid Na={NA},Nb={NB},Nphi={NPHI}", flush=True)
+    boxstr = ", ".join(f"{a['name']}:[{a['min']:g},{a['max']:g}]" for a in BOX)
+    print(f"[qc-chi] model: Smolyak L={level} over box {{{boxstr}}} "
+          f"(fixed {FIXED})  grid Na={NA},Nb={NB},Nphi={NPHI}", flush=True)
     prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
     model = build_or_load(prob, level)
 

@@ -22,7 +22,7 @@ PLOT = ("cold", "gradient")
 
 def _whiskers(runs, m, n):
     """Across-target min/median/max residual at each cumulative-solve count, kept where a
-    majority of targets are still iterating (verbatim from the old fig07 plotter)."""
+    majority of targets are still iterating (verbatim from the old targeting plotter)."""
     by_x = {}
     for r in runs:
         for ns, res in r[m]["history"]:

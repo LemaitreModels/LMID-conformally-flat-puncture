@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generates fig04_joint_dist.pdf (paper Fig. 4).
+"""Generates fig03_joint_dist.pdf (paper Fig. 3).
 
 Joint held-out error distribution (best / median / worst over 1000 random off-node
 points) vs solver node count, across Smolyak levels l=1..5. Two shared-y panels:
@@ -9,10 +9,10 @@ points) vs solver node count, across Smolyak levels l=1..5. Two shared-y panels:
 
 Colours match Fig. 5: value = C0, gradient-enhanced = C1.
 
-Reads ONLY figdata/fig04_joint_dist.json (build it with fig04_joint_dist_data.py).
+Reads ONLY figdata/fig03_joint_dist.json (build it with fig03_joint_dist_data.py).
 No reports/, no jax.
 
-Run:  python fig04_joint_dist_plot.py
+Run:  python fig03_joint_dist_plot.py
 """
 import os
 import sys
@@ -65,7 +65,7 @@ def _panel(ax, side, title):
 
 
 def main():
-    d = load("fig04_joint_dist")
+    d = load("fig03_joint_dist")
 
     fig, (axL, axR) = plt.subplots(1, 2, figsize=figdims(1, 2), sharey=True)
     axL.set_yscale("log")
@@ -81,10 +81,10 @@ def main():
     axL.set_ylim(lo * 0.5, hi * 4.0)
 
     fig.tight_layout()
-    stem = os.path.join(HERE, "fig04_joint_dist")
+    stem = os.path.join(HERE, "fig03_joint_dist")
     fig.savefig(stem + ".pdf")
     plt.close(fig)
-    print("wrote fig04_joint_dist.pdf")
+    print("wrote fig03_joint_dist.pdf")
 
 
 if __name__ == "__main__":

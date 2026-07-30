@@ -4,7 +4,7 @@ The 8-D spin quasi-circular sibling of ``run_polish_fielderr.py`` (4-D): it
 re-runs the certified NK polish over the IDENTICAL 1000 seed-0 off-node points of
 the 8-D staircase, recording the FIELD at every Newton step, and reports the
 relative-L2 field error ``||u^(k) - u_true||_2 / ||u_true||_2`` per step for the
-two families the ``fig01`` staircase shows:
+two families the ``fig04`` staircase shows:
 
   * ``cold`` — cold NK from the zero field (U0=None), the surrogate-free start.
   * ``pod``  — warm start from the r=250 y-pair CROSS value+gradient POD guess.

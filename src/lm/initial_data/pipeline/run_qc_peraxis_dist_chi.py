@@ -54,6 +54,7 @@ from lm.initial_data.parametric.parametric import cheb_param_nodes
 from lm.initial_data.parametric.hermite import cardinal_deriv_at_nodes
 from lm.initial_data.parametric.hermite_nd import HermiteSolutionND
 from lm.initial_data.applications import sensitivity_3d_qc as qc
+from lm.initial_data.pipeline import production_box as pb
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPDIR = os.path.join(HERE, "reports", "3D_parametric", "qc_chi")
@@ -62,25 +63,16 @@ os.makedirs(PARTDIR, exist_ok=True)
 
 NA, NB, NPHI = 44, 32, 8
 CODE_TAG = "chi-rebuild"
-QC = {"qc": 1.0}
+QC = dict(pb.FIXED_QC)
 M_TOT = 1.0
-CHI_MAX = 0.99
+CHI_MAX = pb.CHI_MAX
 GMRES_RTOL = 1e-8
 
-# production box edges for b, q (locked chi production box); spins in [-0.99,0.99]
-B_LO, B_HI = 2.0, 7.0
-Q_LO, Q_HI = 1.0, 3.0
+# production box edges (all from production_box)
+B_LO, B_HI = pb.B_MIN, pb.B_MAX
+Q_LO, Q_HI = pb.Q_MIN, pb.Q_MAX
 
-STUDIES = [
-    ("b",      B_LO,     B_HI),
-    ("q",      Q_LO,     Q_HI),
-    ("chi_Ax", -CHI_MAX, CHI_MAX),
-    ("chi_Ay", -CHI_MAX, CHI_MAX),
-    ("chi_Az", -CHI_MAX, CHI_MAX),
-    ("chi_Bx", -CHI_MAX, CHI_MAX),
-    ("chi_By", -CHI_MAX, CHI_MAX),
-    ("chi_Bz", -CHI_MAX, CHI_MAX),
-]
+STUDIES = [(a["name"], a["min"], a["max"]) for a in pb.spin8_box()]
 AXES = [s[0] for s in STUDIES]
 BOX = {n: (lo, hi) for n, lo, hi in STUDIES}
 

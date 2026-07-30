@@ -36,6 +36,7 @@ import numpy as np
 from lm.initial_data.solver import solver_3d as s3
 from lm.initial_data.parametric import parametric_nd_3d as p3
 from lm.initial_data.parametric import parametric_nd_smolyak as sm
+from lm.initial_data.pipeline import production_box as pb
 from lm.initial_data.parametric.hermite_smolyak_cross import (
     load_hermite_smolyak_cross, build_cross_from_pool)
 
@@ -46,19 +47,14 @@ os.makedirs(REPDIR, exist_ok=True)
 os.makedirs(CKDIR, exist_ok=True)
 
 NA, NB, NPHI = 44, 32, 8
-QC = {"qc": 1.0}
+QC = dict(pb.FIXED_QC)
 D = 4
-CHI = 0.99
+CHI = pb.CHI_MAX
 CROSS_MODEL = os.path.join(HERE, "reports", "P2", "models_chi",
                            "hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz")
 
-# box d4_qc_chi_b27 -- verbatim from run_qc_joint_dist_chi.BOXES
-BOX = [
-    {"name": "b", "min": 2.0, "max": 7.0},
-    {"name": "q", "min": 1.0, "max": 3.0},
-    {"name": "chi_Ay", "min": -CHI, "max": CHI},
-    {"name": "chi_By", "min": -CHI, "max": CHI},
-]
+# box d4_qc_chi_b27
+BOX = pb.aligned_box()
 
 
 def _t(m): print(m, flush=True)

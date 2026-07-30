@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-"""Generates fig03_walls.pdf (paper Fig. 3 — the two analyticity walls).
+"""Generates fig02_walls.pdf (paper Fig. 2 — the two analyticity walls).
 
-Merges the former fig03 (separation/merger wall) and fig04 (spin wall) into one
-1x2 figure of held-out convergence curves:
+Merges what used to be two separate figures (the separation/merger wall and the spin
+wall) into one 1x2 figure of held-out convergence curves:
   LEFT  separation wall: held-out error vs separation nodes Q_b, per fit range;
   RIGHT spin wall:       held-out error vs spin nodes Q_S,       per fit range.
 Each curve shows the data (markers) AND its geometric fit line eps ~ A*10^(-rho*Q);
@@ -10,10 +10,10 @@ the legend reports, per fit range, the rate rho (decades/node) and the inferred
 nearest real singularity theta* (b* pinned near merger; chi* marching outward).
 The former right-hand theta*-vs-range panels are folded into these legends.
 
-Reads ONLY figdata/fig03_walls.json (build it with fig03_walls_data.py).
+Reads ONLY figdata/fig02_walls.json (build it with fig02_walls_data.py).
 No reports/, no jax.
 
-Run:  python fig03_walls_plot.py
+Run:  python fig02_walls_plot.py
 """
 import os
 import sys
@@ -51,7 +51,7 @@ def _panel(ax, curves, key, label_fmt, xlabel, title):
 
 
 def main():
-    d = load("fig03_walls")
+    d = load("fig02_walls")
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figdims(1, 2))
 
     _panel(ax1, d["B_wall_b"], "b_min",
@@ -64,10 +64,10 @@ def main():
            "Spin wall — soft, complex")
 
     fig.tight_layout()
-    stem = os.path.join(HERE, "fig03_walls")
+    stem = os.path.join(HERE, "fig02_walls")
     fig.savefig(stem + ".pdf")
     plt.close(fig)
-    print("wrote fig03_walls.pdf")
+    print("wrote fig02_walls.pdf")
 
 
 if __name__ == "__main__":

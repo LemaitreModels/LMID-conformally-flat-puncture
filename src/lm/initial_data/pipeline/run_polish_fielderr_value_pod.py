@@ -6,7 +6,7 @@ surrogate *POD-compressed to a chosen rank* ``r`` — the apples-to-apples partn
 value+gradient POD staircase (``run_polish_podrank.py``): the two share the IDENTICAL
 shipped spatial basis ``Phi[:, :r]`` and the SAME rank, differing only in whether the
 per-node coefficient interpolation uses the certified tangents (value+gradient) or not
-(value-only).  Used to add a "value-only POD" curve to fig01 alongside the
+(value-only).  Used to add a "value-only POD" curve to fig04 alongside the
 value+gradient POD curve at the same rank (r=75 in 4D, r=250 in 8D).
 
 Construction (verified): the value-only POD is the shipped gradient-enhanced POD model
@@ -19,7 +19,7 @@ It reuses the committed field-error machinery VERBATIM — ``run_polish_fielderr
 records BOTH the field error and the equilibrated-residual staircase) — over the IDENTICAL
 1000 seed-0 off-node points (``run_polish_cold.random_offnode_points``), so the value-POD
 staircase shares the cold / value+gradient-POD step axis and whiskers.  A single run yields
-both fig01 rows: ``residual_rows`` (top) and ``field_rows`` (bottom).
+both fig04 rows: ``residual_rows`` (top) and ``field_rows`` (bottom).
 
 Writes ``reports/P3/polish_fielderr_value_pod_chi<dim>d_r<r>_<n>.json`` with a single
 ``value_pod`` family (``field_rows`` + ``residual_rows``, ``run_polish_fielderr`` schema).
@@ -101,7 +101,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dim", type=int, choices=(4, 8), required=True)
     ap.add_argument("--rank", type=int, required=True,
-                    help="POD truncation rank (fig01 uses 75 in 4D, 250 in 8D)")
+                    help="POD truncation rank (fig04 uses 75 in 4D, 250 in 8D)")
     ap.add_argument("--n-points", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--steps", type=int, default=4)    # match the value+gradient-POD step axis

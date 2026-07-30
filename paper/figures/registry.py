@@ -30,67 +30,67 @@ from __future__ import annotations
 # status: "ready"   -> present on the laptop today
 #         "pending" -> an 8D artifact still to be produced on the cluster
 SOURCES = {
-    # ---- fig01 (certified refinement staircase) ----
+    # ---- fig01 (per-axis Hermite, DISTRIBUTION over random base points) ----
+    "peraxis_dist_chi":     dict(reports="3D_parametric/qc_chi/peraxis_dist_chi.json",
+                                 producer="run_qc_peraxis_dist_chi.py --assemble", where="cluster",
+                                 status="ready", figures=["fig01_peraxis_hermite"]),
+
+    # ---- fig02 (both analyticity walls, merged) ----
+    "walls_dense":          dict(reports="3D_parametric/qc/walls_d4_qc_dense.json",
+                                 producer="run_qc_walls_sweep_chi_b27.py (dense ladder)", where="cluster",
+                                 status="ready",
+                                 figures=["fig02_walls"]),
+
+    # ---- fig03 (joint held-out distribution) ----
+    "joint_dist_4d":        dict(reports="3D_parametric/qc_chi/joint_dist_d4_qc_chi_b27.json",
+                                 producer="run_qc_joint_dist_chi.py --box d4_qc_chi_b27", where="cluster",
+                                 status="ready", figures=["fig03_joint_dist"]),
+    "joint_dist_cross_4d":  dict(reports="3D_parametric/qc_chi/joint_dist_cross_d4_qc_chi_b27.json",
+                                 producer="run_qc_joint_dist_cross_chi.py", where="cluster",
+                                 status="ready", figures=["fig03_joint_dist"]),
+    "joint_dist_8d":        dict(reports="3D_parametric/qc_chi/joint_dist_spin8_qc_chi_b27.json",
+                                 producer="run_qc_joint_dist_chi.py --box spin8_qc_chi_b27  (appendix b)",
+                                 where="cluster", status="ready", figures=["fig03_joint_dist"]),
+    "joint_dist_hermite_8d": dict(reports="3D_parametric/qc_chi/joint_dist_hermite_spin8_qc_chi_b27.json",
+                                 producer="run_qc_joint_dist_hermite_8d.py  (appendix c)",
+                                 where="cluster", status="ready", figures=["fig03_joint_dist"]),
+
+    # ---- fig04 (certified refinement staircase) ----
     "polish_cold_4d":       dict(reports="P3/polish_cold_chi4d_1000.json",
                                  producer="run_polish_cold.py --dim 4", where="cluster",
-                                 status="ready", figures=["fig01_polish_staircase"]),
+                                 status="ready", figures=["fig04_polish_staircase"]),
     "polish_cold_8d":       dict(reports="P3/polish_cold_chi8d_1000.json",
                                  producer="run_polish_cold.py --dim 8", where="cluster",
-                                 status="ready", figures=["fig01_polish_staircase"]),
+                                 status="ready", figures=["fig04_polish_staircase"]),
     "polish_pod_4d":        dict(reports="P3/polish_table_chi4d_pod_r75_cross_1000.json",
                                  producer="run_polish_podrank.py --dim 4 --rank 75 (cross)", where="cluster",
-                                 status="ready", figures=["fig01_polish_staircase"]),
+                                 status="ready", figures=["fig04_polish_staircase"]),
     "polish_pod_8d":        dict(reports="P3/polish_table_chi8d_pod_r250_1000.json",
                                  producer="run_polish_podrank.py --dim 8 --rank 250", where="cluster",
-                                 status="ready", figures=["fig01_polish_staircase"]),
+                                 status="ready", figures=["fig04_polish_staircase"]),
     "polish_fielderr_4d":   dict(reports="P3/polish_fielderr_chi4d_1000.json",
                                  producer="run_polish_fielderr.py", where="cluster",
-                                 status="ready", figures=["fig01_polish_staircase"]),
+                                 status="ready", figures=["fig04_polish_staircase"]),
     "polish_fielderr_8d":   dict(reports="P3/polish_fielderr_chi8d_1000.json",
                                  producer="run_polish_fielderr_8d.py  (appendix a)", where="cluster",
-                                 status="ready", figures=["fig01_polish_staircase"]),
+                                 status="ready", figures=["fig04_polish_staircase"]),
     "polish_fielderr_value_4d": dict(reports="P3/polish_fielderr_value_chi4d_1000.json",
                                  producer="run_polish_fielderr_value.py --dim 4", where="laptop",
-                                 status="ready", figures=["fig01_polish_staircase"]),
+                                 status="ready", figures=["fig04_polish_staircase"]),
     "polish_fielderr_value_8d": dict(reports="P3/polish_fielderr_value_chi8d_1000.json",
                                  producer="run_polish_fielderr_value.py --dim 8", where="laptop",
-                                 status="ready", figures=["fig01_polish_staircase"]),
+                                 status="ready", figures=["fig04_polish_staircase"]),
     # value-only POD warm start (same shipped basis + rank as the value+gradient POD curve);
-    # one run_family sweep carries BOTH fig01 rows (residual_rows + field_rows). Falls back to
+    # one run_family sweep carries BOTH fig04 rows (residual_rows + field_rows). Falls back to
     # polish_table_{4d,8d_value} + polish_fielderr_value_{4,8}d until these land.
     "polish_value_pod_4d":  dict(reports="P3/polish_fielderr_value_pod_chi4d_r75_1000.json",
                                  producer="run_polish_fielderr_value_pod.py --dim 4 --rank 75",
                                  where="cluster", status="pending",
-                                 figures=["fig01_polish_staircase"]),
+                                 figures=["fig04_polish_staircase"]),
     "polish_value_pod_8d":  dict(reports="P3/polish_fielderr_value_pod_chi8d_r250_1000.json",
                                  producer="run_polish_fielderr_value_pod.py --dim 8 --rank 250",
                                  where="cluster", status="pending",
-                                 figures=["fig01_polish_staircase"]),
-
-    # ---- fig02 (per-axis Hermite, DISTRIBUTION over random base points) ----
-    "peraxis_dist_chi":     dict(reports="3D_parametric/qc_chi/peraxis_dist_chi.json",
-                                 producer="run_qc_peraxis_dist_chi.py --assemble", where="cluster",
-                                 status="ready", figures=["fig02_peraxis_hermite"]),
-
-    # ---- fig03 (both analyticity walls, merged) ----
-    "walls_dense":          dict(reports="3D_parametric/qc/walls_d4_qc_dense.json",
-                                 producer="run_qc_walls_sweep_chi_b27.py (dense ladder)", where="cluster",
-                                 status="ready",
-                                 figures=["fig03_walls"]),
-
-    # ---- fig04 (joint held-out distribution) ----
-    "joint_dist_4d":        dict(reports="3D_parametric/qc_chi/joint_dist_d4_qc_chi_b27.json",
-                                 producer="run_qc_joint_dist_chi.py --box d4_qc_chi_b27", where="cluster",
-                                 status="ready", figures=["fig04_joint_dist"]),
-    "joint_dist_cross_4d":  dict(reports="3D_parametric/qc_chi/joint_dist_cross_d4_qc_chi_b27.json",
-                                 producer="run_qc_joint_dist_cross_chi.py", where="cluster",
-                                 status="ready", figures=["fig04_joint_dist"]),
-    "joint_dist_8d":        dict(reports="3D_parametric/qc_chi/joint_dist_spin8_qc_chi_b27.json",
-                                 producer="run_qc_joint_dist_chi.py --box spin8_qc_chi_b27  (appendix b)",
-                                 where="cluster", status="ready", figures=["fig04_joint_dist"]),
-    "joint_dist_hermite_8d": dict(reports="3D_parametric/qc_chi/joint_dist_hermite_spin8_qc_chi_b27.json",
-                                 producer="run_qc_joint_dist_hermite_8d.py  (appendix c)",
-                                 where="cluster", status="ready", figures=["fig04_joint_dist"]),
+                                 figures=["fig04_polish_staircase"]),
 
     # ---- fig05 (POD compression vs memory) ----
     "gvm_4d_value":         dict(reports="P3/guess_vs_memory_4d_value_gapfill_1000.json",
@@ -108,14 +108,14 @@ SOURCES = {
     "polish_table_4d":      dict(reports="P3/polish_table_qc_chi_b27_1000.json",
                                  producer="run_polish_table_qc_chi.py", where="cluster",
                                  status="ready",
-                                 figures=["fig05_guess_vs_memory", "fig01_polish_staircase"]),
+                                 figures=["fig05_guess_vs_memory", "fig04_polish_staircase"]),
     "polish_table_4d_cross": dict(reports="P3/polish_table_qc_chi_b27_cross_1000.json",
                                  producer="run_polish_table_qc_chi.py (cross)", where="cluster",
                                  status="ready", figures=["fig05_guess_vs_memory"]),
     "polish_table_8d_value": dict(reports="P3/polish_table_chi8d_value_1000.json",
                                  producer="run_polish_table (8d value)", where="cluster",
                                  status="ready",
-                                 figures=["fig05_guess_vs_memory", "fig01_polish_staircase"]),
+                                 figures=["fig05_guess_vs_memory", "fig04_polish_staircase"]),
     "gvm_8d_value":         dict(reports="P3/guess_vs_memory_8d_value_gapfill_1000.json",
                                  producer="run_guess_vs_memory (8d value)  (appendix d)", where="cluster",
                                  status="ready", figures=["fig05_guess_vs_memory"]),
@@ -158,16 +158,16 @@ SOURCES = {
 # The committed output is always figdata/<stem>.json.  "inline" figures carry their own numbers
 # in the data script (no external source).
 FIGURES = {
-    "fig01_polish_staircase":   dict(sources=["polish_cold_4d", "polish_cold_8d", "polish_pod_4d",
+    "fig01_peraxis_hermite":    dict(sources=["peraxis_dist_chi"]),
+    "fig02_walls":              dict(sources=["walls_dense"]),
+    "fig03_joint_dist":         dict(sources=["joint_dist_4d", "joint_dist_cross_4d",
+                                              "joint_dist_8d", "joint_dist_hermite_8d"]),
+    "fig04_polish_staircase":   dict(sources=["polish_cold_4d", "polish_cold_8d", "polish_pod_4d",
                                               "polish_pod_8d", "polish_fielderr_4d",
                                               "polish_fielderr_8d", "polish_table_4d",
                                               "polish_table_8d_value", "polish_fielderr_value_4d",
                                               "polish_fielderr_value_8d",
                                               "polish_value_pod_4d", "polish_value_pod_8d"]),
-    "fig02_peraxis_hermite":    dict(sources=["peraxis_dist_chi"]),
-    "fig03_walls":              dict(sources=["walls_dense"]),
-    "fig04_joint_dist":         dict(sources=["joint_dist_4d", "joint_dist_cross_4d",
-                                              "joint_dist_8d", "joint_dist_hermite_8d"]),
     "fig05_guess_vs_memory":    dict(sources=["gvm_4d_value", "gvm_4d_cross",
                                               "gvm_4d_field", "gvm_4d_cross_field",
                                               "polish_table_4d", "polish_table_4d_cross",

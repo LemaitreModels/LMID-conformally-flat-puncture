@@ -8,10 +8,22 @@ not read a pre-baked cache. There are two tiers.
 ```bash
 make figdata     # (re)compute paper/figures/figdata/*.json from the solver/ROM
 make figures     # figdata, then plot every fig??_*_plot.py -> PDF
+make tabdata     # (re)compute paper/tables/tabdata/*.json from the solver
+make tables      # tabdata, then render every tab??_*_tex.py -> .tex
 make test        # acceptance suite (fast tier)
 make models      # heavy: (re)build the chi surrogate corpora  [cluster]
 make oracle      # build the external TwoPunctures validation binary
 ```
+
+## Tables
+
+The two appendix tables (the parameter-sensitivity verification) use the same
+two-tier pattern as the figures, but sit entirely in the laptop tier: both
+recompute from the solver in seconds with no corpus and no oracle. The canonical
+producer is `pipeline/run_tangent_verification.py`; `tabdata/*.json` is a
+gitignored build output while the rendered `paper/tables/tab??_*.tex` is committed
+(as the figure PDFs are), and `paper.tex` `\input`s it. See
+`paper/tables/README.md`.
 
 ## Two tiers
 

@@ -4,7 +4,7 @@ the DIMENSIONLESS-SPIN (chi) parameterization (chi-rebuild S7).
 Add-only 8-D twin of ``build_pod_hermite_model_chi.py`` (the 4-D S4 driver).  Like
 that driver it does NOT copy the committed builder's body; it imports
 ``build_pod_hermite_model``, swaps the module-level box to the full 8-D chi spin box
-``spin8_qc_chi_b27 = (b∈[2,7], q∈[1,3], chi_Ax..chi_Bz ∈ [-0.99,0.99])`` (matching
+``spin8_qc_chi_b27`` = the production 8-D box of ``production_box`` (matching
 the S6 value corpus box), and dispatches to ``build_pod_hermite_model.main()``
 verbatim — so the Newton–Krylov solve, the QC chain-rule certified tangent, the
 H5d POD compression, the save, and the certified spot-check are reused byte-for-byte
@@ -48,27 +48,20 @@ import sys
 
 import build_pod_hermite_model as bh  # noqa: E402  (committed builder, reused verbatim)
 
-CHI_MAX = 0.99
+from lm.initial_data.pipeline import production_box as pb  # noqa: E402
+
+CHI_MAX = pb.CHI_MAX
 
 # swap the module-level box to the 8-D chi spin box (main() reads BOX/FIXED as
-# globals).  b in [2,7]: the wide production separation range (feasibility
-# de-risked by derisk_b27.py — every hard corner certified <= 7.2e-12).  Must match
-# the value corpus box for --reuse-value (spin8_qc_chi_b27).  All six spin
-# components are box axes; b,q stay value-only.
-bh.BOX = [
-    {"name": "b",      "min": 2.0, "max": 7.0},
-    {"name": "q",      "min": 1.0, "max": 3.0},
-    {"name": "chi_Ax", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_Ay", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_Az", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_Bx", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_By", "min": -CHI_MAX, "max": CHI_MAX},
-    {"name": "chi_Bz", "min": -CHI_MAX, "max": CHI_MAX},
-]
+# globals).  The production separation range's feasibility was de-risked by
+# derisk_b27.py (every hard corner certified <= 7.2e-12).  Must match the value
+# corpus box for --reuse-value (spin8_qc_chi_b27), which is why both come from
+# production_box.  All six spin components are box axes; b,q stay value-only.
+bh.BOX = pb.spin8_box()
 # FIXED = {"qc": 1.0} is identical for the chi QC family — no change needed.
 
 # the six dimensionless-spin components (the enhanced/gradient axes; b,q value-only)
-SPIN_AXES = "chi_Ax,chi_Ay,chi_Az,chi_Bx,chi_By,chi_Bz"
+SPIN_AXES = ",".join(pb.SPIN8_AXES)
 
 
 if __name__ == "__main__":

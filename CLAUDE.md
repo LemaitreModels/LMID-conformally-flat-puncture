@@ -80,6 +80,14 @@ the solver/ROM (loading a shipped surrogate model artifact), writing
 Driver: `make figdata` / `make figures`. Heavy inputs (χ corpora, TwoPunctures)
 are the `make models` / `make oracle` tier — see `docs/DATA.md`.
 
+The paper's **tables** follow the same two tiers in `paper/tables/`:
+`tabNN_*_data.py` recomputes from the solver into `tabdata/NN.json` (gitignored),
+`tabNN_*_tex.py` renders the `ruledtabular` body into a committed `tabNN_*.tex`
+that `paper.tex` `\input`s, so no number is hand-transcribed. Driver:
+`make tabdata` / `make tables`; the canonical producer is
+`pipeline/run_tangent_verification.py`; `tests/test_paper_tables.py` guards both
+the rendered rows and the hand-written captions against drift.
+
 ## Working cadence
 
 Self-verifying + report-then-wait at milestone boundaries: keep each committed

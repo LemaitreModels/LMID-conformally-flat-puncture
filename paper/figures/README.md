@@ -108,17 +108,15 @@ consumed by both listed figures.
 
 | Fig | data script | raw source key(s) (`registry.SOURCES`) |
 |----:|-------------|------------------------------------------|
-| 1  | `fig01_polish_staircase_data.py`   | `polish_cold_{4,8}d`, `polish_pod_{4,8}d`, `polish_fielderr_4d`, `polish_fielderr_8d` *(pending)* |
-| 2  | `fig02_peraxis_hermite_data.py`    | `peraxis_dist_chi` *(distribution over random base points)* |
-| 3  | `fig03_walls_data.py`              | `walls_dense` *(both walls — separation + spin — merged into one figure)* |
-| 4  | `fig04_joint_dist_data.py`         | `joint_dist_4d`, `joint_dist_cross_4d`, `joint_dist_8d` *(pending)*, `joint_dist_hermite_8d` *(pending)* |
+| 1  | `fig01_peraxis_hermite_data.py`    | `peraxis_dist_chi` *(distribution over random base points)* |
+| 2  | `fig02_walls_data.py`              | `walls_dense` *(both walls — separation + spin — merged into one figure)* |
+| 3  | `fig03_joint_dist_data.py`         | `joint_dist_4d`, `joint_dist_cross_4d`, `joint_dist_8d` *(pending)*, `joint_dist_hermite_8d` *(pending)* |
+| 4  | `fig04_polish_staircase_data.py`   | `polish_cold_{4,8}d`, `polish_pod_{4,8}d`, `polish_fielderr_4d`, `polish_fielderr_8d` *(pending)* |
 | 5  | `fig05_guess_vs_memory_data.py`    | `gvm_all`, `gvm_4d_{value,cross,field,cross_field}`, `polish_table_{4d,4d_cross,8d_hermite}`, `gvm_8d_{value,field,hermite_field}` *(pending)* |
 | 6  | `fig06_targeting_data.py`          | `qc_targeting` |
 | 7  | `fig07_eccentricity_data.py`       | `qc_effpot` + `effpot_model` (surrogate `.npz`; distilled to json) |
 | 8  | `fig08_3d_validation_data.py`      | `sweep_3d` *(shared with fig 9)* |
-| 9  | `fig09_3d_angular_momentum_data.py`| `sweep_3d` *(shared with fig 8)* |
-| 10 | `fig10_tp_validation_data.py`      | `tp_validation` |
-| 11 | `fig11_constraint_convergence_data.py` | *(inline — numbers carried in the data script)* |
+| 9  | `fig09_tp_validation_data.py`      | `sweep_3d` *(shared with fig 8)* + `tp_validation` |
 
 **Status.** Figures 2, 3, 6, 7, 8, 9, 10, 11 are fully data-split and their `figdata/` json is
 committed; each regenerates pixel-identical to the shipped figure. Figures **1, 4, 5** still read
