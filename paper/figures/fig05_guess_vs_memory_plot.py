@@ -66,14 +66,15 @@ def plot_family(ax, spec):
     _r_label(bm, bare["max"], bare["min"], spec["bare_r"])
 
 
-def declutter(fig, axes, pad=2.0, max_iter=8):
+def declutter(fig, axes, pad=4.0, max_iter=8):
     """Nudge overlapping rank labels apart horizontally.
 
     The last swept rank sits close to the full-rank star in log-memory (0.2 decade in
-    the 8D column), so their labels collide.  Each label is centred on its own marker,
-    so the fix is a symmetric split: shift the left label left and the right label
-    right by half the overlap, leaving both nearer their own point than the other's.
-    Measured on the drawn figure, so it self-corrects if the rank ladder changes.
+    the 8D column), so their labels collide.  Both are centred on their own marker, so
+    the pair is pushed apart horizontally: the right-hand one alone when the panel has
+    room for it (which leaves the left one centred on its point, clear of its
+    neighbour's whisker), otherwise a symmetric split.  Measured on the drawn figure,
+    so it self-corrects if the rank ladder changes.
     """
     to_pt = 72.0 / fig.dpi
     fig.canvas.draw()
@@ -81,6 +82,7 @@ def declutter(fig, axes, pad=2.0, max_iter=8):
         anns = [t for t in ax.texts if t.get_gid() == RANK_GID]
         for _ in range(max_iter):
             rnd = fig.canvas.get_renderer()
+            frame = ax.get_window_extent(rnd)
             boxes = [a.get_window_extent(rnd) for a in anns]
             moved = False
             for i in range(len(anns)):
@@ -92,9 +94,11 @@ def declutter(fig, axes, pad=2.0, max_iter=8):
                     if ov <= 0:      # they overlap only vertically; leave them be
                         continue
                     lo, hi = (i, j) if bi.x0 <= bj.x0 else (j, i)
-                    for k, sgn in ((lo, -1.0), (hi, +1.0)):
+                    shifts = (((hi, ov),) if boxes[hi].x1 + ov <= frame.x1 - pad
+                              else ((lo, -0.5 * ov), (hi, 0.5 * ov)))
+                    for k, dpx in shifts:
                         dx, dy = anns[k].get_position()
-                        anns[k].set_position((dx + sgn * 0.5 * ov * to_pt, dy))
+                        anns[k].set_position((dx + dpx * to_pt, dy))
                     moved = True
             if not moved:
                 break
