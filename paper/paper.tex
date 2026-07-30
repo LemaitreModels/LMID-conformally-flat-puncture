@@ -1120,9 +1120,10 @@ guess is poorest. The interpolant accelerates; the polish certifies.
   \includegraphics[width=\textwidth]{fig03_joint_dist.pdf}
   \caption{\label{fig:joint}%
     \textbf{Joint held-out convergence.} Joint held-out error over $1000$ random
-    off-node points across Smolyak levels $\ell=1$--$5$, shown as the best,
-    median, and worst of the distribution; every level is served from the
-    committed corpus at the node counts shown, with no new solves.
+    off-node points against solver node count (logarithmic, shared between
+    panels), with the Smolyak level $\ell=1$--$5$ labelled at each point, shown as
+    the best, median, and worst of the distribution; every level is served from
+    the committed corpus at the node counts shown, with no new solves.
     \emph{Left (four-dimensional model, $(b,q,\chi_{Ay},\chi_{By})$):} the bare
     sparse interpolant against the value$+$gradient$+$cross (full-bilinear
     Hermite--Smolyak) model enhanced on the two spin axes, which is more accurate
