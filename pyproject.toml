@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lemaitre-initial-data"
+version = "0.1.0"
+description = "Certified, differentiable, parametric binary-black-hole initial data (PARASOL) — lemaitre.initial_data"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Frederik De Ceuster" }]
+dependencies = [
+    "numpy",
+    "scipy",
+    "jax",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+# src/ layout.  Ships the shared `lemaitre` namespace root plus the
+# `lemaitre.initial_data` subpackage tree.
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["lemaitre*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: heavier B1 checks (external TwoPunctures oracle / Cartesian sweep)",
+]
