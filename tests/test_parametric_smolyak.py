@@ -28,9 +28,9 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.parametric import parametric_nd_smolyak as sm
-from lemaitre.initial_data.parametric.parametric_nd import ParametricSolverND
-from lemaitre.initial_data.parametric.parametric_nd_2c import smolyak_points
+from lm.initial_data.parametric import parametric_nd_smolyak as sm
+from lm.initial_data.parametric.parametric_nd import ParametricSolverND
+from lm.initial_data.parametric.parametric_nd_2c import smolyak_points
 
 
 # --------------------------------------------------------------------------
@@ -260,8 +260,8 @@ def test_sparse_beats_dense_solver_family_d4():
     grow with dimension, which is exactly why §8 flagged *d=4* as the regime where
     the sparse grid pays off.  We therefore demonstrate the saving at d=4.)
     """
-    from lemaitre.initial_data.solver import solver_3d as s3
-    from lemaitre.initial_data.parametric import parametric_nd_3d as p3
+    from lm.initial_data.solver import solver_3d as s3
+    from lm.initial_data.parametric import parametric_nd_3d as p3
 
     prob = s3.make_problem(Na=16, Nb=14, Nphi=4)
     box = [{"name": "b", "min": 1.5, "max": 4.0},
@@ -302,8 +302,8 @@ def test_certified_prediction_sparse():
     """``evaluate_polished`` on the sparse interpolant reaches certified
     ``‖R‖∞ ≤ 1e-10`` at a generic off-node θ in ≤2 NK steps — the certify
     property carries over to the sparse layer."""
-    from lemaitre.initial_data.solver import solver_3d as s3
-    from lemaitre.initial_data.parametric import parametric_nd_3d as p3
+    from lm.initial_data.solver import solver_3d as s3
+    from lm.initial_data.parametric import parametric_nd_3d as p3
 
     prob = s3.make_problem(Na=24, Nb=18, Nphi=6)
     box = [{"name": "b", "min": 1.5, "max": 4.0},

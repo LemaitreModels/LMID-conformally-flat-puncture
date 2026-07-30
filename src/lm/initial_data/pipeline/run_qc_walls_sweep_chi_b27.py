@@ -25,7 +25,7 @@ import time
 
 
 import run_qc_walls_sweep_chi as w  # noqa: E402  (committed study driver, reused)
-from lemaitre.initial_data.parametric import parametric_nd_3d as p3  # noqa: E402
+from lm.initial_data.parametric import parametric_nd_3d as p3  # noqa: E402
 
 CHI_MAX = w.CHI_MAX
 QC = w.QC

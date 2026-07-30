@@ -33,10 +33,10 @@ import jax
 jax.config.update("jax_enable_x64", True)
 import numpy as np
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.parametric import parametric_nd_3d as p3
-from lemaitre.initial_data.parametric import parametric_nd_smolyak as sm
-from lemaitre.initial_data.parametric.hermite_smolyak_cross import (
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.parametric import parametric_nd_3d as p3
+from lm.initial_data.parametric import parametric_nd_smolyak as sm
+from lm.initial_data.parametric.hermite_smolyak_cross import (
     load_hermite_smolyak_cross, build_cross_from_pool)
 
 HERE = os.path.dirname(os.path.abspath(__file__))

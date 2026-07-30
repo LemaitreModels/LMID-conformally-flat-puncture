@@ -32,12 +32,12 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.parametric.parametric_nd import _load_npz, _unpack_meta
-from lemaitre.initial_data.parametric.parametric_nd_smolyak import _node_key
-from lemaitre.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
-from lemaitre.initial_data.applications import sensitivity_3d_cross as cross
-from lemaitre.initial_data.parametric.hermite_smolyak_cross import (
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.parametric.parametric_nd import _load_npz, _unpack_meta
+from lm.initial_data.parametric.parametric_nd_smolyak import _node_key
+from lm.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
+from lm.initial_data.applications import sensitivity_3d_cross as cross
+from lm.initial_data.parametric.hermite_smolyak_cross import (
     build_cross_from_pool, _global_pairs)
 
 
@@ -52,7 +52,7 @@ def main(model_path, out_path, jac="nk", checkpoint=50, M_tot=1.0, enhanced_name
     if cross_fn == "committed":
         _cross_tan = cross.cross_tangent_3d_qc
     elif cross_fn == "bq":
-        from lemaitre.initial_data.applications import sensitivity_3d_cross_bq as _cbq
+        from lm.initial_data.applications import sensitivity_3d_cross_bq as _cbq
         _cross_tan = _cbq.cross_tangent_3d_qc_bq
     else:
         raise ValueError(f"cross_fn must be 'committed' or 'bq', got {cross_fn!r}")

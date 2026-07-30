@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lemaitre-initial-data"
+name = "LM-initial-data"
 version = "0.1.0"
-description = "Certified, differentiable, parametric binary-black-hole initial data (PARASOL) — lemaitre.initial_data"
+description = "Certified, differentiable, parametric binary-black-hole initial data (PARASOL) — lm.initial_data"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
@@ -20,11 +20,11 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest"]
 
-# src/ layout.  Ships the shared `lemaitre` namespace root plus the
-# `lemaitre.initial_data` subpackage tree.
+# src/ layout.  Ships the shared `lm` namespace root plus the
+# `lm.initial_data` subpackage tree.
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["lemaitre*"]
+include = ["lm*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -31,10 +31,10 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.solver import solver_abt as sa
-from lemaitre.initial_data.validation import adm
-from lemaitre.initial_data.parametric import parametric_nd_2c as p3
-from lemaitre.initial_data.applications import control as ctl
+from lm.initial_data.solver import solver_abt as sa
+from lm.initial_data.validation import adm
+from lm.initial_data.parametric import parametric_nd_2c as p3
+from lm.initial_data.applications import control as ctl
 
 
 P = 0.5

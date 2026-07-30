@@ -26,11 +26,11 @@ import os
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.parametric import solve_store as ss
-from lemaitre.initial_data.parametric.parametric_nd import ParametricSolverND
-from lemaitre.initial_data.parametric.parametric_nd_smolyak import SmolyakSolverND
-from lemaitre.initial_data.parametric.parametric_nd_2c import smolyak_points
-from lemaitre.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
+from lm.initial_data.parametric import solve_store as ss
+from lm.initial_data.parametric.parametric_nd import ParametricSolverND
+from lm.initial_data.parametric.parametric_nd_smolyak import SmolyakSolverND
+from lm.initial_data.parametric.parametric_nd_2c import smolyak_points
+from lm.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
 
 
 # --------------------------------------------------------------------------
@@ -256,8 +256,8 @@ def test_corrupt_file_is_a_miss_and_atomic_write(tmp_path):
 # ==========================================================================
 @pytest.mark.slow
 def test_solver_cross_reuse_certifies(tmp_path):
-    from lemaitre.initial_data.solver import solver_3d as s3
-    from lemaitre.initial_data.parametric import parametric_nd_3d as p3
+    from lm.initial_data.solver import solver_3d as s3
+    from lm.initial_data.parametric import parametric_nd_3d as p3
 
     prob = s3.make_problem(Na=24, Nb=18, Nphi=6)
     box = [{"name": "b", "min": 1.5, "max": 4.0},

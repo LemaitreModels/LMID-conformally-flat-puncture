@@ -43,12 +43,12 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.parametric.parametric_nd import _load_npz, _unpack_meta, attach_solve_fn_3d
-from lemaitre.initial_data.parametric.hermite_smolyak_cross import load_hermite_smolyak_cross
-from lemaitre.initial_data.parametric.hermite_smolyak_pod_cross import build_pod_hermite_smolyak_cross
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.parametric.parametric_nd import _load_npz, _unpack_meta, attach_solve_fn_3d
+from lm.initial_data.parametric.hermite_smolyak_cross import load_hermite_smolyak_cross
+from lm.initial_data.parametric.hermite_smolyak_pod_cross import build_pod_hermite_smolyak_cross
 # reuse the EXACT seed-shared off-node sampling + stats of the residual sweep
-from lemaitre.initial_data.pipeline.run_cross_fielderror_chi import offnode_points, stats
+from lm.initial_data.pipeline.run_cross_fielderror_chi import offnode_points, stats
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REP3 = os.path.join(HERE, "reports", "P3")

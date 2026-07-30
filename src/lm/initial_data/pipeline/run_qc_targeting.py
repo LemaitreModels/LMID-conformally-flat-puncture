@@ -32,8 +32,8 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.applications import qc_targeting as T
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.applications import qc_targeting as T
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODEL = os.path.join(HERE, "reports", "3D_parametric", "models",

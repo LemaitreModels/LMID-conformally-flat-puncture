@@ -1,4 +1,4 @@
-"""lemaitre.initial_data.solver subpackage."""
+"""lm.initial_data.solver subpackage."""
 def __getattr__(name):
     """Lazily import a submodule on attribute access (so the parent package's
     modules resolve as attributes without an explicit import)."""

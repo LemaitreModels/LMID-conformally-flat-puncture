@@ -1,5 +1,5 @@
 """Canonical producers/builders for the manuscript figures and shipped
-models.  Runnable as scripts; importable as ``lemaitre.initial_data.pipeline.*``.
+models.  Runnable as scripts; importable as ``lm.initial_data.pipeline.*``.
 """
 def __getattr__(name):
     """Lazily import a submodule on attribute access (so the parent package's

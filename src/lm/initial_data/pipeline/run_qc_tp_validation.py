@@ -22,9 +22,9 @@ import jax
 jax.config.update("jax_enable_x64", True)
 import numpy as np
 
-from lemaitre.initial_data.solver import solver_3d as s3, solver_3d_nk as s3nk, source
-from lemaitre.initial_data.parametric import parametric_nd_3d as p3, quasicircular as qc
-from lemaitre.initial_data.validation import twopunctures as tp, conventions as cv
+from lm.initial_data.solver import solver_3d as s3, solver_3d_nk as s3nk, source
+from lm.initial_data.parametric import parametric_nd_3d as p3, quasicircular as qc
+from lm.initial_data.validation import twopunctures as tp, conventions as cv
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPDIR = os.path.join(HERE, "reports", "3D_parametric", "qc")

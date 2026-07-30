@@ -22,11 +22,11 @@ import tempfile
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.parametric import parametric_nd_3d as p3d
-from lemaitre.initial_data.parametric import parametric_nd_smolyak as smol
-from lemaitre.initial_data.parametric import hermite_smolyak as hsm
-from lemaitre.initial_data.parametric.parametric_nd_smolyak import nested_levels
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.parametric import parametric_nd_3d as p3d
+from lm.initial_data.parametric import parametric_nd_smolyak as smol
+from lm.initial_data.parametric import hermite_smolyak as hsm
+from lm.initial_data.parametric.parametric_nd_smolyak import nested_levels
 
 
 M_TOT = 1.0
@@ -210,7 +210,7 @@ def test_enhanced_axis_validation(prob):
 # H5b-T3 — add-only / standalone discipline
 # ==========================================================================
 def test_standalone_imports():
-    import lemaitre.initial_data.parametric.hermite_smolyak as mod
+    import lm.initial_data.parametric.hermite_smolyak as mod
     src = open(mod.__file__).read()
     for forbidden in ("import nrpy", "src.bbhfm", "from bbhfm", "import context", "torch"):
         assert forbidden not in src, forbidden

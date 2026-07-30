@@ -1,25 +1,25 @@
-# lemaitre.initial_data (LM-initial-data)
+# lm.initial_data (LM-initial-data)
 
 Certified, differentiable, **parametric** binary-black-hole *initial data* via
 spectral collocation — the code and manuscript for the PARASOL paper.
 
 This is the `initial_data` member of the **Lemaitre** package family. It installs
-under the shared `lemaitre` namespace, so once installed:
+under the shared `lm` namespace, so once installed:
 
 ```python
-import lemaitre as lm
+import lm
 lm.initial_data.solver.solver_3d      # the production 3-D xCFC solver
 lm.initial_data.parametric            # the certified/differentiable ROM layer
 ```
 
-Sibling repos (`lemaitre.early_inspiral`, `lemaitre.ringdown`, `lemaitre.artwork`)
-slot in under the same `lemaitre.` prefix when installed alongside.
+Sibling repos (`lm.early_inspiral`, `lm.ringdown`, `lm.artwork`)
+slot in under the same `lm.` prefix when installed alongside.
 
 ## Install
 
 ```bash
 pip install -e ".[dev]"        # editable install + pytest
-python -c "import lemaitre as lm; lm.initial_data"   # smoke check
+python -c "import lm; lm.initial_data"   # smoke check
 ```
 
 Pure Python: `jax`, `numpy`, `scipy`, `matplotlib` (float64 throughout). No
@@ -29,7 +29,7 @@ package is self-contained (enforced by a test guard).
 ## Layout
 
 ```
-src/lemaitre/initial_data/
+src/lm/initial_data/
   solver/         spatial elliptic (xCFC) solver — production 3-D stack + base layers
   parametric/     parameter-space collocation, Hermite/Smolyak, POD — the ROM
   applications/   parameter targeting, eccentricity control, differentiable sensitivity

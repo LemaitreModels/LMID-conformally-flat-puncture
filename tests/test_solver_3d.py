@@ -27,13 +27,13 @@ jax.config.update("jax_enable_x64", True)
 
 import numpy as np
 
-from lemaitre.initial_data.solver import operators_3d as ops3
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.solver import source_3d
-from lemaitre.initial_data.solver import solver_abt as sa
-from lemaitre.initial_data.solver import diagnostics as diag
-from lemaitre.initial_data.solver.solver_abt import Slice
-from lemaitre.initial_data.solver.solver_3d import Slice3D
+from lm.initial_data.solver import operators_3d as ops3
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.solver import source_3d
+from lm.initial_data.solver import solver_abt as sa
+from lm.initial_data.solver import diagnostics as diag
+from lm.initial_data.solver.solver_abt import Slice
+from lm.initial_data.solver.solver_3d import Slice3D
 
 
 # ==========================================================================
@@ -97,7 +97,7 @@ def test_transversality_momentum_plus_spin():
 def test_axisym_source_matches_closed_form():
     """The point-wise summed tensor Â² equals the 2-D closed form on the meridian
     (on-axis momentum) — what makes the reduction gate (A) hold."""
-    from lemaitre.initial_data.solver import source
+    from lm.initial_data.solver import source
     b, P = 1.3, 0.7
     rng = np.random.default_rng(3)
     worst = 0.0
@@ -278,7 +278,7 @@ def test_misaligned_spin_breaks_axisymmetry():
 # remains lives entirely in the highest, ~zero-content modes (m²/ρ² roundoff),
 # which do not affect the physical solution — confirmed by NK reproducing the
 # modified-Newton field (hence the TwoPunctures-validated data) bit-for-bit.
-from lemaitre.initial_data.solver import solver_3d_nk as nk      # noqa: E402
+from lm.initial_data.solver import solver_3d_nk as nk      # noqa: E402
 
 
 def _content_modes(asm, rel_tol=1e-10):

@@ -27,12 +27,12 @@ import numpy as np
 import jax.numpy as jnp
 import pytest
 
-from lemaitre.initial_data.parametric.parametric import cheb_param_nodes
-from lemaitre.initial_data.parametric.parametric_nd import ParametricSolutionND
-from lemaitre.initial_data.parametric.hermite import cardinal_deriv_at_nodes
-from lemaitre.initial_data.parametric.hermite_nd import HermiteSolutionND, from_problem_nd_hermite
-from lemaitre.initial_data.parametric import parametric_nd_smolyak as sm
-from lemaitre.initial_data.parametric.hermite_pod import (
+from lm.initial_data.parametric.parametric import cheb_param_nodes
+from lm.initial_data.parametric.parametric_nd import ParametricSolutionND
+from lm.initial_data.parametric.hermite import cardinal_deriv_at_nodes
+from lm.initial_data.parametric.hermite_nd import HermiteSolutionND, from_problem_nd_hermite
+from lm.initial_data.parametric import parametric_nd_smolyak as sm
+from lm.initial_data.parametric.hermite_pod import (
     pod_basis,
     build_pod_hermite,
     project_hermite_pod,
@@ -265,7 +265,7 @@ def test_pod_load_rejects_wrong_kind(tmp_path):
 # H3-U7 — add-only / standalone discipline
 # ==========================================================================
 def test_standalone_imports():
-    import lemaitre.initial_data.parametric.hermite_pod as mod
+    import lm.initial_data.parametric.hermite_pod as mod
     src = open(mod.__file__).read()
     for forbidden in ("import nrpy", "src.bbhfm", "from bbhfm", "import context", "torch"):
         assert forbidden not in src, forbidden
@@ -356,7 +356,7 @@ def test_enhanced_gradient_requires_dense_tangent():
     Smolyak builder stores only values, and its solver (``parametric_nd_3d``) has no
     certified tangent."""
     import inspect
-    from lemaitre.initial_data.parametric.hermite_nd import HermiteSolverND
+    from lm.initial_data.parametric.hermite_nd import HermiteSolverND
 
     # the dense Hermite builder REQUIRES a tangent_fn (the enhancement source)
     sig_h = inspect.signature(HermiteSolverND.__init__)
@@ -395,8 +395,8 @@ def test_pod_real_corpus_solver_backed():
       (iii) the reduced-basis Hermite reproduces the full Hermite (held-out) and
             preserves the exposed gradient to the truncation tail;
       (iv) ``evaluate_polished`` still certifies to ‖R‖∞ ≤ 1e-10."""
-    from lemaitre.initial_data.solver import solver_abt as sa
-    from lemaitre.initial_data.parametric.parametric_nd_2c import theta_to_slice
+    from lm.initial_data.solver import solver_abt as sa
+    from lm.initial_data.parametric.parametric_nd_2c import theta_to_slice
 
     prob = sa.make_problem(Na=44, Nb=32, P=P_MOM)
     axes = [{"name": "b", "min": 1.5, "max": 4.0, "Q": 6},

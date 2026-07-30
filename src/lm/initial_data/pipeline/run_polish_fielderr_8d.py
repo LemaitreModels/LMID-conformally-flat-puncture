@@ -61,17 +61,17 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.solver import solver_3d_nk as s3nk
-from lemaitre.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.solver import solver_3d_nk as s3nk
+from lm.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
 # the y-pair CROSS Hermite-Smolyak POD loader (value + grad in chi_Ay/chi_By +
 # the mixed 2nd partial) — the 8-D gradient-enhanced warm start
-from lemaitre.initial_data.parametric.hermite_smolyak_pod_cross import load_pod_hermite_smolyak_cross
+from lm.initial_data.parametric.hermite_smolyak_pod_cross import load_pod_hermite_smolyak_cross
 # metadata / box / grid / axes / fixed source (the SAME plain 8-D model
 # run_polish_cold --dim 8 reads its metadata + off-node points from)
-from lemaitre.initial_data.pipeline.run_guess_vs_memory import MODELS
+from lm.initial_data.pipeline.run_guess_vs_memory import MODELS
 # reuse the EXACT seed-shared off-node sampling of the residual staircases
-from lemaitre.initial_data.pipeline.run_polish_cold import random_offnode_points, read_meta
+from lm.initial_data.pipeline.run_polish_cold import random_offnode_points, read_meta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPDIR = os.path.join(HERE, "reports", "P3")

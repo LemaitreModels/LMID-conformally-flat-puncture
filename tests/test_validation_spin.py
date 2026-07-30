@@ -15,8 +15,8 @@ spin mismatch, caught by the J check below.
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.solver import solver_abt as sa, source
-from lemaitre.initial_data.validation import adm, conventions, twopunctures as tp
+from lm.initial_data.solver import solver_abt as sa, source
+from lm.initial_data.validation import adm, conventions, twopunctures as tp
 
 pytestmark = [
     pytest.mark.slow,

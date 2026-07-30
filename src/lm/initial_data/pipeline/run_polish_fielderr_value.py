@@ -42,12 +42,12 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
-from lemaitre.initial_data.parametric.parametric_nd_smolyak import load_smolyak
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
+from lm.initial_data.parametric.parametric_nd_smolyak import load_smolyak
 # reuse the EXACT seed-shared off-node sampling and instrumented polish of the cold/pod families
-from lemaitre.initial_data.pipeline.run_polish_cold import random_offnode_points, read_meta
-from lemaitre.initial_data.pipeline.run_polish_fielderr import run_family
+from lm.initial_data.pipeline.run_polish_cold import random_offnode_points, read_meta
+from lm.initial_data.pipeline.run_polish_fielderr import run_family
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPDIR = os.path.join(HERE, "reports", "P3")

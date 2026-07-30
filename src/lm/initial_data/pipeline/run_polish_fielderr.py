@@ -51,12 +51,12 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.solver import solver_3d_nk as s3nk
-from lemaitre.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
-from lemaitre.initial_data.parametric.hermite_smolyak_pod_cross import load_pod_hermite_smolyak_cross
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.solver import solver_3d_nk as s3nk
+from lm.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
+from lm.initial_data.parametric.hermite_smolyak_pod_cross import load_pod_hermite_smolyak_cross
 # reuse the EXACT seed-shared off-node sampling of the residual staircases
-from lemaitre.initial_data.pipeline.run_polish_cold import random_offnode_points, read_meta
+from lm.initial_data.pipeline.run_polish_cold import random_offnode_points, read_meta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPDIR = os.path.join(HERE, "reports", "P3")

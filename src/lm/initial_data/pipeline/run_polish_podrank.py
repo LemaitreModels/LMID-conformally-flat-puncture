@@ -39,8 +39,8 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.parametric.parametric_nd import attach_solve_fn_3d
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.parametric.parametric_nd import attach_solve_fn_3d
 
 # committed sibling drivers (read-only reuse — identical points + truncation)
 from run_polish_table import random_offnode_points, step_residuals, _stats, REPDIR

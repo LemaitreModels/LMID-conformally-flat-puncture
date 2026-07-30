@@ -12,8 +12,8 @@ Plus the real binary: PARASOL ID lands on the grid with O(h^2) constraint decay.
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.solver import solver_abt as sa, source
-from lemaitre.initial_data.validation import constraints as cst
+from lm.initial_data.solver import solver_abt as sa, source
+from lm.initial_data.validation import constraints as cst
 
 
 def _order(hs, errs):

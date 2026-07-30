@@ -48,12 +48,12 @@ import jax
 jax.config.update("jax_enable_x64", True)
 import numpy as np
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.parametric import parametric_nd_3d as p3
-from lemaitre.initial_data.parametric.parametric import cheb_param_nodes
-from lemaitre.initial_data.parametric.hermite import cardinal_deriv_at_nodes
-from lemaitre.initial_data.parametric.hermite_nd import HermiteSolutionND
-from lemaitre.initial_data.applications import sensitivity_3d_qc as qc
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.parametric import parametric_nd_3d as p3
+from lm.initial_data.parametric.parametric import cheb_param_nodes
+from lm.initial_data.parametric.hermite import cardinal_deriv_at_nodes
+from lm.initial_data.parametric.hermite_nd import HermiteSolutionND
+from lm.initial_data.applications import sensitivity_3d_qc as qc
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPDIR = os.path.join(HERE, "reports", "3D_parametric", "qc_chi")

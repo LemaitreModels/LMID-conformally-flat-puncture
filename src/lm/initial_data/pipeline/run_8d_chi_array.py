@@ -40,9 +40,9 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.parametric import solve_store as ss
-from lemaitre.initial_data.parametric.parametric_nd_smolyak import isotropic_index_set, _node_key
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.parametric import solve_store as ss
+from lm.initial_data.parametric.parametric_nd_smolyak import isotropic_index_set, _node_key
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STORE = os.path.join(HERE, "reports", "3D_parametric", "solve_store_chi")

@@ -19,11 +19,11 @@ Standalone (numpy/scipy/jax); reuses the committed ``solver_3d``/``source_3d``/
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.parametric import parametric_nd_3d as p3d
-from lemaitre.initial_data.parametric import quasicircular as qcmod
-from lemaitre.initial_data.applications import sensitivity_3d as s3d
-from lemaitre.initial_data.applications import sensitivity_3d_qc as qc
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.parametric import parametric_nd_3d as p3d
+from lm.initial_data.parametric import quasicircular as qcmod
+from lm.initial_data.applications import sensitivity_3d as s3d
+from lm.initial_data.applications import sensitivity_3d_qc as qc
 
 
 M_TOT = 1.0
@@ -175,7 +175,7 @@ def test_dP_dtheta_conventions(prob):
 # H5c-T2 — add-only / standalone discipline
 # ==========================================================================
 def test_standalone_imports():
-    import lemaitre.initial_data.applications.sensitivity_3d_qc as mod
+    import lm.initial_data.applications.sensitivity_3d_qc as mod
     src = open(mod.__file__).read()
     for forbidden in ("import nrpy", "src.bbhfm", "from bbhfm", "import context", "torch"):
         assert forbidden not in src, forbidden

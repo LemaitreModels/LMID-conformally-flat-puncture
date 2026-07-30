@@ -16,7 +16,7 @@ jax.config.update("jax_enable_x64", True)
 
 import numpy as np
 
-from lemaitre.initial_data.solver import source
+from lm.initial_data.solver import source
 
 
 # --------------------------------------------------------------------------

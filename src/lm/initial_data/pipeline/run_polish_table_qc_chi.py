@@ -43,9 +43,9 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.parametric import parametric_nd_smolyak as sm
-from lemaitre.initial_data.parametric.parametric import cheb_param_nodes
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.parametric import parametric_nd_smolyak as sm
+from lm.initial_data.parametric.parametric import cheb_param_nodes
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPDIR = os.path.join(HERE, "reports", "P3")
@@ -69,7 +69,7 @@ def build_or_load(prob, level):
     if os.path.exists(path):
         print(f"[qc-chi] loading existing model {path}", flush=True)
         model = sm.load_smolyak(path)
-        from lemaitre.initial_data.parametric.parametric_nd import attach_solve_fn_3d
+        from lm.initial_data.parametric.parametric_nd import attach_solve_fn_3d
         attach_solve_fn_3d(model, prob, NAMES, M_tot=M_TOT, fixed=FIXED, solver="nk")
         return model
     # The shipped chi b27 L5 model (manifest S3) is expected on disk; only build

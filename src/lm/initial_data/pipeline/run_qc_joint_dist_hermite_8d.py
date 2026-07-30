@@ -34,11 +34,11 @@ import jax
 jax.config.update("jax_enable_x64", True)
 import numpy as np
 
-from lemaitre.initial_data.parametric.parametric_nd_smolyak import isotropic_index_set
-from lemaitre.initial_data.parametric.hermite_smolyak_cross import (
+from lm.initial_data.parametric.parametric_nd_smolyak import isotropic_index_set
+from lm.initial_data.parametric.hermite_smolyak_cross import (
     load_hermite_smolyak_cross, build_cross_from_pool)
 # SAME box + SAME points + SAME truth-part location as the value panel (b)
-from lemaitre.initial_data.pipeline.run_qc_joint_dist_chi import BOXES, random_points, PARTDIR
+from lm.initial_data.pipeline.run_qc_joint_dist_chi import BOXES, random_points, PARTDIR
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPDIR = os.path.join(HERE, "reports", "3D_parametric", "qc_chi")

@@ -17,7 +17,7 @@ make oracle      # build the external TwoPunctures validation binary
 
 **Laptop tier (fast).** Most figures recompute in seconds–minutes from a *shipped
 surrogate model artifact* (the χ Smolyak/Hermite/POD models) via the ROM. The
-per-figure producers live in `src/lemaitre/initial_data/pipeline/` and are mapped
+per-figure producers live in `src/lm/initial_data/pipeline/` and are mapped
 to figures by `manuscript/figures/registry.py` (the single source of truth for
 the figure→producer→artifact graph).
 

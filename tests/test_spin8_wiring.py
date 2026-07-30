@@ -8,8 +8,8 @@ and plugs into the Smolyak builder.
 """
 import numpy as np
 
-from lemaitre.initial_data.parametric import parametric_nd_3d as p3
-from lemaitre.initial_data.parametric import parametric_nd_smolyak as sm
+from lm.initial_data.parametric import parametric_nd_3d as p3
+from lm.initial_data.parametric import parametric_nd_smolyak as sm
 
 
 def test_planar_single_spin_family_unchanged():
@@ -50,6 +50,6 @@ def test_full_spin_box_plugs_into_smolyak_builder():
         return np.array(float(np.sum(np.sin(theta)))), _Info()
 
     s = sm.SmolyakSolverND(solve_fn, axes).build_isotropic(2)
-    from lemaitre.initial_data.parametric.parametric_nd_2c import smolyak_points
+    from lm.initial_data.parametric.parametric_nd_2c import smolyak_points
     assert s.n_solver_nodes == smolyak_points(8, 2) == 145
     assert np.isfinite(float(s.evaluate([2.0, 1.5, 0.1, -0.1, 0.2, 0.0, 0.3, -0.2])))

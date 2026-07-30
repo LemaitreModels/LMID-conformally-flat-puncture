@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code when working in **LM-initial-data** (`lemaitre.initial_data`).
+Guidance for Claude Code when working in **LM-initial-data** (`lm.initial_data`).
 
 > Keep this file current: when you add/rename a module, change the figure
 > pipeline, or add a doc, update the relevant section before finishing.
@@ -25,7 +25,7 @@ one canonical version of each model. Normal engineering hygiene applies.
 - **float64 everywhere.** `jax.config.update("jax_enable_x64", True)` before any
   jax use. The solver is spectral; **no neural networks in the solver.**
 - **Intra-package imports are relative** (`from . import ...`, `from ..solver
-  import ...`). Absolute imports use the full `lemaitre.initial_data.*` path
+  import ...`). Absolute imports use the full `lm.initial_data.*` path
   (producers, tests, figure scripts). Do not reintroduce `sys.path` bootstraps —
   the package is pip-installed.
 - **caffeinate long jobs** (macOS): wrap any local run >a few seconds in
@@ -47,7 +47,7 @@ make figures                                   # regenerate figure data (recompu
 
 ## Architecture
 
-`src/lemaitre/initial_data/`
+`src/lm/initial_data/`
 
 - **`solver/`** — spatial elliptic (xCFC) solver. Production 3-D stack:
   `spectral` (1-D Chebyshev primitives), `operators_3d`/`source_3d` (Fourier-in-φ

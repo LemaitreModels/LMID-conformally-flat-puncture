@@ -8,8 +8,8 @@ reference values and internal consistency.
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.solver import solver_abt as sa, source
-from lemaitre.initial_data.validation import adm
+from lm.initial_data.solver import solver_abt as sa, source
+from lm.initial_data.validation import adm
 
 
 B, MA, MB, P = 3.0, 0.5, 0.5, 0.5

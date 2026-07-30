@@ -23,8 +23,8 @@ import numpy as np
 import jax.numpy as jnp
 import pytest
 
-from lemaitre.initial_data.parametric.parametric import cheb_param_nodes, ParametricSolution
-from lemaitre.initial_data.parametric.hermite import (
+from lm.initial_data.parametric.parametric import cheb_param_nodes, ParametricSolution
+from lm.initial_data.parametric.hermite import (
     HermiteSolution1D,
     hermite_cardinal,
     cardinal_deriv_at_nodes,
@@ -306,7 +306,7 @@ def test_save_load_roundtrip_bitforbit(tmp_path):
 
 def test_load_rejects_wrong_kind(tmp_path):
     """A dense ParametricSolutionND artifact must not load as a hermite1d."""
-    from lemaitre.initial_data.parametric.parametric_nd import ParametricSolutionND
+    from lm.initial_data.parametric.parametric_nd import ParametricSolutionND
     nodes, weights = cheb_param_nodes(1.0, 3.0, 4)
     U = np.stack([np.ones(FIELD_SHAPE) * t for t in nodes])
     dense = ParametricSolutionND(
@@ -321,7 +321,7 @@ def test_load_rejects_wrong_kind(tmp_path):
 # H1-T1 — add-only / standalone discipline
 # ==========================================================================
 def test_standalone_imports():
-    import lemaitre.initial_data.parametric.hermite as mod
+    import lm.initial_data.parametric.hermite as mod
     src = open(mod.__file__).read()
     for forbidden in ("import nrpy", "src.bbhfm", "from bbhfm", "import context", "torch"):
         assert forbidden not in src, forbidden

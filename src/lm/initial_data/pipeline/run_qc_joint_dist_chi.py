@@ -35,9 +35,9 @@ import jax
 jax.config.update("jax_enable_x64", True)
 import numpy as np
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.parametric import parametric_nd_3d as p3
-from lemaitre.initial_data.parametric import solve_store as ss
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.parametric import parametric_nd_3d as p3
+from lm.initial_data.parametric import solve_store as ss
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPDIR = os.path.join(HERE, "reports", "3D_parametric", "qc_chi")

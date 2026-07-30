@@ -1,6 +1,6 @@
 # Repository structure & migration notes
 
-`lemaitre.initial_data` (the PARASOL paper package) was migrated out of the BBHFM
+`lm.initial_data` (the PARASOL paper package) was migrated out of the BBHFM
 monorepo (`sandbox/parasol/`) into this standalone repo, de-cluttered and
 restructured. This document is the package map and the record of what was kept,
 dropped, and deferred.
@@ -8,8 +8,8 @@ dropped, and deferred.
 ## Layout
 
 ```
-src/lemaitre/__init__.py             shared namespace root (pkgutil.extend_path + lazy __getattr__)
-src/lemaitre/initial_data/
+src/lm/__init__.py             shared namespace root (pkgutil.extend_path + lazy __getattr__)
+src/lm/initial_data/
   solver/         spectral elliptic (xCFC) solver
   parametric/     parameter-space collocation / Hermite / Smolyak / POD (the ROM)
   applications/   qc_targeting, qc_effpot, control, sensitivity_3d{,_qc,_cross,_cross_bq}
@@ -22,19 +22,19 @@ docs/             this file · DATA.md · STAGE2_HANDOFF.md
 
 ## Namespace
 
-`lemaitre` is a shared namespace across the LemaitreModels family. The meta
-`lemaitre/__init__.py` uses `pkgutil.extend_path` (so sibling repos —
-`lemaitre.early_inspiral`, `lemaitre.ringdown`, `lemaitre.artwork` — merge under
-one `lemaitre`) and a PEP 562 `__getattr__` for lazy submodule access:
+`lm` is a shared namespace across the LemaitreModels family. The meta
+`lm/__init__.py` uses `pkgutil.extend_path` (so sibling repos —
+`lm.early_inspiral`, `lm.ringdown`, `lm.artwork` — merge under
+one `lm`) and a PEP 562 `__getattr__` for lazy submodule access:
 
 ```python
-import lemaitre as lm
+import lm
 lm.initial_data.solver.solver_3d_nk    # resolves lazily
 ```
 
 **Family bookkeeping:** exactly one installed distribution may own
-`lemaitre/__init__.py`. While LM-initial-data is the only sibling it lives here;
-when a second sibling repo is created, factor it into a dedicated `lemaitre-core`
+`lm/__init__.py`. While LM-initial-data is the only sibling it lives here;
+when a second sibling repo is created, factor it into a dedicated `lm-core`
 distribution all siblings depend on.
 
 ## What was kept

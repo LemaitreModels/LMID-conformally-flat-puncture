@@ -26,7 +26,7 @@ wrapper stays bit-for-bit equal to the base (no correction re-introduced).
 """
 from __future__ import annotations
 import numpy as np
-from lemaitre.initial_data.applications import sensitivity_3d_qc as qc
+from lm.initial_data.applications import sensitivity_3d_qc as qc
 
 def tangent_qc_chi(prob, U, sl, name, M_tot, *, asm=None, jac="nk", gmres_rtol=1e-8):
     """Certified ``dU/dtheta`` for the chi-parameterized QC family — a PASS-THROUGH

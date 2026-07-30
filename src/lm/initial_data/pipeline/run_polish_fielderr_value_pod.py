@@ -46,15 +46,15 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 
-from lemaitre.initial_data.solver import solver_3d as s3
+from lm.initial_data.solver import solver_3d as s3
 # reuse the EXACT seed-shared off-node sampling and instrumented polish of the cold/pod families
-from lemaitre.initial_data.pipeline.run_polish_cold import random_offnode_points, read_meta
-from lemaitre.initial_data.pipeline.run_polish_fielderr import run_family
+from lm.initial_data.pipeline.run_polish_cold import random_offnode_points, read_meta
+from lm.initial_data.pipeline.run_polish_fielderr import run_family
 # low-level POD loader primitives (committed, read-only) + the shipped Hermite POD paths
-from lemaitre.initial_data.parametric.parametric_nd_smolyak import _node_key
-from lemaitre.initial_data.parametric.hermite_smolyak import HermiteSmolyakSolverND
-from lemaitre.initial_data.parametric.hermite_smolyak_pod import PODHermiteSmolyak
-from lemaitre.initial_data.pipeline.run_guess_vs_memory import (
+from lm.initial_data.parametric.parametric_nd_smolyak import _node_key
+from lm.initial_data.parametric.hermite_smolyak import HermiteSmolyakSolverND
+from lm.initial_data.parametric.hermite_smolyak_pod import PODHermiteSmolyak
+from lm.initial_data.pipeline.run_guess_vs_memory import (
     MODELS, _load_npz, _unpack_meta, _check_meta,
 )
 

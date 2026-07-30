@@ -41,16 +41,16 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.solver import solver_3d_nk as s3nk
-from lemaitre.initial_data.parametric.parametric import cheb_param_nodes
-from lemaitre.initial_data.parametric.parametric_nd import (
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.solver import solver_3d_nk as s3nk
+from lm.initial_data.parametric.parametric import cheb_param_nodes
+from lm.initial_data.parametric.parametric_nd import (
     _load_npz, _unpack_meta, _check_meta,
 )
-from lemaitre.initial_data.parametric.parametric_nd_smolyak import _node_key
-from lemaitre.initial_data.parametric.parametric_nd_3d import theta_to_slice3d, assemble_cached_3d
-from lemaitre.initial_data.parametric.hermite_smolyak import HermiteSmolyakSolverND
-from lemaitre.initial_data.parametric.hermite_smolyak_pod import (
+from lm.initial_data.parametric.parametric_nd_smolyak import _node_key
+from lm.initial_data.parametric.parametric_nd_3d import theta_to_slice3d, assemble_cached_3d
+from lm.initial_data.parametric.hermite_smolyak import HermiteSmolyakSolverND
+from lm.initial_data.parametric.hermite_smolyak_pod import (
     PODHermiteSmolyak, load_pod_hermite_smolyak,
 )
 

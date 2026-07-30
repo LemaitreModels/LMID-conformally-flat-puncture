@@ -1,4 +1,4 @@
-"""lemaitre.initial_data.validation subpackage."""
+"""lm.initial_data.validation subpackage."""
 def __getattr__(name):
     """Lazily import a submodule on attribute access (so the parent package's
     modules resolve as attributes without an explicit import)."""

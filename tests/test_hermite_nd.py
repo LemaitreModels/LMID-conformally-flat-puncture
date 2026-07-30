@@ -28,10 +28,10 @@ import numpy as np
 import jax.numpy as jnp
 import pytest
 
-from lemaitre.initial_data.parametric.parametric import cheb_param_nodes, ParametricSolution
-from lemaitre.initial_data.parametric.parametric_nd import ParametricSolutionND
-from lemaitre.initial_data.parametric.hermite import HermiteSolution1D, cardinal_deriv_at_nodes
-from lemaitre.initial_data.parametric.hermite_nd import (
+from lm.initial_data.parametric.parametric import cheb_param_nodes, ParametricSolution
+from lm.initial_data.parametric.parametric_nd import ParametricSolutionND
+from lm.initial_data.parametric.hermite import HermiteSolution1D, cardinal_deriv_at_nodes
+from lm.initial_data.parametric.hermite_nd import (
     HermiteSolutionND,
     HermiteSolverND,
     load_hermite_nd,
@@ -285,7 +285,7 @@ def test_load_rejects_wrong_kind(tmp_path):
 # H2-T1 — add-only / standalone discipline
 # ==========================================================================
 def test_standalone_imports():
-    import lemaitre.initial_data.parametric.hermite_nd as mod
+    import lm.initial_data.parametric.hermite_nd as mod
     src = open(mod.__file__).read()
     for forbidden in ("import nrpy", "src.bbhfm", "from bbhfm", "import context", "torch"):
         assert forbidden not in src, forbidden
@@ -327,11 +327,11 @@ def test_held_out_rate_beats_value_only_b():
     ``b``) from the SAME node set at several Q; compare held-out relative-L2 field
     error vs a direct same-grid solve.  Hermite's geometric rate must materially
     beat value-only, and Hermite must be no worse at every Q."""
-    from lemaitre.initial_data.solver import solver_abt as sa
+    from lm.initial_data.solver import solver_abt as sa
     prob = sa.make_problem(Na=44, Nb=32, P=P_MOM)
 
     hold = _holdout_b(n=15)
-    from lemaitre.initial_data.parametric.parametric_nd_2c import theta_to_slice
+    from lm.initial_data.parametric.parametric_nd_2c import theta_to_slice
     U_true = {}
     for p in hold:
         sl = theta_to_slice([float(p)], ["b"], M_TOT, _AXIS_B["fixed"])
@@ -372,7 +372,7 @@ def test_evaluate_polished_certifies():
     """Gate (d): the certification guarantee is unchanged — the Hermite object is
     only a guess; ``evaluate_polished`` (Newton on the real solver) drives random
     off-node points to ``‖R‖∞ ≤ 1e-10``."""
-    from lemaitre.initial_data.solver import solver_abt as sa
+    from lm.initial_data.solver import solver_abt as sa
     prob = sa.make_problem(Na=44, Nb=32, P=P_MOM)
     axes = [{"name": "b", "min": _AXIS_B["lo"], "max": _AXIS_B["hi"], "Q": 6}]
     her = from_problem_nd_hermite(prob, axes, enhanced=["b"], M_tot=M_TOT,

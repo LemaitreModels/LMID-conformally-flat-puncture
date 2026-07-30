@@ -19,13 +19,13 @@ import jax
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.solver import solver_3d_nk as s3nk
-from lemaitre.initial_data.solver import source_3d
-from lemaitre.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
-from lemaitre.initial_data.applications import sensitivity_3d_qc as s3dqc
-from lemaitre.initial_data.applications import sensitivity_3d_cross as cross
-from lemaitre.initial_data.applications import sensitivity_3d_cross_bq as cbq
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.solver import solver_3d_nk as s3nk
+from lm.initial_data.solver import source_3d
+from lm.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
+from lm.initial_data.applications import sensitivity_3d_qc as s3dqc
+from lm.initial_data.applications import sensitivity_3d_cross as cross
+from lm.initial_data.applications import sensitivity_3d_cross_bq as cbq
 
 M_TOT = 1.0
 NA, NB, NPHI = 16, 12, 6

@@ -25,12 +25,12 @@ verbatim; the new tangent lives in ``applications.sensitivity_3d``.
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.solver import solver_3d_nk as s3nk
-from lemaitre.initial_data.solver import solver_abt as sa
-from lemaitre.initial_data.solver import operators_3d as ops3
-from lemaitre.initial_data.solver import source_3d
-from lemaitre.initial_data.applications import sensitivity_3d as s3d
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.solver import solver_3d_nk as s3nk
+from lm.initial_data.solver import solver_abt as sa
+from lm.initial_data.solver import operators_3d as ops3
+from lm.initial_data.solver import source_3d
+from lm.initial_data.applications import sensitivity_3d as s3d
 
 
 M_TOT = 1.0
@@ -255,7 +255,7 @@ def test_dA2_dtheta_vs_fd_source(prob):
         assert rel < 1e-5, (name, rel)
 
     # b: the nodes move with b (ρ,z = abt_map(A,B,b)); FD must recompute them
-    from lemaitre.initial_data.solver import operators_abt as ops
+    from lm.initial_data.solver import operators_abt as ops
     _, _, _, Af, Bf, _, _, _ = ops3.axisym_blocks(prob.A, prob.B, prob.DA1, prob.DB1, sl.b)
 
     def A2_b(bv):
@@ -292,7 +292,7 @@ def test_dvec_dtheta_conventions():
 # H5a-T2 — add-only / standalone discipline
 # ==========================================================================
 def test_standalone_imports():
-    import lemaitre.initial_data.applications.sensitivity_3d as mod
+    import lm.initial_data.applications.sensitivity_3d as mod
     src = open(mod.__file__).read()
     for forbidden in ("import nrpy", "src.bbhfm", "from bbhfm", "import context", "torch"):
         assert forbidden not in src, forbidden

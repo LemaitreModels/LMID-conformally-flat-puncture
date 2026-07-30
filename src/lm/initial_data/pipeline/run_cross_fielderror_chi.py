@@ -30,15 +30,15 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.solver import solver_3d_nk as s3nk
-from lemaitre.initial_data.parametric.parametric import cheb_param_nodes
-from lemaitre.initial_data.parametric.parametric_nd import _load_npz, _unpack_meta
-from lemaitre.initial_data.parametric.parametric_nd_smolyak import combination_coeffs  # noqa: F401
-from lemaitre.initial_data.parametric.parametric_nd import attach_solve_fn_3d
-from lemaitre.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
-from lemaitre.initial_data.parametric.hermite_smolyak import load_hermite_smolyak, HermiteSmolyakSolverND
-from lemaitre.initial_data.parametric.hermite_smolyak_cross import load_hermite_smolyak_cross
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.solver import solver_3d_nk as s3nk
+from lm.initial_data.parametric.parametric import cheb_param_nodes
+from lm.initial_data.parametric.parametric_nd import _load_npz, _unpack_meta
+from lm.initial_data.parametric.parametric_nd_smolyak import combination_coeffs  # noqa: F401
+from lm.initial_data.parametric.parametric_nd import attach_solve_fn_3d
+from lm.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
+from lm.initial_data.parametric.hermite_smolyak import load_hermite_smolyak, HermiteSmolyakSolverND
+from lm.initial_data.parametric.hermite_smolyak_cross import load_hermite_smolyak_cross
 
 GAP_MIN = 1e-4
 HERE = os.path.dirname(os.path.abspath(__file__))

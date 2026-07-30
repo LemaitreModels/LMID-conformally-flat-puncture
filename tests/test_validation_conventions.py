@@ -6,7 +6,7 @@ masquerade as a physics disagreement, so it is unit-tested in isolation.
 
 import numpy as np
 
-from lemaitre.initial_data.validation import conventions as cv
+from lm.initial_data.validation import conventions as cv
 
 
 def test_parasol_to_tp_basic_map():

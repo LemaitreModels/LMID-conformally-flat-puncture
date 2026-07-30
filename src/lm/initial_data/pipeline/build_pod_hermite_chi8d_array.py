@@ -50,13 +50,13 @@ import numpy as np
 import build_pod_hermite_model as bh                 # committed builder (reused)
 import build_pod_hermite_model_chi_8d as bh8d         # noqa: F401  side effect: bh.BOX -> 8D box
 
-from lemaitre.initial_data.solver import solver_3d as s3
-from lemaitre.initial_data.parametric import parametric_nd_3d as p3
-from lemaitre.initial_data.parametric import parametric_nd_smolyak as sm
-from lemaitre.initial_data.parametric import hermite_smolyak as hsm
-from lemaitre.initial_data.parametric import hermite_smolyak_pod as hpod
-from lemaitre.initial_data.parametric.parametric_nd_3d import make_solve_fn
-from lemaitre.initial_data.parametric.parametric_nd import _git_commit
+from lm.initial_data.solver import solver_3d as s3
+from lm.initial_data.parametric import parametric_nd_3d as p3
+from lm.initial_data.parametric import parametric_nd_smolyak as sm
+from lm.initial_data.parametric import hermite_smolyak as hsm
+from lm.initial_data.parametric import hermite_smolyak_pod as hpod
+from lm.initial_data.parametric.parametric_nd_3d import make_solve_fn
+from lm.initial_data.parametric.parametric_nd import _git_commit
 
 _node_key = sm._node_key
 SPIN_AXES = bh8d.SPIN_AXES  # "chi_Ax,chi_Ay,chi_Az,chi_Bx,chi_By,chi_Bz"

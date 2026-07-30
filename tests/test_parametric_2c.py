@@ -27,10 +27,10 @@ jax.config.update("jax_enable_x64", True)
 
 import numpy as np
 
-from lemaitre.initial_data.solver import solver_abt as sa
-from lemaitre.initial_data.parametric import parametric_2c as p2c
-from lemaitre.initial_data.parametric import parametric
-from lemaitre.initial_data.solver import diagnostics as diag
+from lm.initial_data.solver import solver_abt as sa
+from lm.initial_data.parametric import parametric_2c as p2c
+from lm.initial_data.parametric import parametric
+from lm.initial_data.solver import diagnostics as diag
 
 
 def _assert_off_node(hold, p_min, p_max, Qs, gap_min=1e-4):

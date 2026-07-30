@@ -9,10 +9,10 @@ angular momentum L along +y (J = (0, 2b·p_t + S_Ay + S_By, 0)).
 """
 import numpy as np
 
-from lemaitre.initial_data.parametric import parametric_nd_3d as p3
-from lemaitre.initial_data.parametric import quasicircular as qc
-from lemaitre.initial_data.parametric import parametric_nd_smolyak as sm
-from lemaitre.initial_data.solver import diagnostics_3d as d3
+from lm.initial_data.parametric import parametric_nd_3d as p3
+from lm.initial_data.parametric import quasicircular as qc
+from lm.initial_data.parametric import parametric_nd_smolyak as sm
+from lm.initial_data.solver import diagnostics_3d as d3
 
 
 # ==========================================================================
@@ -134,7 +134,7 @@ def test_d4_qc_box_matches_spin8_slice_and_builds():
     # P2 corpus node-for-node.  Guards: same b,q ranges; aligned axes S_Ay/S_By over
     # the same [-0.4,0.4] and SYMMETRIC about 0 (nested level-0 midpoint = exactly 0);
     # FIXED flag = {"qc": 1.0}.
-    import lemaitre.initial_data.pipeline.build_surrogate as bs
+    import lm.initial_data.pipeline.build_surrogate as bs
 
     box = bs.BOXES["d4_qc"]
     names = [a["name"] for a in box]
@@ -171,7 +171,7 @@ def test_spin8_qc_box_matches_d4_qc_subslice_and_builds():
     # head-on spin8 box, FIXED={"qc":1.0}, in-plane axes symmetric about 0.  Its
     # in-plane=0 sub-slice must produce the SAME Slice3D as d4_qc at matching
     # (b,q,S_Ay,S_By) — so P3 reuses the P2 (d4_qc) corpus node-for-node.
-    import lemaitre.initial_data.pipeline.build_surrogate as bs
+    import lm.initial_data.pipeline.build_surrogate as bs
 
     box = bs.BOXES["spin8_qc"]
     names = [a["name"] for a in box]
