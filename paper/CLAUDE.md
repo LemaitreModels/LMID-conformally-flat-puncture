@@ -1,13 +1,8 @@
 # CLAUDE.md — paper
 
-Guidance for Claude Code when **writing or editing the PARASOL paper** (`paper.tex`).
-
-> **Read `LANGUAGE_EDIT_CONTEXT.md` before touching `paper.tex`.** That file is the
-> authoritative brief on *content*: plain-English summary, glossary, notation table
-> (including the deliberately overloaded symbols), spelling conventions, the
-> load-bearing claims, and the known editorial defects. This file is about *how you
-> work* — role, style, protocol, and verification. The two are complementary; do not
-> duplicate or contradict `LANGUAGE_EDIT_CONTEXT.md`.
+Guidance for Claude Code when **writing or editing the LM-initial-data paper** (`paper.tex`).
+This file is about *how you work* — role, style, protocol, and verification. The
+authoritative source on *content* is the on-disk text of `paper.tex` itself.
 
 ---
 
@@ -77,7 +72,7 @@ tolerance for salesmanship. Calibrate to that:
 - **Qualifiers on central claims are load-bearing, not padding.** "Certified to
   `‖R‖_∞ ≤ 10⁻¹⁰` *after a few Newton steps, independent of the interpolation error*" —
   every clause there is doing work. Tightening such a sentence is welcome; shedding a
-  qualifier is a scientific error. See `LANGUAGE_EDIT_CONTEXT.md` §7 for the full list.
+  qualifier is a scientific error.
 - **State scope and limitations plainly, where the reader meets the claim** — not only in
   the discussion. PRD referees reward a paper that pre-empts their objection.
 - **Distinguish what is proved, what is measured, and what is expected.** Use "we find",
@@ -129,8 +124,8 @@ a stock connective ("Moreover," "Furthermore,") doing no work.
 - Cut throat-clearing openings: *"In this section, we will…"* → say the thing.
 - Prefer the concrete verb: *"the interpolant supplies the warm start"* over *"the
   interpolant is used for the purpose of providing…"*.
-- Keep the terminology fixed. One concept, one name, every time — see the glossary in
-  `LANGUAGE_EDIT_CONTEXT.md` §4. Elegant variation is a bug in technical prose.
+- Keep the terminology fixed. One concept, one name, every time, following whatever
+  name `paper.tex` already uses. Elegant variation is a bug in technical prose.
 - **American English** (center, behavior, modeling) — APS house style. The draft is
   currently mixed; standardize uniformly if you do it at all, and say so in the ledger.
 
@@ -152,7 +147,7 @@ contractions.
 - Reference with `Eq.~\eqref{...}`, `Fig.~\ref{...}`, `Sec.~\ref{...}`, `Table~\ref{...}`
   — always a non-breaking tie `~`, never a bare space.
 - En-dash `--` for name pairs (Bowen--York, Newton--Krylov) and numeric ranges. Hyphen
-  only for compound modifiers. See `LANGUAGE_EDIT_CONTEXT.md` §6 for the exact list.
+  only for compound modifiers.
 - `e.g.\ ` and `i.e.\ ` — the trailing `\ ` is a spacing command, not a typo. Keep it.
 - Quotes are ``like this'' — never `"straight"`.
 - Two-column layout: wide equations and figures deliberately use `widetext` and

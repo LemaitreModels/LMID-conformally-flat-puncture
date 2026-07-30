@@ -1,4 +1,4 @@
-"""PARASOL — build & persist the DIMENSIONLESS-SPIN (chi) production surrogates.
+"""LM-initial-data — build & persist the DIMENSIONLESS-SPIN (chi) production surrogates.
 
 Add-only chi twin of ``build_surrogate.py`` (S3 of the chi-rebuild ledger).  It
 does NOT copy build_surrogate's body; it imports it and injects two chi boxes,
@@ -6,24 +6,24 @@ then dispatches to build_surrogate.main() verbatim — so the store/save/certifi
 spot-check machinery is reused byte-for-byte and the committed module is
 untouched.
 
-Boxes added (all edges from ``production_box``).  The ``_b27`` pair is the
-PRODUCTION box the shipped models are built on; the suffix is a historical
-identifier (it encoded the old b in [2,7]) and no longer describes the range:
-  * ``d4_qc_chi``       = legacy narrow b in [B_MIN_NARROW, B_MAX_NARROW]
-  * ``spin8_qc_chi``    = the same legacy b range, all six chi components
-  * ``d4_qc_chi_b27``   = PRODUCTION (b in [B_MIN, B_MAX], q, chi_Ay, chi_By)
-  * ``spin8_qc_chi_b27``= PRODUCTION, all six chi components
+Boxes added (all edges from ``production_box``).  The ``_prod`` pair is the
+PRODUCTION box the shipped models are built on; the suffix encodes no range, so
+retargeting an edge in ``production_box`` does not strand the name:
+  * ``d4_qc_chi``        = legacy narrow b in [B_MIN_NARROW, B_MAX_NARROW]
+  * ``spin8_qc_chi``     = the same legacy b range, all six chi components
+  * ``d4_qc_chi_prod``   = PRODUCTION (b in [B_MIN, B_MAX], q, chi_Ay, chi_By)
+  * ``spin8_qc_chi_prod``= PRODUCTION, all six chi components
 
 The chi_* axes are value axes already handled by ``parametric_nd_3d.theta_to_slice3d``
 (S_Xi = chi_Xi * m_X^2), so the value-only Smolyak/dense build works with only
 the box swap — no tangent/derivative path is used (that is S4's separate concern).
 
 Usage (mirrors build_surrogate.py; add --box d4_qc_chi / spin8_qc_chi):
-    python sandbox/parasol/build_surrogate_chi.py \
+    python -m lm.initial_data.pipeline.build_surrogate_chi \
         --Na 44 --Nb 32 --Nphi 8 --box d4_qc_chi --level 5 --solver modified \
-        --store sandbox/parasol/reports/3D_parametric/solve_store_chi \
+        --store reports/3D_parametric/solve_store_chi \
         --code-tag chi-rebuild \
-        --outdir sandbox/parasol/reports/3D_parametric/models_chi
+        --outdir reports/3D_parametric/models_chi
 
 NOTE (store reuse): to reuse the d4_qc-chi Smolyak corpus that
 run_qc_walls_sweep_chi.py (S1, block D) populates, pass the SAME store
@@ -38,9 +38,9 @@ import os
 import sys
 
 # Make the sibling build_surrogate importable when run as
-# ``python sandbox/parasol/build_surrogate_chi.py`` from the repo root.
+# ``python -m lm.initial_data.pipeline.build_surrogate_chi`` from the repo root.
 
-import build_surrogate as bs  # noqa: E402  (committed module, reused verbatim)
+from lm.initial_data.pipeline import build_surrogate as bs  # noqa: E402
 
 from lm.initial_data.pipeline import production_box as pb  # noqa: E402
 
@@ -52,11 +52,14 @@ bs.BOXES["spin8_qc_chi"] = pb.spin8_box(b_min=pb.B_MIN_NARROW, b_max=pb.B_MAX_NA
 bs.FIXED["d4_qc_chi"] = dict(pb.FIXED_QC)
 bs.FIXED["spin8_qc_chi"] = dict(pb.FIXED_QC)
 
-# --- production wide-separation variants; feasibility de-risked by derisk_b27.py ---
-bs.BOXES["d4_qc_chi_b27"] = pb.aligned_box()
-bs.BOXES["spin8_qc_chi_b27"] = pb.spin8_box()
-bs.FIXED["d4_qc_chi_b27"] = dict(pb.FIXED_QC)
-bs.FIXED["spin8_qc_chi_b27"] = dict(pb.FIXED_QC)
+# --- production wide-separation variants ---
+# derisk_b27.py certified every hard corner of the FORMER b in [2,7] to <= 7.2e-12;
+# the current upper edge b = B_MAX lies OUTSIDE that study and is uncertified,
+# though wider separation reduces puncture coupling so it is expected easier.
+bs.BOXES["d4_qc_chi_prod"] = pb.aligned_box()
+bs.BOXES["spin8_qc_chi_prod"] = pb.spin8_box()
+bs.FIXED["d4_qc_chi_prod"] = dict(pb.FIXED_QC)
+bs.FIXED["spin8_qc_chi_prod"] = dict(pb.FIXED_QC)
 
 
 if __name__ == "__main__":

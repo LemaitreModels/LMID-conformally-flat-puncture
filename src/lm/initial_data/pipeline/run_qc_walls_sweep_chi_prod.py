@@ -1,4 +1,4 @@
-"""PARASOL — QC 4-D per-axis + joint convergence STUDY on the PRODUCTION
+"""LM-initial-data — QC 4-D per-axis + joint convergence STUDY on the PRODUCTION
 separation box of ``production_box`` (chi rebuild; matches the shipped model).
 
 The production (wide-separation) twin of run_qc_walls_sweep_chi.py.  It does NOT
@@ -8,15 +8,15 @@ production box, (2) redefines block_A (per-axis) with the b-axis studied over
 main().  block_C (spin wall, fixed b -- BOTH the inside-box and super-extremal
 range sets) and block_D (joint 4-D Smolyak + cost model, over the patched BOX) are
 reused verbatim; block_D shares solve_store_chi with the production value-model
-build (build_surrogate_chi --box d4_qc_chi_b27), so their L<=4 nodes are shared.
+build (build_surrogate_chi --box d4_qc_chi_prod), so their L<=4 nodes are shared.
 
-Outputs go to reports/3D_parametric/qc_chi_b27/ (separate from the narrow-b study).
+Outputs go to reports/3D_parametric/qc_chi_prod/ (separate from the narrow-b study).
 
 Held representative for the q / spin per-axis rates stays b=pb.B_REP (interior to the
 box, protocol-consistent with the narrow-b study for comparability); only the
 b-AXIS rate is genuinely range-dependent and is measured over the full box.
 
-Run: caffeinate -i python -m lm.initial_data.pipeline.run_qc_walls_sweep_chi_b27
+Run: caffeinate -i python -m lm.initial_data.pipeline.run_qc_walls_sweep_chi_prod
 """
 from __future__ import annotations
 
@@ -39,11 +39,11 @@ B_MIN = pb.B_MIN
 w.BOX = pb.aligned_box()
 
 # (2) separate output dir so the [1.5,4] study's files are not clobbered
-w.REPDIR = os.path.join(w.HERE, "reports", "3D_parametric", "qc_chi_b27")
+w.REPDIR = os.path.join(w.HERE, "reports", "3D_parametric", "qc_chi_prod")
 os.makedirs(w.REPDIR, exist_ok=True)
 
 
-def block_A_b27(prob):
+def block_A_prod(prob):
     """Per-axis held-out rates with the b-axis studied over the full production box."""
     w._t(f"\n########## A: per-axis held-out rates (d4_qc chi b∈[{B_MIN:g},{B_MAX:g}], QC) ##########")
     studies = [
@@ -67,7 +67,7 @@ def block_A_b27(prob):
     return out
 
 
-def block_B_b27(prob):
+def block_B_prod(prob):
     """Merger (b) wall at b_max=B_MAX (b_min swept below the box toward merger)."""
     w._t(f"\n########## B: merger (b) wall — QC (risk R3), b_max={B_MAX:g} ##########")
     b_max = B_MAX
@@ -91,8 +91,8 @@ def block_B_b27(prob):
 
 
 # (2) install the production-box blocks (main() reads block_A/block_B as module globals)
-w.block_A = block_A_b27
-w.block_B = block_B_b27
+w.block_A = block_A_prod
+w.block_B = block_B_prod
 
 
 if __name__ == "__main__":

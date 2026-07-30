@@ -1,4 +1,4 @@
-"""PARASOL paper — figure/data registry (single source of truth).
+"""LM-initial-data paper — figure/data registry (single source of truth).
 
 Every paper figure ``figNN_<name>`` has:
   * a PLOTTER   ``figNN_<name>_plot.py``       — reads ONLY ``figdata/figNN_<name>.json`` and draws
@@ -24,7 +24,7 @@ uses this registry for the presence check, the dedup, and the cluster-command hi
 """
 from __future__ import annotations
 
-# --- raw run outputs (under sandbox/parasol/reports/); NOT committed --------------------------
+# --- raw run outputs (under reports/); NOT committed --------------------------
 # where: "laptop"  -> the distill step only reshapes json already on disk (no solves)
 #        "cluster" -> the source is produced by a heavy CPU run on IVS (see the cluster prompt)
 # status: "ready"   -> present on the laptop today
@@ -37,21 +37,21 @@ SOURCES = {
 
     # ---- fig02 (both analyticity walls, merged) ----
     "walls_dense":          dict(reports="3D_parametric/qc/walls_d4_qc_dense.json",
-                                 producer="run_qc_walls_sweep_chi_b27.py (dense ladder)", where="cluster",
+                                 producer="run_qc_walls_sweep_chi_prod.py (dense ladder)", where="cluster",
                                  status="ready",
                                  figures=["fig02_walls"]),
 
     # ---- fig03 (joint held-out distribution) ----
-    "joint_dist_4d":        dict(reports="3D_parametric/qc_chi/joint_dist_d4_qc_chi_b27.json",
-                                 producer="run_qc_joint_dist_chi.py --box d4_qc_chi_b27", where="cluster",
+    "joint_dist_4d":        dict(reports="3D_parametric/qc_chi/joint_dist_d4_qc_chi_prod.json",
+                                 producer="run_qc_joint_dist_chi.py --box d4_qc_chi_prod", where="cluster",
                                  status="ready", figures=["fig03_joint_dist"]),
-    "joint_dist_cross_4d":  dict(reports="3D_parametric/qc_chi/joint_dist_cross_d4_qc_chi_b27.json",
+    "joint_dist_cross_4d":  dict(reports="3D_parametric/qc_chi/joint_dist_cross_d4_qc_chi_prod.json",
                                  producer="run_qc_joint_dist_cross_chi.py", where="cluster",
                                  status="ready", figures=["fig03_joint_dist"]),
-    "joint_dist_8d":        dict(reports="3D_parametric/qc_chi/joint_dist_spin8_qc_chi_b27.json",
-                                 producer="run_qc_joint_dist_chi.py --box spin8_qc_chi_b27  (appendix b)",
+    "joint_dist_8d":        dict(reports="3D_parametric/qc_chi/joint_dist_spin8_qc_chi_prod.json",
+                                 producer="run_qc_joint_dist_chi.py --box spin8_qc_chi_prod  (appendix b)",
                                  where="cluster", status="ready", figures=["fig03_joint_dist"]),
-    "joint_dist_hermite_8d": dict(reports="3D_parametric/qc_chi/joint_dist_hermite_spin8_qc_chi_b27.json",
+    "joint_dist_hermite_8d": dict(reports="3D_parametric/qc_chi/joint_dist_hermite_spin8_qc_chi_prod.json",
                                  producer="run_qc_joint_dist_hermite_8d.py  (appendix c)",
                                  where="cluster", status="ready", figures=["fig03_joint_dist"]),
 
@@ -105,11 +105,11 @@ SOURCES = {
     "gvm_4d_cross_field":   dict(reports="P3/guess_vs_memory_4d_cross_field_1000.json",
                                  producer="run_cross_fielderr_sweep.py", where="cluster",
                                  status="ready", figures=["fig05_guess_vs_memory"]),
-    "polish_table_4d":      dict(reports="P3/polish_table_qc_chi_b27_1000.json",
+    "polish_table_4d":      dict(reports="P3/polish_table_qc_chi_prod_1000.json",
                                  producer="run_polish_table_qc_chi.py", where="cluster",
                                  status="ready",
                                  figures=["fig05_guess_vs_memory", "fig04_polish_staircase"]),
-    "polish_table_4d_cross": dict(reports="P3/polish_table_qc_chi_b27_cross_1000.json",
+    "polish_table_4d_cross": dict(reports="P3/polish_table_qc_chi_prod_cross_1000.json",
                                  producer="run_polish_table_qc_chi.py (cross)", where="cluster",
                                  status="ready", figures=["fig05_guess_vs_memory"]),
     "polish_table_8d_value": dict(reports="P3/polish_table_chi8d_value_1000.json",

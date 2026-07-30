@@ -1,4 +1,4 @@
-"""PARASOL — per-axis held-out convergence as a DISTRIBUTION over random base
+"""LM-initial-data — per-axis held-out convergence as a DISTRIBUTION over random base
 points (the "reduced option (B)" companion to ``run_qc_peraxis_chi6.py``).
 
 Paper Fig. 2 (``fig:peraxis``) shows the per-axis held-out interpolation
@@ -38,7 +38,7 @@ Smoke (1 axis, 2 samples, Q=[4,6]; times value-solve vs tangent for the ETA):
 Full run (cluster job array; e.g. 40 tasks, <=20 concurrent):
   sbatch --array=0-39%20 \
     --export=ALL,DRIVER=run_qc_peraxis_dist_chi.py \
-    slurm/ivs/submit_parasol_cpu_array_hi.slurm
+    slurm/ivs/submit_lm_initial_data_cpu_array_hi.slurm
   # then, after all tasks finish:
   python run_qc_peraxis_dist_chi.py --assemble
 """

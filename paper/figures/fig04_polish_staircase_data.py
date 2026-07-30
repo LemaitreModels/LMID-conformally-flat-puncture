@@ -13,7 +13,7 @@ Sources (raw), per dimension X in {4,8}:
   polish_cold_Xd            P3/polish_cold_chiXd_1000.json                    (cold residual staircase)
   polish_pod_Xd             P3/polish_table_chiXd_pod_r{75_cross,250}_1000.json (value+grad POD residual)
   polish_value_pod_Xd       P3/polish_fielderr_value_pod_chiXd_r{75,250}_1000.json (value-only POD; both rows)
-  polish_table_{4d,8d_value} P3/polish_table_{qc_chi_b27,chi8d_value}_1000.json  (value-only residual, fallback)
+  polish_table_{4d,8d_value} P3/polish_table_{qc_chi_prod,chi8d_value}_1000.json  (value-only residual, fallback)
   polish_fielderr_Xd        P3/polish_fielderr_chiXd_1000.json                (cold+POD field-error stairs)
   polish_fielderr_value_Xd  P3/polish_fielderr_value_chiXd_1000.json          (value-only field-error, fallback)
 
@@ -28,9 +28,6 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _figdata import load_source, have_source, dump
-
-TITLES = {4: r"4D quasi-circular model: $\theta=(b,q,\chi_{Ay},\chi_{By})$",
-          8: r"8D quasi-circular model: $\theta=(b,q,\boldsymbol{\chi}_A,\boldsymbol{\chi}_B)$"}
 
 
 def _stair(d):
@@ -91,7 +88,7 @@ def build():
         res_pod["r"] = pod["config"].get("r")
         res_value, fld_value = _value_curves(dim)
         cols.append(dict(
-            dim=dim, title=TITLES[dim],
+            dim=dim,   # panel title lives in the plot script (presentation, not data)
             res_cold=_stair(load_source(f"polish_cold_{dim}d")),
             res_value=res_value,
             res_pod=res_pod,

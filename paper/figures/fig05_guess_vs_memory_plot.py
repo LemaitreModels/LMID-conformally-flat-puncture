@@ -31,6 +31,13 @@ from _figdata import load
 from _figstyle import figdims
 
 
+# Panel titles are presentation, so they live here rather than in the figdata json:
+# a notation change then needs only a re-plot, not a solver recompute.
+TITLES = {
+    "TL": r"4D quasi-circular model:  $\theta=(b,\ q,\ \chi^{A}_{y},\ \chi^{B}_{y})$",
+    "TR": r"8D quasi-circular model:  $\theta=(b,\ q,\ \boldsymbol{\chi}^{A},\ \boldsymbol{\chi}^{B})$",
+}
+
 RANK_GID = "rank-label"
 
 
@@ -120,8 +127,8 @@ def main():
         pan = P[key]
         for spec in pan["curves"]:
             plot_family(ax, spec)
-        if pan.get("title"):
-            ax.set_title(pan["title"], fontsize=10)
+        if TITLES.get(key):
+            ax.set_title(TITLES[key], fontsize=10)
         if pan.get("note"):
             _note(ax, pan["note"], pan["note_loc"])
 

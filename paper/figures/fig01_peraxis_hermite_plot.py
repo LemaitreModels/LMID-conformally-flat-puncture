@@ -28,8 +28,8 @@ from _figdata import load
 from _figstyle import figdims
 
 LBL = {"b": r"$b$", "q": r"$q$",
-       "chi_Ax": r"$\chi_{Ax}$", "chi_Ay": r"$\chi_{Ay}$", "chi_Az": r"$\chi_{Az}$",
-       "chi_Bx": r"$\chi_{Bx}$", "chi_By": r"$\chi_{By}$", "chi_Bz": r"$\chi_{Bz}$"}
+       "chi_Ax": r"$\chi^{A}_{x}$", "chi_Ay": r"$\chi^{A}_{y}$", "chi_Az": r"$\chi^{A}_{z}$",
+       "chi_Bx": r"$\chi^{B}_{x}$", "chi_By": r"$\chi^{B}_{y}$", "chi_Bz": r"$\chi^{B}_{z}$"}
 YLIM = (1e-12, 1e-2)
 
 # (figdata key, colour, marker, label stem) — both drawn as solid lines

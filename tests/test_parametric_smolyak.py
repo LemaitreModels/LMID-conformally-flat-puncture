@@ -1,4 +1,4 @@
-"""PARASOL — Smolyak SPARSE-grid parametric layer (the d≳3 cost fix).
+"""LM-initial-data — Smolyak SPARSE-grid parametric layer (the d≳3 cost fix).
 
 The sparse-grid sibling of ``test_parametric_nd`` / ``test_parametric_3d``.  The
 combination-technique Smolyak interpolant (``parametric_nd_smolyak.py``) is built

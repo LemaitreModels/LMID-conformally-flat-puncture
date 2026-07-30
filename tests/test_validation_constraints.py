@@ -6,7 +6,7 @@ Exact self-tests pin the 2nd-order FD convergence:
   * transverse Bowen–York Â with K=psi^{-2}Â and ANY psi: the momentum constraint
     holds identically (D_j K^{ij}=psi^{-10}∂_j Â^{ij}=0), so M_FD -> O(h^2);
   * the generic FD Ricci and the conformal closed form R=-8psi^{-5}Δpsi agree.
-Plus the real binary: PARASOL ID lands on the grid with O(h^2) constraint decay.
+Plus the real binary: LM-initial-data ID lands on the grid with O(h^2) constraint decay.
 """
 
 import numpy as np
@@ -121,7 +121,7 @@ def test_momentum_conformal_closed_form_small():
 
 
 # --------------------------------------------------------------------------
-# The real binary: PARASOL ID lands on a Cartesian grid with O(h^2) decay
+# The real binary: LM-initial-data ID lands on a Cartesian grid with O(h^2) decay
 # --------------------------------------------------------------------------
 @pytest.mark.slow
 def test_binary_constraints_converge():

@@ -1,4 +1,4 @@
-"""PARASOL — figures for the first non-axisymmetric (3-D) data sweep.
+"""LM-initial-data — figures for the first non-axisymmetric (3-D) data sweep.
 
 Reads ``reports/3D/sweep_results.json`` (written by ``run_3d_sweep.py``) and
 writes two publication-quality figures:
@@ -17,7 +17,7 @@ writes two publication-quality figures:
         integral recovers the closed form Σ x_X×P_X.
 
 Also writes ``reports/3D/floor_table.txt`` (the ‖R‖∞ floor across the grid).
-Run:  ~/micromamba/envs/BBHFM/bin/python sandbox/parasol/plot_3d_sweep.py
+Run:  ~/micromamba/envs/BBHFM/bin/python -m lm.initial_data.pipeline.plot_3d_sweep
 """
 
 from __future__ import annotations
@@ -111,7 +111,8 @@ def fig_angular_momentum():
             S = np.array(a["S_A"])
             if np.hypot(S[0], S[1]) > 0 or S[2] != 0:
                 tS = np.rad2deg(np.arctan2(np.hypot(S[0], S[1]), S[2])) if np.any(S) else 0
-                Jtp = np.array(a["J_tp_parasol"])
+                # legacy corpora (pre-rename) store this as "J_tp_parasol"
+                Jtp = np.array(a.get("J_tp_lm_initial_data", a.get("J_tp_parasol")))
                 tJ = np.rad2deg(np.arctan2(np.hypot(Jtp[0], Jtp[1]), Jtp[2]))
                 ax1.plot(tS, tJ, "k*", ms=12, zorder=5)
         ax1.plot([], [], "k*", ms=10, label="TwoPunctures")

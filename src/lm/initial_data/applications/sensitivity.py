@@ -1,4 +1,4 @@
-"""PARASOL — differentiable initial data ``∂ID/∂θ`` (Milestone B3).
+"""LM-initial-data — differentiable initial data ``∂ID/∂θ`` (Milestone B3).
 
 The capability the whole paper-track is named for (PAPER_PLAN §1 claim 3): a
 **differentiable** certified ID generator.  P3 left the hook in place — the

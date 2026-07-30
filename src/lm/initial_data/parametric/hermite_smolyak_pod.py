@@ -1,4 +1,4 @@
-"""PARASOL — POD (reduced-basis) compression of the gradient-enhanced SPARSE
+"""LM-initial-data — POD (reduced-basis) compression of the gradient-enhanced SPARSE
 (Hermite-Smolyak) surrogate (H5d).
 
 The sparse (Smolyak) sibling of the dense POD re-encoding
@@ -354,6 +354,6 @@ def load_pod_hermite_smolyak(path) -> PODHermiteSmolyak:
     except ValueError:
         raise
     except Exception as e:
-        raise ValueError(f"corrupt PARASOL pod_hermite_smolyak surrogate '{path}': {e}")
+        raise ValueError(f"corrupt LM-initial-data pod_hermite_smolyak surrogate '{path}': {e}")
     pod.meta = meta
     return pod

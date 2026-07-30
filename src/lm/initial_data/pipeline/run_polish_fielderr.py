@@ -1,4 +1,4 @@
-"""PARASOL — per-Newton-step FIELD ERROR during certified refinement (4-D).
+"""LM-initial-data — per-Newton-step FIELD ERROR during certified refinement (4-D).
 
 Companion to ``run_polish_cold.py`` / ``run_polish_table.py``, which record the
 constraint residual ``||R||_inf`` at the guess (step 0) and after 1..K
@@ -29,12 +29,12 @@ per-step field-error stats (min/median/mean/p95/max) AND the raw per-point array
 (so the figure builder can draw honest min--max whiskers), plus the reproduced
 per-step residual stats for the shared-step cross-check.
 
-Add-only.  Imports committed ``parasol`` modules read-only; edits nothing.
+Add-only.  Imports committed ``lm.initial_data`` modules read-only; edits nothing.
 
 Run:
-  python sandbox/parasol/run_polish_fielderr.py                       # full 1000 pt
-  python sandbox/parasol/run_polish_fielderr.py --n-points 5          # smoke test
-  python sandbox/parasol/run_polish_fielderr.py --cold-steps 8 --pod-steps 4
+  python -m lm.initial_data.pipeline.run_polish_fielderr                       # full 1000 pt
+  python -m lm.initial_data.pipeline.run_polish_fielderr --n-points 5          # smoke test
+  python -m lm.initial_data.pipeline.run_polish_fielderr --cold-steps 8 --pod-steps 4
 """
 from __future__ import annotations
 

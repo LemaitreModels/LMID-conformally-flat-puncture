@@ -1,4 +1,4 @@
-"""PARASOL — per-Newton-step FIELD ERROR + residual for the VALUE-ONLY *POD* warm start.
+"""LM-initial-data — per-Newton-step FIELD ERROR + residual for the VALUE-ONLY *POD* warm start.
 
 Companion to ``run_polish_fielderr_value.py`` (which warm-starts from the FULL, un-
 compressed value-only Smolyak surrogate).  This script warm-starts from the value-only
@@ -24,12 +24,12 @@ both fig04 rows: ``residual_rows`` (top) and ``field_rows`` (bottom).
 Writes ``reports/P3/polish_fielderr_value_pod_chi<dim>d_r<r>_<n>.json`` with a single
 ``value_pod`` family (``field_rows`` + ``residual_rows``, ``run_polish_fielderr`` schema).
 
-Add-only.  Imports committed ``parasol`` modules read-only; edits nothing.
+Add-only.  Imports committed ``lm.initial_data`` modules read-only; edits nothing.
 
 Run:
-  python sandbox/parasol/run_polish_fielderr_value_pod.py --dim 4 --rank 75             # full 1000 pt
-  python sandbox/parasol/run_polish_fielderr_value_pod.py --dim 8 --rank 250
-  python sandbox/parasol/run_polish_fielderr_value_pod.py --dim 4 --rank 75 --n-points 3 # smoke test
+  python -m lm.initial_data.pipeline.run_polish_fielderr_value_pod --dim 4 --rank 75             # full 1000 pt
+  python -m lm.initial_data.pipeline.run_polish_fielderr_value_pod --dim 8 --rank 250
+  python -m lm.initial_data.pipeline.run_polish_fielderr_value_pod --dim 4 --rank 75 --n-points 3 # smoke test
 """
 from __future__ import annotations
 

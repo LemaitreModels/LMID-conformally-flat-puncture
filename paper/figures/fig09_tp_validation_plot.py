@@ -4,8 +4,8 @@
 Consolidated TwoPunctures validation, three panels:
  (a) ADM-J tilt off the collision axis tracks the spin tilt (theta_J = theta_S),
      with TwoPunctures anchors overlaid -- the genuinely 3-D observable;
- (b) quasi-circular max|psi_PARASOL - psi_TP| vs PARASOL grid;
- (c) quasi-circular |M_ADM - E_TP|/E_TP vs PARASOL grid.
+ (b) quasi-circular max|psi_LM-initial-data - psi_TP| vs LM-initial-data grid;
+ (c) quasi-circular |M_ADM - E_TP|/E_TP vs LM-initial-data grid.
 
 Reads ONLY figdata/fig09_tp_validation.json (build it with
 fig09_tp_validation_data.py). No reports/, no jax.
@@ -52,8 +52,8 @@ def main():
     ax2.semilogy(range(len(C)), [r["max_dpsi"] for r in C], "o-", color="C3")
     ax2.set_xticks(range(len(C)))
     ax2.set_xticklabels(ns, rotation=30)
-    ax2.set_xlabel(r"PARASOL grid $N_A\times N_B$ ($N_\phi=8$)")
-    ax2.set_ylabel(r"$\max|\psi_{\rm PARASOL}-\psi_{\rm TP}|$")
+    ax2.set_xlabel(r"LM-initial-data grid $N_A\times N_B$ ($N_\phi=8$)")
+    ax2.set_ylabel(r"$\max|\psi_{\rm LM-initial-data}-\psi_{\rm TP}|$")
     ax2.set_title(r"(b) quasi-circular field vs TP")
     ax2.grid(True, which="both", alpha=0.3)
 
@@ -61,7 +61,7 @@ def main():
     ax3.semilogy(range(len(C)), [r["M_ADM_rel_diff"] for r in C], "o-", color="C4")
     ax3.set_xticks(range(len(C)))
     ax3.set_xticklabels(ns, rotation=30)
-    ax3.set_xlabel(r"PARASOL grid $N_A\times N_B$")
+    ax3.set_xlabel(r"LM-initial-data grid $N_A\times N_B$")
     ax3.set_ylabel(r"$|M_{\rm ADM}-E_{\rm TP}|/E_{\rm TP}$")
     ax3.set_title(r"(c) quasi-circular ADM mass vs TP")
     ax3.grid(True, which="both", alpha=0.3)

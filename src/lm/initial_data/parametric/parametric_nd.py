@@ -1,4 +1,4 @@
-"""PARASOL — multi-dimensional spectral collocation in parameter space (P3).
+"""LM-initial-data — multi-dimensional spectral collocation in parameter space (P3).
 
 The N-D lift of :mod:`parametric` (the 1-D Chebyshev-in-parameter layer, reused
 **verbatim** — its ``cheb_param_nodes`` is imported, not re-implemented).  This
@@ -286,13 +286,13 @@ def _pack_meta(meta: dict):
 def _unpack_meta(data) -> dict:
     import json
     if "meta_json" not in data:
-        raise ValueError("not a PARASOL surrogate artifact: missing 'meta_json'")
+        raise ValueError("not a LM-initial-data surrogate artifact: missing 'meta_json'")
     raw = data["meta_json"]
     try:
         s = raw.item() if hasattr(raw, "item") else str(raw)
         return json.loads(s)
     except Exception as e:  # corrupt / truncated meta blob
-        raise ValueError(f"corrupt PARASOL meta_json: {e}")
+        raise ValueError(f"corrupt LM-initial-data meta_json: {e}")
 
 
 def _load_npz(path):
@@ -301,7 +301,7 @@ def _load_npz(path):
     try:
         return np.load(path, allow_pickle=False)
     except Exception as e:
-        raise ValueError(f"could not read PARASOL surrogate '{path}': {e}")
+        raise ValueError(f"could not read LM-initial-data surrogate '{path}': {e}")
 
 
 def _check_meta(meta: dict, expected_kind: str):
@@ -309,7 +309,7 @@ def _check_meta(meta: dict, expected_kind: str):
     fv = meta.get("format_version")
     if fv != FORMAT_VERSION:
         raise ValueError(
-            f"unsupported PARASOL format_version {fv!r} "
+            f"unsupported LM-initial-data format_version {fv!r} "
             f"(this build reads {FORMAT_VERSION})")
     kind = meta.get("kind")
     if kind != expected_kind:
@@ -343,7 +343,7 @@ def load_parametric(path) -> "ParametricSolutionND":
     except ValueError:
         raise
     except Exception as e:
-        raise ValueError(f"corrupt PARASOL dense surrogate '{path}': {e}")
+        raise ValueError(f"corrupt LM-initial-data dense surrogate '{path}': {e}")
     sol.meta = meta
     return sol
 

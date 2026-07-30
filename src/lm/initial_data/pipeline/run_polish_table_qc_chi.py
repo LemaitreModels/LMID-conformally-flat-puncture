@@ -1,8 +1,8 @@
-"""PARASOL — certified-refinement (Newton-polish) table for the 4-D QUASI-CIRCULAR
+"""LM-initial-data — certified-refinement (Newton-polish) table for the 4-D QUASI-CIRCULAR
 model, in the dimensionless-spin (chi) parameterization, over MANY
 uniformly-random off-node points.
 
-χ / b∈[2,7] / ℓ=5 redo of the paper ``tab:polish`` experiment (the ``\\todo``
+χ / production-box / ℓ=5 redo of the paper ``tab:polish`` experiment (the ``\\todo``
 on that table). Same methodology as ``run_polish_table_qc.py`` (which is the OLD
 ℓ=4 S-parameterized model), only the box, the model, and the Smolyak level change:
 
@@ -17,17 +17,17 @@ at fixed quasi-circular tangential momentum (``qc=1.0``), on the production 3-D
 spatial grid (Na=44, Nb=32, Nphi=8), against the shipped 4-D χ Smolyak model
 (isotropic level L=5, 1105 solves; manifest row S3):
 
-    reports/3D_parametric/models_chi/surrogate_smolyak_d4_qc_chi_b27_L5.npz
+    reports/3D_parametric/models_chi/surrogate_smolyak_d4_qc_chi_prod_L5.npz
 
 For each query theta the barycentric (combination-technique) prediction is the
 warm start, and we record the certified (equilibrated) constraint residual
 ||R||_inf of the bare guess and after 1..4 Newton--Krylov steps, read from the NK
 residual history of a SINGLE certified solve per point.
 
-Writes ``reports/P3/polish_table_qc_chi_b27_<n>.json`` and prints a LaTeX-ready
+Writes ``reports/P3/polish_table_qc_chi_prod_<n>.json`` and prints a LaTeX-ready
 summary.
 
-Run:  ~/micromamba/envs/BBHFM/bin/python sandbox/parasol/run_polish_table_qc_chi.py
+Run:  ~/micromamba/envs/BBHFM/bin/python -m lm.initial_data.pipeline.run_polish_table_qc_chi
       [--n-points 1000] [--seed 0] [--level 5]
 """
 from __future__ import annotations
@@ -60,7 +60,7 @@ NAMES = [a["name"] for a in BOX]
 FIXED = dict(pb.FIXED_QC)
 NA, NB, NPHI, M_TOT = 44, 32, 8, 1.0
 GAP_MIN = 1e-4  # off-node guard
-MODEL_NAME = "surrogate_smolyak_d4_qc_chi_b27_L5.npz"
+MODEL_NAME = "surrogate_smolyak_d4_qc_chi_prod_L5.npz"
 
 
 def build_or_load(prob, level):
@@ -72,7 +72,7 @@ def build_or_load(prob, level):
         from lm.initial_data.parametric.parametric_nd import attach_solve_fn_3d
         attach_solve_fn_3d(model, prob, NAMES, M_tot=M_TOT, fixed=FIXED, solver="nk")
         return model
-    # The shipped chi b27 L5 model (manifest S3) is expected on disk; only build
+    # The shipped chi prod L5 model (manifest S3) is expected on disk; only build
     # as a fallback.
     print(f"[qc-chi] building Smolyak L={level} model (this is the ~hour-long step) ...",
           flush=True)
@@ -171,13 +171,14 @@ def main(n_points=1000, seed=0, level=5):
                                      for k in sorted(set(STC.tolist()))},
            "median_steps_to_certify": float(np.median(STC[STC < 99])),
            "wall_clock_s": time.time() - t0}
-    out = os.path.join(REPDIR, f"polish_table_qc_chi_b27_{n_points}.json")
+    out = os.path.join(REPDIR, f"polish_table_qc_chi_prod_{n_points}.json")
     with open(out, "w") as f:
         json.dump(res, f, indent=2, default=float)
 
     # ---- report -----------------------------------------------------------
     print(f"\n=== QC-chi certified refinement over {n_points} uniform off-node points ===")
-    print(f"model: Smolyak L={level} ({model.n_solver_nodes} solves)  chi b∈[2,7]")
+    print(f"model: Smolyak L={level} ({model.n_solver_nodes} solves)  "
+          f"chi b∈[{pb.B_MIN:g},{pb.B_MAX:g}]")
     hdr = (f"{'':<22}{'min':>11}{'median':>11}{'mean':>11}{'p95':>11}{'max':>11}"
            f"{'%<=1e-10':>10}")
     print(hdr)

@@ -1,4 +1,4 @@
-"""PARASOL M1 gate — the 5 new b/q second-order cross tangents
+"""LM-initial-data M1 gate — the 5 new b/q second-order cross tangents
 (:mod:`applications.sensitivity_3d_cross_bq`).
 
 Teeth:

@@ -1,6 +1,6 @@
 """External oracle wrapper: the standalone TwoPunctures solver  (B1, Step 4).
 
-This is the **only** place the PARASOL package reaches outside itself.  It does
+This is the **only** place the LM-initial-data package reaches outside itself.  It does
 NOT import the oracle's build-time deps (nrpy etc.); it merely shells out (via
 ``subprocess``) to a pre-built standalone binary that solves the
 Ansorg–Brügmann–Tichy puncture equation (PRD 70, 064011) — the Einstein-Toolkit
@@ -27,13 +27,13 @@ import numpy as np
 from . import conventions
 
 
-# Default build location (see build.sh); override with PARASOL_TP_BIN.
+# Default build location (see build.sh); override with LM_TP_BIN.
 _DEFAULT_BIN = os.path.expanduser("~/.cache/bbhfm/parasol_tp_oracle/tp_solve")
 
 
 def binary_path() -> str:
-    """Path to the TwoPunctures binary (env ``PARASOL_TP_BIN`` or the default)."""
-    return os.environ.get("PARASOL_TP_BIN", _DEFAULT_BIN)
+    """Path to the TwoPunctures binary (env ``LM_TP_BIN`` or the default)."""
+    return os.environ.get("LM_TP_BIN", _DEFAULT_BIN)
 
 
 def available() -> bool:
@@ -64,9 +64,9 @@ def solve_tp(b, m_A, m_B, P, points_tp, nA=48, nB=48, nphi=4,
 
     ``points_tp`` is an (N,3) array of Cartesian points in TwoPunctures' native
     x-axis frame (m+ at (+b,0,0)).  Bare masses m_A (-> par_m_plus) and m_B
-    (-> par_m_minus) per :mod:`parasol.validation.conventions`.
+    (-> par_m_minus) per :mod:`lm.initial_data.validation.conventions`.
 
-    ``S_A, S_B`` are the aligned (∥z) PARASOL spins (Milestone P2); they are
+    ``S_A, S_B`` are the aligned (∥z) LM-initial-data spins (Milestone P2); they are
     passed to the binary as the collision-axis (x) spin components
     ``par_S_plus[0]=S_A``, ``par_S_minus[0]=S_B`` (see ``conventions``).  They
     default to 0, reproducing the B1 head-on solve exactly.
@@ -80,7 +80,7 @@ def solve_tp(b, m_A, m_B, P, points_tp, nA=48, nB=48, nphi=4,
         raise RuntimeError(
             f"TwoPunctures binary not found at {binary_path()!r}. "
             "Build it with ~/.cache/bbhfm/parasol_tp_oracle/build.sh "
-            "or set PARASOL_TP_BIN.")
+            "or set LM_TP_BIN.")
     pts = np.atleast_2d(np.asarray(points_tp, dtype=float))
     stdin = "".join(f"{x:.17g} {y:.17g} {z:.17g}\n" for x, y, z in pts)
     cmd = [binary_path(), repr(float(b)), repr(float(m_A)), repr(float(m_B)),
@@ -113,17 +113,17 @@ def solve_tp(b, m_A, m_B, P, points_tp, nA=48, nB=48, nphi=4,
         u=np.array(us), psi=np.array(psis))
 
 
-def solve_parasol_points(b, m_A, m_B, P, rho, z, S_A=0.0, S_B=0.0, **kw) -> TPResult:
-    """Run TwoPunctures and evaluate psi at PARASOL meridian points ``(rho, z)``.
+def solve_lm_initial_data_points(b, m_A, m_B, P, rho, z, S_A=0.0, S_B=0.0, **kw) -> TPResult:
+    """Run TwoPunctures and evaluate psi at LM-initial-data meridian points ``(rho, z)``.
 
-    Maps each PARASOL (rho, z) to the TwoPunctures native frame via
-    :func:`conventions.parasol_point_to_tp` (axial z -> x_TP, radius rho -> y_TP).
-    ``S_A, S_B`` are the aligned PARASOL spins (P2; default 0 = head-on).
+    Maps each LM-initial-data (rho, z) to the TwoPunctures native frame via
+    :func:`conventions.lm_initial_data_point_to_tp` (axial z -> x_TP, radius rho -> y_TP).
+    ``S_A, S_B`` are the aligned LM-initial-data spins (P2; default 0 = head-on).
     The returned ``psi``/``u`` arrays are aligned to the input (rho, z) order.
     """
     rho = np.atleast_1d(np.asarray(rho, dtype=float))
     z = np.atleast_1d(np.asarray(z, dtype=float))
-    pts_tp = np.array([conventions.parasol_point_to_tp(float(r), float(zz))
+    pts_tp = np.array([conventions.lm_initial_data_point_to_tp(float(r), float(zz))
                        for r, zz in zip(rho, z)])
     return solve_tp(b, m_A, m_B, P, pts_tp, S_A=S_A, S_B=S_B, **kw)
 
@@ -131,7 +131,7 @@ def solve_parasol_points(b, m_A, m_B, P, rho, z, S_A=0.0, S_B=0.0, **kw) -> TPRe
 # --------------------------------------------------------------------------
 # Non-axisymmetric (Test E) — full per-puncture VECTOR momenta / spins.
 # Uses the extended binary's argc>=24 override path; the 12 vector components
-# are rotated PARASOL -> TP frame here (conventions.parasol_vec_to_tp) so the C
+# are rotated LM-initial-data -> TP frame here (conventions.lm_initial_data_vec_to_tp) so the C
 # side receives TP-native vectors.  The scalar solve_tp above is unchanged.
 # --------------------------------------------------------------------------
 def solve_tp_3d(b, m_A, m_B, P_A_vec, P_B_vec, S_A_vec, S_B_vec, points_tp,
@@ -139,20 +139,20 @@ def solve_tp_3d(b, m_A, m_B, P_A_vec, P_B_vec, S_A_vec, S_B_vec, points_tp,
                 timeout=1200) -> TPResult:
     """Run TwoPunctures with arbitrary per-puncture momentum/spin VECTORS.
 
-    ``P_A_vec, P_B_vec, S_A_vec, S_B_vec`` are PARASOL-frame Cartesian 3-vectors
+    ``P_A_vec, P_B_vec, S_A_vec, S_B_vec`` are LM-initial-data-frame Cartesian 3-vectors
     (punctures on the z-axis at ±b); they are rotated into the TP native x-axis
-    frame via :func:`conventions.parasol_vec_to_tp`.  ``points_tp`` is (N,3) in
+    frame via :func:`conventions.lm_initial_data_vec_to_tp`.  ``points_tp`` is (N,3) in
     the TP native frame.  Requires the extended binary (argc>=24 override path).
     """
     if not available():
         raise RuntimeError(
             f"TwoPunctures binary not found at {binary_path()!r}. "
             "Build it with ~/.cache/bbhfm/parasol_tp_oracle/build.sh "
-            "or set PARASOL_TP_BIN.")
-    Pp = conventions.parasol_vec_to_tp(P_A_vec)
-    Pm = conventions.parasol_vec_to_tp(P_B_vec)
-    Sp = conventions.parasol_vec_to_tp(S_A_vec)
-    Sm = conventions.parasol_vec_to_tp(S_B_vec)
+            "or set LM_TP_BIN.")
+    Pp = conventions.lm_initial_data_vec_to_tp(P_A_vec)
+    Pm = conventions.lm_initial_data_vec_to_tp(P_B_vec)
+    Sp = conventions.lm_initial_data_vec_to_tp(S_A_vec)
+    Sm = conventions.lm_initial_data_vec_to_tp(S_B_vec)
     pts = np.atleast_2d(np.asarray(points_tp, dtype=float))
     stdin = "".join(f"{x:.17g} {y:.17g} {z:.17g}\n" for x, y, z in pts)
     # argv 1..11 keep the scalar shape (P/SA/SB are ignored once the >=24
@@ -188,20 +188,20 @@ def solve_tp_3d(b, m_A, m_B, P_A_vec, P_B_vec, S_A_vec, S_B_vec, points_tp,
         u=np.array(us), psi=np.array(psis))
 
 
-def solve_parasol_points_3d(b, m_A, m_B, P_A_vec, P_B_vec, S_A_vec, S_B_vec,
+def solve_lm_initial_data_points_3d(b, m_A, m_B, P_A_vec, P_B_vec, S_A_vec, S_B_vec,
                             rho, z, phi, **kw) -> TPResult:
-    """Run TwoPunctures (vector data) and evaluate psi at PARASOL points (ρ,z,φ).
+    """Run TwoPunctures (vector data) and evaluate psi at LM-initial-data points (ρ,z,φ).
 
-    Maps each PARASOL ``(ρ, z, φ)`` to the TP native frame via
-    :func:`conventions.parasol_point_to_tp_3d` (the cyclic z^P->x^TP rotation),
+    Maps each LM-initial-data ``(ρ, z, φ)`` to the TP native frame via
+    :func:`conventions.lm_initial_data_point_to_tp_3d` (the cyclic z^P->x^TP rotation),
     and passes the per-puncture momentum/spin vectors through
     :func:`solve_tp_3d`.  Returned ``psi``/``u`` are aligned to the input order;
-    ``J`` is in the TP native frame (rotate with ``conventions.tp_vec_to_parasol``
-    to compare in the PARASOL frame).
+    ``J`` is in the TP native frame (rotate with ``conventions.tp_vec_to_lm_initial_data``
+    to compare in the LM-initial-data frame).
     """
     rho = np.atleast_1d(np.asarray(rho, dtype=float))
     z = np.atleast_1d(np.asarray(z, dtype=float))
     phi = np.atleast_1d(np.asarray(phi, dtype=float))
-    pts_tp = np.array([conventions.parasol_point_to_tp_3d(float(r), float(zz), float(pp))
+    pts_tp = np.array([conventions.lm_initial_data_point_to_tp_3d(float(r), float(zz), float(pp))
                        for r, zz, pp in zip(rho, z, phi)])
     return solve_tp_3d(b, m_A, m_B, P_A_vec, P_B_vec, S_A_vec, S_B_vec, pts_tp, **kw)

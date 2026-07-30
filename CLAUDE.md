@@ -7,7 +7,7 @@ Guidance for Claude Code when working in **LM-initial-data** (`lm.initial_data`)
 
 ## What this repo is
 
-The code + paper for PARASOL: a **certified, differentiable,
+The code + paper for a **certified, differentiable,
 parametric** reduced-order model of the binary-black-hole *constraint (initial
 data)* solve — quasi-circular Bowen–York punctures up to the 8-D general-spin
 model θ₈ = (b, q, χ_A, χ_B). It is the `initial_data` member of the **Lemaitre**
@@ -67,7 +67,7 @@ make figures                                   # regenerate figure data (recompu
   parameter control), `sensitivity_3d`/`_qc`/`_cross`/`_cross_bq` (differentiable
   tangents dU/dθ, incl. the full-bilinear cross term).
 - **`validation/`** — `twopunctures` (external oracle wrapper), `conventions`
-  (convention map), `adm`, `constraints`, `compare` (PARASOL-vs-TwoPunctures).
+  (convention map), `adm`, `constraints`, `compare` (LM-initial-data-vs-TwoPunctures).
 
 `pipeline/figures/` and `pipeline/models/` hold the canonical producers/builders;
 `paper/figures/` holds the recompute+plot scripts. See `docs/STRUCTURE.md`.

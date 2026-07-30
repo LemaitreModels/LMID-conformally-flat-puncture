@@ -1,4 +1,4 @@
-"""PARASOL — FULL BILINEAR (cross-enhanced) Hermite–Smolyak collocation.
+"""LM-initial-data — FULL BILINEAR (cross-enhanced) Hermite–Smolyak collocation.
 
 The cross-carrying sibling of the committed gradient-only Hermite–Smolyak layer
 (:mod:`hermite_smolyak`).  The committed enhanced-axis tensor product
@@ -347,6 +347,6 @@ def load_hermite_smolyak_cross(path) -> HermiteSmolyakCrossSolutionND:
     except ValueError:
         raise
     except Exception as e:
-        raise ValueError(f"corrupt PARASOL hermite_smolyak_cross surrogate '{path}': {e}")
+        raise ValueError(f"corrupt LM-initial-data hermite_smolyak_cross surrogate '{path}': {e}")
     sol.meta = meta
     return sol

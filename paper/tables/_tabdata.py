@@ -1,4 +1,4 @@
-"""PARASOL paper — table-data I/O helper (the ``figures/_figdata.py`` analogue).
+"""LM-initial-data paper — table-data I/O helper (the ``figures/_figdata.py`` analogue).
 
 Two jobs, mirroring the figure tier:
   * RENDERERS call :func:`load` to read ``tabdata/<stem>.json`` and emit the LaTeX
@@ -19,10 +19,10 @@ TABDATA = os.path.join(HERE, "tabdata")
 AXIS_TEX = {
     "b": r"$b$",
     "q": r"$q$",
-    "chi_A": r"$\chi_A$",
-    "chi_B": r"$\chi_B$",
-    "chi_Ay": r"$\chi_{Ay}$",
-    "chi_By": r"$\chi_{By}$",
+    "chi_A": r"$\chi^{A}$",
+    "chi_B": r"$\chi^{B}$",
+    "chi_Ay": r"$\chi^{A}_{y}$",
+    "chi_By": r"$\chi^{B}_{y}$",
 }
 
 

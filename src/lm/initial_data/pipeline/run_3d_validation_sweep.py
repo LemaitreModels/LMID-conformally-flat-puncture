@@ -1,4 +1,4 @@
-"""PARASOL 3D — TwoPunctures cross-validation of the certified parametric surrogate.
+"""LM-initial-data 3D — TwoPunctures cross-validation of the certified parametric surrogate.
 
 The independent-oracle credibility run for the 3-D lift.  Builds ONE certified
 Newton–Krylov interpolant over the misaligned-spin family and shows that its
@@ -19,7 +19,7 @@ Blocks (→ ``reports/3D_parametric/validation_results.json`` + figures):
 
 Skips cleanly if the TP binary is absent.  Run:
 
-    caffeinate -ims ~/micromamba/envs/BBHFM/bin/python sandbox/parasol/run_3d_validation_sweep.py
+    caffeinate -ims ~/micromamba/envs/BBHFM/bin/python -m lm.initial_data.pipeline.run_3d_validation_sweep
 """
 
 from __future__ import annotations
@@ -87,7 +87,7 @@ def block_V1():
         sl = p3.theta_to_slice3d(th, ACTIVE, fixed=FIXED)
         U, info = ps.evaluate_polished(th, newton_steps=2)
         QR, QZ, QP = _query_points(sl.b)
-        res = tp.solve_parasol_points_3d(
+        res = tp.solve_lm_initial_data_points_3d(
             sl.b, sl.m_A, sl.m_B, sl.P_A_vec, sl.P_B_vec, sl.S_A_vec, sl.S_B_vec,
             QR, QZ, QP, nA=64, nB=64, nphi=12, timeout=TP_TIMEOUT)
         psi = _psi_from_U(prob, U, sl, QR, QZ, QP)
@@ -111,7 +111,7 @@ def block_V2():
     QR, QZ, QP = _query_points(sl.b)
     _t(f"\n=== V2: ψ-vs-TP resolution ladder at θ=(b={th[0]:.3f}, tilt={th[1]:.2f}°) ===")
     # one fine TP reference
-    res = tp.solve_parasol_points_3d(
+    res = tp.solve_lm_initial_data_points_3d(
         sl.b, sl.m_A, sl.m_B, sl.P_A_vec, sl.P_B_vec, sl.S_A_vec, sl.S_B_vec,
         QR, QZ, QP, nA=72, nB=72, nphi=12, timeout=TP_TIMEOUT)
     ladder = [(40, 28, 8), (48, 34, 8), (56, 40, 10), (64, 46, 12)]

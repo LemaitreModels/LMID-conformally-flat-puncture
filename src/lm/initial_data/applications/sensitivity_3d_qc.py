@@ -1,4 +1,4 @@
-"""PARASOL-3D — the quasi-circular (QC) certified-ID parameter tangent ``dU/dθ_k``.
+"""LM-initial-data-3D — the quasi-circular (QC) certified-ID parameter tangent ``dU/dθ_k``.
 
 The QC extension of the H5a direct tangent (:mod:`applications.sensitivity_3d`).
 The paper's astrophysical family is the **quasi-circular** one: the puncture

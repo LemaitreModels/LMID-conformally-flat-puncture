@@ -1,4 +1,4 @@
-"""PARASOL — per-Newton-step FIELD ERROR during certified refinement (8-D).
+"""LM-initial-data — per-Newton-step FIELD ERROR during certified refinement (8-D).
 
 The 8-D spin quasi-circular sibling of ``run_polish_fielderr.py`` (4-D): it
 re-runs the certified NK polish over the IDENTICAL 1000 seed-0 off-node points of
@@ -39,12 +39,12 @@ with, per family, the per-step field-error stats (min/median/mean/p95/max) AND t
 raw per-point arrays (for honest min--max whiskers), plus the reproduced per-step
 residual stats for the shared-step cross-check.
 
-Add-only.  Imports committed ``parasol`` modules read-only; edits nothing.
+Add-only.  Imports committed ``lm.initial_data`` modules read-only; edits nothing.
 
 Run:
-  python sandbox/parasol/run_polish_fielderr_8d.py                    # full 1000 pt
-  python sandbox/parasol/run_polish_fielderr_8d.py --n-points 5       # smoke test
-  python sandbox/parasol/run_polish_fielderr_8d.py --cold-steps 8 --pod-steps 4
+  python -m lm.initial_data.pipeline.run_polish_fielderr_8d                    # full 1000 pt
+  python -m lm.initial_data.pipeline.run_polish_fielderr_8d --n-points 5       # smoke test
+  python -m lm.initial_data.pipeline.run_polish_fielderr_8d --cold-steps 8 --pod-steps 4
 """
 from __future__ import annotations
 

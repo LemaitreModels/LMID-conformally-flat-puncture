@@ -1,4 +1,4 @@
-"""PARASOL — GENERAL certified-refinement (Newton-polish) sweep driver.
+"""LM-initial-data — GENERAL certified-refinement (Newton-polish) sweep driver.
 
 One driver for every (dimension, guess-type) certified-refinement experiment that
 feeds the manuscript ``tab:polish`` presentation.  Given a model .npz, it reads the

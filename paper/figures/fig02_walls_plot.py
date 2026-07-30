@@ -55,11 +55,11 @@ def main():
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figdims(1, 2))
 
     _panel(ax1, d["B_wall_b"], "b_min",
-           lambda r, rho, th: rf"$b_{{\min}}={r}$;   fit:  $\rho={rho:.2f}$,  $b^\ast={th:.2f}$",
+           lambda r, rho, th: rf"$b_{{\min}}={r}$;   fit:  $\rho={rho:.2f}$,  $b_\ast={th:.2f}$",
            r"separation nodes  $Q_b$",
            "Separation (merger) wall — hard, real")
     _panel(ax2, d["C_wall_spin"], "chi_max",
-           lambda r, rho, th: rf"$\chi_{{\max}}={r:.1f}$;   fit:  $\rho={rho:.2f}$,  $\chi^\ast={th:.1f}$",
+           lambda r, rho, th: rf"$\chi_{{\max}}={r:.1f}$;   fit:  $\rho={rho:.2f}$,  $\chi_\ast={th:.1f}$",
            r"spin nodes  $Q_S$",
            "Spin wall — soft, complex")
 

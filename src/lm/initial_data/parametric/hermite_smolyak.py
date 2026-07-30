@@ -1,4 +1,4 @@
-"""PARASOL — gradient-enhanced (Hermite) SPARSE-grid collocation (H5b).
+"""LM-initial-data — gradient-enhanced (Hermite) SPARSE-grid collocation (H5b).
 
 The sparse (Smolyak) sibling of the dense gradient-enhanced layer
 (:mod:`hermite_nd`), and the gradient-enhanced sibling of the committed
@@ -450,6 +450,6 @@ def load_hermite_smolyak(path) -> HermiteSmolyakSolutionND:
     except ValueError:
         raise
     except Exception as e:
-        raise ValueError(f"corrupt PARASOL hermite_smolyak surrogate '{path}': {e}")
+        raise ValueError(f"corrupt LM-initial-data hermite_smolyak surrogate '{path}': {e}")
     sol.meta = meta
     return sol

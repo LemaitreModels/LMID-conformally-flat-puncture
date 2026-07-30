@@ -1,4 +1,4 @@
-"""PARASOL-3D — the ``solver_3d`` certified-ID parameter tangent ``dU/dθ_k``
+"""LM-initial-data-3D — the ``solver_3d`` certified-ID parameter tangent ``dU/dθ_k``
 (Milestone H5a; the gating de-risk of the gradient-enhanced **sparse** track).
 
 The dense/axisymmetric path already exposes the implicit-function-theorem

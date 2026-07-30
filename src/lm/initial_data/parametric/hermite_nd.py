@@ -1,4 +1,4 @@
-"""PARASOL — N-D gradient-enhanced (hard-axis-only) Hermite surrogate (H2).
+"""LM-initial-data — N-D gradient-enhanced (hard-axis-only) Hermite surrogate (H2).
 
 The N-D lift of the 1-D foundation :mod:`hermite` (H1), following the
 **anisotropic** route of ``GRADIENT_ENHANCED_PLAN.md`` §2/§4 H2: enhance only the
@@ -281,7 +281,7 @@ def load_hermite_nd(path) -> "HermiteSolutionND":
     except ValueError:
         raise
     except Exception as e:
-        raise ValueError(f"corrupt PARASOL hermite_nd surrogate '{path}': {e}")
+        raise ValueError(f"corrupt LM-initial-data hermite_nd surrogate '{path}': {e}")
     sol.meta = meta
     return sol
 

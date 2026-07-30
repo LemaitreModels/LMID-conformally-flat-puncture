@@ -1,6 +1,6 @@
 """Oracle-independent ID-quality check: FD constraints on a Cartesian grid (B1 §5).
 
-Interpolate the PARASOL spectral conformal factor onto a uniform Cartesian
+Interpolate the LM-initial-data spectral conformal factor onto a uniform Cartesian
 (evolution-type) grid, assemble the *physical* ADM data
 ``(gamma_ij = psi^4 delta_ij, K_ij = psi^{-2} Â_ij)``, and measure the
 **finite-difference** Hamiltonian and momentum constraint violation as a function
@@ -20,7 +20,7 @@ continuum cross-checks, and exact self-tests pin the FD order:
   * transverse Bowen–York Â with K=psi^{-2}Â: the momentum constraint holds for
     ANY psi (D_j K^{ij}=psi^{-10}∂_j Â^{ij}=0), so M_FD -> 0 at O(h^2).
 
-All standalone (numpy); the PARASOL field enters only through
+All standalone (numpy); the LM-initial-data field enters only through
 ``solver.solver_abt.evaluate_field_phys``.
 """
 
@@ -89,7 +89,7 @@ def _A_single_3d(X, Y, Z, z0, Pz):
 
 
 def A_tensor_3d(X, Y, Z, b, P):
-    """Summed BY Â^ij (PARASOL convention: A at +b, P_A=(0,0,-P); B at -b, +P)."""
+    """Summed BY Â^ij (LM-initial-data convention: A at +b, P_A=(0,0,-P); B at -b, +P)."""
     return _A_single_3d(X, Y, Z, +b, -P) + _A_single_3d(X, Y, Z, -b, +P)
 
 

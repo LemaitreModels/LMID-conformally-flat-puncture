@@ -1,4 +1,4 @@
-"""PARASOL — the persistent, content-addressed SOLVE STORE (``solve_store.py``).
+"""LM-initial-data — the persistent, content-addressed SOLVE STORE (``solve_store.py``).
 
 The store turns the overlap between surrogate builds (nested CC levels,
 dense↔sparse, re-runs, box extensions) into a shared, growing asset: a physical

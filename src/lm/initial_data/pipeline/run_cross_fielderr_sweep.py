@@ -1,4 +1,4 @@
-"""PARASOL — CROSS-model FIELD-ERROR POD-rank sweep (4-D).
+"""LM-initial-data — CROSS-model FIELD-ERROR POD-rank sweep (4-D).
 
 Companion to ``run_cross_pod_figuredata.py`` (which produces the cross bare-guess
 EQUILIBRATED-RESIDUAL POD sweep, ``guess_vs_memory_4d_cross_gapfill_1000.json``).
@@ -22,11 +22,11 @@ Writes ``reports/P3/guess_vs_memory_4d_cross_field_1000.json`` with schema
 mirroring ``guess_vs_memory_4d_cross_gapfill_1000.json`` (pod_curve of
 {r, mem_bytes, min, median, mean, p95, max}; metric ``field_error_relL2``).
 
-Add-only.  Imports committed ``parasol`` modules read-only; edits nothing.
+Add-only.  Imports committed ``lm.initial_data`` modules read-only; edits nothing.
 
 Run:
-  python sandbox/parasol/run_cross_fielderr_sweep.py                 # full 1000 pt
-  python sandbox/parasol/run_cross_fielderr_sweep.py --n-points 5    # smoke test
+  python -m lm.initial_data.pipeline.run_cross_fielderr_sweep                 # full 1000 pt
+  python -m lm.initial_data.pipeline.run_cross_fielderr_sweep --n-points 5    # smoke test
 """
 from __future__ import annotations
 

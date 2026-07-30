@@ -2,10 +2,10 @@
 """Data for fig03_joint_dist: distill the best/median/worst curves to figdata/.
 
 Sources (raw):
-  joint_dist_4d          reports/3D_parametric/qc_chi/joint_dist_d4_qc_chi_b27.json        (4D bare)
-  joint_dist_cross_4d    reports/3D_parametric/qc_chi/joint_dist_cross_d4_qc_chi_b27.json  (4D value+grad+cross)
-  joint_dist_8d          reports/3D_parametric/qc_chi/joint_dist_spin8_qc_chi_b27.json     (8D bare)
-  joint_dist_hermite_8d  reports/3D_parametric/qc_chi/joint_dist_hermite_spin8_qc_chi_b27.json (8D value+grad+cross)
+  joint_dist_4d          reports/3D_parametric/qc_chi/joint_dist_d4_qc_chi_prod.json        (4D bare)
+  joint_dist_cross_4d    reports/3D_parametric/qc_chi/joint_dist_cross_d4_qc_chi_prod.json  (4D value+grad+cross)
+  joint_dist_8d          reports/3D_parametric/qc_chi/joint_dist_spin8_qc_chi_prod.json     (8D bare)
+  joint_dist_hermite_8d  reports/3D_parametric/qc_chi/joint_dist_hermite_spin8_qc_chi_prod.json (8D value+grad+cross)
 
 Both 8D files share the 4D schema (a "joint" list of {level, nodes, best, median, worst}), so the
 8D right panel mirrors the 4D left panel exactly.

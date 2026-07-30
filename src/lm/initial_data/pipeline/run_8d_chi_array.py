@@ -1,4 +1,4 @@
-"""S6 — shipped 8D χ Smolyak L=5 (b∈[2,7]): SLURM job-array node-pool chunking.
+"""S6 — shipped 8D χ Smolyak L=5 (production box): SLURM job-array node-pool chunking.
 
 The 8D ℓ=5 node pool (~15k nodes) is multi-day serial, so it is parallelised as a
 SLURM job ARRAY: each task solves a DISJOINT STRIDE of the unique L=5 node pool
@@ -6,10 +6,10 @@ into the SHARED, lock-free ``solve_store_chi`` (atomic temp+os.replace writes, s
 concurrent tasks are safe and dedup).  After the array completes, assemble the
 model with the store fully populated (all hits):
 
-    python sandbox/parasol/build_surrogate_chi.py --Na 44 --Nb 32 --Nphi 8 \
-        --box spin8_qc_chi_b27 --level 5 --solver modified --retry-tol 1e-6 \
-        --store sandbox/parasol/reports/3D_parametric/solve_store_chi \
-        --code-tag chi-rebuild --outdir sandbox/parasol/reports/3D_parametric/models_chi
+    python -m lm.initial_data.pipeline.build_surrogate_chi --Na 44 --Nb 32 --Nphi 8 \
+        --box spin8_qc_chi_prod --level 5 --solver modified --retry-tol 1e-6 \
+        --store reports/3D_parametric/solve_store_chi \
+        --code-tag chi-rebuild --outdir reports/3D_parametric/models_chi
 
 Chunking is by stride (task k solves nodes[k::ntasks]), so tasks are disjoint (no
 duplicate solves); the store additionally serves the in-plane=0 sub-slice from the
@@ -92,7 +92,7 @@ def main():
 
     t0 = time.time()
     thetas = enumerate_nodes(solver, args.level)
-    _t(f"[S6] L={args.level} 8D box b∈[2,7]: {len(thetas)} unique nodes "
+    _t(f"[S6] L={args.level} 8D box b∈[{pb.B_MIN:g},{pb.B_MAX:g}]: {len(thetas)} unique nodes "
        f"(enumerated in {time.time()-t0:.0f}s)  store has {store.n_entries} entries")
     if args.print_plan:
         _t(f"[S6 PLAN] node_count={len(thetas)}")

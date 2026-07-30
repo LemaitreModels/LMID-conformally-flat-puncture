@@ -1,4 +1,4 @@
-"""PARASOL — a persistent, content-addressed SOLVE STORE.
+"""LM-initial-data — a persistent, content-addressed SOLVE STORE.
 
 Every ``build_*`` sweep today re-solves its own fresh in-memory node pool.
 Building the isotropic Smolyak levels ``L=2,3,4,5`` separately costs
@@ -13,7 +13,7 @@ This module is **ADD-ONLY**.  It reuses ``theta_to_slice3d`` /
 ``make_solve_fn`` / ``SmolyakSolverND`` / ``ParametricSolverND`` / ``_finalize``
 verbatim; it does not touch the pool / finalize / build logic.  A
 :class:`SolveStore` is a directory of one ``.npz`` per solved slice, keyed by the
-SHA-1 of the *physical slice* (the rounded :class:`~parasol.solver.solver_3d.Slice3D`
+SHA-1 of the *physical slice* (the rounded :class:`~lm.initial_data.solver.solver_3d.Slice3D`
 fields) together with the frozen grid ``(Na,Nb,Nφ)`` and a ``code_tag`` (git
 short hash).  :func:`wrap_solve_fn` slots the store between the parametric layer
 and the raw ``solve_fn``: a store *hit* returns the cached field, a *miss* runs

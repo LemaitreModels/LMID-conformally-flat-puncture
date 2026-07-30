@@ -1,4 +1,4 @@
-"""PARASOL — POD (reduced-basis) compression of the FULL-BILINEAR (cross) sparse
+"""LM-initial-data — POD (reduced-basis) compression of the FULL-BILINEAR (cross) sparse
 Hermite-Smolyak surrogate.
 
 The cross-carrying sibling of the committed :mod:`hermite_smolyak_pod`
@@ -322,6 +322,6 @@ def load_pod_hermite_smolyak_cross(path) -> PODHermiteSmolyakCross:
     except ValueError:
         raise
     except Exception as e:
-        raise ValueError(f"corrupt PARASOL pod_hermite_smolyak_cross surrogate '{path}': {e}")
+        raise ValueError(f"corrupt LM-initial-data pod_hermite_smolyak_cross surrogate '{path}': {e}")
     pod.meta = meta
     return pod

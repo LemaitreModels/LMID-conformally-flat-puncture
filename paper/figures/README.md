@@ -98,7 +98,7 @@ $PY make_figdata.py --fig fig03      # one figure (stem, number, or prefix); --f
 present under `reports/`; blocked figures list the exact producer command and whether it runs on the
 laptop or the cluster. Most raw sources are produced by heavy CPU runs on the IVS cluster (see the
 paper cluster prompt); once produced under `reports/`, the matching `*_data.py` distills them.
-`fig07`'s data script (eccentricity) is the one that needs `jax` + the `parasol` package (it evaluates the
+`fig07`'s data script (eccentricity) is the one that needs `jax` + the `lm.initial_data` package (it evaluates the
 surrogate once to precompute the smooth curves).
 
 ## Figure → data script → raw source(s)

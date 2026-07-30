@@ -1,4 +1,4 @@
-"""PARASOL — per-Newton-step FIELD ERROR for the VALUE-ONLY warm start (4-D + 8-D).
+"""LM-initial-data — per-Newton-step FIELD ERROR for the VALUE-ONLY warm start (4-D + 8-D).
 
 Companion to ``run_polish_fielderr.py`` (which records the ``cold`` and value+gradient
 ``pod`` families).  fig04's bottom row compares the field error per Newton step of the
@@ -7,7 +7,7 @@ warm starts against the cold start; the committed field-error files carry ``cold
 
   * ``value`` — warm start from the value-ONLY Smolyak surrogate (no gradient
     enhancement), the same model whose residual staircase is
-    ``polish_table_qc_chi_b27_1000.json`` (4-D) / ``polish_table_chi8d_value_1000.json``
+    ``polish_table_qc_chi_prod_1000.json`` (4-D) / ``polish_table_chi8d_value_1000.json``
     (8-D).
 
 It re-uses the committed field-error machinery VERBATIM — ``polish_history`` (the
@@ -20,12 +20,12 @@ The recorded per-step residual staircase (``residual_rows``) reproduces the comm
 value residual tables — a built-in cross-check that the model and the seed-0 sampling
 match the fig04 top row.
 
-Add-only.  Imports committed ``parasol`` modules read-only; edits nothing.
+Add-only.  Imports committed ``lm.initial_data`` modules read-only; edits nothing.
 
 Run:
-  python sandbox/parasol/run_polish_fielderr_value.py --dim 4              # full 1000 pt
-  python sandbox/parasol/run_polish_fielderr_value.py --dim 8
-  python sandbox/parasol/run_polish_fielderr_value.py --dim 4 --n-points 5 # smoke test
+  python -m lm.initial_data.pipeline.run_polish_fielderr_value --dim 4              # full 1000 pt
+  python -m lm.initial_data.pipeline.run_polish_fielderr_value --dim 8
+  python -m lm.initial_data.pipeline.run_polish_fielderr_value --dim 4 --n-points 5 # smoke test
 """
 from __future__ import annotations
 
@@ -54,8 +54,8 @@ REPDIR = os.path.join(HERE, "reports", "P3")
 MODELS = os.path.join(HERE, "reports", "3D_parametric", "models_chi")
 # the value-ONLY Smolyak surrogates (no gradient enhancement), per dimension
 VALUE_MODEL = {
-    4: os.path.join(MODELS, "surrogate_smolyak_d4_qc_chi_b27_L5.npz"),
-    8: os.path.join(MODELS, "surrogate_smolyak_spin8_qc_chi_b27_L5.npz"),
+    4: os.path.join(MODELS, "surrogate_smolyak_d4_qc_chi_prod_L5.npz"),
+    8: os.path.join(MODELS, "surrogate_smolyak_spin8_qc_chi_prod_L5.npz"),
 }
 
 

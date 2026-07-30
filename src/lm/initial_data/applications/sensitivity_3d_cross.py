@@ -1,4 +1,4 @@
-"""PARASOL-3D — the QC certified-ID **second-order cross tangent**
+"""LM-initial-data-3D — the QC certified-ID **second-order cross tangent**
 ``∂²U/∂θ_i∂θ_j`` between two enhanced spin axes (the mixed-partial the
 gradient-only Hermite–Smolyak construction drops).
 

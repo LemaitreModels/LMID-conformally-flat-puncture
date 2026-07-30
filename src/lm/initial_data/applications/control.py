@@ -1,4 +1,4 @@
-"""PARASOL — accelerated parameter control (Milestone B2, the payoff).
+"""LM-initial-data — accelerated parameter control (Milestone B2, the payoff).
 
 A minimal **Mendes-style control loop** (Mendes et al. 2025, *Parameter control
 for binary black hole initial data*, PRD 112, 124049): given **target physical

@@ -1,4 +1,4 @@
-"""PARASOL-2C — diagnostics (adapted from the single-centre §6).
+"""LM-initial-data-2C — diagnostics (adapted from the single-centre §6).
 
 Field evaluation, residual norm, ADM mass, convergence-table printer.  On the
 Stage-1 single A-centred grid these reuse the single-centre machinery verbatim

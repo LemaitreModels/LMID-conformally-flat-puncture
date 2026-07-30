@@ -1,4 +1,4 @@
-"""PARASOL — gradient-based physical-parameter targeting on the QUASI-CIRCULAR model.
+"""LM-initial-data — gradient-based physical-parameter targeting on the QUASI-CIRCULAR model.
 
 The paper's headline application, promoted from the axisymmetric prototype
 (``applications/control.py`` = Broyden warm-start, ``applications/sensitivity.py``

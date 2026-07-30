@@ -1,4 +1,4 @@
-"""PARASOL paper — shared figure geometry (single source of truth for figure size).
+"""LM-initial-data paper — shared figure geometry (single source of truth for figure size).
 
 UNIFORMITY.  Every figure sizes itself through ``figdims`` so panels share ONE aspect ratio
 (``PANEL_W : PANEL_H``) across the whole paper, regardless of the panel grid.  A figure with an

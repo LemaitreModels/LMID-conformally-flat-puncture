@@ -1,4 +1,4 @@
-"""PARASOL — bare-guess constraint residual ||R||_inf vs stored model memory.
+"""LM-initial-data — bare-guess constraint residual ||R||_inf vs stored model memory.
 
 The memory<->accuracy tradeoff of the reduced-basis (POD) re-encoding
 (paper Sec. sec:param:pod): as the POD truncation rank ``r`` is swept, the
@@ -19,12 +19,12 @@ The guess residual is the *equilibrated* constraint residual of the decoded fiel
 ``history[0]`` but computed WITHOUT the wasted Newton step, and with the (guess-
 independent) assembly shared across the whole rank ladder at each point.
 
-Add-only.  Imports committed ``parasol`` modules read-only; edits nothing.
+Add-only.  Imports committed ``lm.initial_data`` modules read-only; edits nothing.
 
 Run:
-  python sandbox/parasol/run_guess_vs_memory.py               # sweep + plot
-  python sandbox/parasol/run_guess_vs_memory.py --replot      # re-plot from JSON
-  python sandbox/parasol/run_guess_vs_memory.py --n-points 300 --seed 0
+  python -m lm.initial_data.pipeline.run_guess_vs_memory               # sweep + plot
+  python -m lm.initial_data.pipeline.run_guess_vs_memory --replot      # re-plot from JSON
+  python -m lm.initial_data.pipeline.run_guess_vs_memory --n-points 300 --seed 0
 """
 from __future__ import annotations
 
@@ -48,6 +48,7 @@ from lm.initial_data.parametric.parametric_nd import (
     _load_npz, _unpack_meta, _check_meta,
 )
 from lm.initial_data.parametric.parametric_nd_smolyak import _node_key
+from lm.initial_data.pipeline import production_box as pb
 from lm.initial_data.parametric.parametric_nd_3d import theta_to_slice3d, assemble_cached_3d
 from lm.initial_data.parametric.hermite_smolyak import HermiteSmolyakSolverND
 from lm.initial_data.parametric.hermite_smolyak_pod import (
@@ -65,8 +66,8 @@ MODELS = {
         pod=os.path.join(HERE, "reports/P2/models_chi/"
                          "pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz"),
         ranks=[1, 2, 3, 5, 8, 12, 20, 30, 45, 60, 75, 87],
-        ref_value="polish_table_qc_chi_b27_1000.json",
-        ref_hermite="polish_table_qc_chi_b27_hermite_1000.json",
+        ref_value="polish_table_qc_chi_prod_1000.json",
+        ref_hermite="polish_table_qc_chi_prod_hermite_1000.json",
     ),
     8: dict(
         pod=os.path.join(HERE, "reports/P2/models_chi/pod_hermite_smolyak_"
@@ -343,7 +344,7 @@ def build_figure(data, out_png, az_band=None):
     ax.set_ylabel(r"bare-guess constraint residual $\|R\|_\infty$")
     npts = data.get("n_points")
     ax.set_title(r"Reduced-basis re-encoding: guess residual vs memory "
-                 r"($\chi$, $b\in[2,7]$, $\ell=5$)"
+                 + rf"($\chi$, $b\in[{pb.B_MIN:g},{pb.B_MAX:g}]$, $\ell=5$)"
                  + f"\n{npts} off-node points; band = min--max; "
                  r"bold number = median steps to certify $\|R\|_\infty\!\leq\!10^{-10}$",
                  fontsize=9)

@@ -1,4 +1,4 @@
-"""PARASOL §VII (recast) — QC 4-D per-axis convergence + walls, DIMENSIONLESS-SPIN
+"""LM-initial-data §VII (recast) — QC 4-D per-axis convergence + walls, DIMENSIONLESS-SPIN
 parameterization (chi = S/m^2 axes).
 
 Same machinery, same grid, same protocol as the bare-spin study it replaced; the

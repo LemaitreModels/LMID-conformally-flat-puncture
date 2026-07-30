@@ -1,4 +1,4 @@
-"""PARASOL-2C — wire the §5 parametric layer to the ABT two-centre solver (M3-A).
+"""LM-initial-data-2C — wire the §5 parametric layer to the ABT two-centre solver (M3-A).
 
 The headline milestone.  ``parametric.py`` (the solver-agnostic Chebyshev-in-
 parameter collocation layer) is reused **verbatim**; this module only injects the

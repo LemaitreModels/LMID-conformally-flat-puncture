@@ -1,4 +1,4 @@
-"""PARASOL — the certified-and-differentiable PARAMETER-TARGETING demonstrator
+"""LM-initial-data — the certified-and-differentiable PARAMETER-TARGETING demonstrator
 (paper §VI), on the shipped 4-D quasi-circular model.
 
 Hit a physical target ``(M_ADM, J)`` by adjusting ``(b, q)`` (spins fixed), three
@@ -15,7 +15,7 @@ Every emitted configuration is certified to ``‖R‖∞ ≤ 1e-10``.  Writes
 ``reports/P3/qc_targeting_<N>.json`` and the figure
 ``figures/fig_qc_targeting.png``.
 
-Run: ~/micromamba/envs/BBHFM/bin/python sandbox/parasol/run_qc_targeting.py [--n 25] [--seed 0]
+Run: ~/micromamba/envs/BBHFM/bin/python -m lm.initial_data.pipeline.run_qc_targeting [--n 25] [--seed 0]
 """
 from __future__ import annotations
 

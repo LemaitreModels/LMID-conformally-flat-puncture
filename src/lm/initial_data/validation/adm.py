@@ -85,7 +85,7 @@ def A_single_tensor_vec(rho, z, z0, Pvec):
 
 def A_tensor_2c(rho, z, b, P):
     """Summed BY conformal tensor Â^ij = Â_A + Â_B (Cartesian 3x3) at meridian
-    points, PARASOL convention (A at +b with P_A=(0,0,-P); B at -b, P_B=(0,0,+P)).
+    points, LM-initial-data convention (A at +b with P_A=(0,0,-P); B at -b, P_B=(0,0,+P)).
     """
     A_A = A_single_tensor_vec(rho, z, +b, (0.0, 0.0, -P))
     A_B = A_single_tensor_vec(rho, z, -b, (0.0, 0.0, +P))

@@ -29,7 +29,7 @@ Modes
       and runs the certified spot-check (worst ‖R‖ must be ≤ 1e-10).
 
 Smoke (end-to-end, tiny): build a small 8-D value corpus first, e.g.
-  python build_surrogate_chi.py --Na 16 --Nb 12 --Nphi 6 --box spin8_qc_chi_b27 \
+  python build_surrogate_chi.py --Na 16 --Nb 12 --Nphi 6 --box spin8_qc_chi_prod \
       --level 2 --solver modified --outdir /tmp/smk
 then chunk (--ntasks 2, K=0 and 1) + merge, and check the certified ‖R‖.
 """
@@ -47,8 +47,11 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 
-import build_pod_hermite_model as bh                 # committed builder (reused)
-import build_pod_hermite_model_chi_8d as bh8d         # noqa: F401  side effect: bh.BOX -> 8D box
+from lm.initial_data.pipeline import build_pod_hermite_model as bh  # committed builder
+from lm.initial_data.pipeline import build_pod_hermite_model_chi_8d as bh8d  # noqa: F401
+# ^ imported for its module-level side effect: bh.BOX -> the 8-D production box.
+# Must go through the package path so it mutates the SAME bh module object
+# imported above (a bare sibling import creates a second, unrelated copy).
 
 from lm.initial_data.solver import solver_3d as s3
 from lm.initial_data.parametric import parametric_nd_3d as p3

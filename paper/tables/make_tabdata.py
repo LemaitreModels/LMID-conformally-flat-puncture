@@ -1,4 +1,4 @@
-"""PARASOL paper — table-data driver (the ``figures/make_figdata.py`` analogue).
+"""LM-initial-data paper — table-data driver (the ``figures/make_figdata.py`` analogue).
 
 Every paper table ``tabNN_<name>`` has, exactly like a figure:
   * a DATA SCRIPT ``tabNN_<name>_data.py`` — RECOMPUTES the numbers from the solver

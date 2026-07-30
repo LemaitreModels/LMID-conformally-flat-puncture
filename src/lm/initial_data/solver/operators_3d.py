@@ -1,6 +1,6 @@
-"""PARASOL-3D — Fourier-in-φ extension of the ABT / prolate-spheroidal patch.
+"""LM-initial-data-3D — Fourier-in-φ extension of the ABT / prolate-spheroidal patch.
 
-The first non-axisymmetric PARASOL operator.  The axisymmetric two-centre code
+The first non-axisymmetric LM-initial-data operator.  The axisymmetric two-centre code
 (``operators_abt.py``, ``solver_abt.py``) is kept byte-for-byte frozen and is the
 regression oracle; this module is an **add-only sibling** that lifts the same
 prolate-spheroidal patch to 3-D by appending an azimuthal Fourier axis.

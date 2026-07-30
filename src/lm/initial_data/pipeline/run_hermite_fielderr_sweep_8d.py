@@ -1,4 +1,4 @@
-"""PARASOL — PLAIN 8-D FIELD-ERROR POD-rank sweep (value-only AND value+gradient).
+"""LM-initial-data — PLAIN 8-D FIELD-ERROR POD-rank sweep (value-only AND value+gradient).
 
 The 8-D analogue of the 4-D CROSS field-error sweep ``run_cross_fielderr_sweep.py``.
 Produces the TWO fig05 bottom-right figure-data sources (registry-pinned):
@@ -50,11 +50,11 @@ Writes the two JSONs with schema mirroring ``guess_vs_memory_4d_cross_field_*.js
 (pod_curve of {r, mem_bytes, min/median/mean/p95/max}; metric ``field_error_relL2``;
 dim=8; npair dropped).
 
-Add-only.  Imports committed ``parasol`` modules read-only; edits nothing.
+Add-only.  Imports committed ``lm.initial_data`` modules read-only; edits nothing.
 
 Run:
-  python sandbox/parasol/run_hermite_fielderr_sweep_8d.py                # full 1000 pt
-  python sandbox/parasol/run_hermite_fielderr_sweep_8d.py --n-points 5   # smoke test
+  python -m lm.initial_data.pipeline.run_hermite_fielderr_sweep_8d                # full 1000 pt
+  python -m lm.initial_data.pipeline.run_hermite_fielderr_sweep_8d --n-points 5   # smoke test
 """
 from __future__ import annotations
 

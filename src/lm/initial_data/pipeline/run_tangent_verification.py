@@ -1,4 +1,4 @@
-"""PARASOL — verification of the exposed parameter sensitivities (paper Appendix B).
+"""LM-initial-data — verification of the exposed parameter sensitivities (paper Appendix B).
 
 Two distinct statements are verified, and they need different references:
 

@@ -1,4 +1,4 @@
-"""PARASOL — M4 verification: JOINT bare-guess field error of the value-only,
+"""LM-initial-data — M4 verification: JOINT bare-guess field error of the value-only,
 value+gradient (shipped), and value+gradient+cross (full bilinear) 4-D χ models.
 
 Add-only.  At the SAME 1000 seed-0 off-node points (``run_polish_table``'s
@@ -11,9 +11,9 @@ error on the two enhanced axes, and gates that the with-cross joint floor drops 
 stays as good.  Resumable (checkpoints the per-point errors).
 
 Run (from repo root):
-  caffeinate -i python sandbox/parasol/run_cross_fielderror_chi.py \
-      --grad  sandbox/parasol/reports/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz \
-      --cross sandbox/parasol/reports/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz
+  caffeinate -i python -m lm.initial_data.pipeline.run_cross_fielderror_chi \
+      --grad  reports/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz \
+      --cross reports/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz
 """
 from __future__ import annotations
 

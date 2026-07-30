@@ -203,11 +203,11 @@ def test_oracle_J_is_2b_pt_along_y(b, m_A, m_B, S_A, S_B):
     QC data, and net linear momentum is zero by construction."""
     P_A, P_B = qc.qc_momenta(b, m_A, m_B, S_A, S_B)
     p_t, _ = qc.qc_scalar_momenta(b, m_A, m_B, S_A[1] / m_A ** 2, S_B[1] / m_B ** 2)
-    res = tp.solve_parasol_points_3d(b, m_A, m_B, P_A, P_B, S_A, S_B,
+    res = tp.solve_lm_initial_data_points_3d(b, m_A, m_B, P_A, P_B, S_A, S_B,
                                      _QR, _QZ, _QP, nA=32, nB=32, nphi=8)
-    J_par = np.array(cv.tp_vec_to_parasol(res.J))            # TP native → PARASOL
+    J_par = np.array(cv.tp_vec_to_lm_initial_data(res.J))            # TP native → LM-initial-data
     J_expect = np.array([0.0, 2.0 * b * p_t + S_A[1] + S_B[1], 0.0])
-    print(f"[QC] b={b} m=({m_A},{m_B}) S=({S_A},{S_B})  J_oracle(PARASOL)={J_par} "
+    print(f"[QC] b={b} m=({m_A},{m_B}) S=({S_A},{S_B})  J_oracle(LM-initial-data)={J_par} "
           f"expect={J_expect}")
     assert np.max(np.abs(J_par - J_expect)) < 1e-9, f"J off: {J_par} vs {J_expect}"
     # dominantly along y (orbital + aligned spin), no tilt

@@ -1,4 +1,4 @@
-"""PARASOL-2C — two-centre head-on Newton solve (Phase A, plan.md §12.7).
+"""LM-initial-data-2C — two-centre head-on Newton solve (Phase A, plan.md §12.7).
 
 **Stage-1 discretization: a single puncture-A-centred spherical grid.**
 

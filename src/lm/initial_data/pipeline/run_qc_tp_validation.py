@@ -1,20 +1,20 @@
-"""PARASOL §VIII — QC ↔ TwoPunctures validation.
+"""LM-initial-data §VIII — QC ↔ TwoPunctures validation.
 
 Validates the quasi-circular (QC) initial data against the TwoPunctures oracle
 and the closed-form anchors.  QC has tangential momentum along x (orbital L along
-+y), so the field is genuinely non-axisymmetric ⇒ the PARASOL solves use the 3-D
++y), so the field is genuinely non-axisymmetric ⇒ the LM-initial-data solves use the 3-D
 solver at Nφ=8 and the oracle is called through the vector-momentum path
-(``solve_parasol_points_3d`` / ``solve_tp_3d``, PARASOL→TP proper rotation
-z^P→x^TP so PARASOL-y ↔ TP-z).
+(``solve_lm_initial_data_points_3d`` / ``solve_tp_3d``, LM-initial-data→TP proper rotation
+z^P→x^TP so LM-initial-data-y ↔ TP-z).
 
 Blocks (→ reports/3D_parametric/qc/tp_validation_qc.json + fig_qc_tp.png):
   A.  Large-b Newtonian anchor  p_t → μ√(M/2b)  and eccentricity proxy p_r/p_t.
   B.  Angular momentum J = 2b·p_t (+ spins) along y — closed form vs TP's reported
-      J (rotated to the PARASOL frame); net linear momentum P_A+P_B.
-  C.  ψ spectral convergence to TP on a QC slice as the PARASOL grid refines +
+      J (rotated to the LM-initial-data frame); net linear momentum P_A+P_B.
+  C.  ψ spectral convergence to TP on a QC slice as the LM-initial-data grid refines +
       ADM-mass relative agreement (3-D φ-averaged spectral M_ADM vs TP.E).
 
-    caffeinate -i ~/micromamba/envs/BBHFM/bin/python sandbox/parasol/run_qc_tp_validation.py
+    caffeinate -i ~/micromamba/envs/BBHFM/bin/python -m lm.initial_data.pipeline.run_qc_tp_validation
 """
 from __future__ import annotations
 import json, math, os, sys, time
@@ -75,7 +75,7 @@ def block_A(M=1.0):
 # B — J closed form vs TP + net momentum
 # ==========================================================================
 def block_B():
-    _t("\n=== B: angular momentum J (closed form vs TwoPunctures, PARASOL frame) ===")
+    _t("\n=== B: angular momentum J (closed form vs TwoPunctures, LM-initial-data frame) ===")
     cases = [(4.0, 1.0, 0.0, 0.0), (3.0, 2.0, 0.0, 0.0),
              (5.0, 1.0, 0.3, 0.3), (4.0, 1.0, -0.2, 0.2)]
     rows = []
@@ -84,16 +84,16 @@ def block_B():
         p_t, _ = qc.qc_scalar_momenta(b, sl.m_A, sl.m_B, SAy / sl.m_A**2, SBy / sl.m_B**2)
         J_orbital = qc.orbital_angular_momentum(b, p_t)        # 2b·p_t (y)
         J_total = J_orbital + SAy + SBy                        # + aligned spins
-        r = tp.solve_parasol_points_3d(b, sl.m_A, sl.m_B, sl.P_A_vec, sl.P_B_vec,
+        r = tp.solve_lm_initial_data_points_3d(b, sl.m_A, sl.m_B, sl.P_A_vec, sl.P_B_vec,
                                        sl.S_A_vec, sl.S_B_vec, rho=[1.3], z=[0.7],
                                        phi=[0.4], nA=48, nB=48, nphi=8)
-        J_tp = cv.tp_vec_to_parasol(r.J)                        # -> PARASOL frame
+        J_tp = cv.tp_vec_to_lm_initial_data(r.J)                        # -> LM-initial-data frame
         Jy_tp = float(J_tp[1])
         net = tuple(float(x) for x in np.add(sl.P_A_vec, sl.P_B_vec))
         reld = abs(J_total - Jy_tp) / abs(Jy_tp) if Jy_tp else float("nan")
         rows.append(dict(b=b, q=q, S_Ay=SAy, S_By=SBy, p_t=p_t,
                          J_orbital=J_orbital, J_total_closed=J_total,
-                         J_tp_parasol_frame=[float(x) for x in J_tp], Jy_tp=Jy_tp,
+                         J_tp_lm_initial_data_frame=[float(x) for x in J_tp], Jy_tp=Jy_tp,
                          rel_diff=reld, net_momentum=net, tp_E=r.E))
         _t(f"   b={b} q={q} S=({SAy},{SBy}): J_closed={J_total:.6f}  "
            f"J_TP(y)={Jy_tp:.6f}  rel={reld:.2e}  |net P|={max(abs(x) for x in net):.1e}")
@@ -111,10 +111,10 @@ def block_C(b=4.0, q=1.0, tp_res=(64, 64, 12)):
     z = np.array([1.10, 0.50, 0.60, -1.10, 0.40, -0.5]) * b
     phi = np.array([0.0, math.pi / 2, math.pi / 4, math.pi, math.pi / 3, 1.0])
     # TP reference at high resolution + a TP nphi self-convergence check
-    ref = tp.solve_parasol_points_3d(b, sl.m_A, sl.m_B, sl.P_A_vec, sl.P_B_vec,
+    ref = tp.solve_lm_initial_data_points_3d(b, sl.m_A, sl.m_B, sl.P_A_vec, sl.P_B_vec,
                                      sl.S_A_vec, sl.S_B_vec, rho=rho, z=z, phi=phi,
                                      nA=tp_res[0], nB=tp_res[1], nphi=tp_res[2])
-    ref8 = tp.solve_parasol_points_3d(b, sl.m_A, sl.m_B, sl.P_A_vec, sl.P_B_vec,
+    ref8 = tp.solve_lm_initial_data_points_3d(b, sl.m_A, sl.m_B, sl.P_A_vec, sl.P_B_vec,
                                       sl.S_A_vec, sl.S_B_vec, rho=rho, z=z, phi=phi,
                                       nA=tp_res[0], nB=tp_res[1], nphi=8)
     tp_nphi_selfconv = float(np.max(np.abs(ref.psi - ref8.psi)))
@@ -161,12 +161,12 @@ def make_figure(results):
     ns = [f"{r['Na']}x{r['Nb']}" for r in C]
     ax2.semilogy(range(len(C)), [r["max_dpsi"] for r in C], "o-")
     ax2.set_xticks(range(len(C))); ax2.set_xticklabels(ns, rotation=30)
-    ax2.set_xlabel("PARASOL grid $N_A\\times N_B$ (Nφ=8)")
-    ax2.set_ylabel(r"$\max|\psi_{\rm PARASOL}-\psi_{\rm TP}|$")
+    ax2.set_xlabel("LM-initial-data grid $N_A\\times N_B$ (Nφ=8)")
+    ax2.set_ylabel(r"$\max|\psi_{\rm LM-initial-data}-\psi_{\rm TP}|$")
     ax2.set_title("C: ψ → TwoPunctures (QC slice)"); ax2.grid(True, which="both", alpha=0.3)
     ax3.semilogy(range(len(C)), [r["M_ADM_rel_diff"] for r in C], "o-", color="C2")
     ax3.set_xticks(range(len(C))); ax3.set_xticklabels(ns, rotation=30)
-    ax3.set_xlabel("PARASOL grid $N_A\\times N_B$")
+    ax3.set_xlabel("LM-initial-data grid $N_A\\times N_B$")
     ax3.set_ylabel(r"$|M_{\rm ADM}-E_{\rm TP}|/E_{\rm TP}$")
     ax3.set_title("C: ADM mass agreement"); ax3.grid(True, which="both", alpha=0.3)
     fig.tight_layout()

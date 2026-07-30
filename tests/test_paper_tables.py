@@ -75,8 +75,8 @@ def test_operator_caption_matches_config():
     d = _data("tab01_tangent_operator")
     c, cap = d["config"], _paper()
     for frag in (rf"$b={c['b']}$", rf"$q={c['q']}$", rf"$P_t={c['P_t']}$",
-                 rf"$\chi_{{Ay}}={c['chi_Ay']:.2f}$",
-                 rf"$\chi_{{By}}={c['chi_By']:.2f}$",
+                 rf"$\chi^{{A}}_{{y}}={c['chi_Ay']:.2f}$",
+                 rf"$\chi^{{B}}_{{y}}={c['chi_By']:.2f}$",
                  rf"$(N_A,N_B,N_\phi)=({c['Na']},{c['Nb']},{c['Nphi']})$"):
         assert frag in cap, f"Table I caption disagrees with tabdata: expected {frag}"
     # certified residual, quoted to two significant figures
@@ -96,7 +96,7 @@ def test_surrogate_caption_matches_config():
                  rf"$Q={c['spec_chi'][0]['Q']}$",
                  rf"$q={c['fixed_chi']['q']}$", rf"$b={c['fixed_chi']['b']:g}$",
                  rf"$(b,q)=({c['theta_bq'][0]:g},{c['theta_bq'][1]:g})$",
-                 rf"$(\chi_A,\chi_B)=({c['theta_chi'][0]:g},{c['theta_chi'][1]:g})$"):
+                 rf"$(\chi^{{A}},\chi^{{B}})=({c['theta_chi'][0]:g},{c['theta_chi'][1]:g})$"):
         assert frag in cap, f"Table II caption disagrees with tabdata: expected {frag}"
     # the caption bounds the reference residual; the bound must actually hold
     m = re.search(r"reference solves are certified to\s*\n?\s*"

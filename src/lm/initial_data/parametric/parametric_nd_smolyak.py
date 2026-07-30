@@ -1,4 +1,4 @@
-"""PARASOL — Smolyak SPARSE-grid parametric collocation (the d≳3 cost fix).
+"""LM-initial-data — Smolyak SPARSE-grid parametric collocation (the d≳3 cost fix).
 
 The sparse-grid sibling of :mod:`parametric_nd` (the dense tensor-product
 Chebyshev-in-parameter layer).  The dense layer pays a ``∏_k (Q_k+1) = O(Q^d)``
@@ -755,6 +755,6 @@ def load_smolyak(path) -> SmolyakSolutionND:
     except ValueError:
         raise
     except Exception as e:
-        raise ValueError(f"corrupt PARASOL smolyak surrogate '{path}': {e}")
+        raise ValueError(f"corrupt LM-initial-data smolyak surrogate '{path}': {e}")
     sol.meta = meta
     return sol

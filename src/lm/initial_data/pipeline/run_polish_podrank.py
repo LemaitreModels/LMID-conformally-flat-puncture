@@ -1,4 +1,4 @@
-"""PARASOL — value+gradient POD certified-refinement staircase at a CHOSEN rank r.
+"""LM-initial-data — value+gradient POD certified-refinement staircase at a CHOSEN rank r.
 
 Companion to ``run_polish_table.py``: runs the identical 1000-point certified-
 refinement sweep, but on the shipped gradient-enhanced (Hermite) POD model
@@ -18,11 +18,11 @@ Writes ``reports/P3/polish_table_chi<dim>d_pod_r<r>_<n>.json`` with the
 ``run_polish_table`` summary schema PLUS the raw per-step residual arrays
 (``residuals``) so the figure can draw honest min--max whiskers.
 
-Add-only.  Imports committed ``parasol`` + sibling drivers read-only; edits nothing.
+Add-only.  Imports committed ``lm.initial_data`` + sibling drivers read-only; edits nothing.
 
 Run:
-  python sandbox/parasol/run_polish_podrank.py --dim 4 --rank 75
-  python sandbox/parasol/run_polish_podrank.py --dim 8 --rank 250
+  python src/lm/initial_data/pipeline/run_polish_podrank.py --dim 4 --rank 75
+  python src/lm/initial_data/pipeline/run_polish_podrank.py --dim 8 --rank 250
 """
 from __future__ import annotations
 
@@ -43,8 +43,9 @@ from lm.initial_data.solver import solver_3d as s3
 from lm.initial_data.parametric.parametric_nd import attach_solve_fn_3d
 
 # committed sibling drivers (read-only reuse — identical points + truncation)
-from run_polish_table import random_offnode_points, step_residuals, _stats, REPDIR
-from run_guess_vs_memory import MODELS, load_pod_truncated
+from lm.initial_data.pipeline.run_polish_table import (
+    random_offnode_points, step_residuals, _stats, REPDIR)
+from lm.initial_data.pipeline.run_guess_vs_memory import MODELS, load_pod_truncated
 
 
 def run(dim, rank, n_points=1000, seed=0):

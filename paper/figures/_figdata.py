@@ -1,4 +1,4 @@
-"""PARASOL paper — figure-data I/O helper (shared by the data scripts and plotters).
+"""LM-initial-data paper — figure-data I/O helper (shared by the data scripts and plotters).
 
 Two jobs:
   * PLOTTERS call ``load(stem)`` to read the committed, plot-ready ``figdata/<stem>.json``.
@@ -18,8 +18,8 @@ import os
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PARASOL = os.path.abspath(os.path.join(HERE, "..", ".."))
-REPORTS = os.path.join(PARASOL, "reports")
+REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+REPORTS = os.path.join(REPO_ROOT, "reports")
 FIGDATA = os.path.join(HERE, "figdata")
 
 import sys
@@ -57,7 +57,7 @@ def load(stem):
     p = figdata_path(stem)
     if not os.path.exists(p):
         raise FileNotFoundError(
-            f"missing committed figure data: {os.path.relpath(p, PARASOL)}\n"
+            f"missing committed figure data: {os.path.relpath(p, REPO_ROOT)}\n"
             f"  build it with:  python {stem}_data.py   (or: python make_figdata.py --fig {stem})")
     with open(p) as f:
         return json.load(f)
@@ -85,7 +85,7 @@ def source(key):
     if not os.path.exists(p):
         m = source_meta(key)
         raise FileNotFoundError(
-            f"missing raw source {key!r}: {os.path.relpath(p, PARASOL)}\n"
+            f"missing raw source {key!r}: {os.path.relpath(p, REPO_ROOT)}\n"
             f"  produce it: {m['producer']}   [{m['where']}"
             f"{'; PENDING' if m.get('status') == 'pending' else ''}]\n"
             f"  (heavy cluster runs: see the paper cluster prompt / figures/README.md)")

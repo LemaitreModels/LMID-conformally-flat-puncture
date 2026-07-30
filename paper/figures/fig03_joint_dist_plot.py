@@ -59,7 +59,7 @@ def _levels(ax, bare, cross, levels):
 def _panel(ax, side, title):
     bare, cross = _arr(side["bare"]), _arr(side["cross"])
     _series(ax, bare, BARE_C, "o", "bare interpolant")
-    _series(ax, cross, CROSS_C, "s", r"value + gradient + cross ($\chi_{Ay},\chi_{By}$)")
+    _series(ax, cross, CROSS_C, "s", r"value + gradient + cross ($\chi^{A}_{y},\chi^{B}_{y}$)")
     _levels(ax, bare, cross, side["bare"]["levels"])
     ax.set_xlabel("solver node count")
     ax.set_title(title, fontsize=10)

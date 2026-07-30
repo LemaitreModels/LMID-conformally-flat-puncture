@@ -1,4 +1,4 @@
-"""PARASOL — the eccentricity-control demonstrator (paper §VI): accelerate the Cook
+"""LM-initial-data — the eccentricity-control demonstrator (paper §VI): accelerate the Cook
 (1994) effective-potential circular-orbit finder with the differentiable, certified
 surrogate.
 
@@ -13,7 +13,7 @@ Sweeping several J shows the circular-orbit sequence (the effective-potential
 minimum shifting with J), and the turning-point eccentricity e(b0;J) reads off the
 same differentiable E_b (e→0 at the circular orbit).
 
-Run: ~/micromamba/envs/BBHFM/bin/python sandbox/parasol/run_qc_effpot.py
+Run: ~/micromamba/envs/BBHFM/bin/python -m lm.initial_data.pipeline.run_qc_effpot
      [--J 1.00 1.05 1.10] [--n-scan 13]
 """
 from __future__ import annotations

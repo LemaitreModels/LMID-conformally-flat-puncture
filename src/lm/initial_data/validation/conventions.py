@@ -1,13 +1,13 @@
-"""PARASOL <-> TwoPunctures convention map  (Milestone B1, Step 1 — risk R2).
+"""LM-initial-data <-> TwoPunctures convention map  (Milestone B1, Step 1 — risk R2).
 
 A spurious disagreement on **conventions** (not physics) is the predicted B1
-failure mode, so the map between PARASOL free data and TwoPunctures parameters
+failure mode, so the map between LM-initial-data free data and TwoPunctures parameters
 is pinned *before* any number is compared, and documented against TwoPunctures'
 own source.  Every field below is justified; nothing is taken from memory
 without a cross-check against the code we actually build and run
-(:mod:`parasol.validation.twopunctures`).
+(:mod:`lm.initial_data.validation.twopunctures`).
 
-PARASOL free data  (``solver.solver_abt.Slice`` + a problem momentum ``P``)
+LM-initial-data free data  (``solver.solver_abt.Slice`` + a problem momentum ``P``)
 --------------------------------------------------------------------------
 Two punctures on the **z-axis** (``source.py``):
 
@@ -27,22 +27,22 @@ against the built code in ``twopunctures.py``):
     (``swap_xz=yes`` would place them on the z-axis.)  We keep the *default
     x-axis* and relabel axes for the comparison — the data are axisymmetric
     about the collision axis, so psi is a function of (axial coord, cylindrical
-    radius) only, and  psi_PARASOL(rho, z) ≡ psi_TP(R_cyl=rho, x_axial=z).
+    radius) only, and  psi_LM-initial-data(rho, z) ≡ psi_TP(R_cyl=rho, x_axial=z).
     This avoids the swap_xz component-permutation subtlety entirely.
 
   * **Separation.** ``par_b`` is the **half-separation**: punctures at x=±par_b,
-    full coordinate separation 2·par_b.  Same convention as PARASOL's ``b``  ⇒
+    full coordinate separation 2·par_b.  Same convention as LM-initial-data's ``b``  ⇒
     **par_b = b**.
 
   * **Masses.** ``par_m_plus`` / ``par_m_minus`` are the **bare puncture mass
-    parameters** (the 1/r coefficients in psi), the SAME object as PARASOL's
+    parameters** (the 1/r coefficients in psi), the SAME object as LM-initial-data's
     ``m_A`` / ``m_B``, provided ``give_bare_mass = yes`` (the default — when it
     is ``no`` the thorn instead iterates bare masses to hit *target ADM* masses,
     which we do NOT use).  The "+" puncture (x=+par_b) carries ``par_m_plus``.
     ⇒ **par_m_plus = m_A** (the +b puncture),  **par_m_minus = m_B**.
 
   * **Bowen–York momentum.** ``par_P_plus`` / ``par_P_minus`` are the linear
-    momentum 3-vectors entering the *same* Bowen–York Â^ij formula PARASOL uses
+    momentum 3-vectors entering the *same* Bowen–York Â^ij formula LM-initial-data uses
     (identical 3/(2r^2) normalization and (P_i n_j + P_j n_i - (f_ij-n_i n_j)P·n)
     structure — confirmed term-by-term in ``twopunctures.py`` against the built
     source).  In the x-axis frame, head-on infall means each puncture's momentum
@@ -51,7 +51,7 @@ against the built code in ``twopunctures.py``):
         par_P_plus  = (-P, 0, 0)   (the +x puncture moves in -x)
         par_P_minus = (+P, 0, 0)   (the -x puncture moves in +x)
 
-    This is the x-axis image of PARASOL's z-axis (0,0,∓P).  **Sign caveat
+    This is the x-axis image of LM-initial-data's z-axis (0,0,∓P).  **Sign caveat
     (load-bearing, and harmless for the headline):** Â^ij is *linear* in P, so
     Â_ij Â^ij — hence psi, u and the ADM mass — are **even in P**.  The overall
     infall-vs-explosion sign therefore does NOT affect the psi / M_ADM agreement;
@@ -64,7 +64,7 @@ against the built code in ``twopunctures.py``):
 
   * **Conformal factor.** TwoPunctures solves for the *same* regular correction
     u in  psi = 1 + m_+/(2 r_+) + m_-/(2 r_-) + u  — identical decomposition to
-    PARASOL.  This is why psi-on-shared-points is the clean headline comparison.
+    LM-initial-data.  This is why psi-on-shared-points is the clean headline comparison.
 
 The map is intentionally a pure data transform with no solver coupling, so it is
 trivially unit-testable (round-trips, P-evenness, axis relabeling).
@@ -112,13 +112,13 @@ class TPParams:
         return "\n".join(lines)
 
 
-def parasol_to_tp(b: float, m_A: float, m_B: float, P: float,
+def lm_initial_data_to_tp(b: float, m_A: float, m_B: float, P: float,
                   S_A: float = 0.0, S_B: float = 0.0) -> TPParams:
-    """Map PARASOL free data ``(b, m_A, m_B, P, S_A, S_B)`` -> TwoPunctures params.
+    """Map LM-initial-data free data ``(b, m_A, m_B, P, S_A, S_B)`` -> TwoPunctures params.
 
     See the module docstring for the full justification of every assignment.
 
-    Aligned spin (Milestone P2).  PARASOL carries spins ``S_X ẑ`` along the
+    Aligned spin (Milestone P2).  LM-initial-data carries spins ``S_X ẑ`` along the
     z (collision) axis; the same axis relabel that takes the momentum
     ``(0,0,∓P) -> (∓P,0,0)`` is a PROPER rotation ``ẑ -> x̂`` (det +1), under
     which the spin **pseudovector** transforms identically to the polar momentum
@@ -140,11 +140,11 @@ def parasol_to_tp(b: float, m_A: float, m_B: float, P: float,
     )
 
 
-def parasol_point_to_tp(rho: float, z: float) -> Tuple[float, float, float]:
-    """Map a PARASOL meridian point ``(rho, z)`` (axisymmetric about z) to a
+def lm_initial_data_point_to_tp(rho: float, z: float) -> Tuple[float, float, float]:
+    """Map a LM-initial-data meridian point ``(rho, z)`` (axisymmetric about z) to a
     TwoPunctures Cartesian point on its x-axis collision frame.
 
-    PARASOL's axial coordinate z maps to TwoPunctures' x; the cylindrical radius
+    LM-initial-data's axial coordinate z maps to TwoPunctures' x; the cylindrical radius
     rho maps to a TP transverse offset (we place it along +y, z_TP=0).  Because
     both fields are axisymmetric about their collision axis, this preserves the
     physical (axial, cylindrical-radius) location, so psi is directly comparable.
@@ -153,37 +153,37 @@ def parasol_point_to_tp(rho: float, z: float) -> Tuple[float, float, float]:
 
 
 def tp_point_axial_radius(x_tp: float, y_tp: float, z_tp: float) -> Tuple[float, float]:
-    """Inverse of :func:`parasol_point_to_tp`: TP Cartesian -> PARASOL (rho, z).
+    """Inverse of :func:`lm_initial_data_point_to_tp`: TP Cartesian -> LM-initial-data (rho, z).
 
-    Axial coordinate = x_TP -> z_PARASOL; cylindrical radius = sqrt(y^2+z^2)_TP
-    -> rho_PARASOL.
+    Axial coordinate = x_TP -> z_LM-initial-data; cylindrical radius = sqrt(y^2+z^2)_TP
+    -> rho_LM-initial-data.
     """
     return (float((y_tp ** 2 + z_tp ** 2) ** 0.5), float(x_tp))
 
 
 # --------------------------------------------------------------------------
-# Non-axisymmetric (Test E) extensions — the PARASOL<->TP frame is a single
-# PROPER rotation taking PARASOL's z (collision) axis to TP's x (collision)
-# axis.  The axisymmetric meridian map ``parasol_point_to_tp`` is the φ=0
+# Non-axisymmetric (Test E) extensions — the LM-initial-data<->TP frame is a single
+# PROPER rotation taking LM-initial-data's z (collision) axis to TP's x (collision)
+# axis.  The axisymmetric meridian map ``lm_initial_data_point_to_tp`` is the φ=0
 # specialisation; the full vector/point maps below are its 3-D lift.
 # --------------------------------------------------------------------------
 #
-# The rotation R is fixed by the established axisymmetric map: a PARASOL
+# The rotation R is fixed by the established axisymmetric map: a LM-initial-data
 # meridian point (ρ, z) at φ=0 is the Cartesian (ρ, 0, z), and it goes to TP
 # (z, ρ, 0).  Demanding R be a proper rotation (det +1) that does this gives the
 # cyclic permutation
 #
 #     R: ê_x^P -> ê_y^TP,   ê_y^P -> ê_z^TP,   ê_z^P -> ê_x^TP,
 #
-# i.e. for any vector  v_TP = (v_z^P, v_x^P, v_y^P).  This takes PARASOL's
+# i.e. for any vector  v_TP = (v_z^P, v_x^P, v_y^P).  This takes LM-initial-data's
 # z-axis momentum (0,0,∓P) -> (∓P,0,0) and a z-aligned spin (0,0,S) -> (S,0,0),
-# reproducing :func:`parasol_to_tp` exactly (consistency unit-tested).  Being a
+# reproducing :func:`lm_initial_data_to_tp` exactly (consistency unit-tested).  Being a
 # proper rotation, the spin PSEUDO-vector transforms identically to the polar
 # momentum (no parity sign).
 
 
-def parasol_vec_to_tp(v: Tuple[float, float, float]) -> Tuple[float, float, float]:
-    """Rotate a PARASOL Cartesian 3-vector into the TwoPunctures native frame.
+def lm_initial_data_vec_to_tp(v: Tuple[float, float, float]) -> Tuple[float, float, float]:
+    """Rotate a LM-initial-data Cartesian 3-vector into the TwoPunctures native frame.
 
     The proper rotation  z^P -> x^TP  (cyclic):  ``v_TP = (v_z, v_x, v_y)``.
     Applies identically to momenta (polar) and spins (axial), since a proper
@@ -193,18 +193,18 @@ def parasol_vec_to_tp(v: Tuple[float, float, float]) -> Tuple[float, float, floa
     return (vz, vx, vy)
 
 
-def tp_vec_to_parasol(w: Tuple[float, float, float]) -> Tuple[float, float, float]:
-    """Inverse of :func:`parasol_vec_to_tp`:  ``v_PARASOL = (w_y, w_z, w_x)``."""
+def tp_vec_to_lm_initial_data(w: Tuple[float, float, float]) -> Tuple[float, float, float]:
+    """Inverse of :func:`lm_initial_data_vec_to_tp`:  ``v_LM-initial-data = (w_y, w_z, w_x)``."""
     wx, wy, wz = float(w[0]), float(w[1]), float(w[2])
     return (wy, wz, wx)
 
 
-def parasol_point_to_tp_3d(rho: float, z: float, phi: float) -> Tuple[float, float, float]:
-    """Map a full PARASOL point ``(ρ, z, φ)`` to a TwoPunctures Cartesian point.
+def lm_initial_data_point_to_tp_3d(rho: float, z: float, phi: float) -> Tuple[float, float, float]:
+    """Map a full LM-initial-data point ``(ρ, z, φ)`` to a TwoPunctures Cartesian point.
 
-    PARASOL Cartesian is ``(ρ cosφ, ρ sinφ, z)``; applying :func:`parasol_vec_to_tp`
+    LM-initial-data Cartesian is ``(ρ cosφ, ρ sinφ, z)``; applying :func:`lm_initial_data_vec_to_tp`
     (the cyclic z^P->x^TP rotation) gives  ``(z, ρ cosφ, ρ sinφ)`` in the TP
-    native (x-axis collision) frame.  Reduces to :func:`parasol_point_to_tp` at
+    native (x-axis collision) frame.  Reduces to :func:`lm_initial_data_point_to_tp` at
     φ=0.
     """
     import math

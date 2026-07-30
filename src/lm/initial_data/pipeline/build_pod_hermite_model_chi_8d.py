@@ -1,10 +1,10 @@
-"""PARASOL — build & persist the SHIPPED gradient-enhanced (Hermite) 8-D model in
+"""LM-initial-data — build & persist the SHIPPED gradient-enhanced (Hermite) 8-D model in
 the DIMENSIONLESS-SPIN (chi) parameterization (chi-rebuild S7).
 
 Add-only 8-D twin of ``build_pod_hermite_model_chi.py`` (the 4-D S4 driver).  Like
 that driver it does NOT copy the committed builder's body; it imports
 ``build_pod_hermite_model``, swaps the module-level box to the full 8-D chi spin box
-``spin8_qc_chi_b27`` = the production 8-D box of ``production_box`` (matching
+``spin8_qc_chi_prod`` = the production 8-D box of ``production_box`` (matching
 the S6 value corpus box), and dispatches to ``build_pod_hermite_model.main()``
 verbatim — so the Newton–Krylov solve, the QC chain-rule certified tangent, the
 H5d POD compression, the save, and the certified spot-check are reused byte-for-byte
@@ -23,11 +23,11 @@ order) to the direct Bowen–York spin-source tangent — this falls out of the
 autodiff chain rule automatically.
 
 Usage — fastest: reuse the S6 8-D value corpus (compute only tangents; no re-solve):
-    python sandbox/parasol/build_pod_hermite_model_chi_8d.py \
+    python -m lm.initial_data.pipeline.build_pod_hermite_model_chi_8d \
         --Na 44 --Nb 32 --Nphi 8 --level 5 \
         --enhanced chi_Ax,chi_Ay,chi_Az,chi_Bx,chi_By,chi_Bz \
-        --reuse-value sandbox/parasol/reports/3D_parametric/models_chi/surrogate_smolyak_spin8_qc_chi_b27_L5.npz \
-        --outdir sandbox/parasol/reports/P2/models_chi
+        --reuse-value reports/3D_parametric/models_chi/surrogate_smolyak_spin8_qc_chi_prod_L5.npz \
+        --outdir reports/P2/models_chi
 
 Smoke (fast, from scratch, small grid+level; exercises all six enhanced spin axes —
 incl. the in-plane components — through the QC tangent, POD, and the certified
@@ -46,17 +46,19 @@ import os
 import sys
 
 
-import build_pod_hermite_model as bh  # noqa: E402  (committed builder, reused verbatim)
+from lm.initial_data.pipeline import build_pod_hermite_model as bh  # noqa: E402
 
 from lm.initial_data.pipeline import production_box as pb  # noqa: E402
 
 CHI_MAX = pb.CHI_MAX
 
 # swap the module-level box to the 8-D chi spin box (main() reads BOX/FIXED as
-# globals).  The production separation range's feasibility was de-risked by
-# derisk_b27.py (every hard corner certified <= 7.2e-12).  Must match the value
-# corpus box for --reuse-value (spin8_qc_chi_b27), which is why both come from
-# production_box.  All six spin components are box axes; b,q stay value-only.
+# globals).  derisk_b27.py certified every hard corner of the FORMER b in [2,7] to <= 7.2e-12;
+# the current upper edge b = B_MAX lies OUTSIDE that study and is uncertified,
+# though wider separation reduces puncture coupling so it is expected easier.
+# Must match the value corpus box for --reuse-value
+# (spin8_qc_chi_prod), which is why both come from production_box.  All six spin
+# components are box axes; b,q stay value-only.
 bh.BOX = pb.spin8_box()
 # FIXED = {"qc": 1.0} is identical for the chi QC family — no change needed.
 

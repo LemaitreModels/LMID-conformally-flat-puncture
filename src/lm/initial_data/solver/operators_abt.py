@@ -1,4 +1,4 @@
-"""PARASOL-2C — single-patch ABT / prolate-spheroidal grid + Laplacian (M2-A).
+"""LM-initial-data-2C — single-patch ABT / prolate-spheroidal grid + Laplacian (M2-A).
 
 The Ansorg-Brügmann-Tichy axisymmetric coordinates, re-derived from scratch and
 recognised to be **prolate-spheroidal coordinates with a compactified radial

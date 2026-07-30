@@ -1,4 +1,4 @@
-"""PARASOL — JOINT held-out DISTRIBUTION (best/median/worst) for the 8-D
+"""LM-initial-data — JOINT held-out DISTRIBUTION (best/median/worst) for the 8-D
 VALUE+GRADIENT model, over the Smolyak level.
 
 Per the user directive, the 8-D "value+gradient" model IS the y-pair CROSS model:
@@ -7,13 +7,13 @@ value + gradient in the spin-y pair (chi_Ay, chi_By) + the mixed 2nd partial
 run_qc_joint_dist_cross_chi.py (the CROSS joint-dist), pointed at the 8-D y-pair
 cross model — NOT the plain 6-spin gradient Hermite.  Produces figure-data source
 ``joint_dist_hermite_8d`` pinned by paper/figures/registry.py to EXACTLY:
-    reports/3D_parametric/qc_chi/joint_dist_hermite_spin8_qc_chi_b27.json
+    reports/3D_parametric/qc_chi/joint_dist_hermite_spin8_qc_chi_prod.json
 
 FAITHFUL + CHEAP:
-  * SAME box spin8_qc_chi_b27, SAME 1000 seed-0 ``random_points`` as
+  * SAME box spin8_qc_chi_prod, SAME 1000 seed-0 ``random_points`` as
     run_qc_joint_dist_chi.py (b, the BARE value panel) -> the SAME held-out points,
     and we REUSE b's certified truth (``joint_dist_truth_parts/truth_spin8_qc_chi_
-    b27_seed0_n1000_task*.npz``) -> ZERO new solves.
+    prod_seed0_n1000_task*.npz``) -> ZERO new solves.
   * SAME max-abs held-out metric max|model(theta) - u_true(theta)|, levels 1..5,
     SAME per-level assembly (build_cross_from_pool from the L=5 cross corpus's node
     pool; nested Clenshaw-Curtis => level-L nodes subset of the L=5 pool) as the 4-D
@@ -22,10 +22,10 @@ FAITHFUL + CHEAP:
     cross sub-model is ~85 GB; holding all five like the 4-D template would OOM the
     256 GB node) — build, evaluate at all points, free, next level.
 
-Add-only.  Imports committed ``parasol`` modules read-only; edits nothing.
+Add-only.  Imports committed ``lm.initial_data`` modules read-only; edits nothing.
 
 Run (compute node, via sbatch):
-  DRIVER=run_qc_joint_dist_hermite_8d.py sbatch ... slurm/ivs/submit_parasol_cpu_hi.slurm
+  DRIVER=run_qc_joint_dist_hermite_8d.py sbatch ... slurm/ivs/submit_lm_initial_data_cpu_hi.slurm
 Smoke:  ARGS="--smoke"
 """
 from __future__ import annotations
@@ -45,7 +45,7 @@ REPDIR = os.path.join(HERE, "reports", "3D_parametric", "qc_chi")
 MODELS = os.path.join(HERE, "reports", "P2", "models_chi")
 # the 8-D y-pair CROSS model (value + gradient in chi_Ay,chi_By + cross term)
 CROSS_8D = os.path.join(MODELS, "hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross.npz")
-BOX_NAME = "spin8_qc_chi_b27"
+BOX_NAME = "spin8_qc_chi_prod"
 NA, NB, NPHI = 44, 32, 8
 
 

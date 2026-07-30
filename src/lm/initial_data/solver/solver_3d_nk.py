@@ -1,4 +1,4 @@
-"""PARASOL-3D Newton–Krylov — the *certified* non-axisymmetric two-centre solve.
+"""LM-initial-data-3D Newton–Krylov — the *certified* non-axisymmetric two-centre solve.
 
 Add-only sibling of ``solver_3d``.  The modified-Newton solver
 (``solver_3d.newton_solve``) drops the φ-varying part of the source Jacobian: it

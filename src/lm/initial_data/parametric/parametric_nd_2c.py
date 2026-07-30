@@ -1,4 +1,4 @@
-"""PARASOL — wire the N-D parametric layer to the ABT two-centre solver (P3).
+"""LM-initial-data — wire the N-D parametric layer to the ABT two-centre solver (P3).
 
 The multi-dimensional milestone.  ``parametric_nd.py`` (the solver-agnostic
 tensor-product Chebyshev-in-parameter layer) is reused; this module injects the

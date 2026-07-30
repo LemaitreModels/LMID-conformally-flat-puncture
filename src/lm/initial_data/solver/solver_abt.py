@@ -1,4 +1,4 @@
-"""PARASOL-2C — two-centre head-on Newton solve on the ABT single patch (M2-A).
+"""LM-initial-data-2C — two-centre head-on Newton solve on the ABT single patch (M2-A).
 
 The production two-centre solver: the summed Bowen–York source (``source.py``,
 reused verbatim) on the single-patch prolate-spheroidal / ABT grid

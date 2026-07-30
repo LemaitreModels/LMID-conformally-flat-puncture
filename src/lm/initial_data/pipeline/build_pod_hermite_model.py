@@ -1,4 +1,4 @@
-"""PARASOL paper-integration P2 — build & persist the SHIPPED gradient-enhanced
+"""LM-initial-data paper-integration P2 — build & persist the SHIPPED gradient-enhanced
 (Hermite) quasi-circular model + its POD compression.
 
 Add-only. Mirrors ``build_surrogate.py`` (the value-only shipped-model build) but on
@@ -183,7 +183,7 @@ def main():
     commit = _git_commit()
     t_start = time.time()
 
-    _t(f"PARASOL P2 Hermite-Smolyak build — box=d4_qc {names}  enhanced={enhanced}")
+    _t(f"LM-initial-data P2 Hermite-Smolyak build — box=d4_qc {names}  enhanced={enhanced}")
     _t(f"grid Na={args.Na} Nb={args.Nb} Nφ={args.Nphi}  solver={args.solver}  "
        f"tangent_jac={args.tangent_jac}  level={args.level}")
     _t(f"outdir: {args.outdir}  (gitignored)   git HEAD: {commit}")

@@ -1,6 +1,6 @@
-"""PARASOL-3D — non-axisymmetric ADM diagnostics (Test E).
+"""LM-initial-data-3D — non-axisymmetric ADM diagnostics (Test E).
 
-Add-only sibling of :mod:`parasol.solver.diagnostics` / :mod:`parasol.validation.adm`
+Add-only sibling of :mod:`lm.initial_data.solver.diagnostics` / :mod:`lm.initial_data.validation.adm`
 for the first non-axisymmetric solver (``solver_3d``).  Two observables:
 
 * **ADM angular momentum** ``J^i`` — the genuinely-3-D quantity.  Computed from
@@ -25,7 +25,7 @@ for the first non-axisymmetric solver (``solver_3d``).  Two observables:
   boundary extraction to :func:`adm.adm_mass_spectral`; higher azimuthal modes
   decay faster than 1/r and do not feed the monopole, so the φ-average is exact.
 
-The same PARASOL z-axis convention as the solver: punctures A at +b, B at −b,
+The same LM-initial-data z-axis convention as the solver: punctures A at +b, B at −b,
 per-puncture momentum/spin VECTORS.  Standalone: numpy + the sibling source_3d.
 """
 
@@ -54,7 +54,7 @@ def adm_J_surface(b, P_A_vec, P_B_vec, S_A_vec, S_B_vec,
 
     over a CoM-centred coordinate sphere, with the analytic summed Bowen–York
     tensor ``Â`` (momentum + spin) of both punctures.  Returns the 3-vector
-    (PARASOL frame).  ``R`` defaults to ``200·b`` (the spin part is exact at any
+    (LM-initial-data frame).  ``R`` defaults to ``200·b`` (the spin part is exact at any
     R; a large R suppresses the momentum/orbital 1/R tail).
     """
     if R is None:
@@ -101,7 +101,7 @@ def adm_J_surface_extrap(b, P_A_vec, P_B_vec, S_A_vec, S_B_vec,
 
 
 def adm_J_closed_form(b, P_A_vec, P_B_vec, S_A_vec, S_B_vec):
-    """Analytic Bowen–York ``J^i = Σ_X (S_X + x_X × P_X)`` (PARASOL frame).
+    """Analytic Bowen–York ``J^i = Σ_X (S_X + x_X × P_X)`` (LM-initial-data frame).
 
     Punctures A at ``x_A=(0,0,+b)``, B at ``x_B=(0,0,-b)``.  The rigorous
     cross-check for the surface integral and the same quantity TwoPunctures

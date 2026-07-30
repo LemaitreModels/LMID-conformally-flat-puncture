@@ -1,4 +1,4 @@
-"""PARASOL-3D — non-axisymmetric Bowen–York source over the (A,B,φ) node cloud.
+"""LM-initial-data-3D — non-axisymmetric Bowen–York source over the (A,B,φ) node cloud.
 
 The 2-D source machinery (``source.py``) is already point-wise and fully 3-D:
 ``_A_single_tensor(x, x0, P_vec)`` and ``_A_single_spin_tensor(x, x0, S_vec)``

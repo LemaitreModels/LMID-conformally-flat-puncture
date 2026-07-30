@@ -1,4 +1,4 @@
-"""PARASOL — JOINT held-out DISTRIBUTION (best/median/worst) over 1000 random
+"""LM-initial-data — JOINT held-out DISTRIBUTION (best/median/worst) over 1000 random
 representative binaries vs Smolyak node count, DIMENSIONLESS-spin (chi) model
 (paper revision R1 for the joint convergence figure).
 
@@ -7,7 +7,7 @@ run_qc_wide_build_stats.py) report the WORST held-out error over a handful of po
 (6-50).  R1 (notes/paper_revision_2.md line 15) asks for the full DISTRIBUTION
 (best/median/worst) over ~1000 random points.  This is cheap for the JOINT model
 because the model is built ONCE per Smolyak level from the shared solve corpus
-(all store hits: S3 populated the 4D d4_qc_chi_b27 L=5 pool, S6 the 8D one), so the
+(all store hits: S3 populated the 4D d4_qc_chi_prod L=5 pool, S6 the 8D one), so the
 only new cost is the ~1000 direct reference solves (shared across all levels).
 
 For each Smolyak level L the model is (re)built from the store and evaluated at the
@@ -16,8 +16,8 @@ same 1000 random off-node points; the per-point held-out errors
 count.
 
 Boxes (from build_surrogate_chi.py, verbatim):
-  d4_qc_chi_b27    = production_box.aligned_box()   [S3 -- READY]
-  spin8_qc_chi_b27 = production_box.spin8_box()     [S6 -- gated on assembly]
+  d4_qc_chi_prod    = production_box.aligned_box()   [S3 -- READY]
+  spin8_qc_chi_prod = production_box.spin8_box()     [S6 -- gated on assembly]
 
 Modes:
   (default)   1000 truth solves + build L=1..5 from store + best/median/worst.
@@ -25,9 +25,9 @@ Modes:
 
 Run (single node; ~1000 modified-Newton truth solves ~2-4 h):
   sbatch --time=12:00:00 \
-    --export=ALL,DRIVER=run_qc_joint_dist_chi.py,ARGS=--box d4_qc_chi_b27,\
-JOB_DIR=sandbox/parasol/reports/3D_parametric/qc_chi/_mark_jointdist \
-    slurm/ivs/submit_parasol_cpu_hi.slurm
+    --export=ALL,DRIVER=run_qc_joint_dist_chi.py,ARGS=--box d4_qc_chi_prod,\
+JOB_DIR=reports/3D_parametric/qc_chi/_mark_jointdist \
+    slurm/ivs/submit_lm_initial_data_cpu_hi.slurm
 """
 from __future__ import annotations
 import argparse, glob, json, os, sys, time
@@ -54,8 +54,8 @@ CHI = pb.CHI_MAX
 
 # boxes from production_box (same edges build_surrogate_chi.py registers)
 BOXES = {
-    "d4_qc_chi_b27": pb.aligned_box(),
-    "spin8_qc_chi_b27": pb.spin8_box(),
+    "d4_qc_chi_prod": pb.aligned_box(),
+    "spin8_qc_chi_prod": pb.spin8_box(),
 }
 
 
@@ -110,7 +110,7 @@ def _write_results(box_name, names, n_pts, seed, levels, joint, t_start):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--box", default="d4_qc_chi_b27", choices=list(BOXES))
+    ap.add_argument("--box", default="d4_qc_chi_prod", choices=list(BOXES))
     ap.add_argument("--n-points", type=int, default=1000)
     ap.add_argument("--levels", default="1,2,3,4,5")
     ap.add_argument("--seed", type=int, default=0)

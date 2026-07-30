@@ -99,10 +99,9 @@ def build():
                 HERM_C, "s", "value + gradient", gvhf8["r_full"], "above", True)]
 
     panels = {
-        "TL": dict(title=r"4D quasi-circular model:  $\theta=(b,\ q,\ \chi_{Ay},\ \chi_{By})$",
-                   note="1000 off-node pts", note_loc="bl", curves=TL),
-        "TR": dict(title=r"8D quasi-circular model:  $\theta=(b,\ q,\ \boldsymbol{\chi}_A,\ \boldsymbol{\chi}_B)$",
-                   note="1000 off-node pts", note_loc="br", curves=TR),
+        # panel titles live in the plot script (presentation, not data)
+        "TL": dict(note="1000 off-node pts", note_loc="bl", curves=TL),
+        "TR": dict(note="1000 off-node pts", note_loc="br", curves=TR),
         "BL": dict(title=None, note="1000 off-node pts", note_loc="tr", curves=BL),
         "BR": dict(title=None, note="1000 off-node pts", note_loc="tr", curves=BR),
     }

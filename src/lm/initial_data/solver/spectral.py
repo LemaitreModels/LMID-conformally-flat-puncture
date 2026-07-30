@@ -1,4 +1,4 @@
-"""PARASOL — 1-D spectral primitives (§3.1 of plan.md).
+"""LM-initial-data — 1-D spectral primitives (§3.1 of plan.md).
 
 Standalone: depends only on numpy (matrix construction) and jax/jax.numpy.
 Re-derives every building block from scratch (Chebyshev D-matrix, algebraic

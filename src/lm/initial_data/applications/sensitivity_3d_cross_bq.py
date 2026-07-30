@@ -1,4 +1,4 @@
-"""PARASOL-3D — the QC certified-ID **second-order cross tangent** for the FULL
+"""LM-initial-data-3D — the QC certified-ID **second-order cross tangent** for the FULL
 4-axis quasi-circular family ``(b, q, χ_Ay, χ_By)``: the 5 pairwise mixed
 partials ``∂²U/∂θ_i∂θ_j`` that touch ``b`` or ``q``.
 

@@ -1,4 +1,4 @@
-"""PARASOL — wire the N-D parametric layer to the 3-D non-axisymmetric solver.
+"""LM-initial-data — wire the N-D parametric layer to the 3-D non-axisymmetric solver.
 
 The **3-D lift** of the parametric surrogate: a tensor-product Chebyshev-in-
 parameter interpolant over a *non-axisymmetric* Bowen–York slice family, with

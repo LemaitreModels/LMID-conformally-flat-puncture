@@ -1,5 +1,5 @@
 """lm.initial_data — certified, differentiable, parametric black-hole
-initial data via spectral collocation (the PARASOL paper package).
+initial data via spectral collocation (the paper package).
 
 Standalone: depends only on ``jax``, ``numpy``, ``scipy``, ``matplotlib``.
 

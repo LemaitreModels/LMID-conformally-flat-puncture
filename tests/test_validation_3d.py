@@ -1,4 +1,4 @@
-"""Test E — non-axisymmetric PARASOL data vs the TwoPunctures oracle + ADM J.
+"""Test E — non-axisymmetric LM-initial-data data vs the TwoPunctures oracle + ADM J.
 
 Cross-checks the first non-axisymmetric (Fourier-φ) two-centre Bowen–York data
 (``solver_3d``) against TwoPunctures, and validates the 3-D ADM angular-momentum
@@ -11,9 +11,9 @@ The oracle binary was extended for Test E to accept per-puncture momentum/spin
 VECTORS (the ``argc>=24`` override path of ``src/main.c``); the existing
 axisymmetric (scalar) wrapper path is byte-identical, so B1 is unaffected.
 
-Convention: PARASOL punctures on the z-axis at ±b; the PARASOL→TP frame is the
-single proper rotation z^P→x^TP (``conventions.parasol_vec_to_tp``,
-``parasol_point_to_tp_3d``), applied to query points AND momentum/spin vectors.
+Convention: LM-initial-data punctures on the z-axis at ±b; the LM-initial-data→TP frame is the
+single proper rotation z^P→x^TP (``conventions.lm_initial_data_vec_to_tp``,
+``lm_initial_data_point_to_tp_3d``), applied to query points AND momentum/spin vectors.
 """
 
 import numpy as np
@@ -73,20 +73,20 @@ def test_adm_J_misaligned_spin_is_tilted():
 
 
 def test_frame_rotation_consistency():
-    """parasol_vec_to_tp is a proper rotation, round-trips, and is consistent
-    with the established axisymmetric scalar map (parasol_to_tp)."""
+    """lm_initial_data_vec_to_tp is a proper rotation, round-trips, and is consistent
+    with the established axisymmetric scalar map (lm_initial_data_to_tp)."""
     rng = np.random.default_rng(0)
     for _ in range(20):
         v = rng.normal(size=3)
-        rt = np.array(cv.tp_vec_to_parasol(cv.parasol_vec_to_tp(v)))
+        rt = np.array(cv.tp_vec_to_lm_initial_data(cv.lm_initial_data_vec_to_tp(v)))
         assert np.max(np.abs(rt - v)) < 1e-14
-    # consistency: PARASOL z-momentum (0,0,-P) -> TP (-P,0,0) (= parasol_to_tp)
-    assert cv.parasol_vec_to_tp((0.0, 0.0, -P)) == (-P, 0.0, 0.0)
-    # z-aligned spin (0,0,S) -> TP (S,0,0) (= parasol_to_tp's par_S_plus)
-    assert cv.parasol_vec_to_tp((0.0, 0.0, 0.7)) == (0.7, 0.0, 0.0)
+    # consistency: LM-initial-data z-momentum (0,0,-P) -> TP (-P,0,0) (= lm_initial_data_to_tp)
+    assert cv.lm_initial_data_vec_to_tp((0.0, 0.0, -P)) == (-P, 0.0, 0.0)
+    # z-aligned spin (0,0,S) -> TP (S,0,0) (= lm_initial_data_to_tp's par_S_plus)
+    assert cv.lm_initial_data_vec_to_tp((0.0, 0.0, 0.7)) == (0.7, 0.0, 0.0)
     # the 3-D point map reduces to the φ=0 meridian map
-    p0 = cv.parasol_point_to_tp_3d(0.6, 1.1, 0.0)
-    assert np.allclose(p0, cv.parasol_point_to_tp(0.6, 1.1))
+    p0 = cv.lm_initial_data_point_to_tp_3d(0.6, 1.1, 0.0)
+    assert np.allclose(p0, cv.lm_initial_data_point_to_tp(0.6, 1.1))
 
 
 # ==========================================================================
@@ -95,13 +95,13 @@ def test_frame_rotation_consistency():
 @pytest.fixture(scope="module")
 def tp_misaligned():
     """One TwoPunctures solve at the misaligned-spin slice (vector data)."""
-    return tp.solve_parasol_points_3d(
+    return tp.solve_lm_initial_data_points_3d(
         B, MA, MB, P_A_VEC, P_B_VEC, S_A_VEC, S_B_VEC, QR, QZ, QP,
         nA=64, nB=64, nphi=12)
 
 
 @pytest.fixture(scope="module")
-def parasol_misaligned_fine():
+def lm_initial_data_misaligned_fine():
     prob = s3.make_problem(Na=56, Nb=40, Nphi=10)
     sl = Slice3D(b=B, m_A=MA, m_B=MB, P_A_vec=P_A_VEC, P_B_vec=P_B_VEC,
                  S_A_vec=S_A_VEC, S_B_vec=S_B_VEC)
@@ -112,7 +112,7 @@ def parasol_misaligned_fine():
 @_oracle
 @pytest.mark.slow
 def test_psi_agreement_misaligned_spin_spectral(tp_misaligned):
-    """ψ_PARASOL → ψ_TP SPECTRALLY for a genuinely non-axisymmetric slice.
+    """ψ_LM-initial-data → ψ_TP SPECTRALLY for a genuinely non-axisymmetric slice.
 
     The agreement drops monotonically as the meridian/φ resolution grows; it
     floors at ~1e-7, set by the modified-Newton φ-mode-iteration residual
@@ -140,9 +140,9 @@ def test_psi_agreement_misaligned_spin_spectral(tp_misaligned):
 
 @_oracle
 @pytest.mark.slow
-def test_total_adm_mass_agreement_3d(tp_misaligned, parasol_misaligned_fine):
+def test_total_adm_mass_agreement_3d(tp_misaligned, lm_initial_data_misaligned_fine):
     """Total ADM mass agrees with TwoPunctures to the spectral floor (~1e-9)."""
-    prob, U, sl, info = parasol_misaligned_fine
+    prob, U, sl, info = lm_initial_data_misaligned_fine
     M = d3.adm_mass_spectral_3d(prob, U, sl)
     assert abs(M - tp_misaligned.E) / tp_misaligned.E < 1e-8
 
@@ -150,18 +150,18 @@ def test_total_adm_mass_agreement_3d(tp_misaligned, parasol_misaligned_fine):
 @_oracle
 @pytest.mark.slow
 def test_adm_J_vector_agreement_3d(tp_misaligned):
-    """The ADM J vector agrees with TwoPunctures (rotated to the PARASOL frame),
+    """The ADM J vector agrees with TwoPunctures (rotated to the LM-initial-data frame),
     and is genuinely nonzero / tilted off the collision axis."""
     res = tp_misaligned
-    J_tp_parasol = np.array(cv.tp_vec_to_parasol(res.J))     # TP native -> PARASOL
+    J_tp_lm_initial_data = np.array(cv.tp_vec_to_lm_initial_data(res.J))     # TP native -> LM-initial-data
     J_par = d3.adm_J_closed_form(B, P_A_VEC, P_B_VEC, S_A_VEC, S_B_VEC)
     J_surf = d3.adm_J_surface(B, P_A_VEC, P_B_VEC, S_A_VEC, S_B_VEC)
-    print(f"[E] J TP(native)={res.J}  ->PARASOL={J_tp_parasol}  "
+    print(f"[E] J TP(native)={res.J}  ->LM-initial-data={J_tp_lm_initial_data}  "
           f"closed={J_par}  surface={J_surf}")
-    assert np.max(np.abs(J_par - J_tp_parasol)) < 1e-9, "J vs TP disagree"
-    assert np.max(np.abs(J_surf - J_tp_parasol)) < 1e-9, "J surface vs TP disagree"
+    assert np.max(np.abs(J_par - J_tp_lm_initial_data)) < 1e-9, "J vs TP disagree"
+    assert np.max(np.abs(J_surf - J_tp_lm_initial_data)) < 1e-9, "J surface vs TP disagree"
     # genuinely tilted (both the collision-axis and transverse components nonzero)
-    assert abs(J_tp_parasol[0]) > 0.1 and abs(J_tp_parasol[2]) > 0.1
+    assert abs(J_tp_lm_initial_data[0]) > 0.1 and abs(J_tp_lm_initial_data[2]) > 0.1
     assert np.max(np.abs(res.J)) > 0.1, "TP reported zero J"
 
 
@@ -182,7 +182,7 @@ def test_aligned_spin_axisymmetric_regression():
     print(f"[E] aligned-spin φ-variation = {phi_var:.2e}")
     assert phi_var < 1e-9, f"aligned spin not axisymmetric: {phi_var:.2e}"
     # ψ matches TP (vector data with only the aligned component)
-    res = tp.solve_parasol_points_3d(B, MA, MB, P_A_VEC, P_B_VEC, S_A, S_B,
+    res = tp.solve_lm_initial_data_points_3d(B, MA, MB, P_A_VEC, P_B_VEC, S_A, S_B,
                                      QR, QZ, QP, nA=64, nB=64, nphi=4)
     u = np.asarray(s3.evaluate_field(prob, U, QR, QZ, QP, B))
     psi = np.asarray(source.psi_BL_2c(QR, QZ, B, MA, MB)) + u
@@ -190,4 +190,4 @@ def test_aligned_spin_axisymmetric_regression():
     # J is purely along the collision axis (= Sz), no tilt
     J = d3.adm_J_closed_form(B, P_A_VEC, P_B_VEC, S_A, S_B)
     assert abs(J[2] - Sz) < 1e-12 and abs(J[0]) < 1e-12 and abs(J[1]) < 1e-12
-    assert np.max(np.abs(cv.tp_vec_to_parasol(res.J) - J)) < 1e-9
+    assert np.max(np.abs(cv.tp_vec_to_lm_initial_data(res.J) - J)) < 1e-9

@@ -34,3 +34,6 @@ paper/*.blg
 
 # Cloud-sync conflicted-copy artifacts (never commit these)
 * [0-9].*
+
+# SLURM job logs (created at submit time)
+logs/

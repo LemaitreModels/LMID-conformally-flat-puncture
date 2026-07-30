@@ -1,4 +1,4 @@
-"""PARASOL — spectral collocation in parameter space (§5 of plan.md).
+"""LM-initial-data — spectral collocation in parameter space (§5 of plan.md).
 
 This is the headline contribution.  The map  q |-> u(.,.;q)  is analytic on a
 range with no coincidence/merger singularity (a single puncture is analytic for

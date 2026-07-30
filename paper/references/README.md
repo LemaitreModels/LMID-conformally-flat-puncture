@@ -1,7 +1,7 @@
 # Reference PDFs
 
 PDFs for the references cited in `../paper.tex` (keyed by their BibTeX cite key in
-`../references.bib`). The parasol codebase references the same body of work, so
+`../references.bib`). The LM-initial-data codebase references the same body of work, so
 this set also covers the papers referenced in the code.
 
 Files are named `<CiteKey>.pdf`. Sources: the repo's `context/papers/` library

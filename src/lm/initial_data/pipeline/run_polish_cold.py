@@ -1,4 +1,4 @@
-"""PARASOL — COLD-START certified-refinement (Newton-polish) staircase.
+"""LM-initial-data — COLD-START certified-refinement (Newton-polish) staircase.
 
 Companion to ``run_polish_table.py``: instead of warm-starting the Newton polish
 from the barycentric surrogate guess, this runs the genuine elliptic solver
@@ -20,12 +20,12 @@ Writes ``reports/P3/polish_cold_<tag>_<n>.json`` with the same summary schema as
 %certified) PLUS the raw per-step residual arrays (``residuals`` per stage) so the
 figure builder can draw honest min--max whiskers.
 
-Add-only.  Imports committed ``parasol`` modules read-only; edits nothing.
+Add-only.  Imports committed ``lm.initial_data`` modules read-only; edits nothing.
 
 Run:
-  python sandbox/parasol/run_polish_cold.py                 # 4-D then 8-D
-  python sandbox/parasol/run_polish_cold.py --dim 4
-  python sandbox/parasol/run_polish_cold.py --n-points 1000 --steps 8 --seed 0
+  python -m lm.initial_data.pipeline.run_polish_cold                 # 4-D then 8-D
+  python -m lm.initial_data.pipeline.run_polish_cold --dim 4
+  python -m lm.initial_data.pipeline.run_polish_cold --n-points 1000 --steps 8 --seed 0
 """
 from __future__ import annotations
 

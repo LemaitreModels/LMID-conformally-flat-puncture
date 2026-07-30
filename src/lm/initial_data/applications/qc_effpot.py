@@ -1,4 +1,4 @@
-"""PARASOL — differentiable, certified eccentricity control via the Cook (1994)
+"""LM-initial-data — differentiable, certified eccentricity control via the Cook (1994)
 effective-potential method, on a 2-D free-momentum family.
 
 The eccentricity demonstrator (paper §VI, companion to the parameter-targeting one

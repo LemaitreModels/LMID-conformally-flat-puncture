@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Data for fig07_eccentricity: precompute the smooth E_b(b;J) curves to figdata/.
 
-fig07 is the ONLY figure whose plotter used to import jax + the parasol package and evaluate a
+fig07 is the ONLY figure whose plotter used to import jax + the LM-initial-data package and evaluate a
 surrogate model (surrogate_bpt_ecc.npz) at plot time. This script does that evaluation ONCE and
 writes the smooth curves + the certified scan points + the gradient minima as plain arrays to
 figdata/fig07_eccentricity.json, so the plotter (and every other figure) is pure-data.
@@ -9,7 +9,7 @@ figdata/fig07_eccentricity.json, so the plotter (and every other figure) is pure
 Sources (raw):
   reports/P3/qc_effpot_Jsweep.json                          (key "qc_effpot")   — scan + minima
   reports/3D_parametric/models/surrogate_bpt_ecc.npz        (key "effpot_model") — for the curves
-Needs the BBHFM env (jax + parasol); no solves are run.
+Needs the BBHFM env (jax + LM-initial-data); no solves are run.
 
 Run:  python fig07_eccentricity_data.py
 """

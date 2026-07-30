@@ -1,4 +1,4 @@
-"""PARASOL — POD (reduced-basis) re-encoding of the gradient-enhanced Hermite
+"""LM-initial-data — POD (reduced-basis) re-encoding of the gradient-enhanced Hermite
 surrogate + the Smolyak-compatibility decision (H3).
 
 The H3 milestone of ``GRADIENT_ENHANCED_PLAN.md`` §4.  Two pieces.
@@ -453,7 +453,7 @@ def load_pod_hermite_nd(path) -> "PODHermiteND":
     except ValueError:
         raise
     except Exception as e:
-        raise ValueError(f"corrupt PARASOL pod_hermite_nd surrogate '{path}': {e}")
+        raise ValueError(f"corrupt LM-initial-data pod_hermite_nd surrogate '{path}': {e}")
     pod.meta = meta
     return pod
 

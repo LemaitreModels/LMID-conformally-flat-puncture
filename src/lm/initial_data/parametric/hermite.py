@@ -1,4 +1,4 @@
-"""PARASOL — gradient-enhanced (Hermite) collocation in parameter space (H1).
+"""LM-initial-data — gradient-enhanced (Hermite) collocation in parameter space (H1).
 
 The 1-D **foundation** of the gradient-enhanced surrogate
 (``GRADIENT_ENHANCED_PLAN.md`` §2/§4).  The committed value-only interpolant
@@ -424,6 +424,6 @@ def load_hermite(path) -> "HermiteSolution1D":
     except ValueError:
         raise
     except Exception as e:
-        raise ValueError(f"corrupt PARASOL hermite surrogate '{path}': {e}")
+        raise ValueError(f"corrupt LM-initial-data hermite surrogate '{path}': {e}")
     sol.meta = meta
     return sol

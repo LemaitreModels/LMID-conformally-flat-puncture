@@ -1,4 +1,4 @@
-"""PARASOL — persistence (save/load) layer for the certified parametric surrogates.
+"""LM-initial-data — persistence (save/load) layer for the certified parametric surrogates.
 
 A built surrogate becomes a reusable on-disk artifact ("we provide the solution,
 no need to solve").  These gates cover BOTH the sparse Smolyak sparse-grid model

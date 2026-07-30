@@ -1,4 +1,4 @@
-"""PARASOL — build the FULL BILINEAR (cross-enhanced) 4-D χ Hermite–Smolyak model.
+"""LM-initial-data — build the FULL BILINEAR (cross-enhanced) 4-D χ Hermite–Smolyak model.
 
 Add-only POST-PROCESS of a shipped gradient-only Hermite–Smolyak model with TWO
 enhanced axes: it reuses the stored per-node value ``node_U`` and first tangents
@@ -13,9 +13,9 @@ Resumable: checkpoints ``node_cross`` to ``<out>.cross.partial.npy`` every
 ``--checkpoint`` nodes; a re-run resumes from the checkpoint.
 
 Run (from repo root):
-  caffeinate -i python sandbox/parasol/build_cross_model_chi.py \
-      --model sandbox/parasol/reports/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz \
-      --out   sandbox/parasol/reports/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz
+  caffeinate -i python -m lm.initial_data.pipeline.build_cross_model_chi \
+      --model reports/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz \
+      --out   reports/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz
 """
 from __future__ import annotations
 

@@ -57,7 +57,7 @@ the figure→producer→artifact graph).
 Heavy artifacts are read from a `reports/` tree (gitignored) or a path the figure
 scripts resolve; the exact convention is finalized in Stage 2 (see
 `STAGE2_HANDOFF.md`). During the migration the source corpora live in the BBHFM
-tree at `sandbox/parasol/reports/`.
+tree at `sandbox/parasol/reports/` (the pre-migration location of this package).
 
 > Status: the recompute wiring (rewriting `figNN_*_data.py` to compute from the
 > solver/ROM instead of reading `reports/*.json`) is **Stage 2** — not yet done.

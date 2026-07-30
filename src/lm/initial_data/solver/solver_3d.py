@@ -1,6 +1,6 @@
-"""PARASOL-3D — non-axisymmetric two-centre Newton solve (Fourier-in-φ).
+"""LM-initial-data-3D — non-axisymmetric two-centre Newton solve (Fourier-in-φ).
 
-The first non-axisymmetric PARASOL solver.  The frozen axisymmetric path
+The first non-axisymmetric LM-initial-data solver.  The frozen axisymmetric path
 (``solver_abt.py``) stays the regression oracle; this add-only sibling lifts it
 to 3-D by a Fourier collocation in φ.
 

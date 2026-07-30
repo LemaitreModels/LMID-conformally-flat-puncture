@@ -1,4 +1,4 @@
-"""PARASOL — figure data for the 4D "gradient-enhanced := cross" paper update.
+"""LM-initial-data — figure data for the 4D "gradient-enhanced := cross" paper update.
 
 Produces the two JSONs the cross model needs so fig05_guess_vs_memory and
 fig04_polish_staircase show the 4D value+gradient family as the FULL-BILINEAR
@@ -17,7 +17,7 @@ run_cross_fielderror_chi.offnode_points), the equilibrated residual
 (solver_3d_nk.equil_residual_inf — the paper convention, notes/conventions.md),
 and the committed hermite_smolyak_pod_cross POD layer.
 
-Run:  python sandbox/parasol/run_cross_pod_figuredata.py
+Run:  python -m lm.initial_data.pipeline.run_cross_pod_figuredata
 """
 from __future__ import annotations
 

@@ -41,11 +41,12 @@ def build():
             S = np.array(a["S_A"])
             if np.hypot(S[0], S[1]) > 0 or S[2] != 0:
                 tS = float(np.rad2deg(np.arctan2(np.hypot(S[0], S[1]), S[2]))) if np.any(S) else 0.0
-                Jtp = np.array(a["J_tp_parasol"])
+                # legacy corpora (pre-rename) store this as "J_tp_parasol"
+                Jtp = np.array(a.get("J_tp_lm_initial_data", a.get("J_tp_parasol")))
                 tJ = float(np.rad2deg(np.arctan2(np.hypot(Jtp[0], Jtp[1]), Jtp[2])))
                 anchors.append([tS, tJ])
 
-    # --- quasi-circular psi/M_ADM vs PARASOL grid (tp_validation) ---
+    # --- quasi-circular psi/M_ADM vs LM-initial-data grid (tp_validation) ---
     d = load_source("tp_validation")
     C = [dict(Na=r["Na"], Nb=r["Nb"], max_dpsi=r["max_dpsi"],
               M_ADM_rel_diff=r["M_ADM_rel_diff"]) for r in d["C_psi_adm"]["grids"]]

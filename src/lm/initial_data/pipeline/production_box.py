@@ -1,4 +1,4 @@
-"""PARASOL — the single canonical definition of the PRODUCTION PARAMETER BOX.
+"""LM-initial-data — the single canonical definition of the PRODUCTION PARAMETER BOX.
 
 Every producer and model builder in this package must take its box from here.
 Before this module the box was redeclared independently in eight producers, and
@@ -14,9 +14,10 @@ The production box
     chi_* in [-CHI_MAX, CHI_MAX]   every spin component, dimensionless chi = S/m^2
 
 Each edge is set by a measured constraint, not by convention; see the constants
-below.  NOTE: the box keys registered by ``build_surrogate_chi`` still carry the
-historical ``_b27`` suffix (it encoded the old b in [2,7]).  The suffix is now just
-an identifier -- it no longer describes the range.
+below.  The box keys registered by ``build_surrogate_chi`` carry a ``_prod`` suffix
+(``d4_qc_chi_prod``, ``spin8_qc_chi_prod``); it marks them as the production boxes
+and deliberately encodes no range, so retargeting an edge here does not strand a
+name.  They were previously ``_b27``, after the then-current b in [2,7].
 
 ``CHI_MAX`` is the *free-data* spin parameter, not the horizon spin.  It is set to
 0.9 to sit inside the Bowen--York horizon-spin ceiling chi_hor ~ 0.93, above which

@@ -1,4 +1,4 @@
-"""Acceptance tests — the first non-axisymmetric PARASOL solver (3-D, Fourier-φ).
+"""Acceptance tests — the first non-axisymmetric LM-initial-data solver (3-D, Fourier-φ).
 
 The axisymmetric ABT two-centre code (``operators_abt``, ``solver_abt``) stays
 the frozen regression oracle; ``operators_3d``/``source_3d``/``solver_3d`` lift

@@ -1,4 +1,4 @@
-"""PARASOL 3D — the certified non-axisymmetric PARAMETRIC layer (the "3-D lift").
+"""LM-initial-data 3D — the certified non-axisymmetric PARAMETRIC layer (the "3-D lift").
 
 The N-D Chebyshev-in-parameter collocation layer (``parametric_nd.py``, reused
 verbatim) wired to the 3-D non-axisymmetric solver via ``parametric_nd_3d.py``.
@@ -269,7 +269,7 @@ def test_tp_cross_check_3d():
     QR = np.array([0.4, 0.8, 0.6, 1.2, 2.0]) * sl.b
     QZ = np.array([0.6, 0.0, -0.5, 0.3, 0.4]) * sl.b
     QP = np.array([0.0, 1.0, 2.0, 0.5, 2.5])
-    res = tp.solve_parasol_points_3d(sl.b, sl.m_A, sl.m_B, sl.P_A_vec, sl.P_B_vec,
+    res = tp.solve_lm_initial_data_points_3d(sl.b, sl.m_A, sl.m_B, sl.P_A_vec, sl.P_B_vec,
                                      sl.S_A_vec, sl.S_B_vec, QR, QZ, QP,
                                      nA=64, nB=64, nphi=12)
     u = np.asarray(s3.evaluate_field(prob, U, QR, QZ, QP, sl.b))

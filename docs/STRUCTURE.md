@@ -1,6 +1,6 @@
 # Repository structure & migration notes
 
-`lm.initial_data` (the PARASOL paper package) was migrated out of the BBHFM
+`lm.initial_data` (the paper package) was migrated out of the BBHFM
 monorepo (`sandbox/parasol/`) into this standalone repo, de-cluttered and
 restructured. This document is the package map and the record of what was kept,
 dropped, and deferred.
@@ -79,4 +79,6 @@ distribution all siblings depend on.
   old "read `reports/` cache" logic. Rewiring them to genuinely recompute from the
   solver/ROM (two-tier) is Stage 2 — see `STAGE2_HANDOFF.md` and `DATA.md`.
 - Cosmetic docstring cleanup (a few module/producer docstrings still say
-  "add-only" / "sandbox/parasol/…"); the stale figures `README.md`.
+  "add-only"); the stale figures `README.md`. The old `sandbox/parasol/…`
+  invocation strings have been repaired to real `-m lm.initial_data.pipeline.…`
+  (or script-path) commands.

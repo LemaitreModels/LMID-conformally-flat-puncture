@@ -30,6 +30,11 @@ sys.path.insert(0, HERE)
 from _figdata import load
 from _figstyle import figdims
 
+# Column titles are presentation, so they live here rather than in the figdata json:
+# a notation change then needs only a re-plot, not a solver recompute.
+TITLES = {4: r"4D quasi-circular model: $\theta=(b,q,\chi^{A}_{y},\chi^{B}_{y})$",
+          8: r"8D quasi-circular model: $\theta=(b,q,\boldsymbol{\chi}^{A},\boldsymbol{\chi}^{B})$"}
+
 THRESH = 1e-10
 FIELD_FLOOR = 1e-13          # below this the iterate == converged solution (log floor)
 # convention: value = C0 (tab:blue), value+gradient = C1 (tab:orange); cold baseline = grey
@@ -83,7 +88,7 @@ def _plot_residual(ax, col):
     xmax = max(xmax, x[n - 1])
     ax.axhline(THRESH, ls=":", color="k", alpha=0.7, lw=1.1)
     ax.set_yscale("log")
-    ax.set_title(col["title"], fontsize=9.5)
+    ax.set_title(TITLES[col["dim"]], fontsize=9.5)
     ax.grid(True, which="both", alpha=0.3)
     ax.legend(fontsize=8.8, loc="upper right", framealpha=0.93)
     return xmax

@@ -1,9 +1,9 @@
-"""PARASOL — JOINT held-out DISTRIBUTION (best/median/worst) for the
+"""LM-initial-data — JOINT held-out DISTRIBUTION (best/median/worst) for the
 value+gradient+CROSS (full-bilinear Hermite-Smolyak) 4-D chi model, over the
 Smolyak level.  The gradient-enhanced companion to run_qc_joint_dist_chi.py
 (the BARE-interpolant left panel of paper Fig. 5).
 
-Add-only.  Mirrors run_qc_joint_dist_chi.py EXACTLY -- SAME box d4_qc_chi_b27,
+Add-only.  Mirrors run_qc_joint_dist_chi.py EXACTLY -- SAME box d4_qc_chi_prod,
 SAME 1000 seed-0 random off-node points (random_points, verbatim), SAME max-abs
 held-out metric max|model(theta) - u_true(theta)|, SAME levels 1..5 -- but the
 per-level model is the full-bilinear cross Hermite-Smolyak model (enhanced
@@ -19,11 +19,11 @@ to run_qc_joint_dist_chi's truth).
 Data (read-only):
   reports/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz
 Writes:
-  reports/3D_parametric/qc_chi/joint_dist_cross_d4_qc_chi_b27.json
+  reports/3D_parametric/qc_chi/joint_dist_cross_d4_qc_chi_prod.json
 
 Run (background, ~1-2 h for the 1000 truth solves):
   caffeinate -ims ~/Software/micromamba/micromamba run -n BBHFM python \\
-      sandbox/parasol/run_qc_joint_dist_cross_chi.py
+      -m lm.initial_data.pipeline.run_qc_joint_dist_cross_chi
 Smoke (a few min):
   ... run_qc_joint_dist_cross_chi.py --smoke
 """
@@ -53,7 +53,7 @@ CHI = pb.CHI_MAX
 CROSS_MODEL = os.path.join(HERE, "reports", "P2", "models_chi",
                            "hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz")
 
-# box d4_qc_chi_b27
+# box d4_qc_chi_prod
 BOX = pb.aligned_box()
 
 
@@ -84,7 +84,7 @@ def main():
     t_start = time.time()
     names = [a["name"] for a in BOX]
     _t(f"=== joint held-out distribution (VALUE+GRAD+CROSS) {'(SMOKE)' if args.smoke else ''} ===")
-    _t(f"    box=d4_qc_chi_b27 axes={names}  n_points={n_pts}  levels={levels}")
+    _t(f"    box=d4_qc_chi_prod axes={names}  n_points={n_pts}  levels={levels}")
 
     prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
     solve_fn, _ = p3.make_solve_fn(prob, names, fixed=QC, solver="modified")
@@ -150,14 +150,14 @@ def main():
            f"median={rec['median']:.2e} worst={rec['worst']:.2e}")
 
     results = dict(
-        meta=dict(box="d4_qc_chi_b27", model="value+grad+cross", axes=names,
+        meta=dict(box="d4_qc_chi_prod", model="value+grad+cross", axes=names,
                   n_points=n_pts, seed=args.seed, levels=levels,
                   Na=NA, Nb=NB, Nphi=NPHI, enhanced=[names[e] for e in enh],
                   cross_model=os.path.basename(CROSS_MODEL),
                   wall_s=time.time() - t_start),
         joint=joint)
     tag = "_smoke" if args.smoke else ""
-    out = os.path.join(REPDIR, f"joint_dist_cross_d4_qc_chi_b27{tag}.json")
+    out = os.path.join(REPDIR, f"joint_dist_cross_d4_qc_chi_prod{tag}.json")
     with open(out, "w") as f:
         json.dump(results, f, indent=2)
     _t(f"\nWrote {out}")

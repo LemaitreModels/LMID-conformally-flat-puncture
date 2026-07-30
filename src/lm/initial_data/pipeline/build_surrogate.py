@@ -1,4 +1,4 @@
-"""PARASOL — build & persist the production parametric surrogates as reusable artifacts.
+"""LM-initial-data — build & persist the production parametric surrogates as reusable artifacts.
 
 Turns the in-memory sweeps (which build an interpolant, measure accuracy, then
 DISCARD it) into standalone on-disk models — "we provide the solution, no need to
@@ -21,7 +21,7 @@ ETA (Na=44, Nb=32, Nφ=8): sparse L=3 ≈ 137 solves (~8 min); dense Q=5 ≈ 129
 solves (~70 min) — the dense build dominates.  Omit ``--dense-Q`` to skip it.
 Run in the background under caffeinate:
 
-    caffeinate -ims ~/micromamba/envs/BBHFM/bin/python sandbox/parasol/build_surrogate.py \
+    caffeinate -ims ~/micromamba/envs/BBHFM/bin/python -m lm.initial_data.pipeline.build_surrogate \
         --Na 44 --Nb 32 --Nphi 8 --box d4 --level 3 --dense-Q 5 --solver nk
 """
 from __future__ import annotations
@@ -187,7 +187,7 @@ def main():
     code_tag = commit if args.code_tag is None else args.code_tag
     t_start = time.time()
 
-    _t(f"PARASOL surrogate build — box={args.box} {names}  "
+    _t(f"LM-initial-data surrogate build — box={args.box} {names}  "
        f"grid Na={args.Na} Nb={args.Nb} Nφ={args.Nphi}  solver={args.solver}")
     _t(f"outdir: {args.outdir}  (gitignored — the artifacts are meant to be shared/hosted/cited)")
     _t(f"git HEAD: {commit}   store code_tag: {code_tag}"

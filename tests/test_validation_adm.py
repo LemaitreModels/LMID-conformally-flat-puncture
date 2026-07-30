@@ -1,7 +1,7 @@
 """B1 Step 3 — ADM / quasi-local diagnostics, re-derived and unit-tested.
 
 Anchors that do NOT need the elliptic solve (pure source / convention checks)
-plus solved-field observables validated against the frozen ``parasol_2c``
+plus solved-field observables validated against the frozen ``solver_abt``
 reference values and internal consistency.
 """
 
@@ -85,7 +85,7 @@ def solved():
 def test_adm_mass_matches_reference(solved):
     prob, U, sl = solved
     M_spec = adm.adm_mass_spectral(prob, U, sl)
-    # frozen parasol_2c reference: M_ADM(b=3, equal mass, P=0.5) = 1.291;
+    # frozen solver_abt reference: M_ADM(b=3, equal mass, P=0.5) = 1.291;
     # the high-precision TwoPunctures value is 1.290742336687.
     assert abs(M_spec - 1.290742336687) < 5e-7, M_spec
 
@@ -102,7 +102,7 @@ def test_adm_mass_extractors_agree(solved):
 
 
 def test_adm_mass_spectral_converges():
-    """The spectral ADM-mass extraction converges with PARASOL resolution to the
+    """The spectral ADM-mass extraction converges with LM-initial-data resolution to the
     high-precision TwoPunctures value (1.290742336687)."""
     Eref = 1.290742336687
     sl = sa.Slice(B, MA, MB)

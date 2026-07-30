@@ -1,4 +1,4 @@
-"""PARASOL — quasi-circular (QC) puncture momenta from PN closed forms.
+"""LM-initial-data — quasi-circular (QC) puncture momenta from PN closed forms.
 
 **Phase P0 de-risk** of the "beyond head-on" extension (see
 ``notes/qc_extension_plan.md``): turn the free momentum knob into a *deterministic*
@@ -62,7 +62,7 @@ Brügmann, PRD **77**, 044037 (2008), and Walther, Brügmann & Müller, PRD **79
 
 Geometry / convention (risk R2, PINNED)
 ---------------------------------------
-PARASOL punctures on the **z-axis** at A=(0,0,+b), B=(0,0,−b).  The tangential
+LM-initial-data punctures on the **z-axis** at A=(0,0,+b), B=(0,0,−b).  The tangential
 momentum is placed along **x** (anti-symmetric), the small radial momentum along
 **z** (infall):
 
@@ -130,7 +130,7 @@ def pt_spin_orbit(b: float, m_A: float, m_B: float,
     Healy et al. (2024, arXiv:2406.11564) Eq. (37) spin-orbit term, converted to
     ``x = M/D`` at leading order.  ``chi_X_aligned = (S_X·L̂)/m_X²`` is the
     dimensionless spin projected on the orbital angular momentum (= S_Xy/m_X² in
-    the PARASOL frame, where L∥y).  Evaluated in Healy's internal convention
+    the LM-initial-data frame, where L∥y).  Evaluated in Healy's internal convention
     q = m₂/m₁ ≤ 1 with body 1 = the LARGER hole, computed here directly from the
     masses (m1=max, m2=min) — this is INDEPENDENT of the surrogate's global
     q = m_A/m_B ∈ [1,3], so it is symmetric under a consistent relabel of (A,B).
@@ -189,7 +189,7 @@ def qc_momenta(b: float, m_A: float, m_B: float,
                S_B_vec: Sequence[float] = (0.0, 0.0, 0.0),
                *, pn_order: int = 3, spin_orbit: bool = True,
                radial: bool = True) -> Tuple[Vec3, Vec3]:
-    """Quasi-circular puncture linear momenta ``(P_A_vec, P_B_vec)`` (PARASOL frame).
+    """Quasi-circular puncture linear momenta ``(P_A_vec, P_B_vec)`` (LM-initial-data frame).
 
     Punctures at A=(0,0,+b), B=(0,0,−b).  Returns the tangential-along-x /
     radial-along-z momenta of a near-circular orbit with orbital angular momentum
@@ -205,7 +205,7 @@ def qc_momenta(b: float, m_A: float, m_B: float,
     ----------
     b        : half-separation (D = 2b).
     m_A,m_B  : bare puncture masses (A at +b, B at −b).
-    S_A_vec,S_B_vec : Cartesian spin 3-vectors (PARASOL frame).  Only the aligned
+    S_A_vec,S_B_vec : Cartesian spin 3-vectors (LM-initial-data frame).  Only the aligned
                (y) component enters the leading spin-orbit correction.
     pn_order : non-spinning p_t truncation (0..3, default 3).
     spin_orbit : include the leading (1.5PN) aligned spin-orbit correction.
@@ -243,5 +243,5 @@ def eccentricity_proxy(b: float, m_A: float, m_B: float,
 
 
 def orbital_angular_momentum(b: float, p_t: float) -> float:
-    """Orbital angular momentum magnitude ``L = 2b·p_t`` (along +y in PARASOL)."""
+    """Orbital angular momentum magnitude ``L = 2b·p_t`` (along +y in LM-initial-data)."""
     return 2.0 * b * p_t
