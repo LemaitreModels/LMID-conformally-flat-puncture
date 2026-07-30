@@ -44,7 +44,7 @@ Brügmann, PRD **77**, 044037 (2008), and Walther, Brügmann & Müller, PRD **79
       p_t^{SO} = −μ · [2/(3(1+q)²)] · [(4+3q) χ₁ + q(3+4q) χ₂] · x² ,
 
   with Healy's convention **q = m₂/m₁ ≤ 1, body 1 = the LARGER hole** (the
-  manuscript restates this in the q = m_A/m_B ≥ 1 convention; identical physics), and
+  paper restates this in the q = m_A/m_B ≥ 1 convention; identical physics), and
   χ_i = (S_i · L̂)/m_i² the dimensionless spin projected on the orbital angular
   momentum.  Test-mass limit q→0: the (4+3q)χ₁ term (larger hole) dominates —
   the physically-correct frame-dragging behaviour.  This is a 1.5PN correction
@@ -134,7 +134,7 @@ def pt_spin_orbit(b: float, m_A: float, m_B: float,
     q = m₂/m₁ ≤ 1 with body 1 = the LARGER hole, computed here directly from the
     masses (m1=max, m2=min) — this is INDEPENDENT of the surrogate's global
     q = m_A/m_B ∈ [1,3], so it is symmetric under a consistent relabel of (A,B).
-    The manuscript Eq. (P_t^SO) states the algebraically identical form in the
+    The paper Eq. (P_t^SO) states the algebraically identical form in the
     q = m_A/m_B ≥ 1 convention; the two agree to machine precision.
     """
     M = m_A + m_B

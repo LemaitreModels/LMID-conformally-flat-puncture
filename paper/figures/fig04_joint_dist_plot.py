@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generates fig04_joint_dist.pdf (manuscript Fig. 4).
+"""Generates fig04_joint_dist.pdf (paper Fig. 4).
 
 Joint held-out error distribution (best / median / worst over 1000 random off-node
 points) vs solver node count, across Smolyak levels l=1..5. Two shared-y panels:

@@ -1,7 +1,7 @@
 """PARASOL — figures for the first non-axisymmetric (3-D) data sweep.
 
 Reads ``reports/3D/sweep_results.json`` (written by ``run_3d_sweep.py``) and
-writes two manuscript-quality figures:
+writes two publication-quality figures:
 
   fig09_3d_validation.png  (two panels)
     (a) Convergence ladder — ‖R‖∞ and ψ-vs-TwoPunctures vs meridian resolution
@@ -34,7 +34,7 @@ import matplotlib.pyplot as plt
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPDIR = os.path.join(HERE, "reports", "3D")
 FIGDIR = os.path.join(HERE, "figures")
-MANFIG = os.path.join(HERE, "manuscript", "figures")
+MANFIG = os.path.join(HERE, "paper", "figures")
 os.makedirs(FIGDIR, exist_ok=True)
 
 with open(os.path.join(REPDIR, "sweep_results.json")) as f:

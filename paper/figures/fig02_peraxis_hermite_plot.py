@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""Generates fig02_peraxis_hermite.pdf (manuscript Fig. 2).
+"""Generates fig02_peraxis_hermite.pdf (paper Fig. 2).
 
 Per-axis held-out interpolation error, value vs value+gradient (Hermite), as a
 2x4 grid of panels (shared y-range) over the eight quasi-circular axes.  Each curve
-is a DISTRIBUTION over the manuscript's random base points: the median (marker)
+is a DISTRIBUTION over the paper's random base points: the median (marker)
 carries a fitted geometric rate (dec/Q, shown in the legend), and the min-max
 whiskers span the best-to-worst held-out error across those base points (cf. Fig. 4).
 

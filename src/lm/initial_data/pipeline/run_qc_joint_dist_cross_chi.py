@@ -1,7 +1,7 @@
 """PARASOL — JOINT held-out DISTRIBUTION (best/median/worst) for the
 value+gradient+CROSS (full-bilinear Hermite-Smolyak) 4-D chi model, over the
 Smolyak level.  The gradient-enhanced companion to run_qc_joint_dist_chi.py
-(the BARE-interpolant left panel of manuscript Fig. 5).
+(the BARE-interpolant left panel of paper Fig. 5).
 
 Add-only.  Mirrors run_qc_joint_dist_chi.py EXACTLY -- SAME box d4_qc_chi_b27,
 SAME 1000 seed-0 random off-node points (random_points, verbatim), SAME max-abs

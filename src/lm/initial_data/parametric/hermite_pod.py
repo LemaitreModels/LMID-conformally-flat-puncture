@@ -6,7 +6,7 @@ The H3 milestone of ``GRADIENT_ENHANCED_PLAN.md`` §4.  Two pieces.
 POD (the main deliverable).
 ---------------------------
 The committed value-only reduced-basis re-encoding (``experiments/ml/pod_surrogate.py``,
-manuscript Sec.~\\ref{sec:param:pod}/\\ref{sec:model:pod}) compresses a corpus of
+paper Sec.~\\ref{sec:param:pod}/\\ref{sec:model:pod}) compresses a corpus of
 solved fields ``U_i(x)`` by proper orthogonal decomposition: an SVD of the stacked
 (mean-subtracted) fields gives orthonormal spatial modes ``Φ``; keep the leading
 ``r`` and store the length-``r`` coefficient vector per node instead of the full
@@ -69,7 +69,7 @@ code-grounded reasons:
      level-0 factor injects that fragile predictor into the combination sum.
      (:func:`level0_enhanced_is_taylor` demonstrates the degeneracy.)
 
-The two features attack orthogonal cost axes (manuscript: Smolyak the parameter
+The two features attack orthogonal cost axes (paper: Smolyak the parameter
 resolution / offline solve count, POD the spatial rank, gradient-enhancement the
 per-node convergence rate on the dense anisotropic path) — so this is a clean design
 boundary, not a limitation of the algebra.
@@ -331,7 +331,7 @@ class PODHermiteND:
         bit-for-bit via :func:`load_pod_hermite_nd`.
 
         ``Φ`` and the coeff pool are only a *warm start* for the certified polish,
-        so they need not be float64 (the manuscript O1 note): ``mode_dtype`` /
+        so they need not be float64 (the paper O1 note): ``mode_dtype`` /
         ``coeff_dtype`` may be ``float32`` to halve the on-disk footprint (reload
         upcasts to float64, so ``evaluate`` still runs in float64).  Defaults
         preserve the float64 artifact byte-for-byte.

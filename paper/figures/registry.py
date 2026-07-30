@@ -1,6 +1,6 @@
-"""PARASOL manuscript — figure/data registry (single source of truth).
+"""PARASOL paper — figure/data registry (single source of truth).
 
-Every manuscript figure ``figNN_<name>`` has:
+Every paper figure ``figNN_<name>`` has:
   * a PLOTTER   ``figNN_<name>_plot.py``       — reads ONLY ``figdata/figNN_<name>.json`` and draws
                                             (no ``reports/``, no ``jax``).
   * a DATA SCRIPT ``figNN_<name>_data.py`` — distills the arrays the figure plots out of one or

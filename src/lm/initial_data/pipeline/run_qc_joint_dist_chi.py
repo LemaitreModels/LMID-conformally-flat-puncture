@@ -1,6 +1,6 @@
 """PARASOL — JOINT held-out DISTRIBUTION (best/median/worst) over 1000 random
 representative binaries vs Smolyak node count, DIMENSIONLESS-spin (chi) model
-(manuscript revision R1 for the joint convergence figure).
+(paper revision R1 for the joint convergence figure).
 
 The committed joint blocks (run_qc_walls_sweep_chi.py block_D, run_qc_dense_stats.py,
 run_qc_wide_build_stats.py) report the WORST held-out error over a handful of points

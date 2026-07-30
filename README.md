@@ -1,7 +1,7 @@
 # lm.initial_data (LM-initial-data)
 
 Certified, differentiable, **parametric** binary-black-hole *initial data* via
-spectral collocation — the code and manuscript for the PARASOL paper.
+spectral collocation — the code and paper for PARASOL.
 
 This is the `initial_data` member of the **Lemaitre** package family. It installs
 under the shared `lm` namespace, so once installed:
@@ -38,7 +38,7 @@ tests/            acceptance suite (float64, CPU)
 pipeline/
   figures/        canonical per-figure data producers
   models/         canonical surrogate-model builders (heavy; cluster)
-manuscript/       main.tex + figures/ (recompute + plot scripts)
+paper/            paper.tex + figures/ (recompute + plot scripts)
 docs/             DATA.md (data regeneration + oracle) · STRUCTURE.md (package map)
 ```
 

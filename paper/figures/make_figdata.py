@@ -1,4 +1,4 @@
-"""PARASOL manuscript — figure-data driver: check presence, dedup, (re)build.
+"""PARASOL paper — figure-data driver: check presence, dedup, (re)build.
 
 The committed figure data lives in one place, ``figdata/<stem>.json``, one per figure.  Each is
 produced by its own ``<stem>_data.py`` from raw run SOURCE artifacts declared in ``registry.py``.

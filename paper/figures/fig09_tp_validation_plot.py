@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generates fig09_tp_validation.pdf (manuscript Fig. 9).
+"""Generates fig09_tp_validation.pdf (paper Fig. 9).
 
 Consolidated TwoPunctures validation, three panels:
  (a) ADM-J tilt off the collision axis tracks the spin tilt (theta_J = theta_S),

@@ -6,7 +6,7 @@ not read a pre-baked cache. There are two tiers.
 ## Entry points
 
 ```bash
-make figdata     # (re)compute manuscript/figures/figdata/*.json from the solver/ROM
+make figdata     # (re)compute paper/figures/figdata/*.json from the solver/ROM
 make figures     # figdata, then plot every fig??_*_plot.py -> PDF
 make test        # acceptance suite (fast tier)
 make models      # heavy: (re)build the chi surrogate corpora  [cluster]
@@ -18,7 +18,7 @@ make oracle      # build the external TwoPunctures validation binary
 **Laptop tier (fast).** Most figures recompute in seconds–minutes from a *shipped
 surrogate model artifact* (the χ Smolyak/Hermite/POD models) via the ROM. The
 per-figure producers live in `src/lm/initial_data/pipeline/` and are mapped
-to figures by `manuscript/figures/registry.py` (the single source of truth for
+to figures by `paper/figures/registry.py` (the single source of truth for
 the figure→producer→artifact graph).
 
 **Heavy tier (cluster / oracle).**
@@ -33,7 +33,7 @@ the figure→producer→artifact graph).
 
 ## What is committed vs regenerated
 
-- **Committed:** the 9 figure **PDFs** (so `pdflatex manuscript/main.tex` works
+- **Committed:** the 9 figure **PDFs** (so `pdflatex paper/paper.tex` works
   out of the box) and the source scripts.
 - **Regenerated (gitignored `figdata/*.json`):** figure data recomputes via
   `make figdata`. As a documented fallback, a small committed `figdata` snapshot

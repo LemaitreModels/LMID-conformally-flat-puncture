@@ -1,7 +1,7 @@
 """PARASOL — per-axis held-out convergence as a DISTRIBUTION over random base
 points (the "reduced option (B)" companion to ``run_qc_peraxis_chi6.py``).
 
-Manuscript Fig. 2 (``fig:peraxis``) shows the per-axis held-out interpolation
+Paper Fig. 2 (``fig:peraxis``) shows the per-axis held-out interpolation
 error vs. the number of parameter nodes Q for the eight quasi-circular axes, with
 the seven NON-swept axes frozen at ONE representative interior base point
 (b=2.5, q=2, every spin at chi=0.5).  Fig. 5 (``fig:joint``), by contrast, reports
@@ -12,7 +12,7 @@ per-axis 1-D convergence measurement of ``run_qc_peraxis_chi6.py`` for each of
 boxes), so each (axis, Q) yields a distribution of held-out errors rather than a
 single number.  The plotter then draws best/median/worst bands (Fig.-5 style).
 
-Reduced scope (per the manuscript request; ~weekend budget):
+Reduced scope (per the paper request; ~weekend budget):
   * ``N_SAMPLES = 100`` random base points (shared 8-D draw; for each axis the
     OTHER seven coordinates are used, the swept coordinate is ignored);
   * ``Q_LADDER = [4, 6, 8, 10, 12]`` — the first five nodes of the chi6 ladder;
@@ -84,7 +84,7 @@ STUDIES = [
 AXES = [s[0] for s in STUDIES]
 BOX = {n: (lo, hi) for n, lo, hi in STUDIES}
 
-# ---- reduced ladder / sample count (the two knobs the manuscript request sets) ----
+# ---- reduced ladder / sample count (the two knobs the paper request sets) ----
 N_SAMPLES = 100
 Q_LADDER = [4, 6, 8, 10, 12]
 SEED = 20260724   # deterministic base-point draw (reproducible, array-consistent)

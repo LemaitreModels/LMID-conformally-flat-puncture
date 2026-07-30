@@ -3,7 +3,7 @@
 Companion to ``run_polish_table.py``: instead of warm-starting the Newton polish
 from the barycentric surrogate guess, this runs the genuine elliptic solver
 **cold** — i.e. from the solver's own zero-field initial iterate (``U0=None``, the
-same cold start the manuscript's ``tab:timing`` cold Newton--Krylov solve uses,
+same cold start the paper's ``tab:timing`` cold Newton--Krylov solve uses,
 ``run_qc_timing.py``: ``solve_nk(theta, None, 1e-10, 30)``).  No surrogate, no
 interpolant.  It records the equilibrated constraint residual ``||R||_inf`` of the
 zero-field guess (step 0) and after 1..K Newton--Krylov steps, over the IDENTICAL

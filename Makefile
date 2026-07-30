@@ -10,10 +10,10 @@ test:
 
 # --- figures: regenerate data (recompute from the solver/ROM), then plot ---
 figdata:
-	$(PY) manuscript/figures/make_figdata.py --all
+	$(PY) paper/figures/make_figdata.py --all
 
 figures: figdata
-	cd manuscript/figures && for f in fig??_*_plot.py; do echo ">> $$f"; $(PY) "$$f"; done
+	cd paper/figures && for f in fig??_*_plot.py; do echo ">> $$f"; $(PY) "$$f"; done
 
 # --- heavy tier (documented, mostly cluster) ---
 models:

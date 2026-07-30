@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generates fig01_polish_staircase.pdf (manuscript Fig. 1).
+"""Generates fig01_polish_staircase.pdf (paper Fig. 1).
 
 A 2x2 grid with a SHARED Newton-step x-axis per column. Columns are 4D | 8D; each panel draws three
 curves as a median line with 1000-point min--max whiskers on every Newton polish step:

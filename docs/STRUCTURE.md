@@ -16,7 +16,7 @@ src/lm/initial_data/
   validation/     twopunctures, conventions, adm, constraints, compare
   pipeline/       canonical figure producers + model builders (runnable + importable)
 tests/            acceptance suite (float64, CPU)
-manuscript/       main.tex + references + figures/ (data+plot scripts, helpers, registry)
+paper/            paper.tex + references + figures/ (data+plot scripts, helpers, registry)
 docs/             this file · DATA.md · STAGE2_HANDOFF.md
 ```
 
@@ -52,7 +52,7 @@ distribution all siblings depend on.
 - The 32-file acceptance suite (fast tier: **262 passing**; 29 `slow` tests need
   the external TwoPunctures oracle).
 - The canonical figure producers + χ model builders, as `…pipeline`.
-- The manuscript source + figure scripts + the 9 figure PDFs.
+- The paper source + figure scripts + the 9 figure PDFs.
 
 ## What was dropped (add-only clutter, not migrated)
 

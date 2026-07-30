@@ -1,8 +1,8 @@
-# CLAUDE.md — manuscript
+# CLAUDE.md — paper
 
-Guidance for Claude Code when **writing or editing the PARASOL paper** (`main.tex`).
+Guidance for Claude Code when **writing or editing the PARASOL paper** (`paper.tex`).
 
-> **Read `LANGUAGE_EDIT_CONTEXT.md` before touching `main.tex`.** That file is the
+> **Read `LANGUAGE_EDIT_CONTEXT.md` before touching `paper.tex`.** That file is the
 > authoritative brief on *content*: plain-English summary, glossary, notation table
 > (including the deliberately overloaded symbols), spelling conventions, the
 > load-bearing claims, and the known editorial defects. This file is about *how you
@@ -43,7 +43,7 @@ ability to review.
 ## 2. Hard rules (violating these is a failed task)
 
 1. **Never invent a number, result, or citation.** Every quantitative statement in the
-   text must trace to (a) an existing number already in `main.tex`, (b) a value in
+   text must trace to (a) an existing number already in `paper.tex`, (b) a value in
    `figures/figdata/*.json`, (c) the code in `src/lm/initial_data/`, or (d) a cited
    source. If you cannot trace it, do not write it — ask.
 2. **Never add, remove, or reorder `\cite{}` keys, or add entries to `references.bib`,
@@ -60,10 +60,10 @@ ability to review.
 6. **Do not complete or delete intentional placeholders** — the two "in preparation" /
    "pending" figure-panel markers, and the `{\color{red} …}` draft-highlight blocks
    (their *content is final*; only the color is a marker).
-7. **Read the file immediately before editing it.** `main.tex` is hand-edited constantly.
+7. **Read the file immediately before editing it.** `paper.tex` is hand-edited constantly.
    Re-`Read` the region in the current turn before you `Edit` it, so you act on the
    current bytes, not a remembered version.
-8. **Prefer many small `Edit`s over one `Write`.** Never replace `main.tex` wholesale.
+8. **Prefer many small `Edit`s over one `Write`.** Never replace `paper.tex` wholesale.
 
 ---
 
@@ -170,7 +170,7 @@ contractions.
 ## 6. Working protocol
 
 **Scope each pass.** Work on one section (or one defect class) at a time. Announce the
-scope, do it, report, stop. Do not sweep the whole manuscript in a single turn — the
+scope, do it, report, stop. Do not sweep the whole paper in a single turn — the
 authors cannot review that, and neither can you.
 
 **Edit mode vs. review mode.** Default to **review mode** unless the user says "edit",
@@ -181,7 +181,7 @@ user approve. Switch to edit mode when asked, and then still report a ledger.
 macros):
 
 ```bash
-cd manuscript && caffeinate -i latexmk -pdf main.tex
+cd paper && caffeinate -i latexmk -pdf paper.tex
 ```
 
 Then check the log for new `Undefined reference`, `Citation undefined`, and `Overfull
@@ -198,14 +198,14 @@ figures, POD ranks, and convergence rates recur in the abstract, the introductio
 results, and the captions. If you touch one, grep for the others:
 
 ```bash
-grep -n "15{,}713\|1105\|461 MiB\|decades/node" main.tex
+grep -n "15{,}713\|1105\|461 MiB\|decades/node" paper.tex
 ```
 
-**Manuscript edits come last.** Per the repository CLAUDE.md: settle the code and figures
-first, then the prose. Do not edit `main.tex` to match code you are still changing.
+**Paper edits come last.** Per the repository CLAUDE.md: settle the code and figures
+first, then the prose. Do not edit `paper.tex` to match code you are still changing.
 
 **Commits.** Run the relevant checks, then propose a commit message and **wait for the
-user's approval** before committing. Never commit the manuscript automatically.
+user's approval** before committing. Never commit the paper automatically.
 
 ---
 
@@ -243,7 +243,7 @@ Stop and ask rather than proceeding if:
 - A change would alter, weaken, or strengthen a scientific claim.
 - A section needs new content (a missing argument, an unaddressed referee objection)
   rather than editing — drafting new science is an author decision.
-- Two places in the manuscript state incompatible numbers.
+- Two places in the paper state incompatible numbers.
 - A citation appears to be doing work the cited paper does not support.
 - Restructuring (moving a subsection, splitting a section, promoting an appendix) seems
   warranted — propose the outline first; never execute it unilaterally.

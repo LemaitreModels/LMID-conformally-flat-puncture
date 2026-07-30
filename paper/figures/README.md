@@ -1,6 +1,6 @@
-# Manuscript figures
+# Paper figures
 
-This folder contains **only** the figures used in `../main.tex`. Each figure `figNN_<name>`
+This folder contains **only** the figures used in `../paper.tex`. Each figure `figNN_<name>`
 now comes as a **data/plot split** so it rebuilds from the repo alone — no solves, no
 `reports/`, no `jax`, no models at plot time:
 
@@ -80,7 +80,7 @@ little smaller than the 9 pt caption, which is the usual, natural look.
 
 ```bash
 PY=~/micromamba/envs/BBHFM/bin/python          # the BBHFM env interpreter
-cd sandbox/parasol/manuscript/figures
+cd paper/figures
 for f in fig??_*_plot.py; do "$PY" "$f"; done
 ```
 
@@ -97,7 +97,7 @@ $PY make_figdata.py --fig fig03      # one figure (stem, number, or prefix); --f
 `--check` reports, per figure, whether its `figdata/*.json` exists and whether its raw sources are
 present under `reports/`; blocked figures list the exact producer command and whether it runs on the
 laptop or the cluster. Most raw sources are produced by heavy CPU runs on the IVS cluster (see the
-manuscript cluster prompt); once produced under `reports/`, the matching `*_data.py` distills them.
+paper cluster prompt); once produced under `reports/`, the matching `*_data.py` distills them.
 `fig07`'s data script (eccentricity) is the one that needs `jax` + the `parasol` package (it evaluates the
 surrogate once to precompute the smooth curves).
 

@@ -232,7 +232,7 @@ class PODHermiteSmolyak:
         (:meth:`hermite_smolyak.HermiteSmolyakSolverND._finalize`).
 
         ``Φ`` and the coeff pool are only a *warm start* for the certified polish,
-        so they need not be float64 (the manuscript O1 note): ``mode_dtype`` /
+        so they need not be float64 (the paper O1 note): ``mode_dtype`` /
         ``coeff_dtype`` may be ``float32`` to halve the on-disk footprint (reload
         upcasts to float64, so ``evaluate`` still runs in float64).  Defaults
         preserve the float64 artifact byte-for-byte.  ``mean`` (nfeat, negligible)

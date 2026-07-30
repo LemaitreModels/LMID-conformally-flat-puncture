@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generates fig07_eccentricity.pdf (manuscript Fig. 7).
+"""Generates fig07_eccentricity.pdf (paper Fig. 7).
 
 Cook effective-potential eccentricity control: the field-dependent binding
 energy E_b(b) at each fixed J (the circular-orbit sequence), with the classical

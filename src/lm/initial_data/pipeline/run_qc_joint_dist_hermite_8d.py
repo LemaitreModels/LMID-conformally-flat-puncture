@@ -6,7 +6,7 @@ value + gradient in the spin-y pair (chi_Ay, chi_By) + the mixed 2nd partial
 ∂²U/∂χ_Ay∂χ_By.  So this is the 8-D analog of the committed 4-D
 run_qc_joint_dist_cross_chi.py (the CROSS joint-dist), pointed at the 8-D y-pair
 cross model — NOT the plain 6-spin gradient Hermite.  Produces figure-data source
-``joint_dist_hermite_8d`` pinned by manuscript/figures/registry.py to EXACTLY:
+``joint_dist_hermite_8d`` pinned by paper/figures/registry.py to EXACTLY:
     reports/3D_parametric/qc_chi/joint_dist_hermite_spin8_qc_chi_b27.json
 
 FAITHFUL + CHEAP:

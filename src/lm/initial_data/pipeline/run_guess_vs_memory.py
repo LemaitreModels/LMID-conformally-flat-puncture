@@ -1,7 +1,7 @@
 """PARASOL — bare-guess constraint residual ||R||_inf vs stored model memory.
 
 The memory<->accuracy tradeoff of the reduced-basis (POD) re-encoding
-(manuscript Sec. sec:param:pod): as the POD truncation rank ``r`` is swept, the
+(paper Sec. sec:param:pod): as the POD truncation rank ``r`` is swept, the
 shipped model shrinks (memory ~ linear in ``r``) but the barycentric warm-start
 "guess" gets worse (its constraint residual ``||R||_inf`` before any Newton
 polish rises).  This quantifies "how far can the shipped model be compressed

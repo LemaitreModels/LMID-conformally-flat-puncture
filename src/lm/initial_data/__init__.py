@@ -8,8 +8,8 @@ Standalone: depends only on ``jax``, ``numpy``, ``scipy``, ``matplotlib``.
   * applications (targeting, …)     :mod:`lm.initial_data.applications`
   * TwoPunctures validation         :mod:`lm.initial_data.validation`
 
-Producers for the manuscript figures live in ``pipeline/``; the manuscript and
-its figure scripts in ``manuscript/``.  See ``docs/`` for the data-regeneration
+Producers for the paper figures live in ``pipeline/``; the paper and
+its figure scripts in ``paper/``.  See ``docs/`` for the data-regeneration
 and validation-oracle setup.
 """
 

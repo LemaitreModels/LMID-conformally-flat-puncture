@@ -109,7 +109,7 @@ def _off_node(lo, hi, Q, fracs=(0.137, 0.371, 0.523, 0.689, 0.853), guard=1e-3):
 def test_pod_faithfulness_bitlevel():
     """``PODHermite.evaluate(θ) == mean + ΦΦᵀ(full_hermite(θ) − mean)`` to roundoff
     (the linear projection commutes with the linear Hermite interpolation — the
-    manuscript Sec. III E re-encoding identity, now for the gradient-enhanced form)."""
+    paper Sec. III E re-encoding identity, now for the gradient-enhanced form)."""
     lo, hi, Q = -1.0, 2.0, 6
     her, truth, _, K = _lowrank_1d(lo, hi, Q, K=8, seed=1)
     Phi, mean, diag = pod_basis(her, r=K)                 # full stacked rank

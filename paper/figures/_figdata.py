@@ -1,4 +1,4 @@
-"""PARASOL manuscript — figure-data I/O helper (shared by the data scripts and plotters).
+"""PARASOL paper — figure-data I/O helper (shared by the data scripts and plotters).
 
 Two jobs:
   * PLOTTERS call ``load(stem)`` to read the committed, plot-ready ``figdata/<stem>.json``.
@@ -88,7 +88,7 @@ def source(key):
             f"missing raw source {key!r}: {os.path.relpath(p, PARASOL)}\n"
             f"  produce it: {m['producer']}   [{m['where']}"
             f"{'; PENDING' if m.get('status') == 'pending' else ''}]\n"
-            f"  (heavy cluster runs: see the manuscript cluster prompt / figures/README.md)")
+            f"  (heavy cluster runs: see the paper cluster prompt / figures/README.md)")
     return p
 
 

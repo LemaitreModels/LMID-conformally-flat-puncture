@@ -1,4 +1,4 @@
-"""Canonical producers/builders for the manuscript figures and shipped
+"""Canonical producers/builders for the paper figures and shipped
 models.  Runnable as scripts; importable as ``lm.initial_data.pipeline.*``.
 """
 def __getattr__(name):

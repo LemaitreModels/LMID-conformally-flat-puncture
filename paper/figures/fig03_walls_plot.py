@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generates fig03_walls.pdf (manuscript Fig. 3 — the two analyticity walls).
+"""Generates fig03_walls.pdf (paper Fig. 3 — the two analyticity walls).
 
 Merges the former fig03 (separation/merger wall) and fig04 (spin wall) into one
 1x2 figure of held-out convergence curves:

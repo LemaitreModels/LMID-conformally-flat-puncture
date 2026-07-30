@@ -7,7 +7,7 @@ Guidance for Claude Code when working in **LM-initial-data** (`lm.initial_data`)
 
 ## What this repo is
 
-The code + manuscript for the PARASOL paper: a **certified, differentiable,
+The code + paper for PARASOL: a **certified, differentiable,
 parametric** reduced-order model of the binary-black-hole *constraint (initial
 data)* solve — quasi-circular Bowen–York punctures up to the 8-D general-spin
 model θ₈ = (b, q, χ_A, χ_B). It is the `initial_data` member of the **Lemaitre**
@@ -33,7 +33,7 @@ one canonical version of each model. Normal engineering hygiene applies.
 - **Estimate + report duration** for jobs >~30 s; run heavy ones in the
   background with an ETA.
 - **User-owned prose is authoritative** — never regenerate author/title/abstract
-  blocks in `manuscript/main.tex`; make targeted edits only, and the manuscript
+  blocks in `paper/paper.tex`; make targeted edits only, and the paper
   edits come LAST.
 
 ## Commands
@@ -70,11 +70,11 @@ make figures                                   # regenerate figure data (recompu
   (convention map), `adm`, `constraints`, `compare` (PARASOL-vs-TwoPunctures).
 
 `pipeline/figures/` and `pipeline/models/` hold the canonical producers/builders;
-`manuscript/figures/` holds the recompute+plot scripts. See `docs/STRUCTURE.md`.
+`paper/figures/` holds the recompute+plot scripts. See `docs/STRUCTURE.md`.
 
 ## Figure pipeline (two-tier, recompute-by-default)
 
-`manuscript/figures/figNN_*_data.py` **recomputes** each figure's numbers from
+`paper/figures/figNN_*_data.py` **recomputes** each figure's numbers from
 the solver/ROM (loading a shipped surrogate model artifact), writing
 `figdata/NN.json` as a build output; `figNN_*_plot.py` draws the PDF from it.
 Driver: `make figdata` / `make figures`. Heavy inputs (χ corpora, TwoPunctures)

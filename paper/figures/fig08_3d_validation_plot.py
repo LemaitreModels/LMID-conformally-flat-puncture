@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generates fig08_3d_validation.pdf (manuscript Fig. 8).
+"""Generates fig08_3d_validation.pdf (paper Fig. 8).
 
 First non-axisymmetric (3-D) sweep, two panels:
  (a) convergence ladder -- ||R||_inf and psi-vs-TwoPunctures vs meridian

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generates fig06_targeting.pdf (manuscript Fig. 6).
+"""Generates fig06_targeting.pdf (paper Fig. 6).
 
 Certified parameter targeting: target residual vs cumulative certified elliptic
 solves over a set of random known-answer targets, as a median line with min--max

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generates fig05_guess_vs_memory.pdf (manuscript Fig. 5).
+"""Generates fig05_guess_vs_memory.pdf (paper Fig. 5).
 
 Reduced-basis (POD) compression versus stored model memory, as the POD truncation rank r is swept.
 A 2x2 grid with a SHARED memory x-axis per column:

@@ -2,7 +2,7 @@
 model, in the dimensionless-spin (chi) parameterization, over MANY
 uniformly-random off-node points.
 
-χ / b∈[2,7] / ℓ=5 redo of the manuscript ``tab:polish`` experiment (the ``\\todo``
+χ / b∈[2,7] / ℓ=5 redo of the paper ``tab:polish`` experiment (the ``\\todo``
 on that table). Same methodology as ``run_polish_table_qc.py`` (which is the OLD
 ℓ=4 S-parameterized model), only the box, the model, and the Smolyak level change:
 
