@@ -17,6 +17,13 @@ This repo was migrated out of the BBHFM monorepo (`sandbox/parasol/`) and cleane
 up: **the old add-only policy is retired.** Edit modules in place; keep exactly
 one canonical version of each model. Normal engineering hygiene applies.
 
+> **Read `docs/HISTORY_AND_FINDINGS.md` before touching the parametric ROM,
+> rebuilding a corpus, or comparing models.** It records the project's origin and
+> the hard-won findings (equilibrated-vs-raw residual, field error as a separate
+> metric, "enhance only a small axis set", the χ q-tangent bug, the stale-corpus
+> trap, the missing held-out-accuracy gate, 8-D needing ≥3 Newton steps) — several
+> were discovered twice. §2 there is "do not re-litigate".
+
 ## Ground rules (load-bearing)
 
 - **Standalone.** Depend only on `jax`, `numpy`, `scipy`, `matplotlib`. Never
