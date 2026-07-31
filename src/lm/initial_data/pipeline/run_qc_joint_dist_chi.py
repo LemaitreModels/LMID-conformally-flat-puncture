@@ -41,8 +41,10 @@ from lm.initial_data.parametric import solve_store as ss
 from lm.initial_data.pipeline import production_box as pb
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "3D_parametric", "qc_chi")
-STORE = os.path.join(HERE, "reports", "3D_parametric", "solve_store_chi")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "3D_parametric", "qc_chi")
+STORE = os.path.join(REPORTS, "3D_parametric", "solve_store_chi")
 PARTDIR = os.path.join(REPDIR, "joint_dist_truth_parts")  # array truth-solve partials
 os.makedirs(REPDIR, exist_ok=True)
 os.makedirs(PARTDIR, exist_ok=True)

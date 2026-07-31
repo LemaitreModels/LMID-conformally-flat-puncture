@@ -41,7 +41,9 @@ from lm.initial_data.parametric import parametric_nd_3d as p3
 from lm.initial_data.validation import twopunctures as tp
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "3D_parametric")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "3D_parametric")
 os.makedirs(REPDIR, exist_ok=True)
 
 S_MAG = 0.3                       # fixed spin magnitude for the family

@@ -60,6 +60,8 @@ from lm.initial_data.parametric import hermite_smolyak as hsm
 from lm.initial_data.parametric import hermite_smolyak_pod as hpod
 from lm.initial_data.parametric.parametric_nd_3d import make_solve_fn
 from lm.initial_data.parametric.parametric_nd import _git_commit
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 
 _node_key = sm._node_key
 SPIN_AXES = bh8d.SPIN_AXES  # "chi_Ax,chi_Ay,chi_Az,chi_Bx,chi_By,chi_Bz"
@@ -284,7 +286,7 @@ def main():
                          "(required for chunk/merge, unused by pod mode)")
     ap.add_argument("--taskid", type=int, default=None)
     ap.add_argument("--ntasks", type=int, default=None)
-    ap.add_argument("--outdir", default=os.path.join(bh.HERE, "reports", "P2", "models_chi"))
+    ap.add_argument("--outdir", default=os.path.join(REPORTS, "P2", "models_chi"))
     ap.add_argument("--level", type=int, default=5, help="Smolyak level of the value corpus (metadata)")
     ap.add_argument("--solver", choices=("nk", "modified"), default="nk")
     ap.add_argument("--pod-tail", type=float, default=1e-6)

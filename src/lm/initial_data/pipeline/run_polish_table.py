@@ -43,7 +43,9 @@ from lm.initial_data.parametric.parametric import cheb_param_nodes
 from lm.initial_data.parametric.parametric_nd import attach_solve_fn_3d
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "P3")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "P3")
 GAP_MIN = 1e-4
 
 

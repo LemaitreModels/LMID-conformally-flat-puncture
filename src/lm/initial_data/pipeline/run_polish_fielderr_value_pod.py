@@ -59,7 +59,9 @@ from lm.initial_data.pipeline.run_guess_vs_memory import (
 )
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "P3")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "P3")
 
 
 def load_pod_truncated_value(path, r_new) -> PODHermiteSmolyak:

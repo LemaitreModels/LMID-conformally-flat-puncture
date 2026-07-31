@@ -19,8 +19,15 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
-REPORTS = os.path.join(REPO_ROOT, "reports")
 FIGDATA = os.path.join(HERE, "figdata")
+
+# The heavy corpora live outside the repo.  This used to be <repo_root>/reports
+# while the producers wrote to <pipeline>/reports, so a figure could not see the
+# output of the producer that fed it; both now resolve through the one setting,
+# $LM_REPORTS.  See lm.initial_data.paths and docs/DATA.md.
+from lm.initial_data.paths import reports_root  # noqa: E402  (pure stdlib; no jax)
+
+REPORTS = reports_root()          # display convenience; source_path() resolves live
 
 import sys
 sys.path.insert(0, HERE)
@@ -71,8 +78,12 @@ def source_meta(key):
 
 
 def source_path(key):
-    """Absolute path to a raw source artifact under reports/ (may or may not exist)."""
-    return os.path.join(REPORTS, source_meta(key)["reports"])
+    """Absolute path to a raw source artifact under reports/ (may or may not exist).
+
+    Resolved on every call rather than against the import-time ``REPORTS``, so a
+    driver (or a test) can relocate the tree via ``$LM_REPORTS`` after import.
+    """
+    return os.path.join(reports_root(), source_meta(key)["reports"])
 
 
 def have_source(key):

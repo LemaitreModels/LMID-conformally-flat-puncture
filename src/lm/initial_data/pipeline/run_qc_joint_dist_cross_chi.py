@@ -41,7 +41,9 @@ from lm.initial_data.parametric.hermite_smolyak_cross import (
     load_hermite_smolyak_cross, build_cross_from_pool)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "3D_parametric", "qc_chi")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "3D_parametric", "qc_chi")
 CKDIR = os.path.join(REPDIR, "joint_dist_cross_parts")
 os.makedirs(REPDIR, exist_ok=True)
 os.makedirs(CKDIR, exist_ok=True)
@@ -50,7 +52,7 @@ NA, NB, NPHI = 44, 32, 8
 QC = dict(pb.FIXED_QC)
 D = 4
 CHI = pb.CHI_MAX
-CROSS_MODEL = os.path.join(HERE, "reports", "P2", "models_chi",
+CROSS_MODEL = os.path.join(REPORTS, "P2", "models_chi",
                            "hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz")
 
 # box d4_qc_chi_prod

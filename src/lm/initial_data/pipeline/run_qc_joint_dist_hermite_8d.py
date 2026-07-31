@@ -41,8 +41,10 @@ from lm.initial_data.parametric.hermite_smolyak_cross import (
 from lm.initial_data.pipeline.run_qc_joint_dist_chi import BOXES, random_points, PARTDIR
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "3D_parametric", "qc_chi")
-MODELS = os.path.join(HERE, "reports", "P2", "models_chi")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "3D_parametric", "qc_chi")
+MODELS = os.path.join(REPORTS, "P2", "models_chi")
 # the 8-D y-pair CROSS model (value + gradient in chi_Ay,chi_By + cross term)
 CROSS_8D = os.path.join(MODELS, "hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross.npz")
 BOX_NAME = "spin8_qc_chi_prod"

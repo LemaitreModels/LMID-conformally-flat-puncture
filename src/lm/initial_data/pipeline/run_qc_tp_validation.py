@@ -27,7 +27,9 @@ from lm.initial_data.parametric import parametric_nd_3d as p3, quasicircular as 
 from lm.initial_data.validation import twopunctures as tp, conventions as cv
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "3D_parametric", "qc")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "3D_parametric", "qc")
 os.makedirs(REPDIR, exist_ok=True)
 NAMES = ["b", "q", "S_Ay", "S_By"]
 

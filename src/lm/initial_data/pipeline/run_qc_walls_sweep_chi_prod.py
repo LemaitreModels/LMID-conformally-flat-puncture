@@ -28,6 +28,8 @@ import time
 from lm.initial_data.pipeline import run_qc_walls_sweep_chi as w  # noqa: E402
 from lm.initial_data.parametric import parametric_nd_3d as p3  # noqa: E402
 from lm.initial_data.pipeline import production_box as pb  # noqa: E402
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 
 CHI_MAX = pb.CHI_MAX
 QC = w.QC
@@ -39,7 +41,7 @@ B_MIN = pb.B_MIN
 w.BOX = pb.aligned_box()
 
 # (2) separate output dir so the [1.5,4] study's files are not clobbered
-w.REPDIR = os.path.join(w.HERE, "reports", "3D_parametric", "qc_chi_prod")
+w.REPDIR = os.path.join(REPORTS, "3D_parametric", "qc_chi_prod")
 os.makedirs(w.REPDIR, exist_ok=True)
 
 

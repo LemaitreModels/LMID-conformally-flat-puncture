@@ -12,7 +12,9 @@ from lm.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
 from lm.initial_data.parametric.hermite_smolyak_cross import load_hermite_smolyak_cross
 from lm.initial_data.parametric.hermite_smolyak_pod_cross import build_pod_hermite_smolyak_cross
 from lm.initial_data.pipeline.run_cross_fielderror_chi import offnode_points, pod_rank_ladder, stats
-HERE = os.path.dirname(os.path.abspath(__file__)); REP3 = os.path.join(HERE, "reports", "P3")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+HERE = os.path.dirname(os.path.abspath(__file__)); REP3 = os.path.join(REPORTS, "P3")
 def _mem(r, N, nfeat, d, npair):
     return 8.0 * (nfeat * r + N * r + N * d * r + N * npair * r + nfeat)
 def main():

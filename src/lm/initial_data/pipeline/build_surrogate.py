@@ -47,8 +47,10 @@ from lm.initial_data.parametric.parametric_nd import (
 from lm.initial_data.parametric import solve_store as ss
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_OUTDIR = os.path.join(HERE, "reports", "3D_parametric", "models")
-DEFAULT_STORE = os.path.join(HERE, "reports", "3D_parametric", "solve_store")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+DEFAULT_OUTDIR = os.path.join(REPORTS, "3D_parametric", "models")
+DEFAULT_STORE = os.path.join(REPORTS, "3D_parametric", "solve_store")
 
 # The §5b production families.
 BOXES = {

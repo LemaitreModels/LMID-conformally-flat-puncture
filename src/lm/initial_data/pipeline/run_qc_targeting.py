@@ -36,9 +36,11 @@ from lm.initial_data.solver import solver_3d as s3
 from lm.initial_data.applications import qc_targeting as T
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MODEL = os.path.join(HERE, "reports", "3D_parametric", "models",
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+MODEL = os.path.join(REPORTS, "3D_parametric", "models",
                      "surrogate_smolyak_d4_qc_L4.npz")
-REPDIR = os.path.join(HERE, "reports", "P3")
+REPDIR = os.path.join(REPORTS, "P3")
 FIGDIR = os.path.join(HERE, "figures")
 
 BOX = np.array([[1.5, 1.0, -0.4, -0.4], [4.0, 3.0, 0.4, 0.4]])

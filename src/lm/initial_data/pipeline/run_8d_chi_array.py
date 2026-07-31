@@ -46,7 +46,9 @@ from lm.initial_data.parametric.parametric_nd_smolyak import isotropic_index_set
 from lm.initial_data.pipeline import production_box as pb
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-STORE = os.path.join(HERE, "reports", "3D_parametric", "solve_store_chi")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+STORE = os.path.join(REPORTS, "3D_parametric", "solve_store_chi")
 NA, NB, NPHI = 44, 32, 8
 CHI = pb.CHI_MAX
 CODE_TAG = "chi-rebuild"
