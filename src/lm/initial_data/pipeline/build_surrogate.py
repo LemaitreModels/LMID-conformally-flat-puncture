@@ -45,12 +45,18 @@ from lm.initial_data.parametric.parametric_nd import (
     load_parametric, attach_solve_fn_3d, _git_commit,
 )
 from lm.initial_data.parametric import solve_store as ss
+from lm.initial_data.pipeline import production_box as pb
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lm.initial_data.paths import reports_root
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 DEFAULT_OUTDIR = os.path.join(REPORTS, "3D_parametric", "models")
 DEFAULT_STORE = os.path.join(REPORTS, "3D_parametric", "solve_store")
+
+# --- eccentricity-family angular momenta -----------------------------------
+# The J values run_qc_effpot sweeps (its JLIST_DEFAULT).  They set the P_t extent
+# of the "bpt_ecc" box below via P_t = J/(2b); they are NOT a free choice here.
+ECC_J_MIN, ECC_J_MAX = 1.00, 1.10
 
 # The §5b production families.
 BOXES = {
@@ -100,9 +106,40 @@ BOXES = {
                  {"name": "S_Bx", "min": -0.4, "max": 0.4},
                  {"name": "S_By", "min": -0.4, "max": 0.4},
                  {"name": "S_Bz", "min": -0.4, "max": 0.4}],
+    # 2-D APSIS / ECCENTRICITY family (b, P_t) for the effective-potential study
+    # (fig07 via run_qc_effpot).  The ONLY box here with a FREE momentum: every
+    # other family either fixes head-on infall or takes the deterministic PN
+    # quasi-circular momenta (FIXED[...]["qc"]=1.0).  Freeing the tangential
+    # momentum is the whole point -- eccentricity is measured by moving off the
+    # circular P_t at fixed J, which the QC branch cannot express.
+    #
+    # Both edges are DERIVED, not chosen:
+    #   b    = the production range (production_box.B_MIN..B_MAX), so the study
+    #          lives on the same separations as every other figure.
+    #   P_t  = J/(2b) over the study's J list.  qc_effpot fixes J = 2 b P_t
+    #          (see its module docstring and circular_gradient), and the momentum
+    #          axis is P_x: theta_to_slice3d builds P_A=(P_x,0,-P), P_B=(-P_x,0,P),
+    #          so for punctures at z=+-b the orbital term gives J=(0, 2 b P_x, 0).
+    #          Hence P_t == P_x, and covering J in [J_MIN,J_MAX] over b needs
+    #          P_x in [J_MIN/(2 B_MAX), J_MAX/(2 B_MIN)].  The visited set is a
+    #          thin band inside that rectangle, so the corners are slack.
+    #
+    # NOTE the circular orbit must come out INTERIOR to the b range: the study
+    # locates it as the interior minimum of dE_b/db|_J.  Raising b_min from the
+    # historical 2.6 to B_MIN can push b_circ onto the edge for the smallest J, in
+    # which case the "circular orbit" is an edge artifact -- verify before use.
+    "bpt_ecc": [{"name": "b",   "min": pb.B_MIN,
+                 "max": pb.B_MAX},
+                {"name": "P_x", "min": ECC_J_MIN / (2.0 * pb.B_MAX),
+                 "max": ECC_J_MAX / (2.0 * pb.B_MIN)}],
 }
 FIXED = {"d4": None, "d3": {"S_mag": 0.3}, "spin8": None, "d4_qc": {"qc": 1.0},
-         "spin8_qc": {"qc": 1.0}}
+         "spin8_qc": {"qc": 1.0},
+         # P=0 is P_r=0 (the apsis condition): theta_to_slice3d's DEFAULT is
+         # P=0.5 head-on infall, which would NOT be an apsis, so it must be
+         # overridden explicitly.  q=1 is equal mass; spins default to zero, and
+         # "qc" is deliberately ABSENT so P_x stays a free axis.
+         "bpt_ecc": {"P": 0.0, "q": 1.0}}
 
 
 def _t(m):
