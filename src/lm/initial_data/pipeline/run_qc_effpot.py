@@ -33,6 +33,7 @@ import numpy as np
 
 from lm.initial_data.solver import solver_3d as s3
 from lm.initial_data.applications import qc_effpot as E
+from lm.initial_data.pipeline import production_box as pb
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lm.initial_data.paths import reports_root
@@ -40,8 +41,23 @@ REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DA
 MODEL = os.path.join(REPORTS, "3D_parametric", "models", "surrogate_bpt_ecc.npz")
 REPDIR = os.path.join(REPORTS, "P3")
 FIGDIR = os.path.join(HERE, "figures")
-BOX_B = (2.6, 6.4)
+# The b-scan window.  Taken from production_box, NOT hardcoded: it must match the
+# b range of the surrogate being scanned (``build_surrogate.BOXES["bpt_ecc"]``,
+# whose b edges are the same constants), because ``circular_scan`` /
+# ``eccentricity`` evaluate the model across this window and a surrogate cannot be
+# extrapolated outside its box.  The historical value was (2.6, 6.4), whose lower
+# edge predates the box retarget and now sits below B_MIN.
+BOX_B = (pb.B_MIN, pb.B_MAX)
+
 JLIST_DEFAULT = [1.00, 1.05, 1.10]
+"""Angular momenta swept.  These also set the surrogate's P_t extent via
+P_t = J/(2b) (see ``build_surrogate.ECC_J_MIN/ECC_J_MAX``), so changing them
+invalidates the model.
+
+GATE: the circular orbit is located as the INTERIOR minimum of dE_b/db|_J.  With
+b_min raised to B_MIN, verify ``b_circ`` comes out strictly inside ``BOX_B`` for
+every J here — if it lands on an edge the reported "circular orbit" is an edge
+artifact, not a measurement, and the J list must move up with the box."""
 
 
 def main(Jlist=None, n_scan=13):
