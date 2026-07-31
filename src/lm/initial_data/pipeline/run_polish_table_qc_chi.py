@@ -51,8 +51,10 @@ from lm.initial_data.parametric.parametric import cheb_param_nodes
 from lm.initial_data.pipeline import production_box as pb
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "P3")
-MODELDIR = os.path.join(HERE, "reports", "3D_parametric", "models_chi")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "P3")
+MODELDIR = os.path.join(REPORTS, "3D_parametric", "models_chi")
 
 # --- the paper's 4-D quasi-circular box, chi parameterization ----
 BOX = pb.aligned_box()

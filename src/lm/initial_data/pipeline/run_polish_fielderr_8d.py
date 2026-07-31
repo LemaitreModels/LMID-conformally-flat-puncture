@@ -74,8 +74,10 @@ from lm.initial_data.pipeline.run_guess_vs_memory import MODELS
 from lm.initial_data.pipeline.run_polish_cold import random_offnode_points, read_meta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "P3")
-MODELS_DIR = os.path.join(HERE, "reports", "P2", "models_chi")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "P3")
+MODELS_DIR = os.path.join(REPORTS, "P2", "models_chi")
 # metadata source — the plain 8-D model (box/grid/axes/fixed + the shared points)
 BASE_8D = MODELS[8]["pod"]
 # the r=250 y-pair CROSS POD warm-start guess (built by run_cross_pod_r250_8d.py)

@@ -35,8 +35,10 @@ from lm.initial_data.solver import solver_3d as s3
 from lm.initial_data.applications import qc_effpot as E
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MODEL = os.path.join(HERE, "reports", "3D_parametric", "models", "surrogate_bpt_ecc.npz")
-REPDIR = os.path.join(HERE, "reports", "P3")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+MODEL = os.path.join(REPORTS, "3D_parametric", "models", "surrogate_bpt_ecc.npz")
+REPDIR = os.path.join(REPORTS, "P3")
 FIGDIR = os.path.join(HERE, "figures")
 BOX_B = (2.6, 6.4)
 JLIST_DEFAULT = [1.00, 1.05, 1.10]

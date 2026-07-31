@@ -59,8 +59,10 @@ from lm.initial_data.parametric.hermite_smolyak_pod_cross import load_pod_hermit
 from lm.initial_data.pipeline.run_polish_cold import random_offnode_points, read_meta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "P3")
-MODELS = os.path.join(HERE, "reports", "P2", "models_chi")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "P3")
+MODELS = os.path.join(REPORTS, "P2", "models_chi")
 # box / grid / axes / fixed source (metadata only) — the same 4-D model run_polish_cold uses
 BASE_4D = os.path.join(MODELS, "pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz")
 # the shipped r=75 value+gradient (full-bilinear CROSS) POD warm-start guess

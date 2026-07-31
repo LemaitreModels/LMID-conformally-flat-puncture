@@ -32,7 +32,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "3D")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "3D")
 FIGDIR = os.path.join(HERE, "figures")
 MANFIG = os.path.join(HERE, "paper", "figures")
 os.makedirs(FIGDIR, exist_ok=True)

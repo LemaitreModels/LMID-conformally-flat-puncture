@@ -57,7 +57,9 @@ from lm.initial_data.applications import sensitivity_3d_qc as qc
 from lm.initial_data.pipeline import production_box as pb
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "3D_parametric", "qc_chi")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "3D_parametric", "qc_chi")
 PARTDIR = os.path.join(REPDIR, "peraxis_dist_chi_parts")
 os.makedirs(PARTDIR, exist_ok=True)
 

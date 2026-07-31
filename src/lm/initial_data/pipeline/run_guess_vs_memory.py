@@ -57,20 +57,22 @@ from lm.initial_data.parametric.hermite_smolyak_pod import (
 from lm.initial_data.pipeline.run_cross_fielderror_chi import thin_ranks
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "P3")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "P3")
 GAP_MIN = 1e-4
 
 # ---- shipped models (the SAME corpus, three re-encodings, per dimension) -----
 MODELS = {
     4: dict(
-        pod=os.path.join(HERE, "reports/P2/models_chi/"
+        pod=os.path.join(REPORTS, "P2/models_chi/"
                          "pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz"),
         ranks=[1, 2, 3, 5, 8, 12, 20, 30, 45, 60, 75, 87],
         ref_value="polish_table_qc_chi_prod_1000.json",
         ref_hermite="polish_table_qc_chi_prod_hermite_1000.json",
     ),
     8: dict(
-        pod=os.path.join(HERE, "reports/P2/models_chi/pod_hermite_smolyak_"
+        pod=os.path.join(REPORTS, "P2/models_chi/pod_hermite_smolyak_"
                          "spin8qc_L5_enh-chi_Ax-chi_Ay-chi_Az-chi_Bx-chi_By-chi_Bz.npz"),
         ranks=[1, 5, 15, 30, 60, 100, 150, 200, 250, 300, 350, 394],
         ref_value="polish_table_chi8d_value_1000.json",

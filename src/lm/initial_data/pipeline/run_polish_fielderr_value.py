@@ -50,8 +50,10 @@ from lm.initial_data.pipeline.run_polish_cold import random_offnode_points, read
 from lm.initial_data.pipeline.run_polish_fielderr import run_family
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "P3")
-MODELS = os.path.join(HERE, "reports", "3D_parametric", "models_chi")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "P3")
+MODELS = os.path.join(REPORTS, "3D_parametric", "models_chi")
 # the value-ONLY Smolyak surrogates (no gradient enhancement), per dimension
 VALUE_MODEL = {
     4: os.path.join(MODELS, "surrogate_smolyak_d4_qc_chi_prod_L5.npz"),

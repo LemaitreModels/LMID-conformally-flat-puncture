@@ -52,7 +52,9 @@ from lm.initial_data.parametric.parametric_nd import _git_commit
 from lm.initial_data.applications import sensitivity_3d_qc as qc
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_OUTDIR = os.path.join(HERE, "reports", "P2", "models")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+DEFAULT_OUTDIR = os.path.join(REPORTS, "P2", "models")
 
 # The 4-D aligned-spin QUASI-CIRCULAR box (identical to build_surrogate.py::d4_qc).
 # LEGACY default box, in the BARE-SPIN (S) parameterization -- NOT the production

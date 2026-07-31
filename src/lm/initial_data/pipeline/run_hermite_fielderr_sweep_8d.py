@@ -85,8 +85,10 @@ from lm.initial_data.pipeline.run_cross_fielderror_chi import (
     offnode_points, pod_rank_ladder, stats)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REP3 = os.path.join(HERE, "reports", "P3")
-MODELS = os.path.join(HERE, "reports", "P2", "models_chi")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REP3 = os.path.join(REPORTS, "P3")
+MODELS = os.path.join(REPORTS, "P2", "models_chi")
 PLAIN = os.path.join(
     MODELS,
     "hermite_smolyak_spin8qc_L5_enh-chi_Ax-chi_Ay-chi_Az-chi_Bx-chi_By-chi_Bz.npz",

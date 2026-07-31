@@ -47,15 +47,17 @@ from lm.initial_data.parametric.parametric import cheb_param_nodes
 from lm.initial_data.parametric.parametric_nd_3d import make_solve_fn
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPDIR = os.path.join(HERE, "reports", "P3")
+from lm.initial_data.paths import reports_root
+REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
+REPDIR = os.path.join(REPORTS, "P3")
 GAP_MIN = 1e-4
 
 # The same two shipped models keyed by dimension (only their .npz metadata is read —
 # box, axes, grid, fixed — NOT the stored fields, so no big load for the cold solve).
 MODELS = {
-    4: os.path.join(HERE, "reports/P2/models_chi/"
+    4: os.path.join(REPORTS, "P2/models_chi/"
                     "pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz"),
-    8: os.path.join(HERE, "reports/P2/models_chi/pod_hermite_smolyak_"
+    8: os.path.join(REPORTS, "P2/models_chi/pod_hermite_smolyak_"
                     "spin8qc_L5_enh-chi_Ax-chi_Ay-chi_Az-chi_Bx-chi_By-chi_Bz.npz"),
 }
 
