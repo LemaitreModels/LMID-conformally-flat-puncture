@@ -96,7 +96,7 @@ def test_surrogate_caption_matches_config():
                  rf"$Q={c['spec_chi'][0]['Q']}$",
                  rf"$q={c['fixed_chi']['q']}$", rf"$b={c['fixed_chi']['b']:g}$",
                  rf"$(b,q)=({c['theta_bq'][0]:g},{c['theta_bq'][1]:g})$",
-                 rf"$(\chi^{{A}},\chi^{{B}})=({c['theta_chi'][0]:g},{c['theta_chi'][1]:g})$"):
+                 rf"$(\chi^{{A}}_{{y}},\chi^{{B}}_{{y}})=({c['theta_chi'][0]:g},{c['theta_chi'][1]:g})$"):
         assert frag in cap, f"Table II caption disagrees with tabdata: expected {frag}"
     # the caption bounds the reference residual; the bound must actually hold
     m = re.search(r"reference solves are certified to\s*\n?\s*"
