@@ -3,7 +3,8 @@
 
 A 2x2 grid with a SHARED Newton-step x-axis per column. Columns are 4D | 8D; each panel draws three
 curves as a median line with 1000-point min--max whiskers on every Newton polish step:
-(1) cold start (no surrogate), (2) value-only surrogate, and (3) value+gradient POD warm start.
+(1) cold start (no surrogate), (2) value-only surrogate, and (3) the shipped gradient-enhanced
+(value + gradient + cross) POD warm start.
 
   TOP row    constraint residual ||R||_inf per step (the certified quantity).
   BOTTOM row field error ||u-u_true||_2/||u_true||_2 per step.
@@ -37,8 +38,9 @@ TITLES = {4: r"4D quasi-circular model: $\theta=(b,q,\chi^{A}_{y},\chi^{B}_{y})$
 
 THRESH = 1e-10
 FIELD_FLOOR = 1e-13          # below this the iterate == converged solution (log floor)
-# convention: value = C0 (tab:blue), value+gradient = C1 (tab:orange); cold baseline = grey
-COLD_C, VALUE_C, POD_C = "0.6", "C0", "C1"   # cold(grey) | value-only(C0) | value+gradient(C1)
+# convention (Figs. 1, 3, 4, 5): value = C0 (tab:blue),
+# value + gradient + cross = C1 (tab:orange); cold baseline = grey
+COLD_C, VALUE_C, POD_C = "0.6", "C0", "C1"
 
 
 def _arr(s):
@@ -72,7 +74,7 @@ def _plot_residual(ax, col):
         x, med, lo, hi = _arr(col["res_value"])
         n = _trim(x, med, extra=1)
         rv = col["res_value"].get("r")             # set only for the POD value-only curve
-        vlabel = (fr"value-only POD ($r{{=}}{rv}$)" if rv else "value-only surrogate")
+        vlabel = (fr"value POD ($r{{=}}{rv}$)" if rv else "value surrogate")
         ax.errorbar(x[:n], med[:n], yerr=[med[:n] - lo[:n], hi[:n] - med[:n]],
                     fmt="-^", color=VALUE_C, ms=5, lw=1.7, capsize=3.5,
                     elinewidth=1.1, capthick=1.1, zorder=4,
@@ -84,7 +86,7 @@ def _plot_residual(ax, col):
     ax.errorbar(x[:n] + 0.12, med[:n], yerr=[med[:n] - lo[:n], hi[:n] - med[:n]],
                 fmt="-o", color=POD_C, ms=5, lw=1.7, capsize=3.5,
                 elinewidth=1.1, capthick=1.1, zorder=5,
-                label=fr"value$+$gradient POD ($r{{=}}{r}$)")
+                label=fr"value + gradient + cross POD ($r{{=}}{r}$)")
     xmax = max(xmax, x[n - 1])
     ax.axhline(THRESH, ls=":", color="k", alpha=0.7, lw=1.1)
     ax.set_yscale("log")
@@ -98,8 +100,8 @@ def _plot_field(ax, col):
     """Bottom-row field-error staircase (cold + POD); same column colours as the residual panel."""
     for fam_key, color, fmt, off, label, z in (
             ("fld_cold", COLD_C, "-s", -0.12, "cold start (no surrogate)", 3),
-            ("fld_value", VALUE_C, "-^", 0.0, "value-only surrogate", 4),
-            ("fld_pod", POD_C, "-o", 0.12, "value$+$gradient POD", 5)):
+            ("fld_value", VALUE_C, "-^", 0.0, "value", 4),
+            ("fld_pod", POD_C, "-o", 0.12, "value + gradient + cross", 5)):
         if fam_key not in col:                    # optional value-only series
             continue
         x, med, lo, hi = _arr(col[fam_key])

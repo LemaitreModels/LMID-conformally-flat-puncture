@@ -7,7 +7,7 @@ axes; the node-count axis is LOGARITHMIC and common to the two panels, so (i) th
 five levels are near-uniformly spaced instead of crowding into the left edge of a
 linear axis, and (ii) the 8D model's ~14x larger corpus at the same level is read off
 directly against the 4D one. The Smolyak level is annotated at each point.
-  left   -- the 4D model: BARE sparse interpolant vs value + gradient + cross
+  left   -- the 4D model: value-only sparse interpolant vs value + gradient + cross
             (full-bilinear Hermite-Smolyak) enhanced on the two spin axes
   right  -- the 8D general-spin model, same two curves (mirrors the left panel)
 
@@ -58,7 +58,7 @@ def _levels(ax, bare, cross, levels):
 
 def _panel(ax, side, title):
     bare, cross = _arr(side["bare"]), _arr(side["cross"])
-    _series(ax, bare, BARE_C, "o", "bare interpolant")
+    _series(ax, bare, BARE_C, "o", "value")
     _series(ax, cross, CROSS_C, "s", r"value + gradient + cross ($\chi^{A}_{y},\chi^{B}_{y}$)")
     _levels(ax, bare, cross, side["bare"]["levels"])
     ax.set_xlabel("solver node count")

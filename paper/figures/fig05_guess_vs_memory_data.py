@@ -2,11 +2,15 @@
 """Data for fig05_guess_vs_memory: distill the POD memory<->accuracy curves to figdata/.
 
 A 2x2 grid: rows = (bare-guess constraint residual, bare-guess field error), cols = (4D, 8D).
-Each panel carries a "value" (C0) and a "value+gradient [full-bilinear cross]" (C1) curve, each a
+Each panel carries a value-only (C0) and a value+gradient+cross (full-bilinear, C1) curve, each a
 POD rank sweep + a full-rank bare-guess star. This script computes, per panel/curve, the exact
 plot_family inputs (the rank-sweep points, the bare star + its memory, and the annotations), so the
 plotter draws from figdata alone. Rank ladders are thinned to every other rung (see ``_thin``) to
 keep the panels legible.
+
+Curve LABELS live in the plot script (``CURVE_LABELS``), not here: they are presentation, so a
+notation change needs only a re-plot, not a solver recompute. The two curves are written in the
+fixed order (value, value+gradient+cross) that ``CURVE_LABELS`` assumes.
 
 Sources (raw): gvm_all, gvm_4d_{value,cross,field,cross_field}, gvm_8d_{value,field,hermite_field},
                polish_table_{4d,4d_cross,8d_hermite,8d_value}  (registry keys).
@@ -52,9 +56,9 @@ def _guess(key):
     return _mmm(load_source(key)["rows"]["guess"])
 
 
-def curve(cur, bare, bare_mem_mb, color, marker, label, bare_r, ann, drop_last):
+def curve(cur, bare, bare_mem_mb, color, marker, bare_r, ann, drop_last):
     return dict(cur=_pod5(cur), bare=bare, bare_mem=bare_mem_mb, bare_r=bare_r,
-                color=color, marker=marker, label=label, ann=ann, drop_last=drop_last)
+                color=color, marker=marker, ann=ann, drop_last=drop_last)
 
 
 def build():
@@ -64,10 +68,10 @@ def build():
     N, nfeat, d = gh["N"], gh["nfeat"], gh["d"]
     npair = gh.get("npair", 1)
     TL = [curve(gv["pod_curve"], _guess("polish_table_4d"), 8.0 * N * nfeat / 1e6,
-                VAL_C, "o", "value", gv["r_full"], "below", True),
+                VAL_C, "o", gv["r_full"], "below", True),
           curve(gh["pod_curve"], _guess("polish_table_4d_cross"),
                 8.0 * N * (1 + d + npair) * nfeat / 1e6,
-                HERM_C, "s", "value + gradient", gh["r_full"], "above", True)]
+                HERM_C, "s", gh["r_full"], "above", True)]
 
     # ---- TOP-RIGHT: 8D residual (value gapfill + value+gradient y-pair-CROSS gapfill) ----
     # Both to r_full over the SAME 1000 seed-0 points; the value+gradient curve is the RESIDUAL
@@ -77,36 +81,36 @@ def build():
     gx8 = load_source("gvm_8d_cross")
     TR = [curve(gv8["pod_curve"], _guess("polish_table_8d_value"),
                 8.0 * gv8["N"] * gv8["nfeat"] / 1e6,
-                VAL_C, "o", "value", gv8["r_full"], "below", True),
+                VAL_C, "o", gv8["r_full"], "below", True),
           curve(gx8["pod_curve"], _mmm(gx8["pod_curve"][-1]), gx8["bare_mem_bytes"] / 1e6,
-                HERM_C, "s", "value + gradient", gx8["r_full"], "above", True)]
+                HERM_C, "s", gx8["r_full"], "above", True)]
 
     # ---- BOTTOM-LEFT: 4D field error (value + value+gradient cross) ----
     fv = load_source("gvm_4d_field")["value"]
     gc = load_source("gvm_4d_cross_field")
     BL = [curve(fv["pod_curve"], _mmm(fv["pod_curve"][-1]), 8.0 * fv["N"] * fv["nfeat"] / 1e6,
-                VAL_C, "o", "value", fv["r_full"], "below", True),
+                VAL_C, "o", fv["r_full"], "below", True),
           curve(gc["pod_curve"], _mmm(gc["pod_curve"][-1]), gc["bare_mem_bytes"] / 1e6,
-                HERM_C, "s", "value + gradient", gc["r_full"], "above", True)]
+                HERM_C, "s", gc["r_full"], "above", True)]
 
     # ---- BOTTOM-RIGHT: 8D field error (value + value+gradient cross) ----
     gvf8 = load_source("gvm_8d_field")
     gvhf8 = load_source("gvm_8d_hermite_field")
     BR = [curve(gvf8["pod_curve"], _mmm(gvf8["pod_curve"][-1]),
                 8.0 * gvf8["N"] * gvf8["nfeat"] / 1e6,
-                VAL_C, "o", "value", gvf8["r_full"], "below", True),
+                VAL_C, "o", gvf8["r_full"], "below", True),
           curve(gvhf8["pod_curve"], _mmm(gvhf8["pod_curve"][-1]), gvhf8["bare_mem_bytes"] / 1e6,
-                HERM_C, "s", "value + gradient", gvhf8["r_full"], "above", True)]
+                HERM_C, "s", gvhf8["r_full"], "above", True)]
 
     panels = {
-        # panel titles live in the plot script (presentation, not data)
+        # panel titles + curve labels live in the plot script (presentation, not data)
         "TL": dict(note="1000 off-node pts", note_loc="bl", curves=TL),
         "TR": dict(note="1000 off-node pts", note_loc="br", curves=TR),
         "BL": dict(title=None, note="1000 off-node pts", note_loc="tr", curves=BL),
         "BR": dict(title=None, note="1000 off-node pts", note_loc="tr", curves=BR),
     }
     p = dump("fig05_guess_vs_memory", dict(panels=panels))
-    print(f"wrote {os.path.relpath(p)}  (4 panels x value+gradient)")
+    print(f"wrote {os.path.relpath(p)}  (4 panels x value+gradient+cross)")
 
 
 if __name__ == "__main__":

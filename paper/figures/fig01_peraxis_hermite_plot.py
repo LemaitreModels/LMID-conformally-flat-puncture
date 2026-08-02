@@ -32,9 +32,12 @@ LBL = {"b": r"$b$", "q": r"$q$",
        "chi_Bx": r"$\chi^{B}_{x}$", "chi_By": r"$\chi^{B}_{y}$", "chi_Bz": r"$\chi^{B}_{z}$"}
 YLIM = (1e-12, 1e-2)
 
-# (figdata key, colour, marker, label stem) — both drawn as solid lines
+# (figdata key, colour, marker, label stem) — both drawn as solid lines.
+# A per-axis sweep is one-dimensional, so the enhanced curve carries the value and the
+# single first tangent along that axis: there is no mixed cross tangent to match here
+# (unlike the joint models of Figs. 3-5, labelled "value + gradient + cross").
 SERIES = (("value",   "C0", "o", "value"),
-          ("hermite", "C1", "s", "value+gradient"))
+          ("hermite", "C1", "s", "value + gradient"))
 
 
 def _arr(vals):

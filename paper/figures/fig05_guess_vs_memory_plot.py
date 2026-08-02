@@ -5,7 +5,7 @@ Reduced-basis (POD) compression versus stored model memory, as the POD truncatio
 A 2x2 grid with a SHARED memory x-axis per column:
   TOP row    bare-guess constraint residual ||R||_inf vs memory
   BOTTOM row bare-guess field error ||u-u_true||_2/||u_true||_2 vs memory
-  LEFT col 4D,  RIGHT col 8D;  each panel: value (C0) + value+gradient [cross] (C1).
+  LEFT col 4D,  RIGHT col 8D;  each panel: value (C0) + value+gradient+cross (C1).
 
 Median line with min--max whiskers; each point labelled by r; the full-rank (un-compressed) model
 is the star. The field row (bottom) saturates at its floor while the residual (top) keeps falling,
@@ -31,12 +31,17 @@ from _figdata import load
 from _figstyle import figdims
 
 
-# Panel titles are presentation, so they live here rather than in the figdata json:
-# a notation change then needs only a re-plot, not a solver recompute.
+# Panel titles and curve labels are presentation, so they live here rather than in the figdata
+# json: a notation change then needs only a re-plot, not a solver recompute.
 TITLES = {
     "TL": r"4D quasi-circular model:  $\theta=(b,\ q,\ \chi^{A}_{y},\ \chi^{B}_{y})$",
     "TR": r"8D quasi-circular model:  $\theta=(b,\ q,\ \boldsymbol{\chi}^{A},\ \boldsymbol{\chi}^{B})$",
 }
+
+# Every panel carries the same two families, in this order (see the data script): the value-only
+# surrogate, and the shipped gradient-enhanced one, which stores the two first spin tangents AND
+# their bilinear cross tangent -- hence "+ cross", matching Figs. 3 and 4.
+CURVE_LABELS = ("value", "value + gradient + cross")
 
 RANK_GID = "rank-label"
 
@@ -49,13 +54,13 @@ def sweep_xy(cur):
     return mem, med, lo, hi, [c["r"] for c in cur]
 
 
-def plot_family(ax, spec):
+def plot_family(ax, spec, label):
     cur = spec["cur"][:-1] if spec["drop_last"] else spec["cur"]
     color, ann = spec["color"], spec["ann"]
     mem, med, lo, hi, rs = sweep_xy(cur)
     ax.errorbar(mem, med, yerr=[med - lo, hi - med], fmt=spec["marker"] + "-", color=color,
                 ms=5, lw=1.7, elinewidth=1.0, capsize=3, capthick=1.0, zorder=3,
-                label=spec["label"])
+                label=label)
 
     def _r_label(x, hi_i, lo_i, r):
         xy, va, dy = ((x, hi_i), "bottom", 3) if ann == "above" else ((x, lo_i), "top", -3)
@@ -125,8 +130,8 @@ def main():
     for key, ax in (("TL", axes[0, 0]), ("TR", axes[0, 1]),
                     ("BL", axes[1, 0]), ("BR", axes[1, 1])):
         pan = P[key]
-        for spec in pan["curves"]:
-            plot_family(ax, spec)
+        for spec, label in zip(pan["curves"], CURVE_LABELS):
+            plot_family(ax, spec, label)
         if TITLES.get(key):
             ax.set_title(TITLES[key], fontsize=10)
         if pan.get("note"):
@@ -137,7 +142,9 @@ def main():
         ax.set_yscale("log")
         ax.grid(True, which="major", alpha=0.3)
         ax.minorticks_off()
-        ax.legend(fontsize=9, loc="lower left", framealpha=0.92)
+        # 8.2 pt keeps the (longer) two-line legend clear of the r=107 rank label in the
+        # bottom-left panel; the box still reads at print size in this full-width figure.
+        ax.legend(fontsize=8.2, loc="lower left", framealpha=0.92)
     for ax in (axes[1, 0], axes[1, 1]):
         ax.set_xlabel("stored model memory (MB)")
     axes[0, 0].set_ylabel(r"bare-guess constraint residual $\|R\|_\infty$")
