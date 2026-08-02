@@ -86,13 +86,31 @@ regime rather than flattered by a mid-box point.
 Q_MIN, Q_MAX = 1.0, 3.0
 """Production mass-ratio range, q = m_A/m_B >= 1.
 
-Unlike the spin box, this edge is close to a genuine limit.  Inverting the measured
-q rate (~0.60 decades/node on [1,3]) puts the nearest inferred singularity at
-q* ~ 4.1: extending to q_max = 3.6 would drop the rate to ~0.38, q_max = 4 to
-~0.17, and q_max >~ 6 would put the inferred wall INSIDE the box, where the
-interpolation would fail outright.  ``WALL_Q_MAX`` measures whether that wall is
-real (pinned, so q = 3 is near a hard limit) or a complex pair (marching, so q_max
-could be pushed to cover the asymmetric events).
+The q rate on [1,3] is ~0.60 decades/node, which inverts to a nearest inferred
+singularity at q* ~ 4.1.  That much is confirmed by measurement (0.617, q* = 4.19).
+
+An earlier revision of this docstring extrapolated from those two numbers that
+widening would be expensive -- rate ~0.38 at q_max = 3.6 and ~0.17 at q_max = 4 --
+by assuming q* stays PINNED at ~4.1 as the box grows, so that the interval marches
+into the singularity.  **``WALL_Q_MAX`` has now been run and that assumption is
+wrong: q* MARCHES.**  Measured on the production corpus (chi-rebuild, grid 44x32x8;
+``reports/3D_parametric/qc_chi_prod/walls_d4_qc_chi.json``, key ``Q_wall_q``):
+
+    q_max   rate (dec/node)   inferred q*   q*/q_max
+    3.0         0.617             4.19        1.40
+    3.5         0.578             4.78        1.37
+    4.0         0.522             5.22        1.31
+
+So the inferred singularity RECEDES roughly in proportion to the interval
+(q*/q_max ~ 1.3-1.4, near-constant) instead of sitting still: the box never
+approaches it.  Widening to q_max = 4 costs ~15% of the rate (0.617 -> 0.522), not
+the ~72% the pinned-wall extrapolation predicted.
+
+Consequences: the q wall is a COMPLEX PAIR, not a hard limit; q = 3 is NOT near a
+genuine edge; and q_max could be raised to cover the asymmetric mass ratios at
+modest cost.  The edge is left at 3.0 here because raising it is a scope decision
+(it invalidates the solve store for every node with q > 3), not because the
+interpolation would fail.
 """
 
 FIXED_QC = {"qc": 1.0}
@@ -128,8 +146,13 @@ WALL_Q_MAX = (3.0, 3.5, 4.0)
 Stops just short of the inferred wall on purpose.  If the wall is real, sweeping a
 range that CONTAINS it breaks the inversion (which assumes the singularity lies
 outside the interval); if the three ranges come out marching instead of pinned the
-wall is a complex pair, and a probe at q_max >~ 4.5 is then the informative
-follow-up.
+wall is a complex pair.
+
+RESULT (see ``Q_MIN, Q_MAX`` above for the table): the three ranges came out
+**marching** -- q* = 4.19, 4.78, 5.22 -- so the wall is a complex pair.  The probe
+at q_max >~ 4.5 that this sweep was designed to motivate is therefore the sensible
+follow-up if a wider q box is ever wanted; nothing measured so far argues against
+one.
 """
 
 

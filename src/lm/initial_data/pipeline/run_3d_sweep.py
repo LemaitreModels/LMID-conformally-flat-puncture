@@ -153,9 +153,9 @@ def block_B(run_oracle=True):
     if run_oracle and tp.available():
         print("\n[B] TP oracle solve (nA=64 nB=64 nphi=12) ...", flush=True)
         t0 = time.time()
-        res = tp.solve_parasol_points_3d(b, M_A, M_B, sl.P_A_vec, sl.P_B_vec,
-                                         SA, (0, 0, 0), QR, QZ, QP,
-                                         nA=64, nB=64, nphi=12, timeout=1800)
+        res = tp.solve_lm_initial_data_points_3d(b, M_A, M_B, sl.P_A_vec, sl.P_B_vec,
+                                                 SA, (0, 0, 0), QR, QZ, QP,
+                                                 nA=64, nB=64, nphi=12, timeout=1800)
         psi_tp = res.psi
         print(f"[B]   TP done in {time.time()-t0:.0f}s  E={res.E:.8f}")
     ladder = [(40, 28, 6), (48, 34, 8), (56, 40, 10), (64, 46, 12)]
@@ -236,22 +236,22 @@ def block_D():
         sl = Slice3D(b=b, m_A=M_A, m_B=M_B, P_A_vec=PA, P_B_vec=PB,
                      S_A_vec=SA, S_B_vec=(0, 0, 0))
         U, info, dt = solve_slice(prob, sl)
-        res = tp.solve_parasol_points_3d(b, M_A, M_B, PA, PB, SA, (0, 0, 0),
-                                         QR, QZ, QP, nA=56, nB=44, nphi=8,
-                                         timeout=1800)
+        res = tp.solve_lm_initial_data_points_3d(b, M_A, M_B, PA, PB, SA, (0, 0, 0),
+                                                 QR, QZ, QP, nA=56, nB=44, nphi=8,
+                                                 timeout=1800)
         u = np.asarray(s3.evaluate_field(prob, U, QR, QZ, QP, b))
         psi = np.asarray(source.psi_BL_2c(QR, QZ, b, M_A, M_B)) + u
         dpsi = float(np.max(np.abs(psi - res.psi)))
         M = d3.adm_mass_spectral_3d(prob, U, sl)
         dM = abs(M - res.E) / res.E
-        J_tp_par = np.array(cv.tp_vec_to_parasol(res.J))
-        J_par = d3.adm_J_surface_extrap(b, PA, PB, SA, (0, 0, 0))
-        dJ = float(np.max(np.abs(J_par - J_tp_par)))
+        J_tp_lm = np.array(cv.tp_vec_to_lm_initial_data(res.J))
+        J_lm = d3.adm_J_surface_extrap(b, PA, PB, SA, (0, 0, 0))
+        dJ = float(np.max(np.abs(J_lm - J_tp_lm)))
         out.append(dict(label=label, S_A=list(SA), P_A=list(PA),
                         resid=float(info.residual_norm), dpsi=dpsi,
                         M_ADM=M, E_tp=res.E, dM_rel=dM,
-                        J_parasol=J_par.tolist(),
-                        J_tp_parasol=J_tp_par.tolist(), dJ_max=dJ))
+                        J_lm_initial_data=J_lm.tolist(),
+                        J_tp_lm_initial_data=J_tp_lm.tolist(), dJ_max=dJ))
         print(f"{label:>16} {dpsi:>10.2e} {dM:>10.2e} {dJ:>10.2e}")
     return dict(available=True, anchors=out)
 
