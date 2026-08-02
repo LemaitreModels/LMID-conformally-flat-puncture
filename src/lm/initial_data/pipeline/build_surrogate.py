@@ -128,6 +128,17 @@ BOXES = {
     # locates it as the interior minimum of dE_b/db|_J.  Raising b_min from the
     # historical 2.6 to B_MIN can push b_circ onto the edge for the smallest J, in
     # which case the "circular orbit" is an edge artifact -- verify before use.
+    #
+    # NOTE the consumer needs the DENSE artifact, not the sparse one.  qc_effpot's
+    # load_model -> parametric_nd.load_parametric checks meta["kind"] == "dense"
+    # and rejects a Smolyak file outright, and it reads the fixed basename
+    # surrogate_bpt_ecc.npz.  So this family must be built with
+    #     --dense-Q <Q> --dense-name surrogate_bpt_ecc.npz
+    # (a --level-only build produces surrogate_smolyak_bpt_ecc_L{level}.npz, which
+    # run_qc_effpot cannot load).  The historical model was dense at Q=7/Q=6 over
+    # the narrower b in [2.5,6.5]; Q=16 (17 nodes/axis) keeps that resolution
+    # density across the ~1.75x wider production b range and is nested with the
+    # Smolyak CGL ladder, so the sparse nodes are reused from the solve store.
     "bpt_ecc": [{"name": "b",   "min": pb.B_MIN,
                  "max": pb.B_MAX},
                 {"name": "P_x", "min": ECC_J_MIN / (2.0 * pb.B_MAX),
@@ -175,6 +186,14 @@ def main():
     ap.add_argument("--level", type=int, default=3, help="isotropic Smolyak level (sparse)")
     ap.add_argument("--dense-Q", type=int, default=None,
                     help="dense tensor Q per axis; omit to SKIP the (expensive) dense build")
+    ap.add_argument("--dense-name", default=None,
+                    help="basename for the dense artifact inside --outdir (default "
+                         "surrogate_dense_{box}_Q{Q}.npz).  Needed when a consumer "
+                         "hardcodes the filename: the eccentricity study loads the "
+                         "DENSE model by the fixed name 'surrogate_bpt_ecc.npz' "
+                         "(run_qc_effpot.MODEL, and registry.SOURCES['effpot_model']), "
+                         "so the bpt_ecc build must pass "
+                         "--dense-name surrogate_bpt_ecc.npz")
     ap.add_argument("--solver", choices=("nk", "modified"), default="nk",
                     help="'nk' (certified) or 'modified' (cheaper, field-identical)")
     ap.add_argument("--tol", type=float, default=1e-12)
@@ -288,7 +307,8 @@ def main():
                                               retry_tol=args.retry_tol)
         dn = dn_solver.build(tol=args.tol, max_iter=args.max_iter)
         dt = time.time() - t0
-        dn_path = os.path.join(args.outdir, f"surrogate_dense_{args.box}_Q{args.dense_Q}.npz")
+        dn_name = args.dense_name or f"surrogate_dense_{args.box}_Q{args.dense_Q}.npz"
+        dn_path = os.path.join(args.outdir, dn_name)
         dn.save(dn_path, meta=dict(base_meta, Q=[args.dense_Q] * len(box)))
         sz = os.path.getsize(dn_path)
         _t(f"   built {dn.n_nodes} solver nodes in {dt:.0f}s → {dn_path}")

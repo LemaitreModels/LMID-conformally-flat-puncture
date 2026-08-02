@@ -82,7 +82,11 @@ def build():
                 HERM_C, "s", "value + gradient", gx8["r_full"], "above", True)]
 
     # ---- BOTTOM-LEFT: 4D field error (value + value+gradient cross) ----
-    fv = load_source("gvm_4d_field")["value"]
+    # Flat schema, matching the 8-D siblings below.  Was ["value"]: a leftover
+    # from when run_guess_vs_memory wrote ONE combined two-flavour file; the
+    # --flavours path now writes one flat file per flavour, so gvm_4d_field has
+    # pod_curve/N/nfeat/r_full at top level exactly like gvm_8d_field.
+    fv = load_source("gvm_4d_field")
     gc = load_source("gvm_4d_cross_field")
     BL = [curve(fv["pod_curve"], _mmm(fv["pod_curve"][-1]), 8.0 * fv["N"] * fv["nfeat"] / 1e6,
                 VAL_C, "o", "value", fv["r_full"], "below", True),

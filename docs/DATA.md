@@ -116,6 +116,28 @@ Both edges are derived, not chosen:
   the apsis condition is `P_r=0`; the default is `P=0.5` head-on infall, which
   would not be an apsis at all, so it must be overridden explicitly.
 
+**The consumer needs the DENSE artifact, under a fixed name.** `run_qc_effpot`
+loads the model through `qc_effpot.load_model` →
+`parametric_nd.load_parametric`, which asserts `meta["kind"] == "dense"` and so
+rejects a Smolyak file outright; it reads the fixed basename
+`surrogate_bpt_ecc.npz` (`run_qc_effpot.MODEL`, and the `effpot_model` entry in
+`registry.SOURCES`). A `--level`-only build therefore does *not* feed fig07: it
+writes `surrogate_smolyak_bpt_ecc_L5.npz`, which is both the wrong kind and the
+wrong name. The build must pass `--dense-Q` and `--dense-name`:
+
+```bash
+python -m lm.initial_data.pipeline.build_surrogate \
+    --box bpt_ecc --level 5 --dense-Q 16 --dense-name surrogate_bpt_ecc.npz \
+    --Na 44 --Nb 32 --Nphi 8 --solver nk --store --code-tag chi-rebuild
+```
+
+`--dense-name` exists for exactly this: a consumer that hardcodes the filename.
+`Q=16` (17 nodes/axis) is derived the same way as the edges — the historical
+model was dense at `Q=7`/`Q=6` (8 and 7 nodes) over the narrower `b∈[2.5,6.5]`,
+so 17 nodes holds that resolution density across the ~1.75× wider production `b`
+range, and 17 is on the nested Chebyshev–Lobatto ladder (1,3,5,9,17,33) so the
+sparse build's nodes are reused from the solve store rather than re-solved.
+
 **Verification gate before this model is used:** the study locates the circular
 orbit as the *interior* minimum of `∂E_b/∂b|_J`. Raising `b_min` to `B_MIN` can
 push `b_circ` onto the lower edge for the smallest `J`, in which case the
@@ -128,10 +150,51 @@ fig09's panel (a) — ADM-`J` tilt vs spin tilt — comes from `sweep_3d` and ne
 oracle; the TP anchor overlay already self-disables via `D_anchors.available`.
 Only panels (b) and (c), the quasi-circular ψ and `M_ADM` comparisons *against*
 TwoPunctures, require the binary, and those are irreducibly a comparison.
-`make oracle` only echoes: **the build script is not bundled** anywhere in this
-repo, contrary to earlier revisions of this file. Building it means obtaining the
-Einstein Toolkit TwoPunctures C source (NRPy port) and compiling against GSL,
-then setting `LM_TP_BIN`.
+
+### Where the source comes from, and how the binary is built
+
+`make oracle` only echoes — the build script is **not** in this repo (it must not
+be: the oracle is deliberately external, so that "agrees with TwoPunctures" means
+something). It lives beside the binary it produces:
+
+```bash
+bash ~/.cache/bbhfm/parasol_tp_oracle/build.sh --check    # -> tp_solve  (+ self-test)
+```
+
+Provenance of everything that build script compiles:
+
+| layer | origin |
+|---|---|
+| physics | Einstein Toolkit thorn **`TwoPunctures`** (M. Ansorg, E. Schnetter, F. Löffler) — the single-domain spectral puncture solver of Ansorg, Brügmann & Tichy, *PRD* **70**, 064011 (2004), arXiv:gr-qc/0404056. Upstream `https://bitbucket.org/einsteintoolkit/einsteininitialdata`. **LGPL v2.0+.** |
+| C port | Z. B. Etienne's Cactus-free port, shipped inside the `nrpy` package as `nrpy/infrastructures/BHaH/general_relativity/TwoPunctures/` (`https://github.com/nrpy/nrpy`, PyPI `nrpy`). The build **pins** `nrpy==2.2026.6`. |
+| numerics | GSL (BiCGStab + linear algebra); built against GSL 2.7.1, linked statically so the binary is node-portable. |
+
+`build.sh` pip-installs the pinned `nrpy` into a throwaway venv, runs `emit_c.py`
+to write the six TwoPunctures translation units to disk **verbatim** (no upstream
+C is edited or retyped), and compiles them with two small local files:
+`shim/BHaH_defines.h` (the ~40-line subset of BH@H's generated header the
+solver actually uses — `REAL`, `derivs`, `ID_persist_struct`, transcribed from
+nrpy's own `ID_persist_str()`) and `shim/tp_solve_main.c` (argv/stdin/stdout glue
+only: it fills the struct, calls the unmodified `TP_solve()`, and evaluates the
+result with the unmodified `PunctIntPolAtArbitPositionFast()`). BH@H's
+`TP_Interp()` is not built — it only exists to fill a BH@H grid.
+
+The build is **serial on purpose**: upstream parallelises the BiCGStab
+line-relaxation preconditioner, which would make the Krylov path
+schedule-dependent. `tests/test_validation_spin.py::test_spin_axisymmetry_nphi`
+diffs ψ across two separate invocations at `1e-10`, and a paper oracle should be
+bit-reproducible, so ~2× wall-clock is traded for determinism (`TP_OPENMP=1`
+overrides).
+
+`build.sh --check` verifies the binary against closed-form Brill–Lindquist: at
+`P=0` the regular correction must vanish identically and `E = m_A + m_B`,
+`m^ADM_± = m_± + m_+m_-/(4b)`, `ψ = 1 + m_A/2r_A + m_B/2r_B` — all reproduced to
+**0.0** absolute. Aligned spins give `J = (S_A+S_B, 0, 0)` exactly. Resolution
+`n = 32→64` shows clean spectral convergence (`E` settles by ~1e-12).
+
+Set `LM_TP_BIN` to use a binary somewhere else; otherwise
+`~/.cache/bbhfm/parasol_tp_oracle/tp_solve` is the default that
+`validation/twopunctures.py` looks for.
 
 > Status: the recompute wiring (rewriting `figNN_*_data.py` to compute from the
 > solver/ROM instead of reading `reports/*.json`) is **Stage 2** — not yet done.
