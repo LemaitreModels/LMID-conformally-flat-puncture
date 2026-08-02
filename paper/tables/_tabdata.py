@@ -19,8 +19,10 @@ TABDATA = os.path.join(HERE, "tabdata")
 AXIS_TEX = {
     "b": r"$b$",
     "q": r"$q$",
-    "chi_A": r"$\chi^{A}$",
-    "chi_B": r"$\chi^{B}$",
+    # the aligned-spin axes of the (chi_A, chi_B) model ARE the y-components, so they
+    # carry the same notation as chi_Ay/chi_By rather than a second, bare spelling
+    "chi_A": r"$\chi^{A}_{y}$",
+    "chi_B": r"$\chi^{B}_{y}$",
     "chi_Ay": r"$\chi^{A}_{y}$",
     "chi_By": r"$\chi^{B}_{y}$",
 }
