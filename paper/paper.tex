@@ -414,7 +414,7 @@ iterate $u^{(0)}$, each step solves the linearized system
 \end{equation}
 for the increment $\delta u^{(k)}$ and updates
 $u^{(k+1)} = u^{(k)} + \delta u^{(k)}$.
-The residual and its exact Jacobian are
+The residual and its exact Jacobian $\partial{R} / \partial U$ are
 \begin{align}
   R(u) \ &\equiv \ M_0\,u \ + \ \tfrac{1}{8}\,(\psiBL+u)^{-7}\,\Ahat^2 \big|_{\rm int},
   \label{eq:residual}
@@ -498,13 +498,10 @@ Bowen--York spin that enters the analytic source is $\vect{S}^{X} = \boldsymbol{
 interpolation axes are $q$, $b$, and the individual spin \emph{components}
 $\chi^{X}_{i}$, i.e.\ up to eight scalar axes for the full two-spin family.
 
-Sampling the spins in $\chi^{X}_{i}$ rather than in the bare-mass spin $S^{X}_{i}$
-keeps the parameter domain rectangular, because the physical Kerr bound
-$|\chi^{X}_{i}|\le1$ is independent of the component masses. Interpolating directly
-in $S^{X}_{i}$ would instead make the admissible spin range vary with the mass
-ratio, distorting the domain and reducing the efficiency of tensor-product
-interpolation; Sec.~\ref{sec:model:peraxis} measures the resulting penalty. The
-spin axes are therefore fixed independent of $q$ and symmetric about zero. Each
+Sampling the spins in $\chi^{X}_{i}$ keeps the parameter domain rectangular,
+because the physical Kerr bound $|\chi^{X}_{i}|\le1$ is independent of the
+component masses. The spin axes are therefore fixed independent of $q$ and
+symmetric about zero. Each
 interpolation axis is finally mapped affinely onto $[-1,1]$, the natural domain
 of the Chebyshev basis.
 
@@ -597,10 +594,9 @@ $\|R\|_\infty\sim\mathcal{O}(1)$, and it certifies in no fewer Newton steps than
 the crude barycentric guess. The step count is therefore set by
 $\|R(u^{(0)})\|_\infty$, not by field accuracy, with two consequences. First,
 refining the interpolant's field accuracy is a weak lever on the online cost, so
-the certified polish, which drives $\|R\|\to0$ regardless of the guess, is the
+the certified polish, which drives $\|R\|_{\infty}\to0$ regardless of the guess, is the
 correct instrument. Second, one may discard the high-derivative content of the
-stored fields with no penalty, because the polish reconstructs it; this is what
-makes the reduced-basis re-encoding of Sec.~\ref{sec:param:pod} possible.
+fields with no penalty, since the polish reconstructs it; this enables the reduced-basis re-encoding of Sec.~\ref{sec:param:pod} possible.
 
 
 \subsection{Differentiability}
@@ -616,11 +612,10 @@ interpolant, but preserving differentiability through the projection back onto
 the Einstein constraint manifold. Implemented in JAX~\cite{Jax2018} as a
 branchless barycentric map, the surrogate admits forward-mode automatic
 differentiation, which returns $\partial U/\partial\theta$ and
-$\partial F/\partial\theta$ directly, without finite differences or a
-hand-written adjoint.
+$\partial F/\partial\theta$ directly, without numerical approximation.
 
 At each node the tangent of the certified solution is available directly.
-Differentiating the solution identity $R(U(\theta),\theta)\equiv0$ once gives the
+Differentiating the vanishing residual identity $R(U(\theta),\theta)\equiv0$ once gives the
 first-order forward-sensitivity equation
 \begin{equation}
   J\,\frac{\partial U}{\partial\theta_k} \ = \ -\,\frac{\partial R}{\partial\theta_k},
@@ -733,9 +728,8 @@ Restricting enhancement to $\mathcal{E}$ also keeps the stored-derivative count
 small: a full tensor-product Hermite over \emph{all} $d$ axes would carry mixed
 partials up to order $d$ ($2^d$ fields per node), whereas Eq.~\eqref{eq:hermite}
 carries only the $2^{|\mathcal{E}|}=4$ derivatives internal to the enhanced
-subspace --- the \emph{complete} tensor product there, node-exact for the value and
-for \emph{every} first and mixed tangent. The cross term is as cheap as the first
-tangents: differentiating the solution identity $R(U(\theta),\theta)\equiv0$ twice
+subspace. The cross term is as cheap as the first
+tangents: differentiating the vanishing residual identity $R(U(\theta),\theta)\equiv0$ twice
 gives the second-order forward-sensitivity equation
 \begin{widetext}
 \begin{equation}
@@ -761,11 +755,12 @@ the higher mixed partials of the correspondingly larger tensor product, and we d
 pursue it: Sec.~\ref{sec:model:joint} finds that a larger enhanced set degrades the
 model rather than improving it.
 
-The enhanced surrogate is thus more accurate at no additional expensive cost: it
+The gradient-enhanced surrogate is thus more accurate at no additional expensive cost: it
 reuses derivative information already produced by the offline build, introduces no
 new elliptic solves, and concentrates its accuracy gain along the slowly converging
-spin directions where interpolation is hardest. Certification is unaffected --- the
-enhanced surrogate remains only a warm start, refined to tolerance by the certified
+spin directions where interpolation is hardest.
+{\color{red} It only requires more memory to store the addional gradient information (see figure memory)}.
+Certification is unaffected: the enhanced surrogate remains only a warm start, refined to tolerance by the certified
 Newton step of Sec.~\ref{sec:polish}.
 
 \subsection{Building the grid: warm-started continuation}
@@ -776,8 +771,8 @@ $\texttt{solve}(\theta,\mathrm{guess})$ that computes the solution at a
 parameter point $\theta$ from an initial guess and, optionally, the parameter
 tangent $dU/d\theta$. The interpolation nodes are populated by traversing the
 tensor grid in a boustrophedon (reflected-serpentine) order, so that successive
-nodes differ by a single parameter increment. Each Newton solve therefore
-warm-starts from the converged solution at a neighbouring parameter point,
+nodes only differ by a single parameter increment. Each Newton solve can therefore
+warm-start from the converged solution at a neighbouring parameter point,
 while only the first solve requires a cold start.
 
 
@@ -798,7 +793,8 @@ tensor-product contributions.
 Index each axis by a resolution \emph{level} $l_k$, and let $I_{l_k}$ be the
 one-dimensional interpolation operator on the $m(l_k)$ nodes of that level, with
 $m(0)=1$ and $m(l)=2^{l}+1$
-Clenshaw--Curtis doubling nodes\footnote{The Clenshaw--Curtis nodes $\cos(\pi j/2^{l})$, $j=0,\dots,2^{l}$, are the extrema of the Chebyshev polynomials; taking $2^{l}{+}1$ of them (and thus doubling the number of subintervals each level) makes level $l$ a subset of level $l{+}1$, i.e.\ nested, since $\cos(\pi j/2^{l})=\cos(\pi(2j)/2^{l+1})$, such that the even nodes of level  $l{+}1$ are equal to the nodes of level $l$.}. These node sets are \emph{nested}, and the
+Clenshaw--Curtis doubling nodes\footnote{The Clenshaw--Curtis nodes $\cos(\pi j/2^{l})$, $j=0,\dots,2^{l}$, are the extrema of the Chebyshev polynomials; taking $2^{l}{+}1$ of them (and thus doubling the number of subintervals each level) makes level $l$ a subset of level $l{+}1$, i.e.\ nested, since $\cos(\pi j/2^{l})=\cos(\pi(2j)/2^{l+1})$, such that the even nodes of level  $l{+}1$ are equal to the nodes of level $l$.}.
+These node sets are \emph{nested}, and the
 levels telescope through the hierarchical surpluses
 $\Delta_{l}\equiv I_{l}-I_{l-1}$ (with $\Delta_0\equiv I_0$), so that
 $I_{L}=\sum_{l\le L}\Delta_{l}$. For an analytic map the surpluses decay
@@ -827,9 +823,8 @@ nonzero only for $\ell-d+1\le|\mathbf{l}|_1\le\ell$. Because the one-dimensional
 nodes are nested, the union of these subgrids is the sparse grid, and every node is
 solved only once.
 
-The sparse grid replaces the exponential offline solve count with one that grows
-polynomially in the per-axis resolution and near-linearly in the dimension ---
-$O(m\,(\log m)^{d-1})$ nodes versus $O(m^d)$ --- while retaining nearly the full
+The sparse grid replaces the exponential offline solve count with one that grows as $O(m\,(\log m)^{d-1})$ nodes versus $O(m^d)$,
+i.e.\ polynomially in the per-axis resolution and near-linearly in the dimension, while retaining nearly the full
 tensor-product accuracy. This scalability makes the higher-dimensional general-spin
 family tractable, where the full tensor grid is not, and the saving in offline solve
 count is quantified in Sec.~\ref{sec:model:joint}.
@@ -860,7 +855,7 @@ principal-component analysis)~\cite{Sirovich1987,BerkoozHolmesLumley1993}. Stack
 the $N$ stored fields as rows of a matrix and subtracting their mean $\bar u$, a
 singular-value decomposition yields orthonormal \emph{spatial} modes
 $\Phi=[\phi_1,\phi_2,\dots]$ ordered by singular value $\sigma_k$; each stored field
-can then be written as $u=\bar u+\Phi\,c$ with coefficients $c=\Phi^{\!\top}(u-\bar u)$. The
+can then be written as $u=\bar u + \Phi\,c$ with coefficients $c=\Phi^{\!\top}(u-\bar u)$. The
 singular values decay geometrically, because the map is analytic in $\theta$, the
 same analyticity that governs the interpolation error (Sec.~\ref{sec:model:walls}).
 Keeping the leading $r$ modes, we store $\Phi$ together with the length-$r$
@@ -943,7 +938,7 @@ $x\equiv M/D$, the per-puncture \emph{tangential} momentum is the non-spinning
 post-Newtonian series through 3PN~\cite{Walther2009},
 \begin{equation}
 \begin{aligned}
-    \frac{P_t}{\mu} \, &= \, x^{1/2} + 2\,x^{3/2} + \tfrac{1}{16}(42-43\nu)\,x^{5/2} \\
+    \frac{P_t}{\mu} \ &= \ x^{1/2} + 2\,x^{3/2} + \tfrac{1}{16}(42-43\nu)\,x^{5/2} \\
         &\quad + \tfrac{1}{128}\bigl(480 + (163\pi^2-4556)\nu + 104\nu^2\bigr)\,x^{7/2} .
 \end{aligned}
 \label{eq:pt}
@@ -984,13 +979,8 @@ and TwoPunctures in Appendix~\ref{sec:validation}.
 \label{sec:model:peraxis}
 Sweeping one parameter at a time, every axis converges geometrically
 (Fig.~\ref{fig:peraxis}). The separation $b$ and mass ratio $q$ are the fastest;
-the spins are somewhat slower, but all eight rates lie within a narrow band. In
-particular the two holes' spin axes \emph{equalize}, which is the payoff of
-sampling in the dimensionless $\chi$ rather than the bare-mass $S$
-(Sec.~\ref{sec:param:setup}): in $S$ the same astrophysical box drives the small
-hole toward extremal spin, making its axis some $2.6\times$ slower than the large
-hole's, whereas $\chi$ removes that penalty at only a marginal cost to the large
-hole. Gradient enhancement (Sec.~\ref{sec:param:hermite}) roughly doubles every
+the spins are somewhat slower, but all eight rates lie within a narrow band, and
+the two holes' spin axes converge at comparable rates. Gradient enhancement (Sec.~\ref{sec:param:hermite}) roughly doubles every
 rate for the price of one extra back-solve per node against the node's
 already-factored Jacobian. Because the joint held-out error is governed by the
 slowest of these axes, it is the spin directions that set the offline cost of the
@@ -1007,13 +997,11 @@ model (Sec.~\ref{sec:model:joint}).
     (``value'') is compared with the gradient-enhanced one
     (``value$+$gradient''), which also matches the certified parameter tangent at
     each node. A one-parameter sweep carries no mixed tangent, so the cross term of
-    Eq.~\eqref{eq:hermite} --- present in the joint models of
-    Figs.~\ref{fig:joint}--\ref{fig:pod} --- does not enter
+    Eq.~\eqref{eq:hermite} does not enter
     here. Markers are medians over $100$
     random base points for the non-swept axes, with whiskers spanning the
     best--worst range. Every axis decays geometrically, at the rates fit from the
-    median curves, and matching the tangent roughly doubles each rate
-    (Sec.~\ref{sec:model:peraxis}).}
+    median curves, and matching the tangent roughly doubles each rate.}
 \end{figure*}
 
 \subsection{Analyticity limits of the parameter map}
@@ -1065,17 +1053,17 @@ $b=3.5$, spins zero). Rewrite this paragraph once block \texttt{Q\_wall\_q} land
 The \emph{merger} wall, in the separation $b$, is hard. As the sampling interval
 is pushed toward coincidence the rate degrades smoothly and tracks the Bernstein
 prediction for a singularity fixed at $b=0$, the inferred $b_\ast$ staying at the
-merger throughout. This resolves a concern specific to the orbiting family: the
-$b\to0$ limit is \emph{doubly} singular --- the punctures coincide \emph{and} the
-post-Newtonian tangential momentum $P_t\propto b^{-1/2}$ diverges --- yet the
+merger throughout. This resolves the concern (specific to the orbiting family) that the
+$b\to0$ limit is \emph{doubly} singular: the punctures coincide \emph{and} the
+post-Newtonian tangential momentum $P_t\propto b^{-1/2}$ diverges, yet the
 extra branch does not \emph{relocate} the wall off $b=0$. Its only signature is a
 mild undershoot of the measured rate below the pure-coincidence prediction at the
-smallest $b_{\min}$: the momentum divergence makes the wall marginally
+smallest $b_{\min}$, i.e.\ the momentum divergence makes the wall marginally
 \emph{stronger}, not closer.
 
 The \emph{spin} wall, in $\chi$, is by contrast soft. The measured rate degrades
-only mildly as the range grows --- here deliberately extended past the production
-box to locate the wall --- and the inferred nearest \emph{real} singularity
+only mildly as the range grows. Here, the range was deliberately extended past the production
+box to locate the wall and the inferred nearest \emph{real} singularity
 marches outward, staying beyond the sampled range throughout, which is the
 signature of a complex-conjugate pair off the real axis rather than of a real
 wall. That nearest feature is already super-extremal, well past the Cook--York
@@ -1125,8 +1113,8 @@ sparse (Smolyak) grid~\cite{Smolyak1963,NobileTemponeWebster2008} breaks this an
 what makes both the four-dimensional and the eight-dimensional quasi-circular
 models (Sec.~\ref{sec:model:8d}) tractable. At isotropic Smolyak level $\ell=5$ the
 four-dimensional model is $1105$ solver nodes and the eight-dimensional one
-$15{,}713$ (field shape $45\times32\times8$), and the nested lower levels
-$\ell=1\subset\cdots\subset5$ are fully contained in each corpus, so no level
+$15{,}713$, and the nested lower levels
+$\ell=1\subset\cdots\subset5$ are fully contained in each corpus, so no lower level
 costs additional solves. The offline saving is decisive: from the measured
 per-axis rates, a tensor grid built to a \emph{bare} held-out accuracy of
 $10^{-6}$--$10^{-9}$ would cost two to four orders of magnitude more solves ---
@@ -1139,7 +1127,7 @@ lopsided: a full tensor grid at the four-dimensional sparse grid's finest level
 
 Evaluating the interpolant is cheap. A bare query is a single contraction over
 the stored nodal solves, with no Newton iteration and no factorization, and costs
-only a small fraction of one Newton--Krylov step of the elliptic solve --- less
+only a small fraction of one Newton--Krylov step of the elliptic solve, and less
 still after the reduced-basis re-encoding of Sec.~\ref{sec:model:pod}. The warm
 start it provides is therefore essentially free relative to the solve it seeds. A
 certified query is that same warm-started solve, and its saving over a cold solve
@@ -1148,16 +1136,6 @@ cold start needs. The practical pattern is thus to bulk-generate initial data
 with bare queries and certify only the configurations one actually evolves.
 Because the model is nothing but its stored nodal solves, its memory is
 \emph{linear} in the node count.
-
-One distinction frames both models correctly: the \emph{bare} interpolant is a
-warm start, not the product. Its joint held-out error falls geometrically with
-the Smolyak level (Fig.~\ref{fig:joint}). The certified polish then makes even
-that warm-start accuracy \emph{irrelevant to correctness}: a few Newton steps of the
-genuine solver drive the constraint residual to $\|R\|_\infty\le10^{-10}$ at any
-queried parameter (Fig.~\ref{fig:polish}), \emph{independent} of the
-interpolation error, and they do so at \emph{every} one of the $1000$ random
-off-node points tested, including the hard corners of the box where the bare
-guess is poorest. The interpolant accelerates; the polish certifies.
 
 \begin{figure*}[t]
   \centering
@@ -1234,10 +1212,10 @@ tensor grid's $Q^d$ cost makes the Smolyak construction of
 Sec.~\ref{sec:param:smolyak} not merely advantageous but necessary. The method is
 unchanged: with the in-plane spin axes centred on zero, the four-dimensional
 aligned model nests, node-for-node, inside the eight-dimensional one, and the
-$\ell=5$ grid is $15{,}713$ solver nodes --- reusing the entire aligned corpus and
+$\ell=5$ grid is $15{,}713$ solver nodes, reusing the entire aligned corpus and
 adding only the genuinely-new precessing nodes. Its in-plane spin axes converge
-like the aligned ones and show the same cross-hole equalization that
-$\chi$-sampling buys (Fig.~\ref{fig:peraxis}), and the in-plane spin wall is again
+like the aligned ones, the two holes at comparable rates
+(Fig.~\ref{fig:peraxis}), and the in-plane spin wall is again
 soft, its nearest real singularity receding as the fit range grows, so precession
 introduces no new hard wall. At this dimension it is the polish, not the bare
 sparse interpolant, that carries the accuracy: the $1000$-point certified-polish

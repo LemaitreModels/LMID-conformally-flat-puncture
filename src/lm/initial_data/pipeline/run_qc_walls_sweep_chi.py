@@ -56,12 +56,37 @@ BOX = pb.aligned_box(b_min=1.5, b_max=pb.B_MAX_NARROW)
 def _t(m): print(m, flush=True)
 
 
-def _rate(Qs, errs, floor=1e-9, ceil=1.0):
+# 21 low-discrepancy held-out fractions (golden-ratio sequence, kept off the interval
+# edges) for the WALL blocks B/C/Q, whose curves the paper's Fig. 2 fits.  The default
+# holdout is 5 points; fitting a geometric rate -- and then inverting it to a
+# singularity location -- on 5 points is thin, so the wall sweeps use these instead.
+# Block A is deliberately left on the default: its rates feed the per-axis table and
+# the block-D cost model, and changing its statistics would move published numbers.
+GOLDEN = 0.6180339887498949
+FRACS_DENSE = np.array(sorted(0.02 + 0.96 * ((np.arange(1, 22) * GOLDEN) % 1.0)))
+
+
+def _rate_n(Qs, errs, floor=1e-9, ceil=1.0):
+    """``(rate, n_fit)`` -- geometric rate and the size of the fitted window.
+
+    ``n_fit`` is what a consumer needs to redraw the fit line, so it is recorded
+    alongside the rate.  Downstream (``paper/figures/fig02_walls_data.py``) refits
+    the FIRST ``n_fit`` points and asserts it recovers ``rate``, which holds only
+    if the mask is a leading run; errors fall with Q, so it is -- but assert it
+    here rather than let a floored interior point surface as an opaque failure in
+    the figure build.
+    """
     Qs = np.asarray(Qs, float); errs = np.asarray(errs, float)
     m = (errs > floor) & (errs < ceil) & np.isfinite(errs)
     if m.sum() < 2:
         m = (errs > 0) & np.isfinite(errs)
-    return -float(np.polyfit(Qs[m], np.log10(errs[m]), 1)[0])
+    n = int(m.sum())
+    assert m[:n].all(), f"fit window is not a leading run: {m.astype(int)} for errs={errs}"
+    return -float(np.polyfit(Qs[m], np.log10(errs[m]), 1)[0]), n
+
+
+def _rate(Qs, errs, floor=1e-9, ceil=1.0):
+    return _rate_n(Qs, errs, floor=floor, ceil=ceil)[0]
 
 
 # ==========================================================================
@@ -93,20 +118,27 @@ def block_A(prob):
 # ==========================================================================
 # B — merger (b) wall (spins zero: chi==S label-irrelevant)
 # ==========================================================================
+QS_B_WALL = [4, 6, 8, 12, 16]
+"""Separation-wall Q ladder.  Five levels, not four: the fitted window closes on the
+float64 floor at large Q, and a 4-level ladder can leave only three usable points."""
+
+
 def block_B(prob):
     _t("\n########## B: merger (b) wall — QC (risk R3) ##########")
     b_max = 4.0
-    Qs = [4, 8, 12, 16]
+    Qs = QS_B_WALL
     out = []
     for b_min in [2.0, 1.5, 1.2, 1.0]:
         t0 = time.time()
-        rows, _ = p3.held_out_convergence_1axis(prob, "b", b_min, b_max, Qs,
-                                                fixed=dict(QC, q=1.0, chi_Ay=0.0, chi_By=0.0))
+        rows, hold = p3.held_out_convergence_1axis(prob, "b", b_min, b_max, Qs,
+                                                   fixed=dict(QC, q=1.0, chi_Ay=0.0, chi_By=0.0),
+                                                   fracs=FRACS_DENSE)
         Q_arr = [r[0] for r in rows]; e_arr = [float(r[1]) for r in rows]
-        rate = _rate(Q_arr, e_arr)
+        rate, n_fit = _rate_n(Q_arr, e_arr)
         pred0 = p3.bernstein_rate_from_zero(b_min, b_max)
         p_star = p3.infer_real_singularity(b_min, b_max, rate, side="left")
         out.append(dict(b_min=b_min, b_max=b_max, Qs=Q_arr, errs=e_arr, rate=rate,
+                        n_fit_points=n_fit, n_holdout=len(hold),
                         rate_pred_b0=pred0, inferred_sing=float(p_star)))
         _t(f"\n=== B: b_min={b_min}  rate={rate:.3f}  (b=0 Bernstein {pred0:.3f})  "
            f"inferred nearest sing b*={p_star:.3f}  [{time.time()-t0:.0f}s] ===")
@@ -128,7 +160,7 @@ def block_B(prob):
 # earlier against the ~1e-12 spatial floor.  [3,4,5,6,8,10] leaves >=4 usable
 # points at either extreme; _rate() masks the floored tail.
 QS_SPIN_INSIDE = [3, 4, 5, 6, 8, 10]
-QS_SPIN_OUTSIDE = [4, 6, 8, 10]
+QS_SPIN_OUTSIDE = [4, 6, 8, 10, 12]
 
 
 def _spin_wall_sweep(prob, chi_ranges, Qs, tag):
@@ -136,12 +168,14 @@ def _spin_wall_sweep(prob, chi_ranges, Qs, tag):
     out = []
     for chi_max in chi_ranges:
         t0 = time.time()
-        rows, _ = p3.held_out_convergence_1axis(prob, "chi_Ay", 0.0, chi_max, Qs,
-                                                fixed=dict(QC, b=pb.B_REP, q=1.0, chi_By=0.0))
+        rows, hold = p3.held_out_convergence_1axis(prob, "chi_Ay", 0.0, chi_max, Qs,
+                                                   fixed=dict(QC, b=pb.B_REP, q=1.0, chi_By=0.0),
+                                                   fracs=FRACS_DENSE)
         Q_arr = [r[0] for r in rows]; e_arr = [float(r[1]) for r in rows]
-        rate = _rate(Q_arr, e_arr)
+        rate, n_fit = _rate_n(Q_arr, e_arr)
         chi_star = p3.infer_real_singularity(0.0, chi_max, rate, side="right")
         out.append(dict(chi_max=float(chi_max), Qs=Q_arr, errs=e_arr, rate=rate,
+                        n_fit_points=n_fit, n_holdout=len(hold),
                         chi_star=float(chi_star)))
         _t(f"\n=== C[{tag}]: chi_Ay in [0,{chi_max:g}]  rate={rate:.3f}  "
            f"nearest sing chi*={chi_star:.2f}  [{time.time()-t0:.0f}s] ===")
@@ -169,12 +203,15 @@ def block_Q(prob):
     out = []
     for q_max in pb.WALL_Q_MAX:
         t0 = time.time()
-        rows, _ = p3.held_out_convergence_1axis(prob, "q", pb.Q_MIN, q_max, QS_Q_WALL,
-                                                fixed=dict(QC, b=pb.B_REP, chi_Ay=0.0, chi_By=0.0))
+        rows, hold = p3.held_out_convergence_1axis(prob, "q", pb.Q_MIN, q_max, QS_Q_WALL,
+                                                   fixed=dict(QC, b=pb.B_REP, chi_Ay=0.0,
+                                                              chi_By=0.0),
+                                                   fracs=FRACS_DENSE)
         Q_arr = [r[0] for r in rows]; e_arr = [float(r[1]) for r in rows]
-        rate = _rate(Q_arr, e_arr)
+        rate, n_fit = _rate_n(Q_arr, e_arr)
         q_star = p3.infer_real_singularity(pb.Q_MIN, q_max, rate, side="right")
         out.append(dict(q_max=float(q_max), Qs=Q_arr, errs=e_arr, rate=rate,
+                        n_fit_points=n_fit, n_holdout=len(hold),
                         q_star=float(q_star)))
         _t(f"\n=== Q: q in [{pb.Q_MIN:g},{q_max:g}]  rate={rate:.3f}  "
            f"nearest sing q*={q_star:.2f}  [{time.time()-t0:.0f}s] ===")

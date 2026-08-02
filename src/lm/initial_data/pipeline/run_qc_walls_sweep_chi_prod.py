@@ -73,17 +73,19 @@ def block_B_prod(prob):
     """Merger (b) wall at b_max=B_MAX (b_min swept below the box toward merger)."""
     w._t(f"\n########## B: merger (b) wall — QC (risk R3), b_max={B_MAX:g} ##########")
     b_max = B_MAX
-    Qs = [4, 8, 12, 16]
+    Qs = w.QS_B_WALL
     out = []
     for b_min in pb.WALL_B_MIN_SWEEP:
         t0 = time.time()
-        rows, _ = p3.held_out_convergence_1axis(prob, "b", b_min, b_max, Qs,
-                                                fixed=dict(QC, q=1.0, chi_Ay=0.0, chi_By=0.0))
+        rows, hold = p3.held_out_convergence_1axis(prob, "b", b_min, b_max, Qs,
+                                                   fixed=dict(QC, q=1.0, chi_Ay=0.0, chi_By=0.0),
+                                                   fracs=w.FRACS_DENSE)
         Q_arr = [r[0] for r in rows]; e_arr = [float(r[1]) for r in rows]
-        rate = w._rate(Q_arr, e_arr)
+        rate, n_fit = w._rate_n(Q_arr, e_arr)
         pred0 = p3.bernstein_rate_from_zero(b_min, b_max)
         p_star = p3.infer_real_singularity(b_min, b_max, rate, side="left")
         out.append(dict(b_min=b_min, b_max=b_max, Qs=Q_arr, errs=e_arr, rate=rate,
+                        n_fit_points=n_fit, n_holdout=len(hold),
                         rate_pred_b0=pred0, inferred_sing=float(p_star)))
         w._t(f"\n=== B: b_min={b_min}  rate={rate:.3f}  (b=0 Bernstein {pred0:.3f})  "
              f"inferred nearest sing b*={p_star:.3f}  [{time.time()-t0:.0f}s] ===")

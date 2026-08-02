@@ -35,10 +35,15 @@ SOURCES = {
                                  producer="run_qc_peraxis_dist_chi.py --assemble", where="cluster",
                                  status="ready", figures=["fig01_peraxis_hermite"]),
 
-    # ---- fig02 (both analyticity walls, merged) ----
-    "walls_dense":          dict(reports="3D_parametric/qc/walls_d4_qc_dense.json",
-                                 producer="run_qc_walls_sweep_chi_prod.py (dense ladder)", where="cluster",
-                                 status="ready",
+    # ---- fig02 (all three analyticity walls, merged) ----
+    # Was 3D_parametric/qc/walls_d4_qc_dense.json, which no producer in this package
+    # writes: it is the monorepo's run_qc_dense_stats.py, on the superseded narrow box
+    # b in [1.5,4] in the OLD bare-spin (S_Ay,S_By) parameterization, and it carries no
+    # mass-ratio block.  The production producer is the one named here; "dense" now
+    # refers to its wall blocks' 21-point held-out sets and 5-level Q ladders.
+    "walls_dense":          dict(reports="3D_parametric/qc_chi_prod/walls_d4_qc_chi.json",
+                                 producer="run_qc_walls_sweep_chi_prod.py", where="cluster",
+                                 status="pending",
                                  figures=["fig02_walls"]),
 
     # ---- fig03 (joint held-out distribution) ----
