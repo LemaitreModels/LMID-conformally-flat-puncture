@@ -43,7 +43,7 @@ SOURCES = {
     # refers to its wall blocks' 21-point held-out sets and 5-level Q ladders.
     "walls_dense":          dict(reports="3D_parametric/qc_chi_prod/walls_d4_qc_chi.json",
                                  producer="run_qc_walls_sweep_chi_prod.py", where="cluster",
-                                 status="pending",
+                                 status="ready",
                                  figures=["fig02_walls"]),
 
     # ---- fig03 (joint held-out distribution) ----

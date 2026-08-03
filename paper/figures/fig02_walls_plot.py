@@ -50,10 +50,12 @@ from _figstyle import PANEL_W
 # panels are 4.5 x 2.4 (aspect 1.88:1) rather than 4.5 x 3.0.
 PANEL_H_SHORT = 2.4
 
-# The mass-ratio wall's CHARACTER (pinned real branch point vs marching complex
-# pair) is not yet measured, so this title deliberately makes no claim, unlike its
-# two neighbours.  Once Q_wall_q lands, append the measured character.
-Q_TITLE = "Mass-ratio wall"  # TODO(character): "— hard, real" / "— soft, complex"
+# The mass-ratio wall's CHARACTER, now measured (block Q_wall_q): q* MARCHES with the
+# sampled range -- 4.19, 4.78, 5.22 as q_max goes 3.0, 3.5, 4.0 -- rather than sitting
+# at a fixed q, so the limiting singularity is not a real branch point pinned inside
+# the box.  That is the SPIN panel's behaviour (chi* 2.2, 3.0, 4.1), not the
+# separation panel's (b* pinned near merger), hence the same wording as the former.
+Q_TITLE = "Mass-ratio wall — soft, complex"
 
 
 def _panel(ax, curves, key, label_fmt, xlabel, title):

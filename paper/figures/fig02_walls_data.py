@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Data for fig02_walls: distill the plotted arrays to figdata/.
 
-Source (raw): reports/3D_parametric/qc/walls_d4_qc_dense.json  (key "walls_dense").
+Source (raw): reports/3D_parametric/qc_chi_prod/walls_d4_qc_chi.json (key "walls_dense",
+whose registry entry documents why this superseded the old qc/walls_d4_qc_dense.json).
 This ONE figure carries all three analyticity walls (formerly two separate figures):
 the separation/merger wall (block B_wall_b), the mass-ratio wall (block Q_wall_q),
 and the spin wall (block C_wall_spin).  Panel order is separation | q | spin, i.e.
@@ -44,6 +45,31 @@ def _fit(Qs, errs, n_fit):
     return float(slope), float(intercept)
 
 
+# The fitted-window size.  The producer records it as "n_fit_points", but the
+# production sweep's Q_wall_q block does not carry the key (and its B/C blocks
+# predate it), so derive it when absent by the producer's OWN rule --
+# run_qc_walls_sweep_chi._rate_n: the window is the points inside
+# (FIT_FLOOR, FIT_CEIL), i.e. above the machine-precision floor and below the
+# useless-error ceiling, which that function asserts is a leading run.  This is a
+# recovery of the recorded quantity, not a re-choice of the window: the `assert`
+# at each call site refits the recovered window and requires it to reproduce the
+# stored `rate` to 1e-9, so a wrong n_fit fails the build loudly.
+FIT_FLOOR, FIT_CEIL = 1e-9, 1.0
+
+
+def _n_fit(w):
+    """``n_fit_points`` if the source records it, else recovered (see above)."""
+    if "n_fit_points" in w:
+        return w["n_fit_points"]
+    e = np.asarray(w["errs"], float)
+    m = (e > FIT_FLOOR) & (e < FIT_CEIL) & np.isfinite(e)
+    if m.sum() < 2:
+        m = (e > 0) & np.isfinite(e)
+    n = int(m.sum())
+    assert m[:n].all(), f"fit window is not a leading run: {m.astype(int)}"
+    return n
+
+
 def build():
     r = load_source("walls_dense")
 
@@ -51,10 +77,11 @@ def build():
     for w in r["B_wall_b"]:
         if any(abs(w["b_min"] - b) < 1e-9 for b in DROP_B_MIN):
             continue
-        slope, intercept = _fit(w["Qs"], w["errs"], w["n_fit_points"])
+        n_fit = _n_fit(w)
+        slope, intercept = _fit(w["Qs"], w["errs"], n_fit)
         assert abs(-slope - w["rate"]) < 1e-9, (w["b_min"], -slope, w["rate"])
         B.append(dict(Qs=w["Qs"], errs=w["errs"], b_min=w["b_min"], rate=w["rate"],
-                      theta_star=w["inferred_sing"], n_fit=w["n_fit_points"],
+                      theta_star=w["inferred_sing"], n_fit=n_fit,
                       fit_slope=slope, fit_intercept=intercept))
 
     # mass-ratio wall: same shape as the spin block, with q_max/q_star in place of
@@ -62,18 +89,20 @@ def build():
     # so q_star is mapped onto that key here.
     Q = []
     for w in r["Q_wall_q"]:
-        slope, intercept = _fit(w["Qs"], w["errs"], w["n_fit_points"])
+        n_fit = _n_fit(w)
+        slope, intercept = _fit(w["Qs"], w["errs"], n_fit)
         assert abs(-slope - w["rate"]) < 1e-9, (w["q_max"], -slope, w["rate"])
         Q.append(dict(Qs=w["Qs"], errs=w["errs"], q_max=w["q_max"], rate=w["rate"],
-                      theta_star=w["q_star"], n_fit=w["n_fit_points"],
+                      theta_star=w["q_star"], n_fit=n_fit,
                       fit_slope=slope, fit_intercept=intercept))
 
     C = []
     for w in r["C_wall_spin"]:
-        slope, intercept = _fit(w["Qs"], w["errs"], w["n_fit_points"])
+        n_fit = _n_fit(w)
+        slope, intercept = _fit(w["Qs"], w["errs"], n_fit)
         assert abs(-slope - w["rate"]) < 1e-9, (w["chi_max"], -slope, w["rate"])
         C.append(dict(Qs=w["Qs"], errs=w["errs"], chi_max=w["chi_max"], rate=w["rate"],
-                      theta_star=w["chi_star"], n_fit=w["n_fit_points"],
+                      theta_star=w["chi_star"], n_fit=n_fit,
                       fit_slope=slope, fit_intercept=intercept))
 
     p = dump("fig02_walls", dict(B_wall_b=B, Q_wall_q=Q, C_wall_spin=C))
