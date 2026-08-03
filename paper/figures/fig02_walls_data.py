@@ -25,15 +25,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _figdata import load_source, dump
 
 # Separation fit ranges dropped from the figure for legibility (still in the raw
-# source); this kept the panel to three curves, matching the spin panel.
+# source); this keeps the panel to three curves, matching its two neighbours.
 #
-# NOTE: 1.2 was in the superseded narrow-box sweep.  The production sweep is
-# production_box.WALL_B_MIN_SWEEP = (3.0, 2.0, 1.5, 1.0), so this filter is now a
-# no-op and the panel renders FOUR curves against three in its neighbours.  Left as
-# a no-op deliberately: dropping a range is a presentation choice (3.0 is the
-# production box edge, hence the in-box rate; 2.0/1.5/1.0 are the three that probe
-# toward merger and are what the published figure shows), so it is not made here.
-DROP_B_MIN = (1.2,)
+# 1.2 was in the superseded narrow-box sweep.  1.5 is a PRESENTATION drop from the
+# production sweep production_box.WALL_B_MIN_SWEEP = (3.0, 2.0, 1.5, 1.0), made by
+# the author so the separation panel carries three curves like the mass-ratio and
+# spin panels rather than four.  It costs the figure nothing: the panel's claim is
+# that the rate degrades smoothly toward coincidence while b* stays pinned at the
+# merger, and 3.0/2.0/1.0 (rho = 0.52/0.40/0.27, b* = 0.22/0.18/0.12) carry both --
+# 3.0 is the production box edge, hence the in-box rate, and 1.0 is the smallest
+# range, the one the text's momentum-divergence undershoot refers to.  No sentence
+# in the paper quotes the 1.5 curve.
+DROP_B_MIN = (1.2, 1.5)
 
 
 def _fit(Qs, errs, n_fit):
