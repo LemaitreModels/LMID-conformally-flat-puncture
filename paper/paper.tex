@@ -1346,13 +1346,9 @@ The first workflow is parameter control~\cite{Mendes2025}: find the free data th
 realize a chosen physical configuration. The standard tool is a black-box control
 loop, i.e.\ an outer Newton/Broyden iteration that adjusts the free data and performs a
 full constraint solve at every step to measure the resulting physical parameters. We
-target the ADM mass and angular momentum $(\Madm,J)$ by adjusting $(b,q)$, over $100$
-random known-answer targets, and compare three strategies. This demonstration runs
-on an earlier narrow-separation four-dimensional quasi-circular model
-($b\in[1.5,4]\,M$, $q\in[1,3]$, aligned spins parameterized by the bare spin
-$S^{X}_{y}\in[-0.4,0.4]$, Smolyak $\ell=4$) rather than on the production box; what
-it measures is the cost \emph{class} of the control loop, which is a property of the
-method and not of the box. A \emph{cold} black box
+target the ADM mass and angular momentum $(\Madm,J)$ by adjusting $(b,q)$ at zero
+spin, over $100$ random known-answer targets, and compare three strategies, all on
+the four-dimensional aligned-spin model of Sec.~\ref{sec:model}. A \emph{cold} black box
 solves the constraints from scratch at each control evaluation. A \emph{warm} black
 box seeds each solve from the interpolant, so every constraint solve begins close to
 its answer. The \emph{differentiable} method runs the entire Gauss--Newton control
@@ -1361,9 +1357,9 @@ result with a few Newton steps (i.e.\ no
 elliptic solve per step, and no finite-difference Jacobian).
 
 Differentiability changes the cost class here
-(Fig.~\ref{fig:targeting}). The gradient method reaches every target in a
-\emph{fixed} three certified solves, independent of target difficulty, whereas both
-black-box variants take a target-dependent median of ten.
+(Fig.~\ref{fig:targeting}). The gradient method reaches every target in at most
+three certified solves, with a median of two, whereas both black-box variants take a
+target-dependent seven to fourteen, with a median of ten.
 Warm-starting cuts the per-solve cost but \emph{not}
 the number of solves: the outer control iteration is unchanged, so a warm start alone
 never leaves the black box's complexity class. The distinction is structural. A
@@ -1384,11 +1380,11 @@ widens with the number of controlled parameters.
     measured in \emph{certified} elliptic solves. Each method is drawn as the
     across-target median residual at each solve count, with min--max whiskers.
     Running the control loop on the differentiable parametric model
-    reaches tolerance in at most three certified solves for every target; the
-    black-box loop takes a target-dependent median of ten. {\color{red}Measured on the earlier
-    narrow-separation four-dimensional quasi-circular model ($b\in[1.5,4]\,M$,
-    Smolyak $\ell=4$), not the production box: the quantity demonstrated is the
-    cost class of the control loop, which does not depend on the box.}}
+    reaches tolerance in at most three certified solves for every target, with a
+    median of two; the black-box loop takes a target-dependent seven to fourteen,
+    with a median of ten. Measured on the four-dimensional aligned-spin model over
+    the production box of Table~\ref{tab:box}, at zero spin; every configuration
+    emitted is certified to $\|R\|_\infty\le10^{-10}$.}
 \end{figure}
 
 \subsection{Eccentricity reduction}
