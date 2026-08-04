@@ -24,8 +24,9 @@ sys.path.insert(0, HERE)
 from _figdata import load
 from _figstyle import figdims
 
-# grey black-box control loop vs default-tab:blue differentiable surrogate
-C = {"cold": "0.6", "gradient": "tab:blue"}
+# grey black-box control loop vs tab:green differentiable surrogate (C0/C1 are
+# reserved for the paper's two models, so the applications figures start at C2)
+C = {"cold": "0.6", "gradient": "tab:green"}
 LB = {"cold": "black-box", "gradient": "differentiable surrogate"}
 PLOT = ("cold", "gradient")
 OFFS = {"cold": -0.08, "gradient": +0.08}   # nudge apart so whiskers don't overlap

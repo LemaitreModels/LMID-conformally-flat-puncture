@@ -62,8 +62,8 @@ def _panel(ax, curves, key, label_fmt, xlabel, title):
     """Draw one wall: data markers + geometric fit line per fit range."""
     for i, w in enumerate(curves):
         Qs = np.asarray(w["Qs"], float)
-        # reserve C0-C2 (tab:blue/orange/green) for the paper's models; start at C3
-        (line,) = ax.semilogy(Qs, w["errs"], "o", ms=5, color=f"C{3 + i}",
+        # reserve C0-C1 (tab:blue/orange) for the paper's two models; start at C2
+        (line,) = ax.semilogy(Qs, w["errs"], "o", ms=5, color=f"C{2 + i}",
                               label=label_fmt(w[key], w["rate"], w["theta_star"]))
         col = line.get_color()
         # geometric fit line over the fitted window (first n_fit points)

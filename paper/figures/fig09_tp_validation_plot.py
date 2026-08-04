@@ -44,8 +44,8 @@ def main():
                                    sharex=True)
 
     # (a) quasi-circular psi vs TwoPunctures
-    # reserve C0-C2 (tab:blue/orange/green) for the paper's models; start at C3
-    ax1.semilogy(range(len(C)), [r["max_dpsi"] for r in C], "o-", color="C3")
+    # reserve C0-C1 (tab:blue/orange) for the paper's two models; start at C2
+    ax1.semilogy(range(len(C)), [r["max_dpsi"] for r in C], "o-", color="C2")
     ax1.set_ylabel(r"$\max|\psi-\psi_{\rm TP}|$")
     ax1.set_title(r"(a) quasi-circular field vs TP", fontsize=10)
     ax1.grid(True, which="both", alpha=0.3)
@@ -57,7 +57,7 @@ def main():
     ax1.tick_params(axis="y", which="minor", labelsize=8)
 
     # (b) quasi-circular ADM mass vs TwoPunctures -- shares the grid axis with (a)
-    ax2.semilogy(range(len(C)), [r["M_ADM_rel_diff"] for r in C], "o-", color="C4")
+    ax2.semilogy(range(len(C)), [r["M_ADM_rel_diff"] for r in C], "o-", color="C3")
     ax2.set_ylabel(r"$|M_{\rm ADM}-E_{\rm TP}|/E_{\rm TP}$")
     ax2.set_title(r"(b) quasi-circular ADM mass vs TP", fontsize=10)
     ax2.grid(True, which="both", alpha=0.3)

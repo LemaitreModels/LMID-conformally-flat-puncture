@@ -32,8 +32,8 @@ def main():
     n_scan, n_grad = int(d["n_scan"]), int(d["n_grad"])
     bg = np.asarray(d["bg"], float)
 
-    # reserve tab:blue/orange/green for the paper's models; start after the first 3
-    PALETTE = ["tab:red", "tab:purple", "tab:brown", "tab:pink", "tab:gray"]
+    # reserve tab:blue/orange for the paper's two models; start after the first 2
+    PALETTE = ["tab:green", "tab:red", "tab:purple", "tab:brown", "tab:pink"]
     cols = {J: PALETTE[i % len(PALETTE)] for i, J in enumerate(Jlist)}
 
     fig, ax = plt.subplots(figsize=figdims(1, 1))
