@@ -3,7 +3,7 @@
 
 A 2x2 grid with a SHARED Newton-step x-axis per column. Columns are 4D | 8D; each panel draws three
 curves as a median line with 1000-point min--max whiskers on every Newton polish step:
-(1) cold start (no surrogate), (2) value-only surrogate, and (3) the shipped gradient-enhanced
+(1) cold start (no model), (2) value-only model, and (3) the shipped gradient-enhanced
 (full-bilinear) POD warm start.
 
   TOP row    constraint residual ||R||_inf per step (the certified quantity).
@@ -64,7 +64,7 @@ def _legend_spec(col):
     """(title, (cold, value, pod)) for the column's legend; shared by both rows, so the two
     cannot drift apart.
 
-    Both surrogate curves are compressed to the SAME rank, so the rank is stated once in the
+    Both parametric-model curves are compressed to the SAME rank, so the rank is stated once in the
     legend title instead of being repeated in two labels: that halves the box width (71% -> 49%
     of the panel), which is what lets it sit in the bottom panel's empty upper right without
     covering the descending cold-start staircase. The rank is a per-column property of the
@@ -72,7 +72,7 @@ def _legend_spec(col):
     """
     r = col.get("res_pod", {}).get("r")           # set only for the POD curves
     return ((fr"POD rank $r={r}$" if r else None),
-            ("cold start (no surrogate)", "value-only", "gradient-enhanced"))
+            ("cold start (no model)", "value-only", "gradient-enhanced"))
 
 
 def _plot_residual(ax, col):

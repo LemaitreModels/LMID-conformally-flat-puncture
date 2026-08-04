@@ -5,7 +5,7 @@ A SINGLE-COLUMN 3x1 figure of held-out convergence curves, stacked in order of h
 close the inferred wall sits to the sampled box:
   TOP     separation wall: held-out error vs separation nodes Q_b, per fit range;
   MIDDLE  mass-ratio wall: held-out error vs mass-ratio nodes Q_q, per fit range;
-  BOTTOM  spin wall:       held-out error vs spin nodes Q_S,       per fit range.
+  BOTTOM  spin wall:       held-out error vs spin nodes Q_chi,     per fit range.
 Each curve shows the data (markers) AND its geometric fit line eps ~ A*10^(-rho*Q);
 the legend reports, per fit range, the rate rho (decades/node) and the inferred
 nearest real singularity theta* (b* pinned near merger; chi* marching outward).
@@ -54,8 +54,9 @@ PANEL_H_SHORT = 2.4
 # sampled range -- 4.19, 4.78, 5.22 as q_max goes 3.0, 3.5, 4.0 -- rather than sitting
 # at a fixed q, so the limiting singularity is not a real branch point pinned inside
 # the box.  That is the SPIN panel's behaviour (chi* 2.2, 3.0, 4.1), not the
-# separation panel's (b* pinned near merger), hence the same wording as the former.
-Q_TITLE = "Mass-ratio wall — soft, complex"
+# separation panel's (b* pinned near merger).  The panel titles name the axis only;
+# each wall's soft/hard CHARACTER is stated in the caption of Fig. 2.
+Q_TITLE = "Mass-ratio wall"
 
 
 def _panel(ax, curves, key, label_fmt, xlabel, title):
@@ -85,15 +86,15 @@ def main():
     _panel(ax1, d["B_wall_b"], "b_min",
            lambda r, rho, th: rf"$b_{{\min}}={r}$;   fit:  $\rho={rho:.2f}$,  $b_\ast={th:.2f}$",
            r"separation nodes  $Q_b$",
-           "Separation (merger) wall — hard, real")
+           "Separation wall")
     _panel(ax2, d["Q_wall_q"], "q_max",
            lambda r, rho, th: rf"$q_{{\max}}={r:.1f}$;   fit:  $\rho={rho:.2f}$,  $q_\ast={th:.2f}$",
            r"mass-ratio nodes  $Q_q$",
            Q_TITLE)
     _panel(ax3, d["C_wall_spin"], "chi_max",
            lambda r, rho, th: rf"$\chi_{{\max}}={r:.1f}$;   fit:  $\rho={rho:.2f}$,  $\chi_\ast={th:.1f}$",
-           r"spin nodes  $Q_S$",
-           "Spin wall — soft, complex")
+           r"spin nodes  $Q_\chi$",
+           "Spin wall")
 
     fig.tight_layout()
     stem = os.path.join(HERE, "fig02_walls")

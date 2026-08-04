@@ -2,7 +2,7 @@
 """Data for fig07_eccentricity: precompute the smooth E_b(b;J) curves to figdata/.
 
 fig07 is the ONLY figure whose plotter used to import jax + the LM-initial-data package and evaluate a
-surrogate model (surrogate_bpt_ecc.npz) at plot time. This script does that evaluation ONCE and
+parametric model (surrogate_bpt_ecc.npz) at plot time. This script does that evaluation ONCE and
 writes the smooth curves + the certified scan points + the gradient minima as plain arrays to
 figdata/fig07_eccentricity.json, so the plotter (and every other figure) is pure-data.
 
@@ -43,7 +43,7 @@ def build():
                             for J in Jlist])
     bg = np.linspace(float(b_all.min()), float(b_all.max()), 240)
     # The scan spans the whole box, so bg's endpoints ARE Chebyshev-Lobatto nodes
-    # of the surrogate, where the jax barycentric quotient is 0/0 and V returns
+    # of the parametric model, where the jax barycentric quotient is 0/0 and V returns
     # NaN (qc_effpot.off_node).  Evaluate a hair off any such node; the shift is
     # ~1e-6 of the box width, far below the line width, and keeps the plotted
     # curve finite across the full span instead of dropping its end points.
@@ -58,7 +58,7 @@ def build():
             scan_Eb=np.asarray(pj["scan_curve"]["Eb"], float),
             b_circ=bc,
             Vg=[float(V(E.off_node(b, model, J, box_b), J)) for b in bg],
-            Vc=float(V(bc, J)),                # surrogate value at the gradient minimum
+            Vc=float(V(bc, J)),                # model value at the gradient minimum
         )
     p = dump("fig07_eccentricity",
              dict(Jlist=Jlist, n_scan=n_scan, n_grad=n_grad, bg=bg, per_J=per))

@@ -3,7 +3,7 @@
 
 Quasi-circular TwoPunctures validation, a SINGLE-COLUMN 2x1 figure whose panels
 share the one x axis (the LM-initial-data grid sequence):
- (a) TOP     max|psi - psi_TP|          -- the pointwise field comparison;
+ (a) TOP     ||psi - psi_TP||_inf       -- the pointwise field comparison;
  (b) BOTTOM  |M_ADM - E_TP|/E_TP        -- the integral (ADM mass) comparison.
 
 Paper side: this is a `figure` at width=\\columnwidth, NOT a `figure*`.
@@ -35,6 +35,24 @@ from _figdata import load
 from _figstyle import figdims, PANEL_H_STACK
 
 
+class _LogMinorSkip(LogFormatterSciNotation):
+    """LogFormatterSciNotation with a blacklist of tick values left unlabelled.
+
+    Subclassed rather than wrapped in a FuncFormatter so that `set_locs` still
+    reaches the base class, which is what selects *which* minor ticks get a
+    label at all (wrapping labels every minor tick and the axis becomes a jumble).
+    """
+
+    def __init__(self, skip=(), **kw):
+        super().__init__(**kw)
+        self._skip = tuple(skip)
+
+    def __call__(self, x, pos=None):
+        if any(abs(x / s - 1.0) < 1e-6 for s in self._skip):
+            return ""
+        return super().__call__(x, pos)
+
+
 def main():
     d = load("fig09_tp_validation")
     C = d["C_psi_adm"]
@@ -46,20 +64,22 @@ def main():
     # (a) quasi-circular psi vs TwoPunctures
     # reserve C0-C1 (tab:blue/orange) for the paper's two models; start at C2
     ax1.semilogy(range(len(C)), [r["max_dpsi"] for r in C], "o-", color="C2")
-    ax1.set_ylabel(r"$\max|\psi-\psi_{\rm TP}|$")
-    ax1.set_title(r"(a) quasi-circular field vs TP", fontsize=10)
+    ax1.set_ylabel(r"$\|\psi-\psi_{\rm TP}\|_\infty$")
+    ax1.set_title(r"Quasi-circular field vs TP", fontsize=10)
     ax1.grid(True, which="both", alpha=0.3)
     # this panel spans barely one decade, so the lone labelled decade leaves the
-    # scale unreadable: label the minor ticks too (panel (b) spans four and needs none)
-    ax1.yaxis.set_minor_formatter(LogFormatterSciNotation(minor_thresholds=(2.0, 0.6)))
+    # scale unreadable: label the minor ticks too (panel (b) spans four and needs none).
+    # 3e-9 is dropped: its label crowds the 2e-9 and 4e-9 ones on either side.
+    ax1.yaxis.set_minor_formatter(
+        _LogMinorSkip(skip=(3e-9,), minor_thresholds=(2.0, 0.6)))
     # 8 pt here renders at ~6.3 pt after LaTeX's 0.78 downscale, matching the
     # smallest text already accepted elsewhere in the paper (fig02's 6.05 pt legend)
     ax1.tick_params(axis="y", which="minor", labelsize=8)
 
     # (b) quasi-circular ADM mass vs TwoPunctures -- shares the grid axis with (a)
-    ax2.semilogy(range(len(C)), [r["M_ADM_rel_diff"] for r in C], "o-", color="C3")
+    ax2.semilogy(range(len(C)), [r["M_ADM_rel_diff"] for r in C], "o-", color="C2")
     ax2.set_ylabel(r"$|M_{\rm ADM}-E_{\rm TP}|/E_{\rm TP}$")
-    ax2.set_title(r"(b) quasi-circular ADM mass vs TP", fontsize=10)
+    ax2.set_title(r"Quasi-circular ADM mass vs TP", fontsize=10)
     ax2.grid(True, which="both", alpha=0.3)
 
     # one shared x axis: ticks set on the shared axis, labelled only on the bottom

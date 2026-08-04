@@ -514,12 +514,12 @@ space. Each nodal value therefore corresponds to the same physical location in
 the compactified coordinate domain throughout parameter space. This fixed
 representation makes tensor-product interpolation over the parameters
 well-defined: the interpolant acts directly on corresponding nodal values,
-producing a surrogate field on the same spectral grid. The resulting surrogate
-inherits the smoothness of the underlying family of solutions and can be
-evaluated at arbitrary parameter values before being interpolated to arbitrary
-spatial coordinates using the coefficient-free spectral interpolation described
-in Sec.~\ref{sec:solve:abt}.
-The resulting parametric model is then,
+producing an interpolated field on the same spectral grid. The resulting
+parametric model inherits the smoothness of the underlying family of solutions
+and can be evaluated at arbitrary parameter values before being interpolated to
+arbitrary spatial coordinates using the coefficient-free spectral interpolation
+described in Sec.~\ref{sec:solve:abt}.
+The parametric model is then,
 \begin{equation}
   \tilde{u}(\vect{x};\theta) \ = \
   \sum_{i_1=0}^{Q_1}\!\cdots\!\sum_{i_d=0}^{Q_d} \
@@ -568,7 +568,7 @@ Sec.~\ref{sec:model:walls}.
 \subsection{Certified refinement}
 \label{sec:polish}
 % ===========================================================================
-The surrogate of Eq.~\eqref{eq:surrogate} supplies only a
+The parametric model of Eq.~\eqref{eq:surrogate} supplies only a
 \emph{guess}. We certify it with a few Newton steps of the genuine elliptic
 solver of Sec.~\ref{sec:solve:newton}. Taking the barycentric prediction as the
 initial iterate, $u^{(0)} = \mathcal{I}[u](\theta)$, we then apply the Newton
@@ -610,7 +610,7 @@ unremarkable; the content of the claim is that these are derivatives of the
 \emph{certified} initial data. The challenge is therefore not differentiating the
 interpolant, but preserving differentiability through the projection back onto
 the Einstein constraint manifold. Implemented in JAX~\cite{Jax2018} as a
-branchless barycentric map, the surrogate admits forward-mode automatic
+branchless barycentric map, the parametric model admits forward-mode automatic
 differentiation, which returns $\partial U/\partial\theta$ and
 $\partial F/\partial\theta$ directly, without numerical approximation.
 
@@ -646,7 +646,7 @@ tangent is finite-differenced.
 
 Two references verify the exposed sensitivities, and they play distinct roles
 (Appendix~\ref{sec:app:tangent}). Second-order central finite differences of the same
-differentiable surrogate confirm the automatic differentiation itself. The
+differentiable parametric model confirm the automatic differentiation itself. The
 load-bearing check is against the implicit-function-theorem tangent of
 Eq.~\eqref{eq:tangent}, computed independently from the certified solve at the
 same parameter point: this is what establishes that the exposed gradient is the
@@ -673,7 +673,7 @@ of a single back-solve against the node's already-factored Jacobian
 (Sec.~\ref{sec:param:diff}). This derivative information has therefore already been
 paid for, and to interpolate only the stored field values $U_i$ of
 Eq.~\eqref{eq:surrogate} would discard it. Gradient-enhanced (Hermite) collocation
-reincorporates it into the surrogate, matching values \emph{and}
+reincorporates it into the parametric model, matching values \emph{and}
 parameter-derivatives at each node.
 
 The gain is worth harvesting only where interpolation converges slowly. The fast
@@ -690,7 +690,7 @@ axes used throughout this work, let $i_A$ and $i_B$ denote the two indices $i_k$
 with $k\in\mathcal{E}$, write $U\equiv U_{i_1\cdots i_d}(\vect{x})$ for the
 certified solve stored at the node, and suppress the cardinal arguments,
 $H_{i_A}\equiv H_{i_A}(\chi^{A}_{y})$ and $\hat H_{i_B}\equiv\hat H_{i_B}(\chi^{B}_{y})$.
-The surrogate of Eq.~\eqref{eq:surrogate} then generalizes to
+The parametric model of Eq.~\eqref{eq:surrogate} then generalizes to
 \begin{widetext}
 \begin{equation}
   \tilde u(\vect{x};\theta) \ = \ \sum_{i_1=0}^{Q_1}\!\cdots\!\sum_{i_d=0}^{Q_d}
@@ -766,7 +766,7 @@ is needed. Supplying this cross term closes the off-node cross-curvature between
 two enhanced axes that a gradient-only construction, carrying the two first tangents
 but not their cross, leaves approximated. Completing it is not a refinement but the
 reason the enhanced pair works at all: tangents alone on two axes degrade the joint
-interpolant, and it is the cross that recovers them and carries the surrogate past the
+interpolant, and it is the cross that recovers them and carries the model past the
 value-only baseline (Sec.~\ref{sec:model:enhanced}). The model assembled
 this way is the full-bilinear gradient-enhanced family measured in
 Sec.~\ref{sec:model:joint}. Enlarging $\mathcal{E}$ beyond two axes would call for
@@ -774,14 +774,14 @@ the higher mixed partials of the correspondingly larger tensor product, and we d
 pursue it: Sec.~\ref{sec:model:enhanced} finds that a larger enhanced set degrades the
 model rather than improving it.
 
-The gradient-enhanced surrogate is thus more accurate at no additional expensive cost: it
+The gradient-enhanced model is thus more accurate at no additional expensive cost: it
 reuses derivative information already produced by the offline build, introduces no
 new elliptic solves, and concentrates its accuracy gain along the slowly converging
 spin directions where interpolation is hardest.
 What it does cost is storage, since the tangents and their cross are kept alongside the
 value at every node; Sec.~\ref{sec:model:pod} weighs the two families against stored
 memory and gives the reduced-basis re-encoding that removes most of it.
-Certification is unaffected: the enhanced surrogate remains only a warm start, refined to tolerance by the certified
+Certification is unaffected: the enhanced model remains only a warm start, refined to tolerance by the certified
 Newton step of Sec.~\ref{sec:polish}.
 
 \subsection{Building the grid: warm-started continuation}
@@ -851,7 +851,7 @@ family tractable, where the full tensor grid is not, and the saving in offline s
 count is quantified in Sec.~\ref{sec:model:joint}.
 
 Sparse grids alter only the offline sampling strategy: each subgrid interpolant in
-Eq.~\eqref{eq:smolyak} is itself an instance of the surrogate of
+Eq.~\eqref{eq:smolyak} is itself an instance of the parametric model of
 Eq.~\eqref{eq:surrogate}, so the online interpolation, the certified Newton
 refinement of Sec.~\ref{sec:polish}, and the differentiability of
 Sec.~\ref{sec:param:diff} carry over unchanged. When the parameters differ in
@@ -1026,15 +1026,14 @@ model (Fig.~\ref{fig:joint} and Sec.~\ref{sec:model:joint}).
     \textbf{Per-axis convergence of the quasi-circular models.}
     Held-out interpolation error against the number of parameter nodes for each of
     the eight axes $(b,q,\boldsymbol{\chi}^{A},\boldsymbol{\chi}^{B})$; the first four
-    are the four-dimensional aligned-spin model. The value-only surrogate is
-    compared with the gradient-enhanced one, which also matches the certified
-    parameter tangent at
-    each node. A one-parameter sweep carries no mixed tangent, so the cross term of
+    are the four-dimensional aligned-spin model. The value-only model is
+    compared with the gradient-enhanced one.
+    A one-parameter sweep carries no mixed tangent, so the cross term of
     Eq.~\eqref{eq:hermite} does not enter
-    here. Markers are medians over $100$
-    random base points for the non-swept axes, with whiskers spanning the
-    best--worst range. Every axis decays geometrically, at the rates fit from the
-    median curves, and matching the tangent roughly doubles each rate.}
+    here. Each plotted error is the worst over $21$ off-node points along the swept
+    axis; markers are medians of that worst case over $100$
+    random base points for the non-swept axes, with whiskers spanning its
+    best--worst range across those base points. Every axis decays geometrically and matching the tangent roughly doubles each rate.}
 \end{figure*}
 
 \subsection{Analyticity limits of the parameter map}
@@ -1129,12 +1128,11 @@ only soft, receding ones.
     float64 floor. Legends give, per range, the fitted rate $\rho$ (decades/node)
     and the inferred nearest real singularity $\theta_\ast$.
     \emph{Top (separation $b$):} the rate degrades as the interval is pushed toward
-    coincidence while $b_\ast$ stays pinned at the merger --- a hard, real wall.
+    coincidence while $b_\ast$ stays pinned at the merger, i.e.\ a hard, real wall.
     \emph{Middle (mass ratio $q$):} the rate degrades only mildly and $q_\ast$
-    recedes roughly in proportion to the interval, so the box never approaches it
-    --- again a complex pair, hence soft.
+    recedes roughly in proportion to the interval, so the box never approaches it, i.e.\ a complex pair, hence soft.
     \emph{Bottom (spin $\chi$):} the rate degrades only mildly and $\chi_\ast$
-    marches outward, beyond the sampled range --- a complex-conjugate pair off the
+    marches outward, beyond the sampled range, i.e. again a complex-conjugate pair off the
     real axis, hence soft (Sec.~\ref{sec:model:walls}).}
 \end{figure}
 
@@ -1174,22 +1172,13 @@ Because the model is nothing but its stored nodal solves, its memory is
     \textbf{Joint held-out convergence.} Joint held-out error over $1000$ random
     off-node points against solver node count (logarithmic, shared between
     panels), with the Smolyak level $\ell=1$--$5$ labelled at each point, shown as
-    the best, median, and worst of the distribution; every level is served from
-    the committed corpus at the node counts shown, with no new solves.
-    \emph{Left (four-dimensional model, $(b,q,\chi^{A}_{y},\chi^{B}_{y})$):} the
+    the best, median, and worst of the distribution.
+    \emph{Left (four-dimensional model} the
     value-only sparse interpolant against the full-bilinear gradient-enhanced
-    (Hermite--Smolyak) model enhanced on the two spin axes, which is more accurate
+    model enhanced on the two spin axes, which is more accurate
     at every level and reaches a $\sim\!35\times$ deeper best-case floor at the
     same node count, from the node tangents alone.
-    \emph{Right (eight-dimensional general-spin model):} the same two curves.
-    At a given Smolyak level the sparse grid costs $\sim\!14\times$ the nodes and
-    lands about two orders of magnitude less accurate, and because only two of the
-    eight axes are enhanced, the gradient-enhanced model separates from the
-    value-only one only from $\ell=2$ onward and by a smaller margin
-    ($1.7\times$ in the median at $\ell=5$, against $4\times$ in four
-    dimensions). The
-    certified polish then drives every point to $\|R\|_\infty\le10^{-10}$
-    (Fig.~\ref{fig:polish}).}
+    \emph{Right (eight-dimensional model):} the same two curves.}
 \end{figure*}
 
 \begin{figure*}[t]
@@ -1204,18 +1193,10 @@ Because the model is nothing but its stored nodal solves, its memory is
     (``guess'') and after each Newton step. Each curve is the median with
     min--max whiskers over the $1000$ points, the field error measured against the
     converged certified iterate. \emph{Dotted:} the certification threshold
-    $10^{-10}$. \emph{Grey:} a surrogate-free \emph{cold start}
-    from the solver's zero-field iterate, whose bare residual is
-    $\mathcal{O}(1)$. \emph{Blue:} the value-only surrogate;
-    \emph{orange:} the shipped full-bilinear gradient-enhanced
-    surrogate, both POD-compressed to the same
-    rank so that the two differ only in the gradient enhancement. Both surrogate
+    $10^{-10}$. Both value-only and gradient-enhanced models are POD-compressed to the same
+    rank so that the two differ only in the gradient enhancement. Both
     warm starts certify \emph{every} point to $\|R\|_\infty\le10^{-10}$ in at most
-    three Newton steps in four dimensions and four in eight --- two to three in the
-    median, against four to five for the cold start --- \emph{independent} of the
-    interpolation error. They are already field-accurate at the guess even though
-    the residual there is orders of magnitude larger --- the decoupling of
-    Sec.~\ref{sec:polish}.}
+    three Newton steps in four dimensions and four in eight.}
 \end{figure*}
 
 \subsection{How many axes to enhance}
@@ -1230,7 +1211,7 @@ Smolyak level costs two orders of magnitude in held-out median relative to enhan
 nothing at all, and completing the pairwise-bilinear crosses does not repair that. The
 two-axis case is the one that can be rescued: with tangents alone the aligned-spin pair
 is also worse than value-only, and it is the bilinear cross term of
-Eq.~\eqref{eq:hermite} that turns it into the surrogate shipped in
+Eq.~\eqref{eq:hermite} that turns it into the model shipped in
 Fig.~\ref{fig:joint}.
 
 The damage belongs to the sparse-grid combination rather than to any one ingredient.
@@ -1317,28 +1298,21 @@ and with no new solves.
   \includegraphics[width=\textwidth]{fig05_guess_vs_memory.pdf}
   \caption{\label{fig:pod}%
     \textbf{Reduced-basis (POD) compression versus stored memory.} Constraint
-    residual $\|R\|_\infty$ of the bare barycentric guess (top row) and the
-    relative field error $\|u-u_{\rm true}\|_2/\|u_{\rm true}\|_2$ of the
-    \emph{same} guess against the certified solve (bottom row), as the POD
+    residual $\|R\|_\infty$ (top row) and
+    relative field error $\|u-u_{\rm true}\|_2/\|u_{\rm true}\|_2$ (bottom row), as the POD
     truncation rank $r$ is swept. Median line with min--max whiskers over $1000$
     uniformly-random off-node query points; each point is labelled by $r$ and
-    $\star$ marks the full-rank model. Every panel carries the same two families:
-    \emph{blue,} the value-only surrogate; \emph{orange,} the shipped
-    gradient-enhanced one, which stores the node
-    tangents and the bilinear cross tangent of Eq.~\eqref{eq:hermite} alongside the
-    value and therefore sits at larger memory for the same rank.
+    $\star$ marks the full-rank model.
     Columns share the memory axis:
-    \emph{left,} the four-dimensional quasi-circular model; \emph{right,} the
-    eight-dimensional general-spin model (Sec.~\ref{sec:model:8d}).
-    Compressing raises the bare-guess residual, but
+    \emph{left,} the four-dimensional and \emph{right,} the
+    eight-dimensional quasi-circular model.
+    Compressing raises the residual, but
     this warm-start quality is irrelevant to correctness: the certified polish
     (Sec.~\ref{sec:polish}) drives every query to $\|R\|_\infty\le10^{-10}$ in the
-    same Newton-step count regardless. The field error meanwhile \emph{saturates}
+    same Newton-step count regardless. The field error \emph{saturates}
     at a far lower rank than the residual, so the redundancy discarded by
     compression is exactly the high-derivative content the residual amplifies and
-    the field norm cannot see (the decoupling of Sec.~\ref{sec:polish}). At the
-    shipped ranks the models shrink $49\times$ and $30\times$ at no cost to the
-    certified output.}
+    the field norm cannot see (the decoupling of Sec.~\ref{sec:polish}).}
 \end{figure*}
 
 \subsection{External validation}
@@ -1382,7 +1356,7 @@ method and not of the box. A \emph{cold} black box
 solves the constraints from scratch at each control evaluation. A \emph{warm} black
 box seeds each solve from the interpolant, so every constraint solve begins close to
 its answer. The \emph{differentiable} method runs the entire Gauss--Newton control
-loop on the free surrogate using the analytic $\partial F/\partial\theta$, then certifies the
+loop on the free parametric model using the analytic $\partial F/\partial\theta$, then certifies the
 result with a few Newton steps (i.e.\ no
 elliptic solve per step, and no finite-difference Jacobian).
 
@@ -1398,7 +1372,7 @@ each one is a certified elliptic solve; a low-rank Jacobian update (Broyden's me
 which sidesteps the $d$ extra solves a finite-difference Jacobian would cost) lowers
 the iteration count but cannot remove the one solve per iteration. The analytic
 gradient removes those per-iteration solves outright, running the search entirely on
-the free surrogate and leaving only the last-mile certification, a saving that
+the free parametric model and leaving only the last-mile certification, a saving that
 widens with the number of controlled parameters.
 
 \begin{figure}[t]
@@ -1409,12 +1383,12 @@ widens with the number of controlled parameters.
     $(\Madm,J)$ by adjusting $(b,q)$, over $100$ random known-answer targets,
     measured in \emph{certified} elliptic solves. Each method is drawn as the
     across-target median residual at each solve count, with min--max whiskers.
-    Running the control loop on the free surrogate with the parameter gradient
+    Running the control loop on the differentiable parametric model
     reaches tolerance in at most three certified solves for every target; the
-    black-box loop takes a target-dependent median of ten. Measured on the earlier
+    black-box loop takes a target-dependent median of ten. {\color{red}Measured on the earlier
     narrow-separation four-dimensional quasi-circular model ($b\in[1.5,4]\,M$,
     Smolyak $\ell=4$), not the production box: the quantity demonstrated is the
-    cost class of the control loop, which does not depend on the box.}
+    cost class of the control loop, which does not depend on the box.}}
 \end{figure}
 
 \subsection{Eccentricity reduction}
@@ -1432,7 +1406,7 @@ The classical method locates $b_{\rm circ}$ by \emph{scanning} $b$ at fixed $J$,
 one certified solve per point, and fitting the minimum. This workflow needs the
 tangential momentum $P_t$ as a \emph{free} axis (one scans $b$ at fixed
 $J=2bP_t$), which the quasi-circular model of Sec.~\ref{sec:model} deliberately
-does not carry; we therefore build a dedicated small two-dimensional surrogate in
+does not carry; we therefore build a dedicated small two-dimensional model in
 $(b,P_t)$ (equal mass, no spin) by the identical machinery of
 Secs.~\ref{sec:param}--\ref{sec:model}. On it the differentiable binding energy
 exposes $\partial E_b/\partial b|_J$ analytically, so a Newton root-find locates the
@@ -1457,14 +1431,14 @@ $\partial e/\partial\theta$ for gradient-based eccentricity reduction.
     binding energy $E_b(b)$ has a minimum at the circular orbit; sweeping $J$ the
     minimum shifts outward, tracing the circular-orbit sequence. For each $J$ the
     differentiable $\partial E_b/\partial b$ locates that minimum in three certified
-    solves (stars), against the classical certified-solve scan's thirteen (squares).
+    solves, against the classical certified-solve scan's thirteen (squares).
     In the shallow small-$J$ well the fixed scan mislocates the minimum, whereas the
     derivative still resolves it.}
 \end{figure}
 
 Both workflows make the same point: the differentiable, certified map turns a
 black-box search (a control loop and an effective-potential scan) into a gradient
-problem solved on the free surrogate and certified in a handful of Newton steps,
+problem solved on the free parametric model and certified in a handful of Newton steps,
 where the black box instead pays a full certified elliptic solve at every trial.
 
 % ===========================================================================
@@ -1483,8 +1457,8 @@ binary-black-hole parameter spaces, while the parameter-targeting and
 eccentricity-reduction examples show how its derivatives can reduce the number of
 certified elliptic solves required in downstream workflows.
 
-The two headline models are genuinely three-dimensional, quasi-circular parametric
-surrogates spanning the aligned- and general-spin families (Sec.~\ref{sec:model}).
+The two headline parametric models are genuinely three-dimensional and
+quasi-circular, spanning the aligned- and general-spin families (Sec.~\ref{sec:model}).
 What remains is scope, not a barrier of principle. The most natural extension is
 \emph{eccentricity}: relaxing the quasi-circularity condition to carry an
 independent radial momentum adds one axis on top of the orbiting family, by the same
@@ -1729,7 +1703,7 @@ used in this test.
 % ===========================================================================
 We verify the parameter sensitivities at two levels. First, we test whether
 Eq.~\eqref{eq:tangent} gives the sensitivity of the certified elliptic solve.
-We then test whether the gradient exposed by the surrogate reproduces this
+We then test whether the gradient exposed by the parametric model reproduces this
 sensitivity.
 
 Table~\ref{tab:tangent3d} tests the first statement on the production
@@ -1741,10 +1715,10 @@ finite-difference reference. This verifies that the analytic
 $\partial R/\partial\theta_k$ and the subsequent back-solve reproduce the
 parameter derivative of the certified solution.
 
-We next verify the sensitivity exposed by the surrogate.
+We next verify the sensitivity exposed by the parametric model.
 Table~\ref{tab:tangent} compares its automatic-differentiation gradient with
 two independent references. First, automatic differentiation agrees with
-central finite differences of the same surrogate to
+central finite differences of the same model to
 $10^{-10}$--$10^{-9}$, verifying the differentiation of the interpolant.
 Second, and more importantly, the exposed gradient agrees with the
 independently computed implicit tangent of Eq.~\eqref{eq:tangent} to
@@ -1758,7 +1732,7 @@ parameter order.
 The two tests therefore probe distinct parts of the differentiable
 pipeline. Table~\ref{tab:tangent3d} verifies the tangent of the underlying
 certified solve, while Table~\ref{tab:tangent} verifies that differentiation
-of the surrogate recovers this tangent to the accuracy of the parametric
+of the model recovers this tangent to the accuracy of the parametric
 interpolation.
 
 \begin{table}[t]
@@ -1778,8 +1752,8 @@ interpolation.
   \caption{\label{tab:tangent}%
     \textbf{The exposed sensitivity against both references.} Maximum relative
     difference between the automatic-differentiation sensitivity
-    $\partial U/\partial\theta_k$ of the surrogate and, respectively, second-order
-    central finite differences of the same surrogate with step $h$, and the
+    $\partial U/\partial\theta_k$ of the parametric model and, respectively, second-order
+    central finite differences of the same model with step $h$, and the
     implicit-function-theorem tangent of Eq.~\eqref{eq:tangent} computed independently
     from the certified solve at the same parameter point. Two-centre aligned-spin
     interpolants on the $(N_A,N_B)=(36,24)$ grid at $M=1$: a $(b,q)$ model of order

@@ -39,9 +39,19 @@ the figure→producer→artifact graph).
   build_pod_hermite_chi8d_array, build_cross_model_chi}`. Multi-GB; produced on the
   cluster. Not committed (`reports/` is gitignored). Point the figure scripts at
   the built artifacts (see `registry.py` / Stage-2 wiring).
-- **TwoPunctures validation** (fig08, fig09) — needs the external oracle binary
-  (`make oracle`; the build script is bundled). Only these two figures depend on
+- **TwoPunctures validation** (fig08, fig09, fig10) — needs the external oracle binary
+  (`make oracle`; the build script is bundled). Only these three figures depend on
   it.
+- **TwoPunctures over the production box** (fig10) — `run_tp_random_sweep.py --n 100
+  --workers 6`. One oracle call dominates each sample (~2–8 min, and markedly slower
+  for spinning configurations), so budget a few hours wall-clock even parallel; every
+  solve grid in `--grids` shares that one call, which is why the ladder is nearly free.
+  Complements fig08/fig09 rather than replacing them: those are convergence ladders at
+  a *fixed* configuration (x axis = resolution), which is what shows the difference to
+  be resolution- rather than solver-limited; this samples the box the models are
+  claimed over. See that producer's docstring for the two findings it exists to report
+  (spin, not `q`, drives the disagreement and it converges; the certified residual and
+  the field agreement peak on *different* grids).
 
 ## What is committed vs regenerated
 
@@ -146,10 +156,13 @@ strictly interior for every `J` and stop if it is not.
 
 ## The TwoPunctures oracle (fig09)
 
-fig09's panel (a) — ADM-`J` tilt vs spin tilt — comes from `sweep_3d` and needs no
-oracle; the TP anchor overlay already self-disables via `D_anchors.available`.
-Only panels (b) and (c), the quasi-circular ψ and `M_ADM` comparisons *against*
-TwoPunctures, require the binary, and those are irreducibly a comparison.
+Both of fig09's panels — the quasi-circular ψ and `M_ADM` comparisons *against*
+TwoPunctures — require the binary, and those are irreducibly a comparison. The
+`panelA`/`anchors` blocks (ADM-`J` tilt vs spin tilt, from `sweep_3d`, needing no
+oracle) are still emitted by the data script but are no longer plotted: measured,
+θ_J tracked θ_S to ~1e-14 deg for every |S| and every TP anchor, so the panel was
+three coincident curves on the line y=x, and the identity is now stated in the
+appendix text instead.
 
 ### Where the source comes from, and how the binary is built
 

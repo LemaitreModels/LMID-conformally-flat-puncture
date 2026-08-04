@@ -4,7 +4,7 @@
 Certified parameter targeting: target residual vs cumulative certified elliptic
 solves over a set of random known-answer targets, as a median line with min--max
 whiskers across targets (the same distribution style as Figs. 1 and 5), for the
-black-box (cold) control loop vs the differentiable surrogate.
+black-box (cold) control loop vs the differentiable parametric model.
 
 Reads ONLY figdata/fig06_targeting.json (build it with fig06_targeting_data.py,
 which reduces the per-target run log to the whisker curves). No reports/, no jax.
@@ -24,10 +24,10 @@ sys.path.insert(0, HERE)
 from _figdata import load
 from _figstyle import figdims
 
-# grey black-box control loop vs tab:green differentiable surrogate (C0/C1 are
-# reserved for the paper's two models, so the applications figures start at C2)
+# grey black-box control loop vs tab:green differentiable parametric model (C0/C1
+# are reserved for the paper's two models, so the applications figures start at C2)
 C = {"cold": "0.6", "gradient": "tab:green"}
-LB = {"cold": "black-box", "gradient": "differentiable surrogate"}
+LB = {"cold": "black-box model", "gradient": "differentiable parametric model"}
 PLOT = ("cold", "gradient")
 OFFS = {"cold": -0.08, "gradient": +0.08}   # nudge apart so whiskers don't overlap
 TOL = 1e-8

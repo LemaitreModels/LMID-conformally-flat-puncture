@@ -144,7 +144,7 @@ SOURCES = {
                                  producer="run_qc_effpot.py", where="cluster",
                                  status="ready", figures=["fig07_eccentricity"]),
     "effpot_model":         dict(reports="3D_parametric/models/surrogate_bpt_ecc.npz",
-                                 producer="run_qc_effpot.py (surrogate build)", where="cluster",
+                                 producer="run_qc_effpot.py (parametric-model build)", where="cluster",
                                  status="ready", model=True, figures=["fig07_eccentricity"]),
 
     # ---- fig08 (3D validation) + fig09 (consolidated TP validation) — SHARED source ----

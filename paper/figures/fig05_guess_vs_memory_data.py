@@ -107,11 +107,12 @@ def build():
                 HERM_C, "s", gvhf8["r_full"], "above", True)]
 
     panels = {
-        # panel titles + curve labels live in the plot script (presentation, not data)
-        "TL": dict(note="1000 off-node pts", note_loc="bl", curves=TL),
-        "TR": dict(note="1000 off-node pts", note_loc="br", curves=TR),
-        "BL": dict(title=None, note="1000 off-node pts", note_loc="tr", curves=BL),
-        "BR": dict(title=None, note="1000 off-node pts", note_loc="tr", curves=BR),
+        # panel titles + curve labels live in the plot script (presentation, not data).
+        # The 1000-point sample size is stated once in the caption, so no in-panel note.
+        "TL": dict(curves=TL),
+        "TR": dict(curves=TR),
+        "BL": dict(title=None, curves=BL),
+        "BR": dict(title=None, curves=BR),
     }
     p = dump("fig05_guess_vs_memory", dict(panels=panels))
     print(f"wrote {os.path.relpath(p)}  (4 panels x value+gradient+cross)")

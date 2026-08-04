@@ -37,7 +37,7 @@ from _figstyle import figdims, MODEL_TITLES, PANEL_H_STACK
 TITLES = {"TL": MODEL_TITLES[4], "TR": MODEL_TITLES[8]}
 
 # Every panel carries the same two families, in this order (see the data script): the value-only
-# surrogate, and the shipped gradient-enhanced one, which stores the two first spin tangents AND
+# model, and the shipped gradient-enhanced one, which stores the two first spin tangents AND
 # their bilinear cross tangent.  The caption states that content; the labels are the concept names
 # used in Figs. 1, 3 and 4, so one model has one name in every figure.
 CURVE_LABELS = ("value-only", "gradient-enhanced")
@@ -116,13 +116,6 @@ def declutter(fig, axes, pad=4.0, max_iter=8):
             fig.canvas.draw()
 
 
-def _note(ax, text, loc):
-    xy = {"bl": (0.03, 0.03, "left", "bottom"), "br": (0.97, 0.03, "right", "bottom"),
-          "tr": (0.97, 0.97, "right", "top"), "tl": (0.03, 0.97, "left", "top")}[loc]
-    ax.text(xy[0], xy[1], text, transform=ax.transAxes, fontsize=7.5,
-            color="0.35", ha=xy[2], va=xy[3])
-
-
 def main():
     P = load("fig05_guess_vs_memory")["panels"]
     fig, axes = plt.subplots(2, 2, figsize=figdims(2, 2, panel_h=PANEL_H_STACK),
@@ -134,8 +127,6 @@ def main():
             plot_family(ax, spec, label)
         if TITLES.get(key):
             ax.set_title(TITLES[key], fontsize=10)
-        if pan.get("note"):
-            _note(ax, pan["note"], pan["note_loc"])
 
     for ax in axes.ravel():
         ax.set_xscale("log")

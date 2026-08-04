@@ -3,7 +3,7 @@
 
 Cook effective-potential eccentricity control: the field-dependent binding
 energy E_b(b) at each fixed J (the circular-orbit sequence), with the classical
-certified scan (squares), the smooth surrogate curve (line), and the
+certified scan (squares), the smooth parametric-model curve (line), and the
 differentiable gradient minimum (star).
 
 Reads ONLY figdata/fig07_eccentricity.json (build it with fig07_eccentricity_data.py,
