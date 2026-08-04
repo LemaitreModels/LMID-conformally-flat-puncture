@@ -1,7 +1,7 @@
 # Paper tables — two-tier, recompute-by-default
 
-Same pattern as `paper/figures/`, one tier shorter because both tables recompute
-from the solver on a laptop in seconds (no `reports/` corpus, no cluster):
+Same pattern as `paper/figures/`, one tier shorter because every table recomputes
+on a laptop in seconds (no `reports/` corpus, no cluster):
 
 ```
 tabNN_<name>_data.py   recomputes from the solver  ->  tabdata/tabNN_<name>.json   (gitignored)
@@ -12,16 +12,17 @@ tabNN_<name>_tex.py    reads ONLY that json        ->  tabNN_<name>.tex         
 generated `ruledtabular` body — so no numeric digit is hand-transcribed into the
 manuscript.
 
-| stem | paper | what it verifies | cost |
+| stem | label | what it verifies | cost |
 |---|---|---|---|
-| `tab01_tangent_operator`  | Table I  | Eq. (tangent) vs. central FD of the certified 3-D Newton–Krylov solve | ~1 s |
-| `tab02_tangent_surrogate` | Table II | the exposed surrogate gradient vs. FD of the surrogate and vs. Eq. (tangent) | ~15 s |
+| `tab01_production_box`    | `tab:box`       | the production parameter box + shipped build configuration | instant |
+| `tab02_tangent_operator`  | `tab:tangent3d` | Eq. (tangent) vs. central FD of the certified 3-D Newton–Krylov solve | ~1 s |
+| `tab03_tangent_surrogate` | `tab:tangent`   | the exposed surrogate gradient vs. FD of the surrogate and vs. Eq. (tangent) | ~15 s |
 
 ## Entry points
 
 ```bash
-make tabdata                                   # recompute both tabdata/*.json
-make tables                                    # tabdata, then re-render both .tex
+make tabdata                                   # recompute every tabdata/*.json
+make tables                                    # tabdata, then re-render every .tex
 python paper/tables/make_tabdata.py --check     # presence matrix
 python paper/tables/make_tabdata.py --tab tab01 --force
 ```
@@ -34,6 +35,11 @@ which is importable and runnable on its own:
 ```bash
 python -m lm.initial_data.pipeline.run_tangent_verification --out /tmp/tangent.json
 ```
+
+Table I needs no solve: it reads the box edges, Smolyak level, spatial grid and
+enhanced axis set from `pipeline/production_box.py` — the canonical box definition —
+and the sparse-grid node counts from `parametric_nd_2c.smolyak_points`, so retargeting
+an edge there and re-running `make tables` moves the paper's numbers with it.
 
 ## Guard
 

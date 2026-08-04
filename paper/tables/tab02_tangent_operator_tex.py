@@ -1,7 +1,7 @@
-"""Table I renderer — reads ONLY tabdata/tab01_tangent_operator.json."""
+"""Table II renderer — reads ONLY tabdata/tab02_tangent_operator.json."""
 import _tabdata as td
 
-STEM = "tab01_tangent_operator"
+STEM = "tab02_tangent_operator"
 AXES = ("b", "q", "chi_Ay", "chi_By")
 
 if __name__ == "__main__":

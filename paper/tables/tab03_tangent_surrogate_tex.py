@@ -1,7 +1,7 @@
-"""Table II renderer — reads ONLY tabdata/tab02_tangent_surrogate.json."""
+"""Table III renderer — reads ONLY tabdata/tab03_tangent_surrogate.json."""
 import _tabdata as td
 
-STEM = "tab02_tangent_surrogate"
+STEM = "tab03_tangent_surrogate"
 AXES = ("b", "q", "chi_A", "chi_B")
 
 if __name__ == "__main__":
