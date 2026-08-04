@@ -39,19 +39,29 @@ the figure→producer→artifact graph).
   build_pod_hermite_chi8d_array, build_cross_model_chi}`. Multi-GB; produced on the
   cluster. Not committed (`reports/` is gitignored). Point the figure scripts at
   the built artifacts (see `registry.py` / Stage-2 wiring).
-- **TwoPunctures validation** (fig08, fig09, fig10) — needs the external oracle binary
-  (`make oracle`; the build script is bundled). Only these three figures depend on
-  it.
-- **TwoPunctures over the production box** (fig10) — `run_tp_random_sweep.py --n 100
-  --workers 6`. One oracle call dominates each sample (~2–8 min, and markedly slower
-  for spinning configurations), so budget a few hours wall-clock even parallel; every
-  solve grid in `--grids` shares that one call, which is why the ladder is nearly free.
-  Complements fig08/fig09 rather than replacing them: those are convergence ladders at
-  a *fixed* configuration (x axis = resolution), which is what shows the difference to
-  be resolution- rather than solver-limited; this samples the box the models are
-  claimed over. See that producer's docstring for the two findings it exists to report
-  (spin, not `q`, drives the disagreement and it converges; the certified residual and
-  the field agreement peak on *different* grids).
+- **TwoPunctures validation** (fig09 only) — `run_tp_random_sweep.py --n 100 --workers 6`,
+  and the external oracle binary (`make oracle`; the build script is bundled). This is
+  the only figure that depends on the oracle. One oracle call dominates each configuration
+  (~2–8 min, markedly slower for spinning ones), so budget hours of wall-clock even in
+  parallel; every rung of `--ladder` shares that one call, which is what makes a whole
+  resolution ladder per configuration affordable.
+
+  Each curve in fig09 is a **min/median/max band over configurations** sampled from the
+  production box, so no panel depends on an arbitrary parameter point. This one figure
+  replaced two: the former fig08 (a separate non-axisymmetric validation at `b=1.5`,
+  head-on — below the production `B_MIN`) and the former single-configuration fig09.
+  The separate non-axisymmetric figure was redundant because **the quasi-circular data
+  are already non-axisymmetric**: measured, the tangential momentum puts ~2% of the field
+  in `m=2` and generic spins add ~2% at `m=1`, so the QC family exercises the
+  Fourier-in-φ solver by itself. Its spectrum panel became fig09(c); the one check QC
+  cannot supply (a head-on slice with spin along the collision axis keeps every `m≥1`
+  mode at ~3e-17) is computed by the same producer's `axisym` block and quoted as text.
+
+  See that producer's docstring for the two findings needed to read the figure: spin
+  combined with `q` drives the disagreement and it converges (~100× worse from `q=1` to
+  `q=3` at fixed spin, a further ~10× from `b=3` to `b=10`); and the certified residual
+  *rises* with resolution — mildly along a fixed-`Nφ` ladder, steeply when `Nφ` rises,
+  because the mechanism is roundoff in unpopulated high-`m` modes, not lost convergence.
 
 ## What is committed vs regenerated
 
@@ -93,7 +103,7 @@ non-obvious ones:
 
 | source | produced by | note |
 |---|---|---|
-| `sweep_3d` | `run_3d_sweep` | **not** `run_3d_validation_sweep`, which writes a different artifact (`3D_parametric/validation_results.json`) and returns early without the oracle. `run_3d_sweep`'s oracle use is optional, so fig08 builds without TwoPunctures. |
+| `tp_band_sweep` | `run_tp_random_sweep --n 100 --workers 6` | the single validation source. Supersedes `sweep_3d` (`run_3d_sweep`) and `tp_validation` (`run_qc_tp_validation`), which fed the former fig08 and the former single-configuration fig09; both are now unreferenced by any figure. `run_3d_sweep` remains useful standalone for the ADM-`J` diagnostics quoted in the appendix text. |
 | `polish_pod_4d` | `run_polish_table --model pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross_r75.npz --tag chi4d_pod_r75_cross` | `run_polish_podrank` hardcodes the *non-cross* POD per dimension, so it cannot emit the `_cross` name. |
 | `polish_table_4d_cross` | `run_polish_table --model hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz --tag qc_chi_prod_cross` | the *untruncated* cross corpus — corroborated by the `8·N·(1+d+npair)·nfeat` memory fig05 applies to it. |
 | `polish_table_8d_value` | `run_polish_table --model surrogate_smolyak_spin8_qc_chi_prod_L5.npz --tag chi8d_value` | the 8-D **value** surrogate — corroborated by fig05's `8·N·nfeat` value-only memory. |
@@ -164,13 +174,18 @@ strictly interior for every `J` and stop if it is not.
 
 ## The TwoPunctures oracle (fig09)
 
-Both of fig09's panels — the quasi-circular ψ and `M_ADM` comparisons *against*
-TwoPunctures — require the binary, and those are irreducibly a comparison. The
-`panelA`/`anchors` blocks (ADM-`J` tilt vs spin tilt, from `sweep_3d`, needing no
-oracle) are still emitted by the data script but are no longer plotted: measured,
-θ_J tracked θ_S to ~1e-14 deg for every |S| and every TP anchor, so the panel was
-three coincident curves on the line y=x, and the identity is now stated in the
-appendix text instead.
+Panels (a) and (b) of fig09 — the quasi-circular ψ and `M_ADM` comparisons *against*
+TwoPunctures — require the binary, and those are irreducibly a comparison. Panel (c),
+the azimuthal spectrum, and the `axisym` block do not (they are internal properties of
+our own solve), but they ride along in the same producer because the expensive part is
+one oracle call per configuration.
+
+Two diagnostics that no longer have a panel and are quoted in the appendix text instead:
+the ADM-`J` tilt against the spin tilt (measured, θ_J tracked θ_S to ~1e-14 deg for every
+|S| and every TP anchor, so the panel was three coincident curves on the line y=x), and
+the axisymmetric-limit code-to-code anchor at `b=3`, `P=0.5` head-on (ψ to 4.7e-12,
+`M_ADM` to 1.0e-11 relative — the most stringent TwoPunctures number in the paper, and
+not obtainable from a quasi-circular configuration, which is never axisymmetric).
 
 ### Where the source comes from, and how the binary is built
 

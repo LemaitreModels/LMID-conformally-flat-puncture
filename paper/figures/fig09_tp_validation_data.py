@@ -1,60 +1,72 @@
 #!/usr/bin/env python
-"""Data for fig09_tp_validation: distill the plotted arrays to figdata/.
+"""Data for fig09_tp_validation: distill the plotted bands to figdata/.
 
-Consolidated TwoPunctures validation figure (merges the former 3-D angular-momentum
-and quasi-circular-validation figures). Two raw sources:
-  * "sweep_3d"     (reports/3D/sweep_results.json)          -> ADM-J tilt vs spin tilt + TP anchors
-  * "tp_validation"(reports/3D_parametric/qc/tp_validation_qc.json) -> psi/M_ADM vs grid
+Source (raw): reports/3D_parametric/qc/tp_band_sweep.json (key ``tp_band_sweep``,
+produced by ``run_tp_random_sweep.py``).
 
-Keeps only the panels the consolidated figure draws: the ADM-J spin-tilt collapse
-(with TwoPunctures anchors), and the quasi-circular psi-vs-TP and M_ADM-vs-TP
-convergence. The orbital-J-recovery and Newtonian-momentum panels are dropped
-(their results are stated in the text).
+This figure was two figures and one configuration each: a misaligned-spin head-on slice at
+b=1.5 (the former fig08) and a nonspinning equal-mass quasi-circular slice at b=4.  It is
+now ONE figure whose every curve is a min/median/max band over configurations drawn from
+the production box, so no panel depends on an arbitrary parameter point.  The separate
+non-axisymmetric figure was dropped because the quasi-circular data are already
+non-axisymmetric -- measured, ~2% of the field sits in m=2 from the tangential momentum and
+generic spins add ~2% at m=1 -- so the QC family exercises the Fourier-in-phi solver by
+itself; the ``spectrum`` block below is what replaces that figure's spectrum panel.
+
+Keeps three blocks:
+  * ``ladder``   per rung: the psi, ADM-mass and certified-residual bands + how many
+                 configurations fail the certification gate at that rung;
+  * ``spectrum`` per azimuthal mode m at the best-resolved rung: the |u_m|/|u_0| band;
+  * ``meta``     sample size, ladder, oracle resolution and its self-convergence floor,
+                 and the axisymmetry-check worst case (a text number, not plotted).
 
 Run:  python fig09_tp_validation_data.py
 """
 import os
 import sys
 
-import numpy as np
-
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _figdata import load_source, dump
+
+BAND = ("min", "median", "mean", "max")
+
+
+def _band(d):
+    return {k: d[k] for k in BAND} if d else None
 
 
 def build():
-    # --- ADM-J: tilt-vs-spin-tilt curves per |S| + TwoPunctures anchors (sweep_3d) ---
-    R = load_source("sweep_3d")
-    rows = R["A_spin_grid"]["rows"]
-    S_mags = R["A_spin_grid"]["S_mags"]
-    panelA = []
-    for mag in S_mags:
-        sel = sorted([r for r in rows if r["b"] == 1.5 and r["S_mag"] == mag],
-                     key=lambda r: r["tilt_deg"])
-        panelA.append(dict(S_mag=mag, ts=[r["tilt_deg"] for r in sel],
-                           jt=[r["J_tilt_deg"] for r in sel]))
+    R = load_source("tp_band_sweep")
+    m, s = R["meta"], R["summary"]
+    I = s["interior"]
 
-    D = R.get("D_anchors", {})
-    available = bool(D.get("available"))
-    anchors = []
-    if available:
-        for a in D["anchors"]:
-            S = np.array(a["S_A"])
-            if np.hypot(S[0], S[1]) > 0 or S[2] != 0:
-                tS = float(np.rad2deg(np.arctan2(np.hypot(S[0], S[1]), S[2]))) if np.any(S) else 0.0
-                # legacy corpora (pre-rename) store this as "J_tp_parasol"
-                Jtp = np.array(a.get("J_tp_lm_initial_data", a.get("J_tp_parasol")))
-                tJ = float(np.rad2deg(np.arctan2(np.hypot(Jtp[0], Jtp[1]), Jtp[2])))
-                anchors.append([tS, tJ])
+    # psi_l2 and psi_legacy6 are carried for provenance, not plotted: the L2 is the stabler
+    # statistic, and the six-probe estimate is what the predecessor reported, so keeping both
+    # in the figdata makes the probe-density effect auditable from the committed artifact.
+    ladder = [dict(grid=r["grid"], psi=_band(r["psi"]), M_ADM=_band(r["M_ADM"]),
+                   residual=_band(r["residual"]), n_uncertified=r["n_uncertified"],
+                   psi_l2=_band(r.get("psi_l2")), psi_legacy6=_band(r.get("psi_legacy6")))
+              for r in I["ladder"]]
+    spectrum = [dict(m=r["m"], **{k: r[k] for k in BAND}) for r in I["spectrum_top"]]
 
-    # --- quasi-circular psi/M_ADM vs LM-initial-data grid (tp_validation) ---
-    d = load_source("tp_validation")
-    C = [dict(Na=r["Na"], Nb=r["Nb"], max_dpsi=r["max_dpsi"],
-              M_ADM_rel_diff=r["M_ADM_rel_diff"]) for r in d["C_psi_adm"]["grids"]]
+    # the edge stress set is carried as a band too, so the plotter can mark the deliberate
+    # worst case without it contaminating the interior estimate
+    E = s.get("edge") or {}
+    edge = [dict(grid=r["grid"], psi=_band(r["psi"]), M_ADM=_band(r["M_ADM"]),
+                 residual=_band(r["residual"]))
+            for r in (E.get("ladder") or [])]
 
-    p = dump("fig09_tp_validation",
-             dict(panelA=panelA, anchors=anchors, anchors_available=available,
-                  C_psi_adm=C))
-    print(f"wrote {os.path.relpath(p)}  ({len(panelA)} |S|, {len(anchors)} anchors, {len(C)} grids)")
+    p = dump("fig09_tp_validation", dict(
+        ladder=ladder, spectrum=spectrum, edge=edge,
+        meta=dict(n_interior=I["n"], n_edge=E.get("n", 0), ladder=m["ladder"],
+                  tp_res=m["tp_res"], cert_tol=m["cert_tol"], box=m["box"],
+                  sampler=m["sampler"], seed=m["seed"],
+                  oracle_floor=s.get("tp_selfconv_dpsi_max"),
+                  axisym_m_ge1_max=(s.get("axisym") or {}).get("m_ge1_max"),
+                  anchor=s.get("anchor"),          # the axisymmetric code-to-code reference
+                  n_failed=s.get("n_failed", 0))))
+    print(f"wrote {os.path.relpath(p)}  ({len(ladder)} rungs, {len(spectrum)} modes, "
+          f"n_interior={I['n']}, n_edge={E.get('n', 0)})")
 
 
 if __name__ == "__main__":

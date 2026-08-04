@@ -11,8 +11,7 @@ This file declares two maps:
   SOURCES   canonical source key -> where the raw run output lives under ``reports/``, the
             command that produces it, whether that command runs on the laptop or the cluster,
             and which figures consume it.  This is the DEDUP graph: a source shared by several
-            figures (e.g. ``sweep_3d`` -> fig08+fig09) is listed
-            once and produced once.
+            figures is listed once and produced once.
 
   FIGURES   figure stem -> the source keys it needs + its data-script filename.  The committed
             output is always ``figdata/<stem>.json``.
@@ -158,27 +157,34 @@ SOURCES = {
                                  producer="run_qc_effpot.py (parametric-model build)", where="cluster",
                                  status="ready", model=True, figures=["fig07_eccentricity"]),
 
-    # ---- fig08 (3D validation) + fig09 (consolidated TP validation) — SHARED source ----
+    # ---- superseded as figure sources, RETAINED for provenance ----
+    # Neither feeds a figure any more (both fed the former fig08 / the former
+    # single-configuration fig09).  They are kept because the appendix still quotes numbers
+    # produced by them: the ADM-angular-momentum diagnostics (theta_J vs theta_S to
+    # ~1e-14 deg, J_y = 2 b P_x, TP agreement <= 1.4e-14) from `sweep_3d`, and the
+    # axisymmetric-limit code-to-code anchor (psi to 4.7e-12, M_ADM to 1.0e-11 at b=3,
+    # P=0.5) from `tp_validation`.  Deleting the entries would strand those numbers.
     "sweep_3d":             dict(reports="3D/sweep_results.json",
-                                 producer="run_3d_validation_sweep.py -> plot_3d_sweep.py", where="cluster",
-                                 status="ready",
-                                 figures=["fig08_3d_validation", "fig09_tp_validation"]),
-
-    # ---- fig09 (consolidated TwoPunctures validation: ADM-J + quasi-circular psi/M_ADM) ----
+                                 producer="run_3d_sweep.py", where="cluster",
+                                 status="ready", figures=[]),
     "tp_validation":        dict(reports="3D_parametric/qc/tp_validation_qc.json",
                                  producer="run_qc_tp_validation.py", where="cluster",
-                                 status="ready", figures=["fig09_tp_validation"]),
+                                 status="ready", figures=[]),
 
-    # ---- fig10 (TP agreement as a DISTRIBUTION over the production box) ----
-    # Complements, not replaces, fig08/fig09: those are convergence ladders at a FIXED
-    # configuration (x axis = resolution), which is what shows the difference to be
-    # resolution-limited.  Neither samples the box the models are claimed over -- fig08
-    # sits at b=1.5, BELOW production B_MIN=3, and no external check anywhere reaches
-    # q != 1 or production spin magnitudes.  This source closes that.
-    "tp_random_sweep":      dict(reports="3D_parametric/qc/tp_random_sweep.json",
+    # ---- fig09 (the single TwoPunctures validation figure: BANDS over the box) ----
+    # This replaces both the former fig08 (non-axisymmetric validation) and the former
+    # single-configuration fig09.  The quasi-circular data are ALREADY non-axisymmetric --
+    # the tangential momentum puts ~2% of the field in the m=2 azimuthal mode, and generic
+    # spins add ~2% at m=1 -- so the QC family exercises the Fourier-in-phi solver by
+    # itself and a separate non-axisymmetric figure was redundant.  Every curve is now a
+    # min/median/max BAND over configurations sampled from the production box, so no
+    # panel depends on one arbitrary parameter point.  The axisymmetric-limit checks that
+    # QC cannot provide (aligned-spin m>=1 suppression, the head-on code-to-code anchor)
+    # are carried as quantitative statements in the appendix text.
+    "tp_band_sweep":        dict(reports="3D_parametric/qc/tp_band_sweep.json",
                                  producer="run_tp_random_sweep.py --n 100 --workers 6",
                                  where="cluster", status="ready",
-                                 figures=["fig10_tp_box_sample"]),
+                                 figures=["fig09_tp_validation"]),
 }
 
 # --- figure -> the source keys it distills + its data-script filename -------------------------
@@ -218,10 +224,8 @@ FIGURES = {
     "fig06_targeting":          dict(sources=["qc_targeting"], keys=["methods"]),
     "fig07_eccentricity":       dict(sources=["qc_effpot", "effpot_model"],
                                      keys=["Jlist", "per_J", "bg", "n_scan", "n_grad"]),
-    "fig08_3d_validation":      dict(sources=["sweep_3d"], keys=["ladder", "spectrum"]),
-    "fig09_tp_validation":      dict(sources=["sweep_3d", "tp_validation"], keys=["C_psi_adm"]),
-    "fig10_tp_box_sample":      dict(sources=["tp_random_sweep"],
-                                     keys=["interior", "edge", "summary", "meta"]),
+    "fig09_tp_validation":      dict(sources=["tp_band_sweep"],
+                                     keys=["ladder", "spectrum", "meta"]),
 }
 
 
