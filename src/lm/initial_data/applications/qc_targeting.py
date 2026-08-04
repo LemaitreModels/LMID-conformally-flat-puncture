@@ -3,7 +3,8 @@
 The paper's headline application, promoted from the axisymmetric prototype
 (``applications/control.py`` = Broyden warm-start, ``applications/sensitivity.py``
 = the differentiable ``∂ID/∂θ`` hook) onto the *shipped* 4-D quasi-circular model
-(Smolyak L=4, axes ``(b, q, S_Ay, S_By)``, ``qc=1.0``).
+— the production box of ``pipeline.production_box`` (Smolyak L=5, 1105 nodes, axes
+``(b, q, χ_Ay, χ_By)``, ``qc=1.0``).
 
 The point the demonstrator makes — the rebuttal to "isn't this just warm-started
 TwoPunctures?": to hit a *physical target* (a chosen ADM mass + angular momentum),
@@ -26,15 +27,22 @@ field — to tolerance; this is what makes the emitted configuration hit the
 physical target, not merely the interpolant's estimate of it.
 
 QC-specific content vs the 2-centre prototype:
-  * the angular momentum is orbital, ``J = 2 b · p_t(b,q,spins) + S_Ay + S_By``
+  * the angular momentum is orbital, ``J = 2 b · p_t(b,q,χ) + χ_Ay m_A² + χ_By m_B²``
     (NOT the head-on ``S_A + S_B``); ``p_t`` is the PN closed form of
     ``parametric.quasicircular`` (differentiable jnp twin ``_pt_jax`` here);
   * ``M_ADM`` is read spectrally at the ``A=1`` (infinity) edge of the **φ-averaged
     (m=0)** field — the correct 3-D generalization of ``validation.adm``'s 2-D read.
 
-Add-only / standalone: imports the frozen ``solver_3d`` / ``solver_3d_nk`` /
-``parametric_nd_smolyak`` / ``parametric_nd_3d`` / ``quasicircular`` **verbatim**
-and defines no new physics.  numpy + jax only.
+Spin parameterization.  The box coordinate is the **dimensionless** spin
+``χ_X = S_X/m_X²`` (HISTORY_AND_FINDINGS §2.3), so the physical spin moves with the
+masses at fixed χ and the spin term of ``J`` carries the mass→spin chain
+``∂S_X/∂q = χ_X · ∂(m_X²)/∂q``.  Both ``J`` twins are written in χ and the analytic
+``∂F/∂θ`` is ``jax.jacfwd`` of that closed form, so the chain is included by
+construction rather than by a hand-differentiated rule — the shape of the bug §2.3
+records.  ``theta_to_slice3d`` performs the same conversion for the solver source.
+
+Standalone: imports ``solver_3d`` / ``solver_3d_nk`` / ``parametric_nd_smolyak`` /
+``parametric_nd_3d`` / ``quasicircular`` and defines no new physics.  numpy + jax only.
 """
 
 from __future__ import annotations
@@ -56,7 +64,7 @@ from ..parametric import parametric_nd_smolyak as sm
 from ..parametric.parametric_nd import attach_solve_fn_3d
 from ..parametric.parametric_nd_3d import theta_to_slice3d
 
-NAMES = ("b", "q", "S_Ay", "S_By")
+NAMES = ("b", "q", "chi_Ay", "chi_By")
 FIXED = {"qc": 1.0}
 
 
@@ -77,21 +85,31 @@ def masses(q, M_tot=1.0):
     return M_tot * q / (1.0 + q), M_tot / (1.0 + q)
 
 
-def p_t_qc(b, q, S_Ay=0.0, S_By=0.0, M_tot=1.0):
-    """PN tangential momentum ``p_t`` (numpy; = quasicircular.qc_scalar_momenta[0])."""
+def p_t_qc(b, q, chi_Ay=0.0, chi_By=0.0, M_tot=1.0):
+    """PN tangential momentum ``p_t`` (numpy; = quasicircular.qc_scalar_momenta[0]).
+
+    Takes the DIMENSIONLESS aligned spins, which is what ``qc_scalar_momenta``
+    already expects — so on the χ box no conversion happens here at all.
+    """
     from ..parametric import quasicircular as qc
     m_A, m_B = masses(q, M_tot)
     p_t, _ = qc.qc_scalar_momenta(float(b), m_A, m_B,
-                                  float(S_Ay) / m_A ** 2, float(S_By) / m_B ** 2,
+                                  float(chi_Ay), float(chi_By),
                                   radial=False)
     return p_t
 
 
 def J_qc(theta, M_tot=1.0):
-    """Orbital + spin angular momentum ``J = 2 b p_t + S_Ay + S_By`` (closed form)."""
-    b, q, S_Ay, S_By = (float(theta[0]), float(theta[1]),
-                        float(theta[2]), float(theta[3]))
-    return 2.0 * b * p_t_qc(b, q, S_Ay, S_By, M_tot) + S_Ay + S_By
+    """Orbital + spin angular momentum ``J = 2 b p_t + χ_Ay m_A² + χ_By m_B²``.
+
+    The spin term is the PHYSICAL spin ``S_X = χ_X m_X²``, so at fixed χ it moves
+    with the mass ratio (HISTORY_AND_FINDINGS §2.3).
+    """
+    b, q, chi_Ay, chi_By = (float(theta[0]), float(theta[1]),
+                            float(theta[2]), float(theta[3]))
+    m_A, m_B = masses(q, M_tot)
+    return (2.0 * b * p_t_qc(b, q, chi_Ay, chi_By, M_tot)
+            + chi_Ay * m_A ** 2 + chi_By * m_B ** 2)
 
 
 def M_ADM(prob, U, b, M_tot=1.0, q=None):
@@ -120,8 +138,11 @@ def observe(prob, U, theta, target_names, M_tot=1.0):
 # --------------------------------------------------------------------------
 # Differentiable jnp twins (for the analytic ∂F/∂θ of the gradient method)
 # --------------------------------------------------------------------------
-def _pt_jax(b, q, S_Ay, S_By, M_tot=1.0, pn_order=3, spin_orbit=True):
+def _pt_jax(b, q, chi_Ay, chi_By, M_tot=1.0, pn_order=3, spin_orbit=True):
     """jnp twin of ``quasicircular.qc_scalar_momenta[0]`` (non-spinning 3PN + SO).
+
+    Takes the DIMENSIONLESS aligned spins (the χ box coordinates), matching
+    ``quasicircular.pt_spin_orbit``.
 
     Valid on the box ``q = m_A/m_B ∈ [1,3]`` (so ``m_A ≥ m_B`` and the larger-hole
     branch of the spin-orbit term is fixed — no data-dependent branch on a traced
@@ -140,8 +161,8 @@ def _pt_jax(b, q, S_Ay, S_By, M_tot=1.0, pn_order=3, spin_orbit=True):
         s = s + (1.0 / 128.0) * c3 * x ** 3.5
     p_t = mu * s
     if spin_orbit:
-        chi_A = S_Ay / m_A ** 2
-        chi_B = S_By / m_B ** 2
+        chi_A = chi_Ay
+        chi_B = chi_By
         qh = m_B / m_A                                     # m1 = m_A (larger), q≥1
         coeff = (2.0 / (3.0 * (1.0 + qh) ** 2)) * ((4.0 + 3.0 * qh) * chi_A
                                                     + qh * (3.0 + 4.0 * qh) * chi_B)
@@ -162,8 +183,13 @@ def build_F_jax(model, prob, target_names, M_tot=1.0):
         return M_tot + 2.0 * c
 
     def J_jax(theta):
-        b, q, S_Ay, S_By = theta[0], theta[1], theta[2], theta[3]
-        return 2.0 * b * _pt_jax(b, q, S_Ay, S_By, M_tot) + S_Ay + S_By
+        # χ box: the spin term is the PHYSICAL S_X = χ_X m_X²(q), so jacfwd picks up
+        # the mass→spin chain ∂S_X/∂q automatically (HISTORY_AND_FINDINGS §2.3).
+        b, q, chi_Ay, chi_By = theta[0], theta[1], theta[2], theta[3]
+        m_A = M_tot * q / (1.0 + q)
+        m_B = M_tot / (1.0 + q)
+        return (2.0 * b * _pt_jax(b, q, chi_Ay, chi_By, M_tot)
+                + chi_Ay * m_A ** 2 + chi_By * m_B ** 2)
 
     obs = {"M_ADM": M_ADM_jax, "J": J_jax}
 

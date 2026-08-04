@@ -87,6 +87,14 @@ the solver/ROM (loading a shipped surrogate model artifact), writing
 Driver: `make figdata` / `make figures`. Heavy inputs (χ corpora, TwoPunctures)
 are the `make models` / `make oracle` tier — see `docs/DATA.md`.
 
+`registry.FIGURES[stem]["keys"]` lists the top-level figdata keys a figure needs;
+`tests/test_paper_figures.py` fails on any figdata missing one, which is how a
+figdata predating a producer change is caught instead of dying inside the plotter.
+A figure whose **caption states the box** should also write a `meta` provenance
+block (box, axes, level, node count, model file) and declare it there — fig06 was
+measured on a superseded model for a whole revision without that being visible
+anywhere in its figdata.
+
 The paper's **tables** follow the same two tiers in `paper/tables/`:
 `tabNN_*_data.py` recomputes from the solver into `tabdata/NN.json` (gitignored),
 `tabNN_*_tex.py` renders the `ruledtabular` body into a committed `tabNN_*.tex`

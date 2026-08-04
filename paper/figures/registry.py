@@ -145,8 +145,15 @@ SOURCES = {
                                  where="cluster", status="ready", figures=["fig05_guess_vs_memory"]),
 
     # ---- fig06 (physical-parameter targeting) ----
-    "qc_targeting":         dict(reports="P3/qc_targeting_100.json",
-                                 producer="run_qc_targeting.py", where="cluster",
+    # Was P3/qc_targeting_100.json, produced against the SUPERSEDED narrow model
+    # surrogate_smolyak_d4_qc_L4.npz (b in [1.5,4], DIMENSIONFUL bare spins
+    # S_Ay/S_By in [-0.4,0.4], L=4, 401 nodes) — the one figure left off the
+    # production box, and excluded from the reports bundle as stale.  run_qc_targeting
+    # now takes its box, axes, grid and level from production_box and refuses any
+    # model whose stored provenance disagrees (_check_model_box), so this artifact is
+    # the production 4-D chi model (1105 nodes) the rest of the 4-D results use.
+    "qc_targeting":         dict(reports="P3/qc_targeting_chi_prod_100.json",
+                                 producer="run_qc_targeting.py --n 100", where="cluster",
                                  status="ready", figures=["fig06_targeting"]),
 
     # ---- fig07 (effective-potential eccentricity) — needs a MODEL, distilled to json ----
@@ -221,7 +228,10 @@ FIGURES = {
                                               "gvm_8d_field", "gvm_8d_hermite_field",
                                               "gvm_8d_cross_field", "gvm_8d_cross"],
                                      keys=["panels"]),
-    "fig06_targeting":          dict(sources=["qc_targeting"], keys=["methods"]),
+    # ``meta`` carries the box/level/model the run was measured on, so a figdata built
+    # against the superseded narrow model cannot be replotted silently (the caption
+    # states the box).
+    "fig06_targeting":          dict(sources=["qc_targeting"], keys=["methods", "meta"]),
     "fig07_eccentricity":       dict(sources=["qc_effpot", "effpot_model"],
                                      keys=["Jlist", "per_J", "bg", "n_scan", "n_grad"]),
     "fig09_tp_validation":      dict(sources=["tp_band_sweep"],
