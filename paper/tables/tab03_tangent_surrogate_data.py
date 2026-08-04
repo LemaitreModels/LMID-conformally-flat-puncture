@@ -1,4 +1,4 @@
-"""Table II data — the exposed surrogate gradient against both references.
+"""Table III data — the exposed surrogate gradient against both references.
 
 Recomputes from the solver (~15 s: two aligned-spin interpolants plus the reference
 certified solves; no model corpus, no cluster) via the canonical producer
@@ -7,7 +7,7 @@ certified solves; no model corpus, no cluster) via the canonical producer
 import _tabdata as td
 from lm.initial_data.pipeline.run_tangent_verification import surrogate_tangents
 
-STEM = "tab02_tangent_surrogate"
+STEM = "tab03_tangent_surrogate"
 
 if __name__ == "__main__":
     print(f"[{STEM}] recomputing ...")

@@ -19,6 +19,7 @@ list the cluster prompt fills.  ``--check`` never runs anything.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -45,18 +46,38 @@ def _source_status():
     return {k: (fd.have_source(k), m) for k, m in reg.SOURCES.items()}
 
 
+def _figdata_tag(stem):
+    """"figdata OK" / "figdata MISSING" / "figdata STALE" for one figure.
+
+    STALE means the json is present but lacks a top-level key its plotter reads
+    (registry.FIGURES[stem]["keys"]) — i.e. it predates a block being added to its producer, so
+    ``make figures`` would die inside the plotter.  Reporting it as OK is what let fig02's
+    missing ``Q_wall_q`` sit unnoticed.
+    """
+    p = fd.figdata_path(stem)
+    if not os.path.exists(p):
+        return "figdata MISSING", None
+    try:
+        with open(p) as f:
+            miss = fd.missing_keys(stem, json.load(f))
+    except (ValueError, OSError) as e:                # unreadable/corrupt json
+        return "figdata STALE", str(e)
+    return ("figdata STALE", f"missing keys {miss}") if miss else ("figdata OK", None)
+
+
 def check():
     st = _source_status()
     print("=== figures ===")
-    n_ready = n_partial = 0
+    n_ready = n_partial = n_stale = 0
     for stem, spec in reg.FIGURES.items():
         srcs = spec.get("sources", [])
-        have_fig = os.path.exists(fd.figdata_path(stem))
         if spec.get("inline"):
             miss = []
         else:
             miss = [k for k in srcs if not st[k][0]]
-        tag = "figdata OK" if have_fig else "figdata MISSING"
+        tag, why = _figdata_tag(stem)
+        if tag == "figdata STALE":
+            n_stale += 1
         if spec.get("inline"):
             state = "inline"
         elif not miss:
@@ -64,6 +85,8 @@ def check():
         else:
             state = f"blocked ({len(miss)}/{len(srcs)} sources missing)"; n_partial += 1
         print(f"  {stem:32s} {tag:16s} {state}")
+        if why:
+            print(f"        - STALE: {why}; rebuild with --fig {stem} --force")
         for k in miss:
             m = st[k][1]
             print(f"        - needs {k:22s} [{m['where']}"
@@ -79,13 +102,18 @@ def check():
                   for f in os.listdir(fd.FIGDATA) if f.endswith(".json"))
         print(f"\nfigdata/ committed bundle: {tot/1e3:.0f} kB "
               f"({len([f for f in os.listdir(fd.FIGDATA) if f.endswith('.json')])} files)")
-    print(f"\n{n_ready} buildable, {n_partial} blocked on missing (cluster) sources.")
+    print(f"\n{n_ready} buildable, {n_partial} blocked on missing (cluster) sources"
+          f"{f', {n_stale} STALE' if n_stale else ''}.")
 
 
 def build(stem, force=False):
-    if os.path.exists(fd.figdata_path(stem)) and not force:
+    # A STALE figdata is rebuilt without --force: keeping it would fail the plotter anyway.
+    stale = _figdata_tag(stem)[0] == "figdata STALE"
+    if os.path.exists(fd.figdata_path(stem)) and not force and not stale:
         print(f"[{stem}] figdata present — skip (use --force to rebuild)")
         return True
+    if stale and not force:
+        print(f"[{stem}] figdata STALE ({_figdata_tag(stem)[1]}) — rebuilding")
     script = os.path.join(HERE, f"{stem}_data.py")
     if not os.path.exists(script):
         print(f"[{stem}] no data script {os.path.basename(script)} yet — skip")

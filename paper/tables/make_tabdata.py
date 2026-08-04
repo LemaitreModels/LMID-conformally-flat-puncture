@@ -30,13 +30,18 @@ sys.path.insert(0, HERE)
 import _tabdata as td          # noqa: E402
 
 TABLES = {
-    "tab01_tangent_operator": dict(
-        paper="Table I",
+    "tab01_production_box": dict(
+        paper="Table (tab:box)",
+        what="the production parameter box and shipped build configuration",
+        producer="pipeline.production_box + parametric_nd_2c.smolyak_points",
+        where="laptop", cost="instant"),
+    "tab02_tangent_operator": dict(
+        paper="Table (tab:tangent3d)",
         what="Eq. (tangent) vs central FD of the certified 3-D Newton-Krylov solve",
         producer="pipeline.run_tangent_verification.operator_tangents",
         where="laptop", cost="~1 s"),
-    "tab02_tangent_surrogate": dict(
-        paper="Table II",
+    "tab03_tangent_surrogate": dict(
+        paper="Table (tab:tangent)",
         what="exposed surrogate gradient vs FD of the surrogate and vs Eq. (tangent)",
         producer="pipeline.run_tangent_verification.surrogate_tangents",
         where="laptop", cost="~15 s"),

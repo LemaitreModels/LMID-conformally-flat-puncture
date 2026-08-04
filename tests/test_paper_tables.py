@@ -1,6 +1,6 @@
 """Paper tables — the rendered LaTeX and the hand-written captions agree with the data.
 
-The numeric rows of Tables I and II are generated (``paper/tables/tabNN_*_tex.py`` ->
+The numeric rows of Tables II and III are generated (``paper/tables/tabNN_*_tex.py`` ->
 ``tabNN_*.tex``, ``\\input`` by paper.tex), so they cannot drift from
 ``tabdata/tabNN_*.json``.  Two things still can:
 
@@ -27,7 +27,7 @@ sys.path.insert(0, TABLES)
 
 import _tabdata as td  # noqa: E402
 
-STEMS = ("tab01_tangent_operator", "tab02_tangent_surrogate")
+STEMS = ("tab02_tangent_operator", "tab03_tangent_surrogate")
 
 
 def _tex(stem):
@@ -71,21 +71,21 @@ def test_paper_inputs_generated_table(stem):
 
 
 def test_operator_caption_matches_config():
-    """Table I's caption repeats the slice, grid, and certified residual by hand."""
-    d = _data("tab01_tangent_operator")
+    """Table II's caption repeats the slice, grid, and certified residual by hand."""
+    d = _data("tab02_tangent_operator")
     c, cap = d["config"], _paper()
     for frag in (rf"$b={c['b']}$", rf"$q={c['q']}$", rf"$P_t={c['P_t']}$",
                  rf"$\chi^{{A}}_{{y}}={c['chi_Ay']:.2f}$",
                  rf"$\chi^{{B}}_{{y}}={c['chi_By']:.2f}$",
                  rf"$(N_A,N_B,N_\phi)=({c['Na']},{c['Nb']},{c['Nphi']})$"):
-        assert frag in cap, f"Table I caption disagrees with tabdata: expected {frag}"
+        assert frag in cap, f"Table II caption disagrees with tabdata: expected {frag}"
     # certified residual, quoted to two significant figures
     assert td.sci(c["residual_norm"]).strip("$") in cap.replace(r"\|R\|_\infty=", "")
 
 
 def test_surrogate_caption_matches_config():
-    """Table II's caption repeats the grid, boxes, orders, and evaluation points."""
-    d = _data("tab02_tangent_surrogate")
+    """Table III's caption repeats the grid, boxes, orders, and evaluation points."""
+    d = _data("tab03_tangent_surrogate")
     c, cap = d["config"], _paper()
     qb = [s["Q"] for s in c["spec_bq"]]
     bmin, bmax = c["spec_bq"][0]["min"], c["spec_bq"][0]["max"]
@@ -97,14 +97,43 @@ def test_surrogate_caption_matches_config():
                  rf"$q={c['fixed_chi']['q']}$", rf"$b={c['fixed_chi']['b']:g}$",
                  rf"$(b,q)=({c['theta_bq'][0]:g},{c['theta_bq'][1]:g})$",
                  rf"$(\chi^{{A}}_{{y}},\chi^{{B}}_{{y}})=({c['theta_chi'][0]:g},{c['theta_chi'][1]:g})$"):
-        assert frag in cap, f"Table II caption disagrees with tabdata: expected {frag}"
+        assert frag in cap, f"Table III caption disagrees with tabdata: expected {frag}"
     # the caption bounds the reference residual; the bound must actually hold
     m = re.search(r"reference solves are certified to\s*\n?\s*"
                   r"\$\\\|R\\\|_\\infty\\le(\d)\\times10\^\{(-\d+)\}\$", cap)
-    assert m, "Table II caption no longer states a certified-residual bound"
+    assert m, "Table III caption no longer states a certified-residual bound"
     bound = float(m.group(1)) * 10.0 ** int(m.group(2))
     assert c["residual_norm"] <= bound, (
         f"reference residual {c['residual_norm']:.2e} exceeds the caption's bound {bound:.0e}")
+
+
+def test_production_box_table_matches_canonical_box():
+    """Table I's rendered rows are the canonical box, level and grid the models share.
+
+    Unlike Tables II--III this one recomputes from ``production_box`` rather than from a
+    solve, so the guard is that the rendered .tex still agrees with that module — i.e.
+    nobody retargeted an edge without re-rendering. The table carries only what the two
+    quasi-circular models have in common (one value column, no per-model column), so the
+    per-model node counts are guarded where they are stated instead: the body text.
+    """
+    from lm.initial_data.parametric.parametric_nd_2c import smolyak_points
+    from lm.initial_data.pipeline import production_box as pb
+
+    tex = _tex("tab01_production_box")
+    paper = _paper()
+    assert r"\input{tables/tab01_production_box.tex}" in paper
+    assert rf"$[{2 * pb.B_MIN:g},\,{2 * pb.B_MAX:g}]$" in tex
+    assert rf"$[{pb.Q_MIN:g},\,{pb.Q_MAX:g}]$" in tex
+    assert rf"$[{-pb.CHI_MAX:g},\,{pb.CHI_MAX:g}]$" in tex
+    assert rf"$\ell$ & ${pb.SMOLYAK_LEVEL}$" in tex
+    assert rf"$({pb.PROD_GRID[0]},{pb.PROD_GRID[1]},{pb.PROD_GRID[2]})$" in tex
+    # one value column only: no row may carry a second value
+    assert r"\begin{tabular}{lc}" in tex
+    for d in (4, 8):
+        n = smolyak_points(d, pb.SMOLYAK_LEVEL)
+        # the draft groups thousands only past four digits ($1105$ but $15{,}713$)
+        forms = (f"${n}$", f"${n:,}$".replace(",", "{,}"))
+        assert any(f in paper for f in forms), f"d={d} node count {n} not stated"
 
 
 def test_producer_is_importable_and_standalone():

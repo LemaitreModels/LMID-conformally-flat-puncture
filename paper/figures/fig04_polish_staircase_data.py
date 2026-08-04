@@ -4,10 +4,10 @@
 Two columns (4D | 8D), two rows (constraint residual | field error), each with a cold-start and a
 value+gradient POD-warm-start curve (median + min/max over 1000 off-node points per step).
 
-Each panel additionally carries a value-ONLY surrogate curve, so the three warm-start families
+Each panel additionally carries a value-ONLY model curve, so the three warm-start families
 cold | value | value+gradient are compared on both rows.  The value-only curve is the POD-compressed
-value-only surrogate at the SAME rank as the value+gradient POD curve (the apples-to-apples partner)
-when its cluster source is present, else the full un-compressed value-only Smolyak surrogate.
+value-only model at the SAME rank as the value+gradient POD curve (the apples-to-apples partner)
+when its cluster source is present, else the full un-compressed value-only Smolyak model.
 
 Sources (raw), per dimension X in {4,8}:
   polish_cold_Xd            P3/polish_cold_chiXd_1000.json                    (cold residual staircase)
@@ -61,9 +61,9 @@ VALUE_POD = {4: "polish_value_pod_4d", 8: "polish_value_pod_8d"}
 
 
 def _value_curves(dim):
-    """(res_value, fld_value): the value-only surrogate warm-start staircases.  Prefers the
+    """(res_value, fld_value): the value-only model warm-start staircases.  Prefers the
     value-only *POD* family (run_polish_fielderr_value_pod, at the same rank as the
-    value+gradient POD curve) when its cluster source is present, so the two surrogate
+    value+gradient POD curve) when its cluster source is present, so the two parametric-model
     curves are apples-to-apples; falls back to the full un-compressed value-only Smolyak
     tables until that source lands (keeps the figure buildable today)."""
     key = VALUE_POD[dim]
@@ -75,7 +75,7 @@ def _value_curves(dim):
         res["r"] = d["config"].get("r")            # POD rank -> plot label "value-only POD (r=..)"
         fld = _rows_stair(fam["field_rows"], K)
         return res, fld
-    # fallback: full (un-compressed) value-only Smolyak surrogate
+    # fallback: full (un-compressed) value-only Smolyak model
     return _stair(load_source(VALUE_TABLE[dim])), _field(load_source(f"polish_fielderr_value_{dim}d")["value"])
 
 

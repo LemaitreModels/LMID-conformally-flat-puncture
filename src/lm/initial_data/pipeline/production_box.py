@@ -116,6 +116,24 @@ interpolation would fail.
 FIXED_QC = {"qc": 1.0}
 """Fixed non-swept parameters selecting quasi-circular momenta."""
 
+# --- shipped build configuration -------------------------------------------
+SMOLYAK_LEVEL = 5
+"""Isotropic Smolyak level of the two shipped models (``--level`` of the builders).
+
+The unique node count follows from this and the dimension alone:
+``parametric_nd_2c.smolyak_points(d, SMOLYAK_LEVEL)`` = 1105 (d=4), 15713 (d=8).
+Levels 1..5 are nested, so every lower level is already contained in the corpus.
+"""
+
+PROD_GRID = (44, 32, 8)
+"""Production spatial grid ``(N_A, N_B, N_phi)`` of the shipped corpora.
+
+The builders take it on the command line (``--Na 44 --Nb 32 --Nphi 8``, see the
+usage block of ``build_surrogate_chi``); it is recorded here so the paper's
+parameter-box table and the ``code_tag``-keyed corpora quote one canonical triple
+rather than a hand-copied one.  Changing it invalidates the solve store.
+"""
+
 # --- analyticity-wall sweep ranges -----------------------------------------
 WALL_CHI_INSIDE_FRACS = (0.5, 0.75, 1.0)
 """Inside-box spin-wall ranges, as fractions of ``CHI_MAX`` (auto-track it)."""
