@@ -55,12 +55,20 @@ the figure→producer→artifact graph).
 
 ## What is committed vs regenerated
 
-- **Committed:** the 9 figure **PDFs** (so `pdflatex paper/paper.tex` works
-  out of the box) and the source scripts.
-- **Regenerated (gitignored `figdata/*.json`):** figure data recomputes via
-  `make figdata`. As a documented fallback, a small committed `figdata` snapshot
-  for the two oracle/cluster-gated figures (fig08, fig09) keeps the paper building
-  without the heavy tier — force-added despite the gitignore.
+- **Committed:** the figure **PDFs** (so `pdflatex paper/paper.tex` works out of
+  the box), the source scripts, and **`paper/figures/figdata/*.json`**.
+- **Why figdata is committed:** the plotters read `figdata/figNN_*.json` and
+  nothing else — no `reports/`, no model corpus, no jax. Committing it (~150 kB
+  for all of them) is what lets anyone **replot from a bare clone**, with only
+  matplotlib and no copy step:
+
+  ```bash
+  cd paper/figures && for f in fig??_*_plot.py; do python "$f"; done
+  ```
+
+- **Regenerated:** `make figdata` **recomputes** that json from the raw sources,
+  and needs the heavy tier (`$LM_REPORTS`, the multi-GB corpora, the cluster).
+  That is the only step a clone cannot do.
 
 ## Model-artifact location convention
 

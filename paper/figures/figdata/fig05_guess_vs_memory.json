@@ -1,8 +1,6 @@
 {
   "panels": {
     "TL": {
-      "note": "1000 off-node pts",
-      "note_loc": "bl",
       "curves": [
         {
           "cur": [
@@ -121,8 +119,6 @@
       ]
     },
     "TR": {
-      "note": "1000 off-node pts",
-      "note_loc": "br",
       "curves": [
         {
           "cur": [
@@ -242,8 +238,6 @@
     },
     "BL": {
       "title": null,
-      "note": "1000 off-node pts",
-      "note_loc": "tr",
       "curves": [
         {
           "cur": [
@@ -363,8 +357,6 @@
     },
     "BR": {
       "title": null,
-      "note": "1000 off-node pts",
-      "note_loc": "tr",
       "curves": [
         {
           "cur": [
