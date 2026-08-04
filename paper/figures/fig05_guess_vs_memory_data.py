@@ -12,8 +12,13 @@ Curve LABELS live in the plot script (``CURVE_LABELS``), not here: they are pres
 notation change needs only a re-plot, not a solver recompute. The two curves are written in the
 fixed order (value, value+gradient+cross) that ``CURVE_LABELS`` assumes.
 
-Sources (raw): gvm_all, gvm_4d_{value,cross,field,cross_field}, gvm_8d_{value,field,hermite_field},
+Sources (raw): gvm_all, gvm_4d_{value,cross,field,cross_field},
+               gvm_8d_{value,field,cross}, one of gvm_8d_{hermite_field,cross_field}
+               (see ``BR_8D_ENHANCED``),
                polish_table_{4d,4d_cross,8d_hermite,8d_value}  (registry keys).
+
+The two 8-D value+gradient curves (residual, top right; field error, bottom right) must
+come from ONE model — ``_check_8d_enhanced`` enforces it.  See that function for why.
 
 Memory formulas (float64 stored arrays), matching the run drivers:
   value POD bare   = 8 * N * nfeat                          (node_U only)
@@ -31,6 +36,26 @@ from _figdata import load_source, dump
 VAL_C, HERM_C = "C0", "C1"
 POD5 = ("r", "mem_bytes", "min", "median", "max")
 DENSE_LADDER = 10   # rungs a pre-thinning run produced; see pipeline thin_ranks()
+
+# Which 8-D value+gradient model the BOTTOM-RIGHT (field-error) panel plots.
+#
+#   "gvm_8d_cross_field"   the y-pair CROSS model — the model the TOP-RIGHT residual
+#                          panel, the BOTTOM-LEFT 4-D panel and fig03 all use.
+#   "gvm_8d_hermite_field" the PLAIN Hermite model (gradient-only on all six spin
+#                          axes, no cross term), which regresses below value-only
+#                          exactly as HISTORY_AND_FINDINGS 2.4 predicts.
+#
+# These are different models, and until 2026-08-02 both producers wrote the
+# *_hermite_field path, so the panel silently carried whichever ran last.  The two
+# curves in the right-hand column must describe ONE model — _check_8d_enhanced()
+# enforces that below.  Changing this key is a scientific choice about what the
+# figure claims, so it is a single explicit line rather than an implicit default.
+#
+# The CROSS is the shipped model (HISTORY_AND_FINDINGS 2.4), and the one fig03, the
+# 4-D panel and the residual panel above already plot.  Measured on the production
+# box it beats value-only by 1.692x (1.0641e-3 vs 1.8009e-3), matching fig03's
+# independent 1.700x to three digits.
+BR_8D_ENHANCED = "gvm_8d_cross_field"
 
 
 def _thin(cur):
@@ -59,6 +84,37 @@ def _guess(key):
 def curve(cur, bare, bare_mem_mb, color, marker, bare_r, ann, drop_last):
     return dict(cur=_pod5(cur), bare=bare, bare_mem=bare_mem_mb, bare_r=bare_r,
                 color=color, marker=marker, ann=ann, drop_last=drop_last)
+
+
+def _check_8d_enhanced(resid, field):
+    """The two 8-D value+gradient curves must describe the SAME model.
+
+    The right-hand column shows one model measured two ways: residual on top, field
+    error below.  They therefore share a bare-guess memory (the x-position of the
+    star) and a model name.  On 2026-08-01 they did not: the field sweep carried the
+    six-axis plain-Hermite model while the residual sweep carried the y-pair cross,
+    because both 8-D field producers wrote one filename and the plain one ran last.
+    Nothing caught it — the figure built cleanly and the panel simply showed a
+    different model from the one its neighbours and fig03 show.
+
+    Memory is the sharp discriminator: the cross model stores one extra block per
+    node, so bare_mem differs by exactly (1+d+npair)/(1+d) = 10/9 at d=8.
+    """
+    rm, fm = resid.get("model"), field.get("model")
+    rb, fb = resid.get("bare_mem_bytes"), field.get("bare_mem_bytes")
+    if rm != fm or (rb and fb and abs(rb - fb) > 1e-6 * max(rb, fb)):
+        raise SystemExit(
+            "fig05: the two 8-D value+gradient curves are DIFFERENT models.\n"
+            f"  TOP-RIGHT  (residual, gvm_8d_cross)   model={rm}  bare_mem={rb}\n"
+            f"  BOTTOM-RIGHT (field, {BR_8D_ENHANCED})  model={fm}  bare_mem={fb}\n"
+            "  They must be one model measured two ways (see this function's docstring).\n"
+            "  Either:\n"
+            "    (a) set BR_8D_ENHANCED = 'gvm_8d_cross_field' and produce it with\n"
+            "        python -m lm.initial_data.pipeline.run_hermite_fielderr_sweep_8d_cross\n"
+            "        (~6-7 h with the shared certified-truth cache warm, ~21 h cold), or\n"
+            "    (b) keep the plain-Hermite field curve and repoint the TOP-RIGHT residual\n"
+            "        panel at the matching plain-Hermite residual sweep.\n"
+            "  Option (a) matches the 4-D bottom-left panel and fig03; (b) does not.")
 
 
 def build():
@@ -98,8 +154,11 @@ def build():
                 HERM_C, "s", gc["r_full"], "above", True)]
 
     # ---- BOTTOM-RIGHT: 8D field error (value + value+gradient cross) ----
+    # BR_8D_ENHANCED selects which enhanced model this panel plots; the guard requires
+    # it to be the same model the TOP-RIGHT residual panel plots.
     gvf8 = load_source("gvm_8d_field")
-    gvhf8 = load_source("gvm_8d_hermite_field")
+    gvhf8 = load_source(BR_8D_ENHANCED)
+    _check_8d_enhanced(gx8, gvhf8)
     BR = [curve(gvf8["pod_curve"], _mmm(gvf8["pod_curve"][-1]),
                 8.0 * gvf8["N"] * gvf8["nfeat"] / 1e6,
                 VAL_C, "o", gvf8["r_full"], "below", True),

@@ -1,6 +1,11 @@
-"""8D y-pair-cross residual POD gapfill — residual sibling of guess_vs_memory_8d_hermite_field.
-Add-only clone of run_cross_pod_figuredata.py (4D) for the 8D cross model, so fig05 top-right
-value+gradient matches the bottom-right (same model, same ranks/memory)."""
+"""8D y-pair-cross residual POD gapfill (fig05 top-right value+gradient) -> gvm_8d_cross.
+
+Clone of run_cross_pod_figuredata.py (4D) for the 8D cross model.  Its FIELD-ERROR
+sibling — same model, same ranks, same bare memory — is gvm_8d_cross_field, from
+run_hermite_fielderr_sweep_8d_cross.py.  NOT gvm_8d_hermite_field: that is the plain
+six-axis gradient-only Hermite, a different model with a different bare memory
+(13.03 GB vs 14.48 GB, the missing cross block).  fig05's _check_8d_enhanced enforces
+the pairing; see that function for the incident that motivated it."""
 from __future__ import annotations
 import argparse, json, os, sys, time
 import jax; jax.config.update("jax_enable_x64", True)

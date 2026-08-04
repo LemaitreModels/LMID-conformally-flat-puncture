@@ -1,13 +1,24 @@
 """LM-initial-data — PLAIN 8-D FIELD-ERROR POD-rank sweep (value-only AND value+gradient).
 
-The 8-D analogue of the 4-D CROSS field-error sweep ``run_cross_fielderr_sweep.py``.
-Produces the TWO fig05 bottom-right figure-data sources (registry-pinned):
+The 8-D PLAIN-Hermite counterpart of the 4-D CROSS field-error sweep
+``run_cross_fielderr_sweep.py``.  Produces two registry-pinned sources:
 
   gvm_8d_field         -> reports/P3/guess_vs_memory_8d_field_<n>.json
                           (VALUE-only plain POD — value basis + value-only interp)
   gvm_8d_hermite_field -> reports/P3/guess_vs_memory_8d_hermite_field_<n>.json
                           (VALUE+GRADIENT plain-Hermite POD — stacked value+deriv
                            basis + the gradient-enhanced Hermite-Smolyak interp)
+
+**``gvm_8d_hermite_field`` is the plain-Hermite curve, NOT the paper's 8-D
+"value+gradient" curve.**  This model is gradient-enhanced on all six spin axes
+with no cross term, which HISTORY_AND_FINDINGS 2.4 predicts will regress below
+value-only — and it does (measured 1.31e-2 vs 1.80e-3 at full rank on the
+production box).  The paper's 8-D value+gradient model is the y-pair CROSS,
+swept by ``run_hermite_fielderr_sweep_8d_cross.py`` -> ``gvm_8d_cross_field``,
+matching the 4-D bottom-left panel, the 8-D residual panel and fig03.  The two
+producers wrote the SAME filename until 2026-08-02; whichever ran last won, and
+the plain-Hermite output silently became fig05's bottom-right orange curve.
+Keep the output names distinct.
 
 Both compute the relative-L2 field error ``||decode_r - u_true|| / ||u_true||`` of
 the rank-r plain-Hermite-Smolyak POD guess against the certified NK solve
@@ -25,7 +36,10 @@ b-q-enhanced one.  Loaded with the PLAIN loader
 
 u_true is the plain model's OWN certified NK solve (warm from its full guess), the
 same convention as the 4-D driver: ``mc.evaluate_polished(theta, newton_steps=12,
-tol=1e-11)``.  ``u_true`` is solved ONCE per point and reused for BOTH flavors.
+tol=1e-11)``.  ``u_true`` is solved ONCE per point, reused for BOTH flavors, and
+CACHED by ``fielderr_shared.certified_truth`` on a key pinning box/grid/sampler/
+seed/tolerance — so the cross sweep over the same box reuses it instead of
+repeating the ~15 h solve (measured 54.9 s/pt at 1000 points).
 
 The two POD flavors differ in BOTH the basis and the parametric interpolant:
   * value-only : POD basis from the VALUE corpus (include_derivatives=False), and
@@ -83,6 +97,9 @@ from lm.initial_data.parametric.hermite_smolyak_pod import pod_basis_pool
 # reuse the EXACT seed-shared off-node sampling + stats of the other field sweeps
 from lm.initial_data.pipeline.run_cross_fielderror_chi import (
     offnode_points, pod_rank_ladder, stats)
+# shared certified-truth cache + the held-out accuracy gate (see that module's docstring)
+from lm.initial_data.pipeline.fielderr_shared import (
+    attach_gate, certified_truth, enhanced_vs_value, truth_key)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lm.initial_data.paths import reports_root
@@ -214,23 +231,12 @@ def main(n_points=1000, seed=0, u_tol=1e-11, u_steps=12):
     pts = offnode_points(box, n_points, seed)
 
     # ---- phase 1: certified truth, ONCE per point, reused for both flavors ----
-    print(f"[hf8d] solving certified u_true at {n_points} off-node points "
-          f"(seed={seed}, newton_steps={u_steps}, tol={u_tol:.0e}) ...", flush=True)
-    ut_flat, ures = [], []
-    tt = time.time()
-    for i, th in enumerate(pts):
-        ut, info = mc.evaluate_polished(th, newton_steps=u_steps, tol=u_tol)
-        ut_flat.append(np.asarray(ut, dtype=float).reshape(-1))
-        ures.append(float(info.residual_norm))
-        if (i + 1) % 25 == 0 or i == n_points - 1 or n_points <= 10:
-            el = time.time() - tt
-            rate = el / (i + 1)
-            print(f"   u_true {i+1}/{n_points} ({el:.0f}s, {rate:.2f}s/pt, "
-                  f"ETA {rate*(n_points-i-1)/60:.1f} min)  "
-                  f"res med={np.median(ures):.1e}", flush=True)
-    print(f"[hf8d] u_true done: {n_points} pts, {(time.time()-tt)/60:.1f} min, "
-          f"{(time.time()-tt)/n_points:.2f}s/pt, res med={np.median(ures):.1e}",
-          flush=True)
+    # u_true belongs to the PDE + box + sampler, not to this model, so it is cached
+    # and shared with the cross sweep over the same box (fielderr_shared): ~15 h at
+    # 1000 points, paid once.
+    key = truth_key(box=box, Na=Na, Nb=Nb, Nphi=Nphi, sampler="offnode",
+                    seed=seed, u_steps=u_steps, u_tol=u_tol, fixed=fixed)
+    ut_flat, ures, _src = certified_truth(mc, pts, key, tag="hf8d")
 
     # ---- flavor sweeps: ONE Phi held at a time (mc shared; value view free) ----
     # value+gradient first (heavier basis), then value-only.
@@ -245,15 +251,23 @@ def main(n_points=1000, seed=0, u_tol=1e-11, u_steps=12):
         8.0 * N * nfeat,
         pts, ut_flat, ures, N, nfeat, d, n_points, seed, u_tol, u_steps)
 
-    # ---- summary + the "value+grad at/below value-only" sanity check ----
+    # ---- summary + the held-out accuracy gate (HISTORY_AND_FINDINGS 2.7) ----
     print(f"\n[hf8d] === SUMMARY ({n_points} pts, {(time.time()-t0)/60:.1f} min) ===")
     print(f"[hf8d]   VALUE-only  -> {os.path.basename(val_out)}  (r_full={val_rfull})")
     print(f"[hf8d]   VALUE+GRAD  -> {os.path.basename(grad_out)}  (r_full={grad_rfull})")
-    common = sorted(set(val_med) & set(grad_med))
-    below = sum(1 for r in common if grad_med[r] <= val_med[r] * 1.05)
-    print(f"[hf8d]   value+grad <= 1.05*value-only at {below}/{len(common)} shared ranks")
-    for r in common:
-        print(f"      r={r:6d}  value-only={val_med[r]:.3e}  value+grad={grad_med[r]:.3e}")
+    # This model is gradient-only on SIX spin axes with no cross term, so 2.4 predicts a
+    # regression below value-only: recorded, not fatal.  The artifact it writes is the
+    # plain-Hermite curve, NOT the paper's 8-D "value+gradient" curve (that is the y-pair
+    # cross model, run_hermite_fielderr_sweep_8d_cross.py -> gvm_8d_cross_field).
+    gate = enhanced_vs_value(val_med, grad_med, tag="hf8d",
+                             label="8-D plain Hermite (6 enhanced spin axes, no cross)",
+                             expect_below=False, fatal=False)
+    for p in (val_out, grad_out):
+        attach_gate(p, gate)
+    if not gate["beats_value"]:
+        print("[hf8d]   REMINDER: this is the plain-Hermite (gradient-only) artifact. "
+              "The paper's 8-D value+gradient curve is the y-pair CROSS sweep "
+              "(run_hermite_fielderr_sweep_8d_cross.py).", flush=True)
     return val_out, grad_out
 
 

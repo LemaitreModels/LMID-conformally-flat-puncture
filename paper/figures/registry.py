@@ -127,8 +127,19 @@ SOURCES = {
     "gvm_8d_field":         dict(reports="P3/guess_vs_memory_8d_field_1000.json",
                                  producer="run_hermite_fielderr_sweep_8d.py (value)  (appendix e)",
                                  where="cluster", status="ready", figures=["fig05_guess_vs_memory"]),
+    # The 8-D field sweeps come in TWO enhanced flavours, and they are not
+    # interchangeable.  gvm_8d_hermite_field is the PLAIN Hermite (gradient-only on all
+    # six spin axes, no cross), which HISTORY_AND_FINDINGS 2.4 predicts regresses below
+    # value-only — it does (1.31e-2 vs 1.80e-3 at full rank).  gvm_8d_cross_field is the
+    # y-pair CROSS, the model fig03, the 4-D bottom-left panel and gvm_8d_cross (the
+    # residual sibling) all use.  Both producers wrote the *_hermite_field path until
+    # 2026-08-02, with only the first registered, so whichever ran last won; see
+    # fig05_guess_vs_memory_data.BR_8D_ENHANCED for which one the figure plots.
     "gvm_8d_hermite_field": dict(reports="P3/guess_vs_memory_8d_hermite_field_1000.json",
-                                 producer="run_hermite_fielderr_sweep_8d.py (value+grad)  (appendix e)",
+                                 producer="run_hermite_fielderr_sweep_8d.py (value+grad, PLAIN Hermite: 6 spin axes, no cross)  (appendix e)",
+                                 where="cluster", status="ready", figures=["fig05_guess_vs_memory"]),
+    "gvm_8d_cross_field":   dict(reports="P3/guess_vs_memory_8d_cross_field_1000.json",
+                                 producer="run_hermite_fielderr_sweep_8d_cross.py (8D y-pair CROSS FIELD sweep)",
                                  where="cluster", status="ready", figures=["fig05_guess_vs_memory"]),
     "gvm_8d_cross":         dict(reports="P3/guess_vs_memory_8d_hermite_gapfill_1000.json",
                                  producer="run_cross_pod_resid_8d.py (8D y-pair cross RESIDUAL sweep)",
@@ -173,12 +184,15 @@ FIGURES = {
                                               "polish_table_8d_value", "polish_fielderr_value_4d",
                                               "polish_fielderr_value_8d",
                                               "polish_value_pod_4d", "polish_value_pod_8d"]),
+    # Both 8-D enhanced field flavours are listed: the panel plots one of them
+    # (fig05_guess_vs_memory_data.BR_8D_ENHANCED) and the guard there compares it
+    # against the residual panel's model, so the graph must know about both.
     "fig05_guess_vs_memory":    dict(sources=["gvm_4d_value", "gvm_4d_cross",
                                               "gvm_4d_field", "gvm_4d_cross_field",
                                               "polish_table_4d", "polish_table_4d_cross",
                                               "polish_table_8d_value", "gvm_8d_value",
                                               "gvm_8d_field", "gvm_8d_hermite_field",
-                                              "gvm_8d_cross"]),
+                                              "gvm_8d_cross_field", "gvm_8d_cross"]),
     "fig06_targeting":          dict(sources=["qc_targeting"]),
     "fig07_eccentricity":       dict(sources=["qc_effpot", "effpot_model"]),
     "fig08_3d_validation":      dict(sources=["sweep_3d"]),
