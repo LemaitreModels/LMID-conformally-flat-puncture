@@ -71,7 +71,7 @@ def _panel(ax, curves, key, label_fmt, xlabel, title):
         ax.plot(Qw, 10.0 ** (w["fit_slope"] * Qw + w["fit_intercept"]),
                 "--", lw=1.2, color=col, alpha=0.9)
     ax.set_xlabel(xlabel)
-    ax.set_ylabel("held-out interpolation error")
+    ax.set_ylabel("held-out error")
     ax.set_title(title, fontsize=10)
     ax.yaxis.set_minor_locator(NullLocator())  # no y sub-ticks
     ax.grid(True, which="major", alpha=0.3)

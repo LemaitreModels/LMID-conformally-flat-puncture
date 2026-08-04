@@ -7,11 +7,11 @@ axes; the node-count axis is LOGARITHMIC and common to the two panels, so (i) th
 five levels are near-uniformly spaced instead of crowding into the left edge of a
 linear axis, and (ii) the 8D model's ~14x larger corpus at the same level is read off
 directly against the 4D one. The Smolyak level is annotated at each point.
-  left   -- the 4D model: value-only sparse interpolant vs value + gradient + cross
-            (full-bilinear Hermite-Smolyak) enhanced on the two spin axes
+  left   -- the 4D model: value-only sparse interpolant vs the gradient-enhanced
+            (full-bilinear Hermite-Smolyak) model enhanced on the two spin axes
   right  -- the 8D general-spin model, same two curves (mirrors the left panel)
 
-Colours match Fig. 5: value = C0, gradient-enhanced = C1.
+Colours match Fig. 5: value-only = C0, gradient-enhanced = C1.
 
 Reads ONLY figdata/fig03_joint_dist.json (build it with fig03_joint_dist_data.py).
 No reports/, no jax.
@@ -30,9 +30,9 @@ from matplotlib.ticker import NullLocator
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from _figdata import load
-from _figstyle import figdims
+from _figstyle import figdims, MODEL_TITLES
 
-BARE_C, CROSS_C = "C0", "C1"          # value / gradient-enhanced (matches Fig. 5)
+BARE_C, CROSS_C = "C0", "C1"          # value-only / gradient-enhanced (matches Fig. 5)
 
 
 def _arr(s):
@@ -58,8 +58,8 @@ def _levels(ax, bare, cross, levels):
 
 def _panel(ax, side, title):
     bare, cross = _arr(side["bare"]), _arr(side["cross"])
-    _series(ax, bare, BARE_C, "o", "value")
-    _series(ax, cross, CROSS_C, "s", r"value + gradient + cross ($\chi^{A}_{y},\chi^{B}_{y}$)")
+    _series(ax, bare, BARE_C, "o", "value-only")
+    _series(ax, cross, CROSS_C, "s", r"gradient-enhanced ($\chi^{A}_{y},\chi^{B}_{y}$)")
     _levels(ax, bare, cross, side["bare"]["levels"])
     ax.set_xlabel("solver node count")
     ax.set_title(title, fontsize=10)
@@ -75,9 +75,10 @@ def main():
     fig, (axL, axR) = plt.subplots(1, 2, figsize=figdims(1, 2), sharex=True, sharey=True)
     axL.set_yscale("log")
 
-    bL, cL = _panel(axL, d["left"], "four-dimensional model")
-    bR, cR = _panel(axR, d["right"], "eight-dimensional model")
-    axL.set_ylabel(f"joint held-out error over {d['left']['bare']['n_points']} points")
+    # panel titles shared with Figs. 4 and 5 via _figstyle.MODEL_TITLES
+    bL, cL = _panel(axL, d["left"], MODEL_TITLES[4])
+    bR, cR = _panel(axR, d["right"], MODEL_TITLES[8])
+    axL.set_ylabel("joint held-out error")
     axL.legend(fontsize=9, loc="lower left")
 
     # common y-limits spanning both panels, with headroom for the level labels

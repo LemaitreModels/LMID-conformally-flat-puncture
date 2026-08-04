@@ -5,7 +5,7 @@ Reduced-basis (POD) compression versus stored model memory, as the POD truncatio
 A 2x2 grid with a SHARED memory x-axis per column:
   TOP row    bare-guess constraint residual ||R||_inf vs memory
   BOTTOM row bare-guess field error ||u-u_true||_2/||u_true||_2 vs memory
-  LEFT col 4D,  RIGHT col 8D;  each panel: value (C0) + value+gradient+cross (C1).
+  LEFT col 4D,  RIGHT col 8D;  each panel: value-only (C0) + gradient-enhanced (C1).
 
 Median line with min--max whiskers; each point labelled by r; the full-rank (un-compressed) model
 is the star. The field row (bottom) saturates at its floor while the residual (top) keeps falling,
@@ -28,20 +28,19 @@ import matplotlib.pyplot as plt
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from _figdata import load
-from _figstyle import figdims
+from _figstyle import figdims, MODEL_TITLES, PANEL_H_STACK
 
 
-# Panel titles and curve labels are presentation, so they live here rather than in the figdata
-# json: a notation change then needs only a re-plot, not a solver recompute.
-TITLES = {
-    "TL": r"4D quasi-circular model:  $\theta=(b,\ q,\ \chi^{A}_{y},\ \chi^{B}_{y})$",
-    "TR": r"8D quasi-circular model:  $\theta=(b,\ q,\ \boldsymbol{\chi}^{A},\ \boldsymbol{\chi}^{B})$",
-}
+# Panel titles and curve labels are presentation, so the titles live in _figstyle rather than in the
+# figdata json (a notation change then needs only a re-plot, not a solver recompute) and are SHARED
+# with Figs. 3 and 4, which draw the same two models.
+TITLES = {"TL": MODEL_TITLES[4], "TR": MODEL_TITLES[8]}
 
 # Every panel carries the same two families, in this order (see the data script): the value-only
 # surrogate, and the shipped gradient-enhanced one, which stores the two first spin tangents AND
-# their bilinear cross tangent -- hence "+ cross", matching Figs. 3 and 4.
-CURVE_LABELS = ("value", "value + gradient + cross")
+# their bilinear cross tangent.  The caption states that content; the labels are the concept names
+# used in Figs. 1, 3 and 4, so one model has one name in every figure.
+CURVE_LABELS = ("value-only", "gradient-enhanced")
 
 RANK_GID = "rank-label"
 
@@ -126,7 +125,8 @@ def _note(ax, text, loc):
 
 def main():
     P = load("fig05_guess_vs_memory")["panels"]
-    fig, axes = plt.subplots(2, 2, figsize=figdims(2, 2), sharex="col", sharey="row")
+    fig, axes = plt.subplots(2, 2, figsize=figdims(2, 2, panel_h=PANEL_H_STACK),
+                             sharex="col", sharey="row")
     for key, ax in (("TL", axes[0, 0]), ("TR", axes[0, 1]),
                     ("BL", axes[1, 0]), ("BR", axes[1, 1])):
         pan = P[key]
@@ -142,13 +142,17 @@ def main():
         ax.set_yscale("log")
         ax.grid(True, which="major", alpha=0.3)
         ax.minorticks_off()
-        # 8.2 pt keeps the (longer) two-line legend clear of the r=107 rank label in the
-        # bottom-left panel; the box still reads at print size in this full-width figure.
-        ax.legend(fontsize=8.2, loc="lower left", framealpha=0.92)
+    # ONE legend, in the top-left panel: all four panels carry the same two families, and on the
+    # flatter stacked panel (PANEL_H_STACK) a per-panel box sits on the rank labels of the
+    # bottom-left panel.  The top-left panel's lower-left corner is empty in every rank sweep.
+    axes[0, 0].legend(fontsize=8.2, loc="lower left", framealpha=0.92)
     for ax in (axes[1, 0], axes[1, 1]):
         ax.set_xlabel("stored model memory (MB)")
-    axes[0, 0].set_ylabel(r"bare-guess constraint residual $\|R\|_\infty$")
-    axes[1, 0].set_ylabel(r"bare-guess field error $\|u-u_{\rm true}\|_2/\|u_{\rm true}\|_2$")
+    # No "bare-guess" qualifier and no formula on the axis labels: that both quantities are read at
+    # the guess, and how each is defined, is said once in the caption, and dropping them here makes
+    # the labels identical to Fig. 4's.
+    axes[0, 0].set_ylabel("constraint residual")
+    axes[1, 0].set_ylabel("field error")
     fig.tight_layout()
     declutter(fig, axes.ravel())
     stem = os.path.join(HERE, "fig05_guess_vs_memory")

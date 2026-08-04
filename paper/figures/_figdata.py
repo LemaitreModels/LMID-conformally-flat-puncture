@@ -59,15 +59,33 @@ def dump(stem, obj):
     return figdata_path(stem)
 
 
+def missing_keys(stem, d):
+    """Declared plotter keys (registry.FIGURES[stem]['keys']) absent from a loaded figdata."""
+    return [k for k in _reg.keys_for(stem) if k not in d]
+
+
 def load(stem):
-    """Read figdata/<stem>.json (the ONLY thing a plotter reads)."""
+    """Read figdata/<stem>.json (the ONLY thing a plotter reads).
+
+    Also verifies the top-level keys the plotter needs are present.  A figdata that predates a
+    block being added to its producer loads fine and then dies deep in the plotter with a bare
+    ``KeyError``; the check turns that into one actionable message naming the rebuild command.
+    """
     p = figdata_path(stem)
+    hint = (f"  build it with:  python {stem}_data.py   "
+            f"(or: python make_figdata.py --fig {stem} --force)")
     if not os.path.exists(p):
         raise FileNotFoundError(
-            f"missing committed figure data: {os.path.relpath(p, REPO_ROOT)}\n"
-            f"  build it with:  python {stem}_data.py   (or: python make_figdata.py --fig {stem})")
+            f"missing committed figure data: {os.path.relpath(p, REPO_ROOT)}\n{hint}")
     with open(p) as f:
-        return json.load(f)
+        d = json.load(f)
+    miss = missing_keys(stem, d)
+    if miss:
+        srcs = ", ".join(_reg.sources_for(stem)) or "(none)"
+        raise KeyError(
+            f"stale figure data {os.path.relpath(p, REPO_ROOT)}: missing {miss} "
+            f"(has {sorted(d)})\n{hint}\n  raw sources: {srcs}")
+    return d
 
 
 # ------------------------------------------------------------------ raw sources --------------

@@ -157,32 +157,57 @@ SOURCES = {
     "tp_validation":        dict(reports="3D_parametric/qc/tp_validation_qc.json",
                                  producer="run_qc_tp_validation.py", where="cluster",
                                  status="ready", figures=["fig09_tp_validation"]),
+
+    # ---- fig10 (TP agreement as a DISTRIBUTION over the production box) ----
+    # Complements, not replaces, fig08/fig09: those are convergence ladders at a FIXED
+    # configuration (x axis = resolution), which is what shows the difference to be
+    # resolution-limited.  Neither samples the box the models are claimed over -- fig08
+    # sits at b=1.5, BELOW production B_MIN=3, and no external check anywhere reaches
+    # q != 1 or production spin magnitudes.  This source closes that.
+    "tp_random_sweep":      dict(reports="3D_parametric/qc/tp_random_sweep.json",
+                                 producer="run_tp_random_sweep.py --n 100 --workers 6",
+                                 where="cluster", status="ready",
+                                 figures=["fig10_tp_box_sample"]),
 }
 
 # --- figure -> the source keys it distills + its data-script filename -------------------------
 # The committed output is always figdata/<stem>.json.  "inline" figures carry their own numbers
 # in the data script (no external source).
+#
+# ``keys`` are the top-level figdata keys the PLOTTER reads.  They are checked by
+# ``_figdata.load`` and reported by ``make_figdata.py --check``, because "the json exists" is
+# NOT the same as "the json is current": a figdata built before a block was added to its
+# producer loads fine and then fails deep inside the plotter with a bare KeyError.  That is
+# exactly how fig02 broke — its committed PDF carries the mass-ratio panel while an older local
+# figdata (no ``Q_wall_q``) cannot rebuild it.  Keep this list in step with the plotter.
 FIGURES = {
-    "fig01_peraxis_hermite":    dict(sources=["peraxis_dist_chi"]),
-    "fig02_walls":              dict(sources=["walls_dense"]),
+    "fig01_peraxis_hermite":    dict(sources=["peraxis_dist_chi"], keys=["A_per_axis"]),
+    "fig02_walls":              dict(sources=["walls_dense"],
+                                     keys=["B_wall_b", "Q_wall_q", "C_wall_spin"]),
     "fig03_joint_dist":         dict(sources=["joint_dist_4d", "joint_dist_cross_4d",
-                                              "joint_dist_8d", "joint_dist_hermite_8d"]),
+                                              "joint_dist_8d", "joint_dist_hermite_8d"],
+                                     keys=["left", "right"]),
     "fig04_polish_staircase":   dict(sources=["polish_cold_4d", "polish_cold_8d", "polish_pod_4d",
                                               "polish_pod_8d", "polish_fielderr_4d",
                                               "polish_fielderr_8d", "polish_table_4d",
                                               "polish_table_8d_value", "polish_fielderr_value_4d",
                                               "polish_fielderr_value_8d",
-                                              "polish_value_pod_4d", "polish_value_pod_8d"]),
+                                              "polish_value_pod_4d", "polish_value_pod_8d"],
+                                     keys=["cols"]),
     "fig05_guess_vs_memory":    dict(sources=["gvm_4d_value", "gvm_4d_cross",
                                               "gvm_4d_field", "gvm_4d_cross_field",
                                               "polish_table_4d", "polish_table_4d_cross",
                                               "polish_table_8d_value", "gvm_8d_value",
                                               "gvm_8d_field", "gvm_8d_hermite_field",
-                                              "gvm_8d_cross"]),
-    "fig06_targeting":          dict(sources=["qc_targeting"]),
-    "fig07_eccentricity":       dict(sources=["qc_effpot", "effpot_model"]),
-    "fig08_3d_validation":      dict(sources=["sweep_3d"]),
-    "fig09_tp_validation":      dict(sources=["sweep_3d", "tp_validation"]),
+                                              "gvm_8d_cross"],
+                                     keys=["panels"]),
+    "fig06_targeting":          dict(sources=["qc_targeting"], keys=["methods"]),
+    "fig07_eccentricity":       dict(sources=["qc_effpot", "effpot_model"],
+                                     keys=["Jlist", "per_J", "bg", "n_scan", "n_grad"]),
+    "fig08_3d_validation":      dict(sources=["sweep_3d"], keys=["ladder", "spectrum"]),
+    "fig09_tp_validation":      dict(sources=["sweep_3d", "tp_validation"], keys=["C_psi_adm"]),
+    "fig10_tp_box_sample":      dict(sources=["tp_random_sweep"],
+                                     keys=["interior", "edge", "summary", "meta"]),
 }
 
 
@@ -192,3 +217,8 @@ def figure_stems():
 
 def sources_for(stem):
     return FIGURES[stem].get("sources", [])
+
+
+def keys_for(stem):
+    """Top-level figdata keys the plotter of ``stem`` requires (empty if undeclared)."""
+    return FIGURES.get(stem, {}).get("keys", [])

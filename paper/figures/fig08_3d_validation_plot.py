@@ -19,6 +19,7 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.ticker import NullLocator
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -41,9 +42,12 @@ def main():
         ax1.semilogy(Na, dpsi, "s--", color="C4", label=r"$|\psi-\psi_{\rm TP}|_\infty$")
     ax1.set_xlabel(r"meridian resolution $N_A$  (with $N_B,N_\phi$ scaled)")
     ax1.set_ylabel("error")
-    ax1.set_title("(a) non-axisymmetric convergence vs TwoPunctures")
+    ax1.set_title("(a) Convergence vs TwoPunctures", fontsize=10)
     ax1.legend(frameon=False, fontsize=9)
     ax1.grid(True, which="both", alpha=0.3)
+    # this panel spans ~7 decades, so the log subticks (and their gridlines) are
+    # dense clutter; the labelled decades alone carry the scale
+    ax1.yaxis.set_minor_locator(NullLocator())
 
     for i, r in enumerate(d["spectrum"]):
         amps = np.array(r["phi_amps"])
@@ -53,7 +57,7 @@ def main():
                      label=fr"$\theta_S={r['tilt_deg']:.0f}^\circ$")
     ax2.set_xlabel(r"azimuthal mode $m$")
     ax2.set_ylabel(r"$\max_{A,B}|\hat u_m|$")
-    ax2.set_title(r"(b) $\phi$-mode spectrum ($|S|=0.3$, $b=1.5$)")
+    ax2.set_title(r"(b) $\phi$-mode spectrum ($|S|=0.3$, $b=1.5$)", fontsize=10)
     ax2.legend(frameon=False, fontsize=8, ncol=2)
     ax2.grid(True, which="both", alpha=0.3)
 

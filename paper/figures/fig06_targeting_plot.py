@@ -34,7 +34,6 @@ TOL = 1e-8
 
 def main():
     d = load("fig06_targeting")
-    n = int(d["n"])
 
     fig, ax = plt.subplots(1, 1, figsize=figdims(1, 1))
     for m in PLOT:
@@ -48,13 +47,14 @@ def main():
                     capthick=1.1, zorder=5, label=LB[m])
     ax.set_yscale("log")
     ax.axhline(TOL, color="grey", ls=":", lw=1)
-    ax.text(ax.get_xlim()[1], TOL, " tol", color="grey", va="bottom", ha="right",
-            fontsize=8)
     ax.set_xlabel("certified elliptic solves")
     ax.set_ylabel(r"target residual $\|F-F_\star\|_\infty$")
-    ax.set_title(f"convergence over {n} random targets", fontsize=10)
+    ax.set_title("Convergence to target", fontsize=10)
     ax.grid(True, which="both", alpha=0.3)
-    ax.legend(fontsize=8, frameon=False, loc="upper right")
+    # Framed legend with the matplotlib-default semi-transparent white background (as in
+    # Fig. 3): the lower-right corner carries the tails of the black-box whiskers, which
+    # stay faintly visible through the box instead of being hidden or crossing the labels.
+    ax.legend(fontsize=8, loc="lower right")
     fig.tight_layout()
     stem = os.path.join(HERE, "fig06_targeting")
     fig.savefig(stem + ".pdf")

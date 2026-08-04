@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """Generates fig01_peraxis_hermite.pdf (paper Fig. 1).
 
-Per-axis held-out interpolation error, value vs value+gradient (Hermite), as a
+Per-axis held-out interpolation error, value-only vs gradient-enhanced (Hermite), as a
 2x4 grid of panels (shared y-range) over the eight quasi-circular axes.  Each curve
 is a DISTRIBUTION over the paper's random base points: the median (marker)
 carries a fitted geometric rate (dec/Q, shown in the legend), and the min-max
 whiskers span the best-to-worst held-out error across those base points (cf. Fig. 3).
 
-Colours match Fig. 3/5: value = C0 (tab:blue), gradient-enhanced = C1 (tab:orange).
+Colours match Fig. 3/5: value-only = C0 (tab:blue), gradient-enhanced = C1 (tab:orange).
 
 Reads ONLY figdata/fig01_peraxis_hermite.json (build it with
 fig01_peraxis_hermite_data.py). No reports/, no jax.
@@ -35,9 +35,11 @@ YLIM = (1e-12, 1e-2)
 # (figdata key, colour, marker, label stem) — both drawn as solid lines.
 # A per-axis sweep is one-dimensional, so the enhanced curve carries the value and the
 # single first tangent along that axis: there is no mixed cross tangent to match here
-# (unlike the joint models of Figs. 3-5, labelled "value + gradient + cross").
-SERIES = (("value",   "C0", "o", "value"),
-          ("hermite", "C1", "s", "value + gradient"))
+# (unlike the joint models of Figs. 3-5, which are the full-bilinear gradient-enhanced
+# family).  The caption states that difference; the label stays the concept name so that
+# one model has one name in every figure.
+SERIES = (("value",   "C0", "o", "value-only"),
+          ("hermite", "C1", "s", "gradient-enhanced"))
 
 
 def _arr(vals):
