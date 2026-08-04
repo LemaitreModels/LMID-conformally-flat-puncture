@@ -69,6 +69,24 @@ def pow10(x):
     return sci(x)
 
 
+def bound(x):
+    """``6.56e-9`` -> ``$<10^{-8}$`` — the next power of ten above ``x``.
+
+    For quantities that sit at the **roundoff floor** of the solve, where the
+    mantissa is not reproducible.  A tangent and its finite-difference estimate
+    are both O(1) and agree to ~9 digits, so their relative difference measures
+    the accumulated rounding of the dense solve, not a modelling error.  That
+    depends on the order of floating-point reductions, hence on BLAS thread
+    count, CPU vector width and library build: the same row has been measured at
+    5.5, 6.6 and 8.1e-9 on three environments, while the analytic-vs-analytic
+    column beside it reproduces to every printed digit.  Quoting two significant
+    figures would claim a precision the quantity does not have; the exponent is
+    the reproducible content.
+    """
+    from math import ceil, log10
+    return rf"$<10^{{{int(ceil(log10(abs(float(x)))))}}}$"
+
+
 def axis(name):
     return AXIS_TEX.get(name, name.replace("_", r"\_"))
 

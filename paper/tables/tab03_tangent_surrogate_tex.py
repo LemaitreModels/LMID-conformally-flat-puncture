@@ -7,7 +7,7 @@ AXES = ("b", "q", "chi_A", "chi_B")
 if __name__ == "__main__":
     d = td.load(STEM)
     rows = [[td.axis(a), td.pow10(d["rows"][a]["h"]),
-             td.sci(d["rows"][a]["rel_fd"]), td.sci(d["rows"][a]["rel_ift"])]
+             td.bound(d["rows"][a]["rel_fd"]), td.sci(d["rows"][a]["rel_ift"])]
             for a in AXES]
     header = [r"Axis $\theta_k$", r"$h$", r"vs.\ finite differences",
               r"vs.\ Eq.~\eqref{eq:tangent}"]

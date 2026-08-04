@@ -52,16 +52,35 @@ def _paper():
 
 @pytest.mark.parametrize("stem", STEMS)
 def test_rendered_rows_match_data(stem):
-    """Every value in the rendered .tex is the json value at the table's precision."""
+    """Every value in the rendered .tex agrees with the json.
+
+    Two kinds of column, checked differently:
+
+    ``rel_ift`` compares two analytic objects, so it reproduces to every printed
+    digit anywhere and is matched exactly.
+
+    ``rel_fd`` sits at the roundoff floor (see ``_tabdata.bound``) and is rendered
+    as an order-of-magnitude bound, so the assertion is that the bound HOLDS for
+    the local value, not that the string matches.  Matching the mantissa would
+    make this test pass only on the machine that rendered the .tex -- which is
+    what it used to do.
+    """
     d, tex = _data(stem), _tex(stem)
-    keys = ["rel_fd"] + (["rel_ift"] if stem.endswith("surrogate") else [])
     for axis, row in d["rows"].items():
         assert td.axis(axis) in tex, f"{axis} missing from {stem}.tex"
-        for k in keys:
-            assert td.sci(row[k]) in tex, (
-                f"{stem}.tex is stale: {axis}/{k}={row[k]:.4e} renders as "
-                f"{td.sci(row[k])}, not found. Re-run: make tables")
         assert td.pow10(row["h"]) in tex
+
+        m = re.search(rf"{re.escape(td.axis(axis))}.*?\$<10\^\{{(-\d+)\}}\$", tex)
+        assert m, f"{stem}.tex: no roundoff-floor bound rendered for {axis}"
+        rendered = 10.0 ** int(m.group(1))
+        assert row["rel_fd"] <= rendered, (
+            f"{stem}.tex is stale: {axis}/rel_fd={row['rel_fd']:.4e} exceeds the "
+            f"rendered bound {rendered:.0e}. Re-run: make tables")
+
+        if stem.endswith("surrogate"):
+            assert td.sci(row["rel_ift"]) in tex, (
+                f"{stem}.tex is stale: {axis}/rel_ift={row['rel_ift']:.4e} renders as "
+                f"{td.sci(row['rel_ift'])}, not found. Re-run: make tables")
 
 
 @pytest.mark.parametrize("stem", STEMS)

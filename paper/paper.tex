@@ -1744,7 +1744,10 @@ interpolation.
     Newton--Krylov solve with step $h$. Non-axisymmetric quasi-circular slice at
     $b=2.4$, $q=1.7$, $P_t=0.5$, $\chi^{A}_{y}=0.30$, $\chi^{B}_{y}=0.20$, on the
     $(N_A,N_B,N_\phi)=(18,14,6)$ grid; both solves are certified to
-    $\|R\|_\infty=2.4\times10^{-14}$.}
+    $\|R\|_\infty=2.4\times10^{-14}$. The two tangents agree to the roundoff floor
+    of the solve, so the comparison is quoted as an order-of-magnitude bound: its
+    mantissa depends on the order of floating-point reductions, and therefore on
+    the hardware and the linear-algebra library, whereas the exponent does not.}
   \input{tables/tab02_tangent_operator.tex}
 \end{table}
 
@@ -1762,7 +1765,13 @@ interpolation.
     $[0,0.6]^2$ at fixed $q=1.5$, $b=4$, evaluated off-node at
     $(\chi^{A}_{y},\chi^{B}_{y})=(0.413,0.227)$, where $\chi^{A}_{y}$ and $\chi^{B}_{y}$ are the aligned
     spin components on the two punctures. The reference solves are certified to
-    $\|R\|_\infty\le1\times10^{-11}$.}
+    $\|R\|_\infty\le1\times10^{-11}$. The finite-difference column is quoted as an
+    order-of-magnitude bound because it sits at the roundoff floor of the solve:
+    the two estimates agree to some nine digits, so their difference measures the
+    accumulated rounding rather than any modelling error, and its mantissa moves
+    with the order of floating-point reductions. The comparison against
+    Eq.~\eqref{eq:tangent} in the last column is between two analytic quantities,
+    lies far above that floor, and reproduces exactly.}
   \input{tables/tab03_tangent_surrogate.tex}
 \end{table}
 
