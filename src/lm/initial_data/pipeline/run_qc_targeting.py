@@ -70,8 +70,20 @@ REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DA
 MODEL = os.path.join(REPORTS, "3D_parametric", "models_chi",
                      "surrogate_smolyak_d4_qc_chi_prod_L5.npz")
 REPDIR = os.path.join(REPORTS, "P3")
-PARTDIR = os.path.join(REPDIR, "qc_targeting_chi_prod_parts")
 FIGDIR = os.path.join(HERE, "figures")
+
+# Fixed-budget mode writes a SEPARATE artifact (``..._fixed_<N>.json``) so the
+# early-exit run stays on disk beside it; the two answer different questions
+# (cost-to-tolerance vs residual-vs-budget) and share the same first crossings.
+STEM = "qc_targeting_chi_prod"
+
+
+def _stem(budgets):
+    return STEM + ("_fixed" if budgets else "")
+
+
+def _partdir(budgets):
+    return os.path.join(REPDIR, _stem(budgets) + "_parts")
 
 # --- the production 4-D quasi-circular box, χ parameterization ---------------
 _AXES = pb.aligned_box()                                  # (b, q, chi_Ay, chi_By)
@@ -131,18 +143,24 @@ def draw_targets(n, seed):
     return stars
 
 
-def run_one(model, prob, theta_star):
+def run_one(model, prob, theta_star, budgets=None):
+    """One target through all three strategies.
+
+    ``budgets`` = ``{method: n}`` runs that method to a fixed ``n`` certified solves
+    instead of stopping at tolerance (see ``qc_targeting.broyden_target``)."""
+    budgets = budgets or {}
     target = T.make_target(model, prob, theta_star, TARGETS)
     out = {}
     for m in METHODS:
         if m == "gradient":
             r = T.gauss_newton_target(model, prob, target, THETA0, TARGETS, BOX,
-                                      active=ACTIVE)
+                                      active=ACTIVE, budget=budgets.get(m))
         else:
             r = T.broyden_target(model, prob, target, THETA0, TARGETS, BOX,
                                  mode=("cold" if m == "cold" else "interp"),
-                                 active=ACTIVE)
+                                 active=ACTIVE, budget=budgets.get(m))
         out[m] = dict(n_solves=r.n_certified_solves, ctrl=r.ctrl_residual,
+                      n_solves_to_tol=r.n_solves_to_tol,
                       cert=r.certified_residual, wall=r.wall_s,
                       converged=r.converged, history=r.history,
                       theta=r.theta.tolist(), target=target.tolist(),
@@ -151,15 +169,21 @@ def run_one(model, prob, theta_star):
 
 
 def _aggregate(runs, n, seed, *, n_solver_nodes, model_git_commit, wall_clock_s,
-               assembled_from=None):
+               assembled_from=None, budgets=None):
     """The summary block.  Shared by the single-process and ``--assemble`` paths so
     the two produce byte-identical statistics from the same per-target runs."""
     def agg(key):
         d = {}
         for m in METHODS:
-            v = np.array([r[m][key] for r in runs], float)
+            # n_solves_to_tol is None for a target that never reached tolerance
+            v = np.array([r[m][key] for r in runs
+                          if r[m].get(key) is not None], float)
+            if v.size == 0:
+                d[m] = None
+                continue
             d[m] = dict(min=float(v.min()), median=float(np.median(v)),
-                        mean=float(v.mean()), max=float(v.max()))
+                        mean=float(v.mean()), max=float(v.max()),
+                        n=int(v.size))
         return d
 
     summary = dict(n=n, seed=seed, box=BOX.tolist(), targets=TARGETS,
@@ -170,7 +194,11 @@ def _aggregate(runs, n, seed, *, n_solver_nodes, model_git_commit, wall_clock_s,
                    model=os.path.basename(MODEL),
                    model_git_commit=model_git_commit,
                    spin_parameterization="chi",
+                   budgets=dict(budgets or {}),
                    solves=agg("n_solves"), wall=agg("wall"),
+                   # the COST metric: first solve count reaching tol_ctrl.  Equal to
+                   # ``solves`` in early-exit mode; the meaningful one under a budget.
+                   solves_to_tol=agg("n_solves_to_tol"),
                    worst_certified_residual={
                        m: float(max(r[m]["cert"] for r in runs)) for m in METHODS},
                    all_converged={
@@ -187,28 +215,35 @@ def _aggregate(runs, n, seed, *, n_solver_nodes, model_git_commit, wall_clock_s,
 
 def _report(summary):
     n = summary["n"]
+    bud = summary.get("budgets") or {}
     print(f"\n=== QC parameter targeting: (M_ADM,J) via (b,q), {n} random targets ===")
     print(f"model: production χ box, Smolyak L={summary['level']} "
-          f"({summary['n_solver_nodes']} solves)\n")
-    print(f"{'method':<12}{'solves(med)':>12}{'solves(max)':>12}"
+          f"({summary['n_solver_nodes']} solves)"
+          + (f"   FIXED BUDGET {bud}" if bud else "") + "\n")
+    print(f"{'method':<12}{'run':>5}{'to_tol(med)':>12}{'to_tol(max)':>12}"
           f"{'wall(med) s':>13}{'worst||R||':>13}{'all conv':>10}")
     for m in METHODS:
         s, w = summary["solves"][m], summary["wall"][m]
-        print(f"{m:<12}{s['median']:>12.0f}{s['max']:>12.0f}{w['median']:>13.1f}"
+        t = summary.get("solves_to_tol", {}).get(m)
+        tm = f"{t['median']:.0f}" if t else "-"
+        tx = f"{t['max']:.0f}" if t else "-"
+        print(f"{m:<12}{s['median']:>5.0f}{tm:>12}{tx:>12}{w['median']:>13.1f}"
               f"{summary['worst_certified_residual'][m]:>13.1e}"
               f"{str(summary['all_converged'][m]):>10}")
-    med_bb = summary["solves"]["cold"]["median"]
-    med_gr = summary["solves"]["gradient"]["median"]
-    print(f"\nheadline: gradient needs {med_gr:.0f} certified solves vs "
-          f"{med_bb:.0f} for the black box  ({med_bb/max(med_gr,1):.1f}x fewer)")
+    tt = summary.get("solves_to_tol", {})
+    if tt.get("cold") and tt.get("gradient"):
+        med_bb, med_gr = tt["cold"]["median"], tt["gradient"]["median"]
+        print(f"\nheadline (cost = solves to tolerance): gradient {med_gr:.0f} vs "
+              f"black box {med_bb:.0f}  ({med_bb/max(med_gr,1):.1f}x fewer)")
 
 
 def _finalize(runs, n, seed, *, n_solver_nodes, model_git_commit, wall_clock_s,
-              assembled_from=None):
+              assembled_from=None, budgets=None):
     summary = _aggregate(runs, n, seed, n_solver_nodes=n_solver_nodes,
                          model_git_commit=model_git_commit,
-                         wall_clock_s=wall_clock_s, assembled_from=assembled_from)
-    out = os.path.join(REPDIR, f"qc_targeting_chi_prod_{n}.json")
+                         wall_clock_s=wall_clock_s, assembled_from=assembled_from,
+                         budgets=budgets)
+    out = os.path.join(REPDIR, f"{_stem(budgets)}_{n}.json")
     with open(out, "w") as f:
         json.dump({"summary": summary, "runs": runs}, f, indent=2, default=float)
     _report(summary)
@@ -217,7 +252,7 @@ def _finalize(runs, n, seed, *, n_solver_nodes, model_git_commit, wall_clock_s,
     return summary
 
 
-def assemble(n=100, seed=0):
+def assemble(n=100, seed=0, budgets=None):
     """Merge the per-task partials of an array run into the single results JSON.
 
     Each target is an INDEPENDENT unit (its own targets, its own three control
@@ -225,9 +260,10 @@ def assemble(n=100, seed=0):
     stored and used to restore the single-process target ORDER, and the aggregate is
     computed by the same ``_aggregate`` the single-process path uses.
     """
-    parts = sorted(glob.glob(os.path.join(PARTDIR, "part_*.json")))
+    partdir = _partdir(budgets)
+    parts = sorted(glob.glob(os.path.join(partdir, "part_*.json")))
     if not parts:
-        raise FileNotFoundError(f"no partials in {PARTDIR}")
+        raise FileNotFoundError(f"no partials in {partdir}")
     by_idx, nodes, commit, wall = {}, None, None, 0.0
     for pf in parts:
         with open(pf) as f:
@@ -235,6 +271,9 @@ def assemble(n=100, seed=0):
         if p["n"] != n or p["seed"] != seed:
             raise ValueError(f"{os.path.basename(pf)}: (n,seed)=({p['n']},{p['seed']})"
                              f" != ({n},{seed}) — partials from a different run")
+        if dict(p.get("budgets") or {}) != dict(budgets or {}):
+            raise ValueError(f"{os.path.basename(pf)}: budgets {p.get('budgets')}"
+                             f" != {budgets} — partials from a different run")
         nodes = nodes or p["n_solver_nodes"]
         commit = commit or p.get("model_git_commit")
         wall += float(p.get("wall_clock_s", 0.0))
@@ -251,10 +290,10 @@ def assemble(n=100, seed=0):
     print(f"[assemble] {len(parts)} partials -> {n} targets "
           f"(total task wall {wall/3600:.2f} h)", flush=True)
     return _finalize(runs, n, seed, n_solver_nodes=nodes, model_git_commit=commit,
-                     wall_clock_s=wall, assembled_from=len(parts))
+                     wall_clock_s=wall, assembled_from=len(parts), budgets=budgets)
 
 
-def main(n=25, seed=0, taskid=-1, ntasks=1):
+def main(n=25, seed=0, taskid=-1, ntasks=1, budgets=None):
     """Run the targeting study.  ``ntasks>1`` runs only this task's stripe of targets
     and writes a partial (merge with ``--assemble``); ``ntasks==1`` runs all and
     writes the results JSON directly."""
@@ -282,18 +321,21 @@ def main(n=25, seed=0, taskid=-1, ntasks=1):
     runs = []
     for k, i in enumerate(idx):
         ts = stars[i]
-        r = run_one(model, prob, ts)
+        r = run_one(model, prob, ts, budgets=budgets)
         runs.append(r)
+        tol = "/".join(str(r[m]["n_solves_to_tol"]) for m in METHODS)
         print(f"  [{k+1}/{len(idx)}] target {i}: b*={ts[0]:.2f} q*={ts[1]:.2f}  "
               f"solves cold/broy/grad = {r['cold']['n_solves']}/"
               f"{r['broyden']['n_solves']}/{r['gradient']['n_solves']}  "
-              f"(elapsed {time.time()-t0:.0f}s)", flush=True)
+              f"to_tol = {tol}  (elapsed {time.time()-t0:.0f}s)", flush=True)
 
     if sharded:
-        os.makedirs(PARTDIR, exist_ok=True)
-        out = os.path.join(PARTDIR, f"part_{taskid:03d}.json")
+        partdir = _partdir(budgets)
+        os.makedirs(partdir, exist_ok=True)
+        out = os.path.join(partdir, f"part_{taskid:03d}.json")
         with open(out, "w") as f:
             json.dump(dict(n=n, seed=seed, taskid=taskid, ntasks=ntasks,
+                           budgets=dict(budgets or {}),
                            indices=idx, runs=runs,
                            n_solver_nodes=int(model.n_solver_nodes),
                            model_git_commit=meta.get("git_commit"),
@@ -304,7 +346,7 @@ def main(n=25, seed=0, taskid=-1, ntasks=1):
 
     summary = _finalize(runs, n, seed, n_solver_nodes=model.n_solver_nodes,
                         model_git_commit=meta.get("git_commit"),
-                        wall_clock_s=time.time() - t0)
+                        wall_clock_s=time.time() - t0, budgets=budgets)
     print(f"[qc-target] DONE {time.time()-t0:.0f}s", flush=True)
     return summary
 
@@ -368,6 +410,12 @@ if __name__ == "__main__":
                          "1 runs every target in this process")
     ap.add_argument("--assemble", action="store_true",
                     help="merge the per-task partials into the results JSON (no solves)")
+    ap.add_argument("--budget-grad", type=int, default=0,
+                    help="fixed-budget mode: certified solves for the gradient method "
+                         "(0 = stop at tolerance, the default study)")
+    ap.add_argument("--budget-bb", type=int, default=0,
+                    help="fixed-budget mode: certified solves for both black-box "
+                         "variants (0 = stop at tolerance)")
     ap.add_argument("--from-json", type=str, default=None,
                     help="regenerate the figure from an existing results JSON "
                          "(no solves)")
@@ -377,7 +425,16 @@ if __name__ == "__main__":
             d = json.load(f)
         _figure(d["runs"], d["summary"],
                 os.path.join(FIGDIR, "fig_qc_targeting.png"))
-    elif args.assemble:
-        assemble(n=args.n, seed=args.seed)
     else:
-        main(n=args.n, seed=args.seed, taskid=args.taskid, ntasks=args.ntasks)
+        budgets = {}
+        if args.budget_grad:
+            budgets["gradient"] = args.budget_grad
+        if args.budget_bb:
+            budgets["cold"] = args.budget_bb
+            budgets["broyden"] = args.budget_bb
+        budgets = budgets or None
+        if args.assemble:
+            assemble(n=args.n, seed=args.seed, budgets=budgets)
+        else:
+            main(n=args.n, seed=args.seed, taskid=args.taskid, ntasks=args.ntasks,
+                 budgets=budgets)

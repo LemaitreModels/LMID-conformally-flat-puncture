@@ -152,8 +152,15 @@ SOURCES = {
     # now takes its box, axes, grid and level from production_box and refuses any
     # model whose stored provenance disagrees (_check_model_box), so this artifact is
     # the production 4-D chi model (1105 nodes) the rest of the 4-D results use.
-    "qc_targeting":         dict(reports="P3/qc_targeting_chi_prod_100.json",
-                                 producer="run_qc_targeting.py --n 100", where="cluster",
+    # FIXED-BUDGET run (gradient 4, black box 14): every target is carried to a common
+    # solve count, so each plotted point is the full sample.  The early-exit run
+    # (``qc_targeting_chi_prod_100.json``, same seed) is kept beside it and its shared
+    # prefix is bit-identical, which is what makes the cost metric (solves to
+    # tolerance) identical between the two — see the data script.
+    "qc_targeting":         dict(reports="P3/qc_targeting_chi_prod_fixed_100.json",
+                                 producer="run_qc_targeting.py --n 100 "
+                                          "--budget-grad 4 --budget-bb 14",
+                                 where="cluster",
                                  status="ready", figures=["fig06_targeting"]),
 
     # ---- fig07 (effective-potential eccentricity) — needs a MODEL, distilled to json ----

@@ -53,9 +53,11 @@ def main():
     ax.set_title("Convergence to target", fontsize=10)
     ax.grid(True, which="both", alpha=0.3)
     # Framed legend with the matplotlib-default semi-transparent white background (as in
-    # Fig. 3): the lower-right corner carries the tails of the black-box whiskers, which
-    # stay faintly visible through the box instead of being hidden or crossing the labels.
-    ax.legend(fontsize=8, loc="lower right")
+    # Fig. 3).  Upper right, not the historical lower right: on the fixed-budget run the
+    # black box keeps iterating past its own stopping criterion and its median falls to
+    # the M_ADM read's noise floor, so the lower-right corner now carries data.  The
+    # upper right is empty once both curves have descended.
+    ax.legend(fontsize=8, loc="upper right")
     fig.tight_layout()
     stem = os.path.join(HERE, "fig06_targeting")
     fig.savefig(stem + ".pdf")
