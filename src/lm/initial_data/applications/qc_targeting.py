@@ -208,12 +208,30 @@ class Result:
     method: str
     theta: np.ndarray
     target: np.ndarray
-    n_certified_solves: int          # the headline cost metric
+    n_certified_solves: int          # solves actually performed
     ctrl_residual: float             # ‖F_true − target‖∞ on the CERTIFIED field
     certified_residual: float        # worst ‖R‖∞ over all certified solves
     history: list = field(default_factory=list)   # (n_solves, ‖F−target‖∞)
     converged: bool = False
     wall_s: float = 0.0
+    n_solves_to_tol: Optional[int] = None   # the headline COST metric (see below)
+
+
+def first_crossing(history, tol):
+    """Solve count at which the target residual first reaches ``tol`` (else ``None``).
+
+    This is the cost metric, and it is deliberately read off the *history* rather
+    than from where the loop happened to stop.  Both control loops test the
+    tolerance at the TOP of their iteration, so an early-exit run and a
+    fixed-budget run share a bit-identical prefix and therefore the same first
+    crossing — which is what lets a fixed-budget run (every target carried to a
+    common solve count, so the plotted distribution is over the full sample at
+    every point) still report the same cost as the early-exit run.
+    """
+    for ns, res in history:
+        if float(res) <= tol:
+            return int(ns)
+    return None
 
 
 # ==========================================================================
@@ -228,13 +246,24 @@ def _certified_solve(model, prob, theta, guess, tol, max_iter):
 
 def broyden_target(model, prob, target, theta0, target_names, box, *,
                    mode="interp", active=(0, 1), tol_ctrl=1e-8, tol_inner=1e-10,
-                   max_steps=40, fd_h=1e-4, max_inner=25, max_step_frac=0.35):
+                   max_steps=40, fd_h=1e-4, max_inner=25, max_step_frac=0.35,
+                   budget=None):
     """Mendes-style Broyden on ``G(θ)=F(θ)−target`` over the ``active`` knobs.
 
     Each ``F``-evaluation is a *certified* elliptic solve (``mode='cold'`` from
     ``u≡0``; ``mode='interp'`` warm-started from ``model.evaluate(θ)``).  The cost
     metric is the number of certified solves.  The inactive components of ``θ`` are
-    held at ``theta0``."""
+    held at ``theta0``.
+
+    ``budget`` (fixed-budget mode) keeps iterating to exactly ``budget`` certified
+    solves instead of stopping at ``tol_ctrl``, so every target reaches a common
+    solve count and the across-target distribution is over the full sample at every
+    point.  The cost is still reported, as ``n_solves_to_tol``.  Iterating a
+    *converged* Broyden is numerically degenerate (``s→0`` makes the rank-1 update
+    ill-conditioned), so the forced tail is a diagnostic of the method's floor, not
+    a recommended way to run it; it is left unguarded here deliberately, so that
+    whatever it does is visible rather than smoothed away.
+    """
     t0 = time.perf_counter()
     target = np.asarray(target, float)
     active = list(active)
@@ -269,8 +298,10 @@ def broyden_target(model, prob, target, theta0, target_names, box, *,
         gp, _ = G(xp)
         Jac[:, k] = (gp - g) / fd_h
 
-    for _ in range(max_steps):
-        if np.max(np.abs(g)) <= tol_ctrl:
+    # early exit at tolerance, or (fixed-budget mode) run to exactly `budget` solves
+    n_iter = (max(budget - n_solves, 0) if budget is not None else max_steps)
+    for _ in range(n_iter):
+        if budget is None and np.max(np.abs(g)) <= tol_ctrl:
             break
         try:
             step = np.linalg.solve(Jac, -g)
@@ -288,12 +319,14 @@ def broyden_target(model, prob, target, theta0, target_names, box, *,
         x, g = x_new, g_new
         hist.append((n_solves, float(np.max(np.abs(g)))))
 
+    xtol = first_crossing(hist, tol_ctrl)
     return Result(method=f"broyden_{mode}", theta=theta, target=target,
                   n_certified_solves=n_solves,
                   ctrl_residual=float(np.max(np.abs(g))),
                   certified_residual=worst_R, history=hist,
-                  converged=bool(np.max(np.abs(g)) <= tol_ctrl),
-                  wall_s=time.perf_counter() - t0)
+                  converged=bool(xtol is not None),
+                  wall_s=time.perf_counter() - t0,
+                  n_solves_to_tol=xtol)
 
 
 # ==========================================================================
@@ -331,7 +364,8 @@ def _nudge(theta, node_sets, box, trigger=1e-8, shift_frac=2e-3):
 def gauss_newton_target(model, prob, target, theta0, target_names, box, *,
                         active=(0, 1), tol_ctrl=1e-8, max_steps=60,
                         lm_init=1e-3, lm_down=0.5, lm_up=4.0, lm_max=1e10,
-                        polish_steps=2, polish_tol=1e-10, correction_steps=3):
+                        polish_steps=2, polish_tol=1e-10, correction_steps=3,
+                        budget=None):
     """Hit ``F(θ)=target`` by damped Gauss–Newton on the **free** surrogate, then a
     certified last-mile.
 
@@ -340,7 +374,13 @@ def gauss_newton_target(model, prob, target, theta0, target_names, box, *,
     (``evaluate_polished``) makes the field constraint-satisfying, and up to
     ``correction_steps`` surrogate-Jacobian Newton steps — each re-certified — drive
     the *true* target residual (measured on the certified field) to ``tol_ctrl``.
-    The cost metric is the number of certified solves (= 1 + #corrections)."""
+    The cost metric is the number of certified solves (= 1 + #corrections).
+
+    ``budget`` (fixed-budget mode) takes exactly ``budget − 1`` corrections instead
+    of stopping at ``tol_ctrl``; see :func:`broyden_target`.  The corrections use the
+    *surrogate* Jacobian against the *certified* residual, so past convergence they
+    sit at the interpolation-error floor — that plateau is the point of running it.
+    """
     t0 = time.perf_counter()
     target = np.asarray(target, float)
     active = list(active)
@@ -401,8 +441,9 @@ def gauss_newton_target(model, prob, target, theta0, target_names, box, *,
     G_true = F_true - target
     hist.append((n_solves, float(np.max(np.abs(G_true)))))
 
-    for _ in range(correction_steps):
-        if np.max(np.abs(G_true)) <= tol_ctrl:
+    n_corr = (max(budget - n_solves, 0) if budget is not None else correction_steps)
+    for _ in range(n_corr):
+        if budget is None and np.max(np.abs(G_true)) <= tol_ctrl:
             break
         Jm = jac(theta)                                      # surrogate Jacobian
         try:
@@ -417,12 +458,14 @@ def gauss_newton_target(model, prob, target, theta0, target_names, box, *,
         G_true = F_true - target
         hist.append((n_solves, float(np.max(np.abs(G_true)))))
 
+    xtol = first_crossing(hist, tol_ctrl)
     return Result(method="gradient", theta=theta, target=target,
                   n_certified_solves=n_solves,
                   ctrl_residual=float(np.max(np.abs(G_true))),
                   certified_residual=worst_R, history=hist,
-                  converged=bool(np.max(np.abs(G_true)) <= tol_ctrl),
-                  wall_s=time.perf_counter() - t0)
+                  converged=bool(xtol is not None),
+                  wall_s=time.perf_counter() - t0,
+                  n_solves_to_tol=xtol)
 
 
 # ==========================================================================

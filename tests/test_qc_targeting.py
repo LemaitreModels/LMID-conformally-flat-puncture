@@ -174,6 +174,26 @@ def test_dJ_dq_matches_fd_and_dropped_chain_is_wrong():
     assert mildest_bug > 0.1, mildest_bug          # >10% wrong even at the mildest χ
 
 
+def test_first_crossing_is_the_cost_metric():
+    """``first_crossing`` reads the cost off a history, so a fixed-budget run reports
+    the same cost as an early-exit run.
+
+    This is the property that lets the figure plot a fixed budget (all targets present
+    at every solve count) without losing the paper's cost claim.  Both control loops
+    test the tolerance at the TOP of their iteration, so the fixed-budget history is
+    the early-exit history plus a tail — the crossing is unchanged.
+    """
+    tol = 1e-8
+    early = [(1, 1e-2), (2, 1e-5), (3, 4e-9)]           # loop stops on crossing
+    fixed = early + [(4, 2e-9), (5, 3e-9)]              # same prefix, forced tail
+    assert T.first_crossing(early, tol) == 3
+    assert T.first_crossing(fixed, tol) == 3            # tail cannot move the cost
+    # never reaching tolerance is reported as such, not as the final solve count
+    assert T.first_crossing([(1, 1e-2), (2, 1e-3)], tol) is None
+    # a tail that bounces back ABOVE tolerance still does not move the crossing
+    assert T.first_crossing(early + [(4, 1e-6)], tol) == 3
+
+
 def test_dJ_dchi_is_mass_squared_plus_spin_orbit():
     """∂J/∂χ_X = m_X² + 2b ∂p_t/∂χ_X, the second term the (small) SO correction."""
     import jax

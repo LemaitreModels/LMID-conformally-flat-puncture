@@ -1378,13 +1378,15 @@ widens with the number of controlled parameters.
     \textbf{Certified parameter targeting.} Reaching a physical target
     $(\Madm,J)$ by adjusting $(b,q)$, over $100$ random known-answer targets,
     measured in \emph{certified} elliptic solves. Each method is drawn as the
-    across-target median residual at each solve count, with min--max whiskers.
-    Running the control loop on the differentiable parametric model
-    reaches tolerance in at most three certified solves for every target, with a
-    median of two; the black-box loop takes a target-dependent seven to fourteen,
-    with a median of ten. Measured on the four-dimensional aligned-spin model over
-    the production box of Table~\ref{tab:box}, at zero spin; every configuration
-    emitted is certified to $\|R\|_\infty\le10^{-10}$.}
+    across-target median residual at each solve count, with min--max whiskers; every
+    target is carried to a common solve count, so each point is the full set of
+    $100$. Each curve ends where its last target reaches the control tolerance
+    (dotted): three certified solves for the differentiable parametric model, with a
+    median of two, against fourteen for the black-box loop, with a median of ten. The
+    black box's flat first segment is its finite-difference Jacobian, which spends two
+    solves without moving the iterate. Measured on the four-dimensional aligned-spin
+    model over the production box of Table~\ref{tab:box}, at zero spin; every
+    configuration emitted is certified to $\|R\|_\infty\le10^{-10}$.}
 \end{figure}
 
 \subsection{Eccentricity reduction}
