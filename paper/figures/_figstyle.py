@@ -7,7 +7,7 @@ UNIFORMITY.  Every figure sizes itself through ``figdims`` so panels share ONE a
 
 STACKED FIGURES.  The 3:2 default is right for a figure ONE panel tall, but a figure whose grid is
 two panels tall renders (at a fixed LaTeX width) twice as high, and the float then eats most of a
-page: Figs. 4, 5 (2x2 at ``\\textwidth``) and 9 (2x1 at ``\\columnwidth``) came out ~4.6 in tall.
+page: Figs. 4, 5 (2x2 at ``\\textwidth``) and 8 (3x1 at ``\\columnwidth``) came out ~4.6 in tall.
 Those three therefore pass ``panel_h=PANEL_H_STACK``, a flatter panel.  They all use the SAME
 flatter value, so they stay consistent with each other, and the log-scaled panels they carry lose
 nothing by it.  Fig. 1 (2x4) is left on the default: its panels are already short because it is four
