@@ -1,4 +1,11 @@
-"""LM-initial-data — verification of the exposed parameter sensitivities (paper Appendix B).
+"""LM-initial-data — verification of the exposed parameter sensitivities (standalone).
+
+This is a developer cross-check, not a paper producer.  It fed a paper appendix until
+the appendix was withdrawn: statement (a) below is the implicit function theorem
+applied to code that ``tests/test_sensitivity_3d.py`` already exercises over more
+slices, and statement (b) measures the interpolation error of the derivative on small
+value-only interpolants rather than on either shipped (gradient-enhanced) model.  It
+remains the runnable end-to-end check behind the sensitivity claims of paper Sec. IV.
 
 Two distinct statements are verified, and they need different references:
 
@@ -8,7 +15,7 @@ Two distinct statements are verified, and they need different references:
       (``applications.sensitivity_3d.certified_tangent_3d``, full Jacobian via GMRES)
       against second-order central finite differences of the certified
       Newton–Krylov solve itself (``fd_tangent_3d``, the independent oracle).
-      → paper Table I.
+      → :func:`operator_tangents`.
 
   (b) **the gradient the surrogate exposes is that same sensitivity.**  On the
       two-centre aligned-spin interpolants, compare ``jacfwd`` of the branchless
@@ -17,7 +24,7 @@ Two distinct statements are verified, and they need different references:
       automatic differentiation and nothing more — and (ii) the
       implicit-function-theorem tangent computed independently from the certified
       solve at the same parameter point, which is the check that carries the
-      certification claim.  → paper Table II.
+      certification claim.  → :func:`surrogate_tangents`.
 
 The residual in (b)(ii) is the interpolation error of the derivative, largest along
 the slowly converging ``b`` and ``q`` axes; it decreases exponentially with the

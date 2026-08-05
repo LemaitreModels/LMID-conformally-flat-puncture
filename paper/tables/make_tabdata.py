@@ -7,7 +7,7 @@ Every paper table ``tabNN_<name>`` has, exactly like a figure:
     ``tabNN_<name>.tex``, the ``ruledtabular`` block paper.tex ``\\input``s
     (committed, so ``pdflatex`` works out of the box — as the figure PDFs are).
 
-Unlike the figures, both tables recompute on the laptop in seconds from the solver
+Unlike the figures, every table recomputes on the laptop in seconds from the solver
 alone: no ``reports/`` corpus, no cluster, so there is no SOURCES dedup graph to
 declare. The caption of each table stays in paper.tex — it is author-owned prose.
 
@@ -35,16 +35,6 @@ TABLES = {
         what="the production parameter box and shipped build configuration",
         producer="pipeline.production_box + parametric_nd_2c.smolyak_points",
         where="laptop", cost="instant"),
-    "tab02_tangent_operator": dict(
-        paper="Table (tab:tangent3d)",
-        what="Eq. (tangent) vs central FD of the certified 3-D Newton-Krylov solve",
-        producer="pipeline.run_tangent_verification.operator_tangents",
-        where="laptop", cost="~1 s"),
-    "tab03_tangent_surrogate": dict(
-        paper="Table (tab:tangent)",
-        what="exposed surrogate gradient vs FD of the surrogate and vs Eq. (tangent)",
-        producer="pipeline.run_tangent_verification.surrogate_tangents",
-        where="laptop", cost="~15 s"),
 }
 
 
