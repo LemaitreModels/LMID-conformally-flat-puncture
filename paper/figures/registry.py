@@ -270,13 +270,15 @@ FIGURES = {
                                      keys=["ladder", "meta"]),
     "fig09_tp_spectrum":        dict(sources=["tp_band_sweep"],
                                      keys=["spectrum", "meta"]),
-    # RECOMPUTE, not a distillation: the data script runs the solve and the FD constraint
-    # monitor itself (both cheap) and queries the TwoPunctures binary directly, so there is no
-    # reports/ artifact to declare -- hence ``inline``.  Its one heavy input is the oracle
-    # binary (make oracle), which is why the script also has a --no-tp mode.  ``meta`` carries
-    # the configuration and the Cartesian ladder the caption states.
+    # DISTILLATION of an EXTERNAL run tree, not a recompute: the constraint norms are measured
+    # by GRTeclyn (docs/GRTECLYN_CONSTRAINTS_PLAN.md), so the data script only reads that code's
+    # constraint_norms.json output.  The tree lives outside the repo and outside reports/ --
+    # pass --runs or set $LM_GRTECLYN_RUNS -- hence still ``inline`` (no reports/ key to
+    # declare).  ``meta`` carries the box, ladder, exclusion radius and spectral grid the
+    # caption states; ``amr`` the separately-quoted refined-hierarchy numbers with their
+    # per-level breakdown; ``variants`` the resolution tests that attribute an observed floor.
     "fig10_constraints":        dict(sources=[], inline=True,
-                                     keys=["curves", "meta"]),
+                                     keys=["curves", "meta", "amr", "variants"]),
 }
 
 

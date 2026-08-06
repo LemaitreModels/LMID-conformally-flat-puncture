@@ -1,202 +1,213 @@
 #!/usr/bin/env python
-"""Data for fig10_constraints: FD constraint violation on an evolution grid.
+"""Builds figdata/fig10_constraints.json (paper Fig. 10).
 
-RECOMPUTE figure — this is the one data script with no ``reports/`` source.  It solves the
-initial data itself and measures the constraints, because both steps are cheap (one
-axisymmetric two-centre solve plus four Cartesian evaluations, seconds each); the only slow
-input is the external oracle.
+Constraint violation of the initial data on an evolution grid, measured by
+**GRTeclyn** — an independent numerical-relativity code — rather than by the
+in-house finite-difference monitor this figure used previously.  See
+``docs/GRTECLYN_CONSTRAINTS_PLAN.md``.
 
-What it measures (App. A of the paper, ``sec:validation:constraints``).  The spectral
-conformal factor is interpolated onto a uniform Cartesian grid, as an evolution code would
-read it, and the Hamiltonian and momentum constraints are evaluated by
-``validation.constraints.fd_constraints_generic`` — a GENERIC second-order finite-difference
-monitor that builds the Christoffel symbols and the Ricci tensor from the nodal metric and
-makes no use of conformal flatness.  The measurement is therefore independent of the spectral
-discretization that produced the data.
+WHY THE MEASUREMENT MOVED.  The previous version interpolated the spectral data
+onto uniform Cartesian grids and evaluated the constraints with a bespoke
+second-order monitor in this repo (``validation/constraints.py``, which stays as
+an internal check).  The measurement is now made by GRTeclyn's own
+``Constraints`` class: fourth-order stencils, working from the *evolution*
+variables ``(chi, h_ij, A_ij, K)``, so it also exercises the conversion into
+BSSN/CCZ4 form that an evolution actually performs.  Fourth order reaches the
+initial data's own error at a spacing a second-order monitor cannot: the same
+absolute error that needs ``h ~ 2e-4 M`` at second order arrives near
+``h ~ 1e-1 M`` at fourth.
 
-Two curves per constraint, on the SAME Cartesian grids:
-  * ``lm``  — psi from this package's solver;
-  * ``tp``  — psi from TwoPunctures at the same physical points (the external oracle).
-Both feed the identical monitor, so the comparison isolates the initial data: if the two
-curves coincide, the measured violation is the monitor's truncation error rather than a
-property of either solution.
+WHAT THIS SCRIPT DOES.  It distils GRTeclyn's ``constraint_norms.json`` output
+(one file per rung, collected per series into ``<tag>/ladder.json`` by
+``runs/lm_constraints/run_ladder.sh``).  No solver, no oracle, no jax here — the
+heavy tier is the GRTeclyn runs, a cluster job
+(``runs/lm_constraints/submit_step4.slurm``).  Point ``--runs`` at that tree or
+set ``$LM_GRTECLYN_RUNS``.
 
-Configuration: the axisymmetric anchor of App.~A, equal masses at half-separation ``b=3``
-with axial momentum ``P=0.5`` — the configuration the preceding subsection compares against
-TwoPunctures, and the one with the fewest confounds.
+THE SERIES, AND WHAT EACH IS FOR.
 
-Cost.  The solver leg is memory-bound and cheap: ~1.5 GB and ~7 s per million Cartesian
-points, so the production ladder is ~25 GB and ~4 min.  The oracle leg dominates: the
-binary is queried at every Cartesian point of every rung (~26M points, ~1.8 ms each,
-~13 h serial).  It is embarrassingly parallel over chunks -- ``--workers 32`` brings the
-whole build to well under an hour, which is what the cluster wrapper
-(``slurm/ivs/submit_fig10_constraints.slurm``) runs.  ``--no-tp`` drops it entirely and
-leaves the solver curve alone, in minutes, on a laptop.
+  lm_single   exactness gate.  One puncture: psi = 1 + m_A/2r_A is harmonic and
+              K_ij = 0, so the continuum constraints vanish IDENTICALLY and the
+              measurement is pure truncation error.  L2(M) is exactly zero at
+              every rung, which is a check on the consumer, not a convergence
+              result.
+  lm_anchor   the App. A anchor (equal bare masses, b = 3, P = 0.5).
+  tp_anchor   TwoPunctures' conformal factor through the IDENTICAL class,
+              interpolation, stencils and grid — the parity gate.  The only
+              difference between this series and the last is the initial data.
+  lm_p010 /   the one configuration both initial-data sets can be handed to the
+  by_p010     same code.  GRTeclyn's analytic Bowen-York initial data enforces
+              |P| < 0.3 m, so it cannot represent the anchor at all; at P = 0.1
+              it can, and its Hamiltonian violation stops converging while ours
+              does not.  This is the panel that separates a solved solution from
+              an O(P^2)-accurate one.
+  lm_qc       a genuinely non-axisymmetric quasi-circular slice with spins.
 
-Run:  python fig10_constraints_data.py --workers 32          # production (cluster)
-      python fig10_constraints_data.py --no-tp               # solver curve only
-      python fig10_constraints_data.py --n-list 40,56,72,88  # the coarse ladder only
+Run:  python fig10_constraints_data.py --runs /path/to/runs/lm_constraints
 """
 import argparse
+import json
+import math
 import os
 import sys
-import time
-from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
 from _figdata import dump
 
-from lm.initial_data.solver import solver_abt as sa
-from lm.initial_data.validation import constraints as cst
-from lm.initial_data.validation import twopunctures as tp
-
-# --- the configuration (the App. A axisymmetric anchor) --------------------------------------
-B, M_A, M_B, P = 3.0, 0.5, 0.5, 0.5
-SPECTRAL = (52, 36)          # (N_A, N_B) meridional grid of the two-centre solve
-NEWTON_TOL = 1e-12
-# Cartesian rungs.  The ladder spans 6.5x in h (0.46 -> 0.071 M) and stays in the asymptotic
-# second-order regime throughout -- verified: the local pairwise orders scatter about 2 with no
-# sign of a floor.  It cannot reach the finest level of an evolution's AMR hierarchy
-# (h ~ m/25 ~ 0.02 M): the punctures sit at z = +-3, so a uniform box wide enough to hold them
-# needs N ~ 900 there, and no reachable spacing exposes the initial data's OWN error anyway --
-# with a solver residual of ~1e-10 and spectral interpolation onto the grid, second-order
-# truncation only falls that far at h ~ 2e-4 M.  This measurement is therefore an upper bound
-# on the initial-data error by construction, which is what the appendix claims.
-NS = (40, 56, 72, 88, 128, 176, 256)
-L = 9.0                      # half-width of the Cartesian box
-R_EXCL = 1.5                 # puncture exclusion radius of the bulk mask
-TP_RES = (48, 48, 4)         # oracle resolution (nA, nB, nphi)
-# The oracle is queried point by point through a pipe, at ~1.8 ms/point, so the finest rung is
-# ~8 h serial -- well past the wrapper's 600 s default timeout.  Query it in chunks: each call
-# re-runs the (cheap, ~7 s) spectral solve and stays inside a generous timeout, the rung reports
-# progress instead of dying at the end of it, and the chunks parallelise across ``--workers``.
-# The binary is deterministic to ~1e-10 across invocations (docs/DATA.md), which is what makes
-# splitting one rung over many calls legitimate: far below the ~1e-3 truncation being measured.
-TP_CHUNK = 200_000
-TP_TIMEOUT = 3600
+# tag -> (figdata key, label)
+SERIES = (
+    ("lm_single", "single", r"single puncture (exact solution)"),
+    ("lm_anchor", "lm", r"this work, $P=0.5$"),
+    ("tp_anchor", "tp", r"TwoPunctures, same code path"),
+    ("lm_p010", "lm_p010", r"this work, $P=0.1$"),
+    ("by_p010", "by_p010", r"GRTeclyn analytic Bowen--York, $P=0.1$"),
+    ("lm_qc", "qc", r"quasi-circular with spins"),
+)
+# Resolution variants, used to attribute an observed floor to the exported
+# representation rather than to the solve.  Optional.
+VARIANTS = (
+    ("lm_qc_nphi16", "qc_nphi16", r"quasi-circular, $N_\phi=16$"),
+    ("lm_anchor_hi", "lm_hi", r"this work, $52{\times}36\to72{\times}48$"),
+)
+AMR_TAGS = ("lm_anchor_amr4", "lm_anchor_amr6")
 
 
-def _order(hs, errs):
-    """Least-squares log-log slope: the measured FD convergence order."""
-    return float(np.polyfit(np.log(hs), np.log(errs), 1)[0])
-
-
-def _psi_tp(X, Y, Z, workers=1, chunk=TP_CHUNK):
-    """TwoPunctures psi at every point of a Cartesian grid, queried in chunks.
-
-    Threads, not processes: every chunk is one ``subprocess.run`` of the oracle binary, so
-    the GIL is released for the whole call and the workers genuinely run in parallel.
-    """
-    # TP's native frame puts the punctures on x, ours on z; the slice is axisymmetric,
-    # so (z, rho, 0) in the oracle frame is the same physical point.
-    pts = np.stack([Z.ravel(), np.sqrt(X ** 2 + Y ** 2).ravel(),
-                    np.zeros(Z.size)], axis=1)
-    out = np.empty(pts.shape[0])
-    slices = [slice(i0, min(i0 + chunk, pts.shape[0]))
-              for i0 in range(0, pts.shape[0], chunk)]
-    done = [0]
-
-    def run(sl):
-        t0 = time.time()
-        out[sl] = tp.solve_tp(B, M_A, M_B, P, pts[sl], nA=TP_RES[0], nB=TP_RES[1],
-                              nphi=TP_RES[2], timeout=TP_TIMEOUT).psi
-        done[0] += 1
-        print(f"      oracle chunk {done[0]:>3d}/{len(slices)} "
-              f"({sl.stop - sl.start} points, {time.time() - t0:.0f} s)", flush=True)
-
-    if workers > 1:
-        with ThreadPoolExecutor(max_workers=workers) as ex:
-            list(ex.map(run, slices))
-    else:
-        for sl in slices:
-            run(sl)
-    return out.reshape(X.shape)
-
-
-def _norms(psi, X, Y, Z, h):
-    """Bulk L2-RMS of the generic FD Hamiltonian and momentum constraints."""
-    A = cst.A_tensor_3d(X, Y, Z, B, P)
-    H, Mvec = cst.fd_constraints_generic(psi, A, h)
-    mask = cst.interior_mask(X, Y, Z, h, b=B, r_excl=R_EXCL)
-    return cst.norms(H, mask)[1], cst.vec_norms(Mvec, mask)[1]
-
-
-def build(with_tp=True, ns=NS, workers=1, chunk=TP_CHUNK):
-    if with_tp and not tp.available():
+def _runs_root(cli):
+    root = cli or os.environ.get("LM_GRTECLYN_RUNS")
+    if not root:
         raise SystemExit(
-            f"TwoPunctures binary not found at {tp.binary_path()} — build the oracle "
-            f"(make oracle; see docs/DATA.md) or run with --no-tp")
+            "Point --runs at the GRTeclyn run tree (or set $LM_GRTECLYN_RUNS).\n"
+            "Produce it with runs/lm_constraints/submit_step4.slurm on the "
+            "cluster; see docs/DATA.md.")
+    if not os.path.isdir(root):
+        raise SystemExit(f"--runs {root!r} is not a directory")
+    return root
 
-    prob = sa.make_problem(Na=SPECTRAL[0], Nb=SPECTRAL[1], P=P)
-    sl = sa.Slice(B, M_A, M_B)
-    U, info = sa.newton_solve(prob, sl, tol=NEWTON_TOL, max_iter=25)
 
-    hs, H_lm, M_lm, H_tp, M_tp = [], [], [], [], []
-    for N in ns:
-        _, X, Y, Z, h = cst.cartesian_grid(L, N)
-        hs.append(h)
+def _local_orders(h, e):
+    """Pairwise log-log slopes.
 
-        eH, eM = _norms(cst.psi_on_grid(prob, U, sl, X, Y, Z), X, Y, Z, h)
-        H_lm.append(eH)
-        M_lm.append(eM)
-
-        if with_tp:
-            t0 = time.time()
-            eHt, eMt = _norms(_psi_tp(X, Y, Z, workers, chunk), X, Y, Z, h)
-            H_tp.append(eHt)
-            M_tp.append(eMt)
-            print(f"  N={N:3d}  h={h:.4f}  H={eH:.4e} (TP {eHt:.4e})  "
-                  f"M={eM:.4e} (TP {eMt:.4e})  [oracle {time.time() - t0:.0f} s]",
-                  flush=True)
+    Reported as measured local orders rather than one least-squares slope: a
+    series that leaves the asymptotic regime (or hits the initial data's own
+    error) is then visible instead of averaged away, and for this figure that
+    departure IS the result.
+    """
+    out = []
+    for (h0, e0), (h1, e1) in zip(zip(h, e), zip(h[1:], e[1:])):
+        if e0 and e1 and e0 > 0 and e1 > 0:
+            out.append(math.log(e0 / e1) / math.log(h0 / h1))
         else:
-            print(f"  N={N:3d}  h={h:.4f}  H={eH:.4e}  M={eM:.4e}", flush=True)
+            out.append(float("nan"))
+    return out
 
-    hs = np.array(hs)
-    curves = dict(N=list(ns), h=hs,
-                  H_lm=H_lm, M_lm=M_lm,
-                  order_H_lm=_order(hs, np.array(H_lm)),
-                  order_M_lm=_order(hs, np.array(M_lm)))
-    if with_tp:
-        curves.update(H_tp=H_tp, M_tp=M_tp,
-                      order_H_tp=_order(hs, np.array(H_tp)),
-                      order_M_tp=_order(hs, np.array(M_tp)),
-                      # how far the two initial-data sets are apart, per rung, as seen by
-                      # the monitor: the number behind "identical constraint violations"
-                      rel_H=list(np.abs(np.array(H_lm) - np.array(H_tp)) / np.array(H_tp)),
-                      rel_M=list(np.abs(np.array(M_lm) - np.array(M_tp)) / np.array(M_tp)))
 
-    meta = dict(b=B, m_A=M_A, m_B=M_B, P=P, spectral_grid=list(SPECTRAL),
-                newton_residual=float(info.residual_norm), newton_tol=NEWTON_TOL,
-                L=L, r_excl=R_EXCL, Ns=list(ns), tp_res=list(TP_RES),
-                norm="bulk L2-RMS", monitor="generic FD (no conformal flatness)",
-                has_tp=bool(with_tp))
+def _read_ladder(root, tag):
+    path = os.path.join(root, tag, "ladder.json")
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
+        rungs = json.load(f)["rungs"]
+    rungs.sort(key=lambda r: -r["h"])            # coarse -> fine
+    return rungs
 
-    p = dump("fig10_constraints", dict(curves=curves, meta=meta))
-    print(f"wrote {p}")
-    print(f"  measured order:  H {curves['order_H_lm']:.3f}   M {curves['order_M_lm']:.3f}")
-    # The local (pairwise) orders are what shows the ladder is still in the asymptotic
-    # regime at the fine end; a single least-squares slope over a long ladder can hide a
-    # softening rate.  Printed, not stored: the figure plots the fit.
-    for i in range(len(hs) - 1):
-        pH = np.log(H_lm[i] / H_lm[i + 1]) / np.log(hs[i] / hs[i + 1])
-        pM = np.log(M_lm[i] / M_lm[i + 1]) / np.log(hs[i] / hs[i + 1])
-        print(f"    local order {hs[i]:.4f} -> {hs[i + 1]:.4f}:  H {pH:5.3f}   M {pM:5.3f}")
-    return p
+
+def _add(curves, key, label, rungs, h_ref, tag):
+    h = [r["h"] for r in rungs]
+    if h_ref is not None and h != h_ref:
+        # Series on different ladders cannot share one abscissa; say so rather
+        # than silently plotting against the wrong h.
+        raise SystemExit(
+            f"{tag} ladder {h} differs from the reference ladder {h_ref}")
+    for norm in ("L2_Ham", "L2_Mom", "Linf_Ham", "Linf_Mom"):
+        curves[f"{norm}_{key}"] = [r[norm] for r in rungs]
+    curves[f"order_H_{key}"] = _local_orders(h, curves[f"L2_Ham_{key}"])
+    curves[f"order_M_{key}"] = _local_orders(h, curves[f"L2_Mom_{key}"])
+    curves[f"label_{key}"] = label
+    print(f"  {tag:16s} L2(H) {curves[f'L2_Ham_{key}'][0]:.3e} -> "
+          f"{curves[f'L2_Ham_{key}'][-1]:.3e}   local orders "
+          + " ".join(f"{p:.2f}" for p in curves[f"order_H_{key}"]))
+    return h
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--runs", default=None)
+    args = ap.parse_args()
+    root = _runs_root(args.runs)
+
+    curves, have, h_ref = {}, {}, None
+    for tag, key, label in SERIES:
+        rungs = _read_ladder(root, tag)
+        if rungs is None:
+            print(f"  (missing: {tag})")
+            have[key] = False
+            continue
+        have[key] = True
+        h = _add(curves, key, label, rungs, h_ref, tag)
+        if h_ref is None:
+            h_ref, curves["h"] = h, h
+            curves["N"] = [r["N"] for r in rungs]
+    if not any(have.values()):
+        raise SystemExit(f"no ladders found under {root}")
+
+    # Resolution variants may sit on a shorter ladder (only the rungs where the
+    # floor showed), so they get their own abscissa.
+    variants = {}
+    for tag, key, label in VARIANTS:
+        rungs = _read_ladder(root, tag)
+        if rungs is None:
+            continue
+        variants[key] = dict(
+            label=label, h=[r["h"] for r in rungs], N=[r["N"] for r in rungs],
+            L2_Ham=[r["L2_Ham"] for r in rungs],
+            L2_Mom=[r["L2_Mom"] for r in rungs])
+        print(f"  {tag:16s} (variant) L2(H) "
+              + " ".join(f"{v:.3e}" for v in variants[key]["L2_Ham"]))
+
+    # The AMR measurement is a single number per hierarchy depth, deliberately
+    # NOT part of the convergence statement: an AMR L2 mixes refinement levels.
+    # The per-level breakdown travels with it so the caption can quote the
+    # finest spacing honestly.
+    amr = []
+    for tag in AMR_TAGS:
+        rungs = _read_ladder(root, tag)
+        if not rungs:
+            continue
+        r = rungs[0]
+        levels = r.get("levels", [])
+        rec = dict(tag=tag, N=r["N"], h_coarse=r["h"], L2_Ham=r["L2_Ham"],
+                   L2_Mom=r["L2_Mom"], n_cells=r["n_cells"], levels=levels,
+                   n_levels=len(levels),
+                   dx_finest=min((lv["dx"] for lv in levels), default=None))
+        amr.append(rec)
+        print(f"  {tag:16s} L2(H) {rec['L2_Ham']:.3e} over "
+              f"{rec['n_levels']} levels, finest dx = {rec['dx_finest']}")
+
+    # Provenance.  This figure's caption states the box, the ladder, the
+    # exclusion radius and the spectral grid, so they belong in the figdata and
+    # not only in prose.
+    probe_tag = next(t for t, k, _ in SERIES if have.get(k))
+    probe = _read_ladder(root, probe_tag)[0]
+    meta = dict(
+        measured_by="GRTeclyn Constraints (4th-order stencils, CCZ4 variables)",
+        norm=probe.get("norm"),
+        box_half_width=9.0, L_full=18.0,
+        r_excl=probe.get("r_excl"), border_cells=probe.get("border_cells"),
+        b=3.0, m_A=0.5, m_B=0.5, P_anchor=0.5, P_small=0.1,
+        spectral_grid=[52, 36], spectral_nphi=8,
+        boost_guard="GRTeclyn analytic ID requires |P| < 0.3 m",
+        has_tp=have.get("tp", False), has_by=have.get("by_p010", False),
+        has_amr=bool(amr), has_variants=bool(variants),
+        series={k: lab for _, k, lab in SERIES if have.get(k)},
+        runs_root=os.path.abspath(root),
+    )
+    dump("fig10_constraints",
+         dict(curves=curves, meta=meta, amr=amr, variants=variants))
+    print("wrote figdata/fig10_constraints.json")
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--no-tp", action="store_true",
-                    help="skip the TwoPunctures curve and write the solver curve only")
-    ap.add_argument("--n-list", default=",".join(str(n) for n in NS),
-                    help=f"comma-separated Cartesian rungs (default: {','.join(str(n) for n in NS)})")
-    ap.add_argument("--workers", type=int, default=1,
-                    help="parallel oracle chunks (threads; 32 on a cluster node)")
-    ap.add_argument("--chunk", type=int, default=TP_CHUNK,
-                    help=f"oracle query points per call (default {TP_CHUNK})")
-    a = ap.parse_args()
-    build(with_tp=not a.no_tp,
-          ns=tuple(int(s) for s in a.n_list.split(",") if s.strip()),
-          workers=a.workers, chunk=a.chunk)
+    main()

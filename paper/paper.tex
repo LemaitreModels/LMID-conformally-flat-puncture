@@ -471,9 +471,9 @@ unchanged, so the honest measure is the \emph{row-equilibrated} residual
 $\max_m \max_i \big|\hat R^{(m)}_{i}/s^{(m)}_{i} \big|$, and it is this
 well-conditioned norm that the Newton iteration drives to zero.
 This residual is nonetheless a \emph{solver-internal} diagnostic; the
-\emph{physical} constraint violation of the emitted data, computed by a generic
-finite-difference monitor on an evolution grid, with no reference to this
-norm, is verified independently in Appendix~\ref{sec:validation:constraints}.
+\emph{physical} constraint violation of the emitted data, measured on an
+evolution grid by an independent numerical-relativity code with no reference to
+this norm, is verified in Appendix~\ref{sec:validation:constraints}.
 
 
 % ===========================================================================
@@ -1509,8 +1509,9 @@ This research was supported by the Research Foundation -- Flanders (FWO; Grant N
 We validate the initial-data solver against the Two-Punctures
 code~\cite{AnsorgBruegmannTichy2004}, using its standalone C port from the NRPy
 suite compiled against GSL. We compare the quasi-circular data over the
-production box (App.~\ref{sec:validation:qc}) and after interpolation onto
-an evolution grid (App.~\ref{sec:validation:constraints}). In the
+production box (App.~\ref{sec:validation:qc}) and, through an independent
+evolution code's constraint diagnostic, on an evolution grid
+(App.~\ref{sec:validation:constraints}). In the
 axisymmetric limit the two codes agree to near machine precision.
 
 
@@ -1625,46 +1626,108 @@ solver.
 \subsection{Constraint violation on an evolution grid}
 \label{sec:validation:constraints}
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \includegraphics[width=\columnwidth]{fig10_constraints.pdf}
+  \includegraphics[width=\textwidth]{fig10_constraints.pdf}
   \caption{\label{fig:constraints}%
-    \textbf{Constraint violation of the initial data on a uniform Cartesian
-    evolution grid.} Bulk $L_2$ norms of the Hamiltonian and momentum
-    constraints against the Cartesian grid spacing $h$, for the axisymmetric
-    configuration of App.~\ref{sec:validation:qc} (equal bare masses,
-    half-separation $b=3$, axial momentum $P=0.5$), on the four grids
-    $N^3$ with $N=40$, $56$, $72$, $88$ across a box of half-width $9\,M$ with
-    the punctures excluded to radius $1.5\,M$. Both norms are measured by the
-    generic finite-difference constraint monitor described in the text, which
-    makes no use of conformal flatness, and both fall at its second order
-    (measured $2.14$ and $2.02$; dotted, $\propto h^{2}$). Black open markers
-    repeat the measurement with the conformal factor supplied by TwoPunctures
-    on the same grids; the two agree to better than $10^{-6}$ relative at every
-    rung, so what is plotted is the truncation error of the Cartesian
-    discretization rather than a property of either initial-data solution.}
-\end{figure}
+    \textbf{Constraint violation of the initial data, measured by an independent
+    evolution code.} Volume-normalized bulk $L_2$ norms of the Hamiltonian and
+    momentum constraints at $t=0$, computed by GRTeclyn~\cite{GRTeclyn} with its
+    own fourth-order stencils from the evolution variables of the CCZ4 system,
+    against the grid spacing $h$ on a uniform ladder $h=0.375$--$0.094\,M$
+    ($N^3$ with $N=48$, $64$, $96$, $128$, $192$) across a box of half-width
+    $9\,M$, with the punctures excluded to radius $1.5\,M$.
+    \textbf{(a)} The axisymmetric configuration of
+    App.~\ref{sec:validation:qc} (equal bare masses, half-separation $b=3$,
+    axial momentum $P=0.5$). Both norms fall at the operator's fourth order, the
+    measured local orders being $3.32$, $4.35$, $3.82$, $3.27$ for
+    $\|\mathcal{H}\|_2$ and $3.57$, $4.17$, $3.91$, $4.06$ for
+    $\|\mathcal{M}\|_2$ (dotted, $\propto h^{4}$). Black open markers repeat the
+    measurement with the conformal factor supplied by TwoPunctures, passed
+    through the identical initial-data class, interpolation, stencils and grid,
+    so that the initial data is the only difference: the two agree to
+    $6\times10^{-6}$ relative at the coarsest rung and to $6\times10^{-2}$ at
+    the finest, where the violation is itself $3.5\times10^{-7}$.
+    \textbf{(b)} The same configuration at $P=0.1$, the largest momentum for
+    which GRTeclyn's own analytic Bowen--York initial data is defined (it
+    requires $|P|<0.3\,m$, so it cannot represent the $P=0.5$ anchor at all).
+    Our Hamiltonian violation continues to fall at fourth order; the analytic
+    one stops falling at $5.2\times10^{-5}$ (local orders $0.19$, $0.01$,
+    $0.03$) and ends a factor $184$ higher, because that data satisfies the
+    Hamiltonian constraint only to $O(P^{2})$. The momentum norms coincide to
+    three digits, as they must: the Bowen--York extrinsic curvature is
+    analytically transverse in both, so the momentum constraint holds for any
+    conformal factor and both curves are pure truncation error. Panel (b)
+    therefore isolates the Hamiltonian sector, which is the sector in which the
+    two data sets differ.}
+\end{figure*}
 
-As a final validation, we interpolate the spectral initial data onto a uniform
-Cartesian grid, as required by a numerical-relativity evolution code, and
-evaluate the Hamiltonian and momentum constraints using a generic
-finite-difference constraint monitor. The monitor computes the Christoffel
-symbols and Ricci tensor directly from finite differences, without making use of
-conformal flatness, and therefore provides a test independent of the spectral
-discretization used to construct the initial data.
+As a final validation we hand the initial data to GRTeclyn~\cite{GRTeclyn}, an
+independent numerical-relativity evolution code, and let it measure the
+constraint violation with its own machinery. GRTeclyn evaluates the Hamiltonian
+and momentum constraints with fourth-order stencils, working from the evolution
+variables of the CCZ4 system rather than from the conformal factor directly, so
+the measurement also exercises the conversion into evolution form that a
+simulation actually performs. Since neither the discretization nor the
+constraint operator is ours, this tests the emitted data with a code that has no
+stake in it.
 
-We use the axisymmetric configuration of the preceding section, which carries
-the fewest confounds and is where the two initial-data solutions differ least.
-Both constraint norms converge at the expected second order with Cartesian grid
-spacing $h$, as shown in Fig.~\ref{fig:constraints}, the measured orders being
-$2.14$ for $\|\mathcal{H}\|_2$ and $2.02$
-for $\|\mathcal{M}\|_2$. Repeating the calculation with the conformal factor
-obtained from TwoPunctures gives identical constraint violations on the same
-Cartesian grids (Fig.~\ref{fig:constraints}, open markers). The measured residuals are therefore set by the
-finite-difference truncation error of the constraint monitor rather than by
-differences between the two initial-data solutions, and the accuracy of the
-spectral initial data lies below the truncation error introduced by the
-Cartesian discretization.
+The data is transferred as the solved conformal factor on its spectral grid and
+evaluated in the evolution code by a direct port of the interpolation used here.
+The port is checked against tabulated reference values at every run, agreeing to
+$2\times10^{-16}$, and the run aborts if it disagrees. Because the transfer
+describes the field rather than samples it, the same path accepts a conformal
+factor from any source; we therefore also run the TwoPunctures solution through
+it, on the same spectral grid, so that the initial data is the only difference
+between the two measurements. Figure~\ref{fig:constraints}(a) shows both norms
+falling at fourth order with the TwoPunctures points lying on our curves: an
+independent code cannot distinguish the two solutions until $h=0.094\,M$, and
+there only at the level of $6\%$ of a violation of $3.5\times10^{-7}$. The two
+conformal factors themselves agree to $3.6\times10^{-10}$ relative.
+
+Two further configurations sharpen the statement. For a single puncture the
+initial data is exact---$\psi = 1 + m_A/2r_A$ is harmonic and $K_{ij}$
+vanishes, so both continuum constraints vanish identically---and the measurement
+is pure truncation error: $\|\mathcal{H}\|_2$ falls from $6.3\times10^{-5}$ to
+$2.6\times10^{-7}$ at fourth order while $\|\mathcal{M}\|_2$ is exactly zero at
+every rung. Conversely, GRTeclyn carries its own analytic Bowen--York initial
+data, valid only for small boosts, and at the one momentum where both data sets
+are defined the difference is unambiguous: its Hamiltonian violation stops
+converging at $5.2\times10^{-5}$ while ours continues to fall to
+$2.8\times10^{-7}$, a factor $184$ lower in the same code on the same grid
+(Fig.~\ref{fig:constraints}(b)). That this residual is a property of the data and
+not a discretization artifact follows from its scaling: repeating the measurement
+at $P=0.05$, $0.10$ and $0.14$ gives resolution-independent floors of
+$1.28\times10^{-5}$, $5.21\times10^{-5}$ and $1.05\times10^{-4}$, that is
+$\propto P^{2.04}$, so the analytic data satisfies the Hamiltonian constraint to
+$O(P^{2})$ as expected.
+
+At the finest rung the measurement reaches the initial data's own error rather
+than bounding it. Re-exporting the anchor on a $72\times48$ meridional grid
+instead of $52\times36$ leaves the three coarsest rungs unchanged to four
+digits, changes the fourth by $1\%$, and lowers the finest from
+$3.5\times10^{-7}$ to $2.5\times10^{-7}$, restoring fourth order there; for
+$h \gtrsim 0.14\,M$ the measured violation is therefore Cartesian truncation to
+within a percent, while at $h=0.094\,M$ about $40\%$ of it is the spectral
+representation of the exported field. The location of the crossover is
+itself consistent: fitting $\|\mathcal{H}\|_2 = C h^4$ to the coarsest rung gives
+$C = 3.0\times10^{-3}$, which reaches $2.5\times10^{-7}$ at $h=0.095\,M$, within
+$2\%$ of the finest rung run. We conclude that the constraint violation of the
+emitted data on an evolution grid is $\approx 2.5\times10^{-7}$ in this norm, and
+that reaching it required fourth-order stencils: at the second order of a
+finite-difference monitor the same absolute error is not reached until
+$h\approx3\times10^{-3}\,M$, which on this box is a uniform grid of more than
+$6000^3$ points.
+
+On a refined hierarchy the same data gives $\|\mathcal{H}\|_2 =
+2.2\times10^{-6}$ with four levels of refinement (finest spacing $0.023\,M$) and
+$7.9\times10^{-6}$ with six (finest $0.0059\,M$). These numbers are not part of
+the convergence statement and should not be compared with the uniform ladder: a
+norm over the leaf cells of an adaptive hierarchy is dominated by wherever the
+cells are, and the deep levels cluster on the punctures, where $\mathcal{H}$ is a
+cancellation between large terms. Consistently, $\|\mathcal{M}\|_2$, which
+involves no such cancellation, falls monotonically with refinement depth, from
+$6.6\times10^{-8}$ on the coarsest level to $2.0\times10^{-9}$ on the finest.
 
 
 \bibliographystyle{apsrev4-2}

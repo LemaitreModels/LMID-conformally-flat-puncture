@@ -63,14 +63,29 @@ the figure→producer→artifact graph).
   *rises* with resolution — mildly along a fixed-`Nφ` ladder, steeply when `Nφ` rises,
   because the mechanism is roundoff in unpopulated high-`m` modes, not lost convergence.
 
-- **Constraints on an evolution grid** (fig10) — the second figure that needs the oracle,
-  and the only data script that recomputes rather than distilling: it solves the
-  axisymmetric anchor itself, evaluates the finite-difference constraint monitor on four
-  Cartesian grids, and then repeats the measurement with a TwoPunctures-sourced conformal
-  factor on the same grids. The oracle is queried at every Cartesian point of every rung
-  (1.3M points, ~40 min); `python paper/figures/fig10_constraints_data.py --no-tp` writes
-  the solver curve alone in ~10 s, which is enough to replot everything but the black
-  markers.
+- **Constraints on an evolution grid** (fig10) — measured by **GRTeclyn**, an external
+  numerical-relativity code, not by the in-house monitor (which stays as an internal
+  check: `validation/constraints.py` + its tests). Three stages, see
+  `docs/GRTECLYN_CONSTRAINTS_PLAN.md`:
+
+  1. `python -m lm.initial_data.pipeline.run_export_grteclyn --out reports/grteclyn_export
+     --tp` (cluster: `slurm/ivs/submit_export_grteclyn.slurm`, ~3 min) — solves each
+     configuration and writes `<name>.lmid` plus a `<name>_reference.dat` table of `psi`
+     and `Ahat` values that the C++ evaluator is validated against. With `--tp` it also
+     writes the TwoPunctures conformal factor **on the identical spectral grid**, so the
+     cross-code comparison shares the interpolation operator too.
+  2. the GRTeclyn runs: `runs/lm_constraints/submit_step4.slurm` in the GRTeclyn checkout
+     (~30 min for the six-series ladder; `submit_amr.slurm` for the refined-hierarchy
+     numbers). Leaves one `constraint_norms.json` per rung, collected into
+     `<tag>/ladder.json`.
+  3. `python paper/figures/fig10_constraints_data.py --runs <that tree>` (seconds, reads
+     files only) then the plotter. Set `$LM_GRTECLYN_RUNS` instead of `--runs` if you
+     prefer.
+
+  The oracle cost collapses in this arrangement: it is queried at ~15 000 **spectral
+  nodes** (~26 s) instead of the ~26 million Cartesian points the in-house comparison
+  needed (~13 h serial). `slurm/ivs/submit_fig10_constraints.slurm` drove that old sweep
+  and is retired.
 
 ## What is committed vs regenerated
 
