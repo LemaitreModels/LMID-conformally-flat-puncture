@@ -68,10 +68,12 @@ def main():
     ax.set_ylabel(r"constraint violation (bulk $L_2$)")
     ax.set_title("Constraints on an evolution grid", fontsize=10)
     # The ladder spans well under a decade in h, where matplotlib's LogLocator labels the
-    # sub-decade minors (2x10^-1, 3x10^-1, ...).  Tick the four rungs instead: they are the
-    # abscissa, and a plain decimal reads at a glance.
-    ax.set_xticks(h)
-    ax.set_xticklabels([f"{v:.2f}" for v in h])
+    # sub-decade minors (2x10^-1, 3x10^-1, ...).  Tick the rungs instead: they are the
+    # abscissa, and a plain decimal reads at a glance.  Past five rungs the labels collide
+    # at the fine end (h is geometric, so they crowd there), so label every other one.
+    step = 1 if len(h) <= 5 else 2
+    ax.set_xticks(h[::step])
+    ax.set_xticklabels([f"{v:.3g}" for v in h[::step]])
     ax.xaxis.set_minor_locator(NullLocator())
     ax.yaxis.set_minor_locator(NullLocator())      # no y sub-ticks (matches Figs. 2, 3, 8, 9)
     ax.grid(True, which="major", alpha=0.3)
