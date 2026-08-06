@@ -71,10 +71,20 @@ def load_pod_truncated_value(path, r_new) -> PODHermiteSmolyak:
     ``run_guess_vs_memory.load_pod_truncated`` EXCEPT for the empty enhanced set, so it
     keeps the IDENTICAL shared basis ``Phi[:, :r_new]``, mean, nodes and rank; the only
     difference from the value+gradient POD is the tangent-free coefficient interpolant.
-    NO re-solve, NO corpus."""
+    NO re-solve, NO corpus.
+
+    Accepts BOTH POD kinds.  ``pod_hermite_smolyak_cross`` files carry the same
+    ``Phi``/``mean``/``node_U``/``node_dU`` arrays plus a ``node_cross`` block; a
+    value-only interpolant uses neither the tangents nor the cross terms, so the
+    cross file is read through the identical path and ``node_cross`` is simply not
+    consumed.  This is what makes the value-only curve share the *basis* -- not
+    merely the rank -- with the value+gradient CROSS POD it is plotted against.
+    """
     data = _load_npz(path)
     meta = _unpack_meta(data)
-    _check_meta(meta, "pod_hermite_smolyak")
+    kind = meta.get("kind")
+    if kind not in ("pod_hermite_smolyak", "pod_hermite_smolyak_cross"):
+        _check_meta(meta, "pod_hermite_smolyak")     # raise the standard message
     r_full = int(data["r"])
     r_new = int(min(r_new, r_full))
     Phi = np.asarray(data["Phi"], dtype=float)[:, :r_new]
@@ -103,7 +113,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dim", type=int, choices=(4, 8), required=True)
     ap.add_argument("--rank", type=int, required=True,
-                    help="POD truncation rank (fig04 uses 75 in 4D, 250 in 8D)")
+                    help="POD truncation rank (fig04 revision: 250 in 4D, 500 in 8D)")
+    ap.add_argument("--model", default=None,
+                    help="POD .npz to take the shared basis from (either POD kind). "
+                         "Pass the value+gradient CROSS POD this curve is plotted "
+                         "against, so the two share the BASIS and not merely the rank. "
+                         "Default: the non-cross shipped POD of --dim.")
     ap.add_argument("--n-points", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--steps", type=int, default=4)    # match the value+gradient-POD step axis
@@ -111,7 +126,7 @@ def main():
     os.makedirs(REPDIR, exist_ok=True)
     t0 = time.time()
 
-    path = MODELS[args.dim]["pod"]
+    path = args.model or MODELS[args.dim]["pod"]
     meta = read_meta(path)
     names = list(meta["axis_names"])
     box = [(float(a[0]), float(a[1])) for a in meta["box"]]

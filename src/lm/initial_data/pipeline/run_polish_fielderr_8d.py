@@ -80,9 +80,14 @@ REPDIR = os.path.join(REPORTS, "P3")
 MODELS_DIR = os.path.join(REPORTS, "P2", "models_chi")
 # metadata source — the plain 8-D model (box/grid/axes/fixed + the shared points)
 BASE_8D = MODELS[8]["pod"]
-# the r=250 y-pair CROSS POD warm-start guess (built by run_cross_pod_r250_8d.py)
-POD_R250_CROSS = os.path.join(
-    MODELS_DIR, "pod_hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross_r250.npz")
+# the y-pair CROSS POD warm-start guess, by rank (built by
+# ``run_cross_pod_r250_8d.py --rank R``); fig04's current revision is R=500.
+def pod_cross_path(rank):
+    return os.path.join(MODELS_DIR, "pod_hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_"
+                                    f"cross_r{int(rank)}.npz")
+
+
+POD_R250_CROSS = pod_cross_path(250)     # the original fig04 revision
 
 
 def polish_history(prob, sl, U0, max_steps, tol=1e-12):
@@ -168,8 +173,19 @@ def main():
     ap.add_argument("--n-points", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--cold-steps", type=int, default=8)   # match polish_cold_chi8d (--steps 8)
-    ap.add_argument("--pod-steps", type=int, default=4)    # match polish_table_chi8d_pod_r250 (MAXSTEPS=4)
+    ap.add_argument("--pod-steps", type=int, default=4)    # match polish_table_chi8d_pod_r* (MAXSTEPS=4)
+    ap.add_argument("--rank", type=int, default=500,
+                    help="cross-POD warm-start rank; must match the rank of the "
+                         "run_polish_podrank / run_polish_fielderr_value_pod curves "
+                         "it is plotted beside (fig04 revision: 500)")
+    ap.add_argument("--reuse-cold", default=None,
+                    help="path to a previous polish_fielderr_chi8d_*.json whose cold "
+                         "family to reuse verbatim.  The cold staircase is warm-start-free "
+                         "and hence POD-rank-independent, so on identical points/steps this "
+                         "is exact -- and saves ~8 h on a rank revision.  Guarded by asserts "
+                         "on points, seed, grid, box and step axis.")
     args = ap.parse_args()
+    pod_path = pod_cross_path(args.rank)
     os.makedirs(REPDIR, exist_ok=True)
 
     meta = read_meta(BASE_8D)
@@ -185,17 +201,37 @@ def main():
           flush=True)
     pts = random_offnode_points(box, args.n_points, args.seed)
 
-    print(f"[fielderr] loading r=250 y-pair CROSS POD "
-          f"({os.path.getsize(POD_R250_CROSS)/1e6:.0f} MB) ...", flush=True)
-    pod = load_pod_hermite_smolyak_cross(POD_R250_CROSS)
+    print(f"[fielderr] loading r={args.rank} y-pair CROSS POD "
+          f"({os.path.getsize(pod_path)/1e6:.0f} MB) ...", flush=True)
+    pod = load_pod_hermite_smolyak_cross(pod_path)
     rank = int(pod.r)
+    assert rank == args.rank, f"POD at {pod_path} has r={rank}, asked for {args.rank}"
     # sanity: same dimensionality as the sampling box
     assert pod.d == len(box), (pod.d, len(box))
     print(f"[fielderr] CROSS POD ready: d={pod.d}  r={rank}", flush=True)
 
     t0 = time.time()
-    cold = run_family("cold", prob, names, fixed, pts, args.cold_steps,
-                      guess_fn=lambda th: None)
+    if args.reuse_cold:
+        # The cold family takes NO warm start (guess_fn -> None), so it depends on the
+        # points, the box and --cold-steps but NOT on the POD model or its rank.  On the
+        # identical seed-shared points that makes it bit-reproducible, so a rank revision
+        # can lift it from the previous run instead of paying ~8 h to recompute it.
+        with open(args.reuse_cold) as f:
+            prev = json.load(f)
+        pc = prev["config"]
+        for key, mine in (("n_points", args.n_points), ("seed", args.seed),
+                          ("Na", Na), ("Nb", Nb), ("Nphi", Nphi)):
+            assert int(pc[key]) == int(mine), f"reuse-cold mismatch on {key}: {pc[key]} vs {mine}"
+        assert [ (b["name"], b["min"], b["max"]) for b in pc["box"] ] == \
+               [ (n, lo, hi) for n, (lo, hi) in zip(names, box) ], "reuse-cold box mismatch"
+        cold = prev["cold"]
+        assert int(cold["max_steps"]) == int(args.cold_steps), \
+            f"reuse-cold step-axis mismatch: {cold['max_steps']} vs {args.cold_steps}"
+        print(f"[fielderr] reusing the cold family from "
+              f"{os.path.basename(args.reuse_cold)} (POD-independent)", flush=True)
+    else:
+        cold = run_family("cold", prob, names, fixed, pts, args.cold_steps,
+                          guess_fn=lambda th: None)
     pod_res = run_family("pod", prob, names, fixed, pts, args.pod_steps,
                          guess_fn=lambda th: np.asarray(pod.evaluate(th)))
 
@@ -206,13 +242,15 @@ def main():
                            for n, (lo, hi) in zip(names, box)],
                    "fixed": fixed, "metric": "field_error_relL2",
                    "u_ref": "best (converged) NK iterate",
-                   "pod_guess": os.path.basename(POD_R250_CROSS),
-                   "pod_kind": "hermite_smolyak_cross (r=250, y-pair)",
+                   "pod_guess": os.path.basename(pod_path),
+                   "pod_kind": f"hermite_smolyak_cross (r={rank}, y-pair)",
                    "pod_rank": rank},
         "cold": cold,
         "pod": pod_res,
     }
-    outp = os.path.join(REPDIR, f"polish_fielderr_chi8d_{args.n_points}.json")
+    # rank in the name: a rank change must not silently overwrite the previous
+    # revision's ~7 h artifact (and the registry pins the rank it consumes).
+    outp = os.path.join(REPDIR, f"polish_fielderr_chi8d_r{rank}_{args.n_points}.json")
     with open(outp, "w") as f:
         json.dump(out, f, indent=2, default=float)
 

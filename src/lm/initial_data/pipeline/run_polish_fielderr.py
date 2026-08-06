@@ -65,8 +65,14 @@ REPDIR = os.path.join(REPORTS, "P3")
 MODELS = os.path.join(REPORTS, "P2", "models_chi")
 # box / grid / axes / fixed source (metadata only) — the same 4-D model run_polish_cold uses
 BASE_4D = os.path.join(MODELS, "pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz")
-# the shipped r=75 value+gradient (full-bilinear CROSS) POD warm-start guess
-POD_R75_CROSS = os.path.join(MODELS, "pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross_r75.npz")
+# the shipped value+gradient (full-bilinear CROSS) POD warm-start guess, by rank.
+# Built by ``run_cross_pod_figuredata.py --rank R``; fig04's current revision is R=250.
+def pod_cross_path(rank):
+    return os.path.join(MODELS, "pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_"
+                                f"cross_r{int(rank)}.npz")
+
+
+POD_R75_CROSS = pod_cross_path(75)      # the original fig04 revision
 
 
 def polish_history(prob, sl, U0, max_steps, tol=1e-12):
@@ -152,8 +158,13 @@ def main():
     ap.add_argument("--n-points", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--cold-steps", type=int, default=8)   # match polish_cold_chi4d
-    ap.add_argument("--pod-steps", type=int, default=4)    # match polish_table_chi4d_pod_r75_cross
+    ap.add_argument("--pod-steps", type=int, default=4)    # match polish_table_chi4d_pod_r*_cross
+    ap.add_argument("--rank", type=int, default=250,
+                    help="cross-POD warm-start rank; must match the rank of the "
+                         "run_polish_podrank / run_polish_fielderr_value_pod curves "
+                         "it is plotted beside (fig04 revision: 250)")
     args = ap.parse_args()
+    pod_path = pod_cross_path(args.rank)
     os.makedirs(REPDIR, exist_ok=True)
 
     meta = read_meta(BASE_4D)
@@ -169,9 +180,11 @@ def main():
           flush=True)
     pts = random_offnode_points(box, args.n_points, args.seed)
 
-    print(f"[fielderr] loading r=75 cross POD guess "
-          f"({os.path.getsize(POD_R75_CROSS)/1e6:.0f} MB) ...", flush=True)
-    pod = load_pod_hermite_smolyak_cross(POD_R75_CROSS)
+    print(f"[fielderr] loading r={args.rank} cross POD guess "
+          f"({os.path.getsize(pod_path)/1e6:.0f} MB) ...", flush=True)
+    pod = load_pod_hermite_smolyak_cross(pod_path)
+    rank = int(pod.r)
+    assert rank == args.rank, f"POD at {pod_path} has r={rank}, asked for {args.rank}"
     # sanity: same axis order/box as the sampling
     assert list(pod.axis_names) == names if hasattr(pod, "axis_names") else True
 
@@ -188,11 +201,14 @@ def main():
                            for n, (lo, hi) in zip(names, box)],
                    "fixed": fixed, "metric": "field_error_relL2",
                    "u_ref": "best (converged) NK iterate",
-                   "pod_guess": os.path.basename(POD_R75_CROSS)},
+                   "pod_guess": os.path.basename(pod_path),
+                   "pod_rank": rank},
         "cold": cold,
         "pod": pod_res,
     }
-    outp = os.path.join(REPDIR, f"polish_fielderr_chi4d_{args.n_points}.json")
+    # rank in the name: a rank change must not silently overwrite the previous
+    # revision's ~2.5 h artifact (and the registry pins the rank it consumes).
+    outp = os.path.join(REPDIR, f"polish_fielderr_chi4d_r{rank}_{args.n_points}.json")
     with open(outp, "w") as f:
         json.dump(out, f, indent=2, default=float)
 

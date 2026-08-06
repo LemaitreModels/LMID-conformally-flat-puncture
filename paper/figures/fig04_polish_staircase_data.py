@@ -5,16 +5,25 @@ Two columns (4D | 8D), two rows (constraint residual | field error), each with a
 value+gradient POD-warm-start curve (median + min/max over 1000 off-node points per step).
 
 Each panel additionally carries a value-ONLY model curve, so the three warm-start families
-cold | value | value+gradient are compared on both rows.  The value-only curve is the POD-compressed
-value-only model at the SAME rank as the value+gradient POD curve (the apples-to-apples partner)
-when its cluster source is present, else the full un-compressed value-only Smolyak model.
+cold | value | value+gradient are compared on both rows.  The value-only curve is built on the
+SAME cross-POD basis Phi[:, :r] at the SAME rank as the value+gradient POD curve, differing only
+in whether the coefficient interpolant uses the certified tangents -- which is what makes the
+pair apples-to-apples (and what the caption claims).  If that cluster source is absent it falls
+back to the full un-compressed value-only Smolyak model.
 
-Sources (raw), per dimension X in {4,8}:
+All six POD curves share ONE model family: the y-pair full-bilinear CROSS POD (the model the
+paper ships, cf. sec:model:enhanced / fig:joint), at r=250 in 4D and r=500 in 8D -- the rank at
+which fig05's ladder shows the compression is no longer the limiting error.  Two mismatches were
+removed in that revision: the 8D residual row previously used the SIX-axis non-cross POD while
+its own field-error row used the cross POD, and both value-only curves were built on the
+non-cross basis (matching the value+gradient curve in rank but not in basis).
+
+Sources (raw), per dimension X in {4,8} with rank R = 250 (4D) / 500 (8D):
   polish_cold_Xd            P3/polish_cold_chiXd_1000.json                    (cold residual staircase)
-  polish_pod_Xd             P3/polish_table_chiXd_pod_r{75_cross,250}_1000.json (value+grad POD residual)
-  polish_value_pod_Xd       P3/polish_fielderr_value_pod_chiXd_r{75,250}_1000.json (value-only POD; both rows)
+  polish_pod_Xd             P3/polish_table_chiXd_pod_rR_cross_1000.json      (value+grad POD residual)
+  polish_value_pod_Xd       P3/polish_fielderr_value_pod_chiXd_rR_1000.json   (value-only POD; both rows)
   polish_table_{4d,8d_value} P3/polish_table_{qc_chi_prod,chi8d_value}_1000.json  (value-only residual, fallback)
-  polish_fielderr_Xd        P3/polish_fielderr_chiXd_1000.json                (cold+POD field-error stairs)
+  polish_fielderr_Xd        P3/polish_fielderr_chiXd_rR_1000.json             (cold+POD field-error stairs)
   polish_fielderr_value_Xd  P3/polish_fielderr_value_chiXd_1000.json          (value-only field-error, fallback)
 
 The value-only POD source carries both rows (residual_rows + field_rows from run_family); when it is

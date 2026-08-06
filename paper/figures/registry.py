@@ -66,17 +66,26 @@ SOURCES = {
     "polish_cold_8d":       dict(reports="P3/polish_cold_chi8d_1000.json",
                                  producer="run_polish_cold.py --dim 8", where="cluster",
                                  status="ready", figures=["fig04_polish_staircase"]),
-    "polish_pod_4d":        dict(reports="P3/polish_table_chi4d_pod_r75_cross_1000.json",
-                                 producer="run_polish_podrank.py --dim 4 --rank 75 (cross)", where="cluster",
+    # All six fig04 POD curves share ONE model family: the y-pair full-bilinear CROSS
+    # POD (the model the paper ships, cf. sec:model:enhanced / fig:joint), at r=250 in
+    # 4D and r=500 in 8D -- the rank at which fig05's ladder shows the compression is
+    # no longer the limiting error.  Before this revision the 8D residual row used the
+    # SIX-axis non-cross POD while its field-error row used the cross POD; the two rows
+    # of that column were therefore different models, masked by a shared r=250.
+    "polish_pod_4d":        dict(reports="P3/polish_table_chi4d_pod_r250_cross_1000.json",
+                                 producer="run_polish_table.py --model <cross_r250> "
+                                          "--tag chi4d_pod_r250_cross", where="cluster",
                                  status="ready", figures=["fig04_polish_staircase"]),
-    "polish_pod_8d":        dict(reports="P3/polish_table_chi8d_pod_r250_1000.json",
-                                 producer="run_polish_podrank.py --dim 8 --rank 250", where="cluster",
+    "polish_pod_8d":        dict(reports="P3/polish_table_chi8d_pod_r500_cross_1000.json",
+                                 producer="run_polish_table.py --model <cross_r500> "
+                                          "--tag chi8d_pod_r500_cross", where="cluster",
                                  status="ready", figures=["fig04_polish_staircase"]),
-    "polish_fielderr_4d":   dict(reports="P3/polish_fielderr_chi4d_1000.json",
-                                 producer="run_polish_fielderr.py", where="cluster",
+    "polish_fielderr_4d":   dict(reports="P3/polish_fielderr_chi4d_r250_1000.json",
+                                 producer="run_polish_fielderr.py --rank 250", where="cluster",
                                  status="ready", figures=["fig04_polish_staircase"]),
-    "polish_fielderr_8d":   dict(reports="P3/polish_fielderr_chi8d_1000.json",
-                                 producer="run_polish_fielderr_8d.py  (appendix a)", where="cluster",
+    "polish_fielderr_8d":   dict(reports="P3/polish_fielderr_chi8d_r500_1000.json",
+                                 producer="run_polish_fielderr_8d.py --rank 500  (appendix a)",
+                                 where="cluster",
                                  status="ready", figures=["fig04_polish_staircase"]),
     "polish_fielderr_value_4d": dict(reports="P3/polish_fielderr_value_chi4d_1000.json",
                                  producer="run_polish_fielderr_value.py --dim 4", where="laptop",
@@ -84,16 +93,22 @@ SOURCES = {
     "polish_fielderr_value_8d": dict(reports="P3/polish_fielderr_value_chi8d_1000.json",
                                  producer="run_polish_fielderr_value.py --dim 8", where="laptop",
                                  status="ready", figures=["fig04_polish_staircase"]),
-    # value-only POD warm start (same shipped basis + rank as the value+gradient POD curve);
-    # one run_family sweep carries BOTH fig04 rows (residual_rows + field_rows). Falls back to
-    # polish_table_{4d,8d_value} + polish_fielderr_value_{4,8}d until these land.
-    "polish_value_pod_4d":  dict(reports="P3/polish_fielderr_value_pod_chi4d_r75_1000.json",
-                                 producer="run_polish_fielderr_value_pod.py --dim 4 --rank 75",
-                                 where="cluster", status="pending",
+    # value-only POD warm start: the SAME cross-POD basis Phi[:, :r] and the same rank as
+    # the value+gradient curve above, differing ONLY in whether the coefficient interpolant
+    # uses the certified tangents -- which is what the fig04 caption claims.  (Before this
+    # revision it was built on the non-cross basis, so the two matched in rank but not in
+    # basis; hence the explicit --model.)  One run_family sweep carries BOTH fig04 rows
+    # (residual_rows + field_rows).  Falls back to polish_table_{4d,8d_value} +
+    # polish_fielderr_value_{4,8}d if these are absent.
+    "polish_value_pod_4d":  dict(reports="P3/polish_fielderr_value_pod_chi4d_r250_1000.json",
+                                 producer="run_polish_fielderr_value_pod.py --dim 4 "
+                                          "--rank 250 --model <cross_r250>",
+                                 where="cluster", status="ready",
                                  figures=["fig04_polish_staircase"]),
-    "polish_value_pod_8d":  dict(reports="P3/polish_fielderr_value_pod_chi8d_r250_1000.json",
-                                 producer="run_polish_fielderr_value_pod.py --dim 8 --rank 250",
-                                 where="cluster", status="pending",
+    "polish_value_pod_8d":  dict(reports="P3/polish_fielderr_value_pod_chi8d_r500_1000.json",
+                                 producer="run_polish_fielderr_value_pod.py --dim 8 "
+                                          "--rank 500 --model <cross_r500>",
+                                 where="cluster", status="ready",
                                  figures=["fig04_polish_staircase"]),
 
     # ---- fig05 (POD compression vs memory) ----

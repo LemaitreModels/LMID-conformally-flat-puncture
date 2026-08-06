@@ -8,9 +8,12 @@ CROSS model (`hermite_smolyak_cross`), re-encoded by POD:
      of the cross model (bare-guess EQUILIBRATED residual vs stored memory);
      schema identical to guess_vs_memory_4d_gapfill_1000.json (the gradient one),
      with the cross POD memory formula (Φ + value + d tangents + n_pairs cross).
-  2. reports/P2/models_chi/pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross_r75.npz
-     — the cross POD truncated to r=75, so run_polish_table (which now knows the
-     `pod_hermite_smolyak_cross` kind) produces the r=75 polish staircase JSON.
+  2. reports/P2/models_chi/pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross_r<rank>.npz
+     — the cross POD truncated to `--rank`, so run_polish_table (which now knows the
+     `pod_hermite_smolyak_cross` kind) produces that rank's polish staircase JSON.
+     The name carries the rank (`pod_out_path`), so ranks never clobber each other.
+     `--save-only` writes just this model and skips artifact 1 (the ~hour sweep),
+     which is all a fig04 rank change needs.
 
 Add-only.  Uses the same seed-0 off-node sampling as run_polish_table (via
 run_cross_fielderror_chi.offnode_points), the equilibrated residual
@@ -18,9 +21,12 @@ run_cross_fielderror_chi.offnode_points), the equilibrated residual
 and the committed hermite_smolyak_pod_cross POD layer.
 
 Run:  python -m lm.initial_data.pipeline.run_cross_pod_figuredata
+      # fig04 r=250 revision (model only, no sweep):
+      python -m lm.initial_data.pipeline.run_cross_pod_figuredata --rank 250 --save-only
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import sys
@@ -57,7 +63,17 @@ def _pod_mem_bytes(r, N, nfeat, d, npair):
     return 8.0 * (nfeat * r + N * r + N * d * r + N * npair * r + nfeat)
 
 
-def main(n_points=1000, seed=0, r75_out=None):
+def pod_out_path(rank):
+    """Shipped-artifact path for the rank-``rank`` 4-D cross POD.
+
+    The name carries the rank so a second rank never clobbers an existing
+    artifact (``r=75`` is the original fig04 revision, ``r=250`` the current one).
+    """
+    return os.path.join(MODELS, "pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_"
+                                f"cross_r{int(rank)}.npz")
+
+
+def main(n_points=1000, seed=0, pod_out=None, rank=75, save_only=False):
     os.makedirs(REP3, exist_ok=True)
     t0 = time.time()
     meta = _unpack_meta(_load_npz(CROSS))
@@ -79,14 +95,21 @@ def main(n_points=1000, seed=0, r75_out=None):
     print(f"[figdata] cross POD r_full={r_full}  N={N} nfeat={nfeat} d={d} npair={npair} "
           f"({time.time()-t0:.0f}s)", flush=True)
 
-    # ---- save the r=75 cross POD for run_polish_table (the r=75 staircase) ----
-    if r75_out is None:
-        r75_out = os.path.join(MODELS, "pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross_r75.npz")
-    truncate_pod_cross(pod, 75).save(r75_out, meta={
+    # ---- save the rank-``rank`` cross POD for run_polish_table (the staircase) ----
+    rank = int(min(rank, r_full))          # clamp BEFORE naming: never mislabel the rank
+    if pod_out is None:
+        pod_out = pod_out_path(rank)
+    truncate_pod_cross(pod, rank).save(pod_out, meta={
         "axis_names": names, "box": [list(b) for b in box], "fixed": fixed,
         "Na": Na, "Nb": Nb, "Nphi": Nphi, "level": int(meta.get("level", 5)),
         "enhanced": list(meta.get("enhanced", [])), "r_shipped": int(r_full)})
-    print(f"[figdata] wrote r=75 cross POD -> {os.path.basename(r75_out)}", flush=True)
+    print(f"[figdata] wrote r={rank} cross POD -> {os.path.basename(pod_out)}", flush=True)
+    if save_only:
+        # The rank sweep below is a separate (1000-point, ~hour) fig05 artifact; a
+        # rank rebuild for fig04 only needs the model.
+        print(f"[figdata] --save-only: skipping the rank sweep  "
+              f"({(time.time()-t0)/60:.1f} min)", flush=True)
+        return None, pod_out
 
     # ---- guess-vs-memory rank sweep (equilibrated bare-guess residual) ----
     ranks = pod_rank_ladder(r_full)
@@ -124,8 +147,16 @@ def main(n_points=1000, seed=0, r75_out=None):
     print(f"[figdata] wrote {os.path.basename(outp)}  ({(time.time()-t0)/60:.1f} min)", flush=True)
     print(f"[figdata] sweep median [r=1..r_full]: "
           f"{[f'{np.median(res[r]):.1e}' for r in ranks]}", flush=True)
-    return outp, r75_out
+    return outp, pod_out
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--rank", type=int, default=75,
+                    help="rank of the SHIPPED cross-POD truncation (fig04 r=250 revision: 250)")
+    ap.add_argument("--save-only", action="store_true",
+                    help="write the truncated model and stop; skip the fig05 rank sweep")
+    ap.add_argument("--n-points", type=int, default=1000)
+    ap.add_argument("--seed", type=int, default=0)
+    args = ap.parse_args()
+    main(n_points=args.n_points, seed=args.seed, rank=args.rank, save_only=args.save_only)

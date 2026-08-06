@@ -12,10 +12,12 @@ Mirrors the 4-D producer verbatim:
       -> truncate_pod_cross(pod, 250).save(OUT, meta=...)  # the r=250 slice
 
 Input  : $LM_REPORTS/P2/models_chi/hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross.npz
-Output : $LM_REPORTS/P2/models_chi/pod_hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross_r250.npz
+Output : $LM_REPORTS/P2/models_chi/pod_hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross_r<rank>.npz
 
-Both paths resolve through :func:`lm.initial_data.paths.reports_root`, so the
-output lands exactly where ``run_polish_fielderr_8d.POD_R250_CROSS`` looks for it.
+The output name carries ``--rank`` (:func:`out_path`), so building a second rank
+does not clobber an existing artifact -- each is a 1--2 h, >100 GB build.  Both
+paths resolve through :func:`lm.initial_data.paths.reports_root`, so ``r=250``
+lands exactly where ``run_polish_fielderr_8d``'s default looks for it.
 
 Cost (measured from the model's own shapes: N=15713 nodes, nfeat=11520,
 d=8, n_enhanced=2, npair=1, 1287 subgrids).  The stacked SVD corpus is only
@@ -43,6 +45,8 @@ Run:
   python -m lm.initial_data.pipeline.run_cross_pod_r250_8d
   python -m lm.initial_data.pipeline.run_cross_pod_r250_8d --rank 250
   python -m lm.initial_data.pipeline.run_cross_pod_r250_8d --project-rank 250   # low-memory
+  # fig04 r=500 revision (~125 GB peak with the matched projection rank):
+  python -m lm.initial_data.pipeline.run_cross_pod_r250_8d --rank 500 --project-rank 500
 """
 from __future__ import annotations
 
@@ -66,7 +70,19 @@ from lm.initial_data.paths import reports_root
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 MODELS = os.path.join(REPORTS, "P2", "models_chi")
 CROSS_8D = os.path.join(MODELS, "hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross.npz")
-OUT_8D = os.path.join(MODELS, "pod_hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross_r250.npz")
+
+
+def out_path(rank):
+    """Shipped-artifact path for a rank-``rank`` truncation.
+
+    The name carries the rank so that building a second rank does NOT overwrite
+    an existing artifact (each of these is a 1--2 h, >100 GB build).
+    """
+    return os.path.join(MODELS, "pod_hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_"
+                                f"cross_r{int(rank)}.npz")
+
+
+OUT_8D = out_path(250)          # the historical consumer path (fig04 r=250 revision)
 
 
 def main(rank=250, project_rank=None):
@@ -97,22 +113,23 @@ def main(rank=250, project_rank=None):
     print(f"[r250-8d] cross POD r={pod.r} r_full={r_full} ({time.time()-t0:.0f}s)", flush=True)
 
     rank = int(min(rank, pod.r))
-    truncate_pod_cross(pod, rank).save(OUT_8D, meta={
+    out = out_path(rank)        # named AFTER the clamp, so it never mislabels the rank
+    truncate_pod_cross(pod, rank).save(out, meta={
         "axis_names": names, "box": [list(b) for b in box], "fixed": fixed,
         "Na": Na, "Nb": Nb, "Nphi": Nphi, "level": int(meta.get("level", 5)),
         "enhanced": list(meta.get("enhanced", [])), "r_shipped": int(r_full)})
     print(f"[r250-8d] wrote r={rank} cross POD "
-          f"({os.path.getsize(OUT_8D)/1e6:.0f} MB) -> {os.path.basename(OUT_8D)}",
+          f"({os.path.getsize(out)/1e6:.0f} MB) -> {os.path.basename(out)}",
           flush=True)
 
     # ---- reload-verify (zero solves) ----
-    pod2 = load_pod_hermite_smolyak_cross(OUT_8D)
+    pod2 = load_pod_hermite_smolyak_cross(out)
     assert int(pod2.r) == rank, (int(pod2.r), rank)
     assert int(pod2.d) == len(box), (int(pod2.d), len(box))
     assert tuple(pod2.field_shape) == tuple(mc.field_shape), (pod2.field_shape, mc.field_shape)
     print(f"[r250-8d] reload OK: r={pod2.r} d={pod2.d} field_shape={pod2.field_shape}  "
           f"DONE in {(time.time()-t0)/60:.1f} min", flush=True)
-    return OUT_8D
+    return out
 
 
 if __name__ == "__main__":
