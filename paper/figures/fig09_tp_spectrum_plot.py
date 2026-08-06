@@ -20,11 +20,11 @@ number (``meta.axisym_m_ge1_max``), not a curve.
 
 WHY THE AXIS STOPS AT m=4.  It is not a truncation: ``operators_3d.fourier_modes`` gives
 m = 0..Nphi//2, so the production Nphi=8 grid carries m<=4 and every mode it represents is
-plotted.  The last point is flagged as the NYQUIST mode because it is not comparable
-like-for-like with the modes below it: on Nphi equispaced nodes sin(4 phi) vanishes
-identically, so that bin holds only the cos(4 phi) component (one real degree of freedom
-against two for m=1..3).  Consistently it is the one point that does not continue the decay.
-The annotation is drawn only when the last plotted mode really is Nphi/2.
+plotted.  That last point is the grid's Nyquist mode and is not comparable like-for-like
+with the modes below it: on Nphi equispaced nodes sin(4 phi) vanishes identically, so that
+bin holds only the cos(4 phi) component (one real degree of freedom against two for
+m=1..3).  Consistently it is the one point that does not continue the decay.  That is a
+caption statement, not a plotted feature -- the panel is left unannotated.
 
 COLOURS follow the paper convention (see README): C0--C1 are reserved for the standard
 surrogate models, so this non-model diagnostic starts the cycle at C2.
@@ -54,7 +54,6 @@ SPEC_C = "C2"          # non-model diagnostic: the cycle starts at C2 (see READM
 def main():
     d = load("fig09_tp_spectrum")
     S = [r for r in d["spectrum"] if r["m"] >= 1]
-    nphi = d["meta"]["top_grid"][2]
 
     mm = np.array([r["m"] for r in S])
     lo = np.maximum(np.array([r["min"] for r in S]), 1e-18)
@@ -64,14 +63,6 @@ def main():
     fig, ax = plt.subplots(1, 1, figsize=figdims(1, 1))
     ax.errorbar(mm, md, yerr=[md - lo, hi - md], fmt="-o", color=SPEC_C,
                 ms=5, lw=1.7, capsize=3.5, elinewidth=1.1, capthick=1.1)
-    # Flag the last mode when it is the grid's Nyquist mode: it carries only the cos(m phi)
-    # half of that content, so it is not comparable like-for-like with the modes below it.
-    # The dotted grey line (the paper's reference-line convention, cf. Fig. 8's gate) is what
-    # ties the label to m = Nphi/2 -- right-aligned text alone reads as labelling m=3.
-    if mm[-1] == nphi // 2:
-        ax.axvline(mm[-1], ls=":", color="0.35", lw=1.1, zorder=1)
-        ax.annotate(r"Nyquist ($m=N_\phi/2$)", xy=(mm[-1], hi[-1]), xytext=(-2, 7),
-                    textcoords="offset points", ha="right", fontsize=8.5, color="0.3")
 
     ax.set_yscale("log")
     ax.set_xticks(mm)

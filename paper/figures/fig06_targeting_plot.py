@@ -57,7 +57,9 @@ def main():
     # black box keeps iterating past its own stopping criterion and its median falls to
     # the M_ADM read's noise floor, so the lower-right corner now carries data.  The
     # upper right is empty once both curves have descended.
-    ax.legend(fontsize=8, loc="upper right")
+    # The errorbars carry zorder=5, which ties the legend's default, so the markers
+    # draw over the frame; lift the legend above them.
+    ax.legend(fontsize=8, loc="upper right").set_zorder(10)
     fig.tight_layout()
     stem = os.path.join(HERE, "fig06_targeting")
     fig.savefig(stem + ".pdf")

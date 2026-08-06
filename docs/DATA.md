@@ -39,9 +39,9 @@ the figure→producer→artifact graph).
   build_pod_hermite_chi8d_array, build_cross_model_chi}`. Multi-GB; produced on the
   cluster. Not committed (`reports/` is gitignored). Point the figure scripts at
   the built artifacts (see `registry.py` / Stage-2 wiring).
-- **TwoPunctures validation** (fig09 only) — `run_tp_random_sweep.py --n 100 --workers 6`,
-  and the external oracle binary (`make oracle`; the build script is bundled). This is
-  the only figure that depends on the oracle. One oracle call dominates each configuration
+- **TwoPunctures validation** (the fig08/fig09 sweep) — `run_tp_random_sweep.py --n 100
+  --workers 6`, and the external oracle binary (`make oracle`; the build script is
+  bundled). One oracle call dominates each configuration
   (~2–8 min, markedly slower for spinning ones), so budget hours of wall-clock even in
   parallel; every rung of `--ladder` shares that one call, which is what makes a whole
   resolution ladder per configuration affordable.
@@ -62,6 +62,15 @@ the figure→producer→artifact graph).
   `q=3` at fixed spin, a further ~10× from `b=3` to `b=10`); and the certified residual
   *rises* with resolution — mildly along a fixed-`Nφ` ladder, steeply when `Nφ` rises,
   because the mechanism is roundoff in unpopulated high-`m` modes, not lost convergence.
+
+- **Constraints on an evolution grid** (fig10) — the second figure that needs the oracle,
+  and the only data script that recomputes rather than distilling: it solves the
+  axisymmetric anchor itself, evaluates the finite-difference constraint monitor on four
+  Cartesian grids, and then repeats the measurement with a TwoPunctures-sourced conformal
+  factor on the same grids. The oracle is queried at every Cartesian point of every rung
+  (1.3M points, ~40 min); `python paper/figures/fig10_constraints_data.py --no-tp` writes
+  the solver curve alone in ~10 s, which is enough to replot everything but the black
+  markers.
 
 ## What is committed vs regenerated
 

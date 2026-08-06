@@ -10,6 +10,11 @@ now comes as a **data/plot split** so it rebuilds from the repo alone — no sol
 | `figNN_<name>_data.py`  | **data script** — distills the arrays the figure plots out of the raw run artifacts under `../../reports/` into that committed json. This is the only step that ever touches `reports/`, heavy models, or `jax`. |
 | `figdata/figNN_<name>.json` | the committed, plot-ready data (≈46 kB total for all figures). |
 
+One exception to "distills": `fig10_constraints_data.py` **recomputes** — it runs the
+two-centre solve and the finite-difference constraint monitor itself (both cheap) and queries
+the TwoPunctures binary directly, so it has no `reports/` source and is registered
+`inline=True`. Its oracle leg takes ~40 min (1.3M query points); `--no-tp` skips it.
+
 Supporting the split:
 
 | file | role |

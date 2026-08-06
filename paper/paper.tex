@@ -1504,32 +1504,27 @@ This research was supported by the Research Foundation -- Flanders (FWO; Grant N
 \section{Validation against TwoPunctures}
 \label{sec:validation}
 % ===========================================================================
-We validate the initial-data solver against the TwoPunctures
+We validate the initial-data solver against the Two-Punctures
 code~\cite{AnsorgBruegmannTichy2004}, using its standalone C port from the NRPy
-suite compiled against GSL. We compare the quasi-circular data over the whole
-production box (Appendix~\ref{sec:validation:qc}) and after interpolation onto
-an evolution grid (Appendix~\ref{sec:validation:constraints}). In the
-axisymmetric limit the two independently discretized codes agree to near
-machine precision.
+suite compiled against GSL. We compare the quasi-circular data over the
+production box (App.~\ref{sec:validation:qc}) and after interpolation onto
+an evolution grid (App.~\ref{sec:validation:constraints}). In the
+axisymmetric limit the two codes agree to near machine precision.
 
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{fig08_tp_validation.pdf}
   \caption{\label{fig:tpval}%
-    \textbf{Quasi-circular data validated against TwoPunctures, across the
+    \textbf{Quasi-circular data validated against Two-Punctures, across the
     production box.} Each point is a median over $100$ quasi-circular
     configurations drawn from the production box by a Latin hypercube, with
     whiskers spanning the sample minimum to maximum; the shared resolution axis
     is the meridional sequence at fixed $N_\phi=8$, and every configuration is
     compared with one TwoPunctures solve at $72\times72\times12$.
-    The panels are, from top to bottom, the certified Newton--Krylov residual
-    $\|R\|_\infty$ of Sec.~\ref{sec:solve:newton}, evaluated at the returned
-    iterate; the pointwise field difference $\|\psi-\psi_{\rm TP}\|_\infty$; and
-    the integral comparison $|\Madm-E_{\rm TP}|/E_{\rm TP}$. The field
-    difference falls with resolution while the residual rises: the rise is
-    roundoff amplification in unpopulated high-$m$ modes
-    (Sec.~\ref{sec:conclusions}), not a loss of convergence, and every
+    The panels are, from top to bottom, the certified residual; the pointwise field difference; and
+    the ADM mass comparison. The field difference falls with resolution while the residual rises: the rise is
+    roundoff amplification in unpopulated high-$m$ modes, not a loss of convergence, and every
     configuration stays below the certification gate $10^{-10}$ (dotted) at
     every resolution.}
 \end{figure}
@@ -1559,54 +1554,32 @@ reported separately, so that they do not bias the sample statistics.
 
 The pointwise field difference converges across the sampled box, as shown in
 Fig.~\ref{fig:tpval}.\footnote{Pointwise differences are estimated on a fixed
-set of $69$ interior probe points, placed clear of both punctures and covering
-the full azimuthal range. A sparse probe set underestimates a supremum norm
-preferentially where the field is best resolved, because the estimate collapses
-whenever the error at the dominant point changes sign; reducing the set to six
-points lowers the difference at the finest resolution by a median factor of
-$2.7$. The reference solve is converged well below every difference reported:
+set of $70$ interior probe points, placed clear of both punctures and covering
+the full azimuthal range. The reference solve is converged well below every difference reported:
 its field moves by $9\times10^{-16}$ between its own $72\times72$ and
 $96\times96$ meridional resolutions, and its azimuthal truncation contributes at
 most $2\times10^{-8}$. The comparison therefore reflects our discretization
-rather than the reference.} At the coarsest resolution the sample spans
-$3.9\times10^{-5}$ to $1.4\times10^{-3}$ with a median of $2.6\times10^{-4}$; at
-the finest it spans $2.1\times10^{-7}$ to $4.4\times10^{-5}$ with a median of
-$3.8\times10^{-6}$, a median improvement of a factor of $68$. The minimum,
+rather than the reference.} The minimum,
 median and maximum of the sample each fall monotonically along the sequence,
 although $13$ of the $100$ configurations show one non-monotone step somewhere
 along the ladder, as a supremum norm of a spectral error may; we therefore claim
 convergence of the distribution rather than of every member of it. What limits
 the disagreement is the meridional resolution rather than the nonlinear solve:
 raising $N_\phi$ alongside $(N_A,N_B)$ leaves the field difference unchanged to
-three digits at every resolution. Two parameters control where a configuration
-sits within the spread. At fixed spin the difference grows by roughly two orders
-of magnitude from $q=1$ to $q=3$, and by a further order from $b=3$ to $b=10$;
-nonspinning configurations reach the $10^{-10}$ range. Spin combined with an
-unequal mass ratio, not either alone, therefore sets the scale of the
-comparison.
+three digits at every resolution.
 
 The certified residual behaves in the opposite direction
-(Fig.~\ref{fig:tpval}). Its median rises by a factor of $27$ along the same
-sequence, from $9.7\times10^{-13}$ to $2.6\times10^{-11}$, while remaining below
-the certification tolerance $10^{-10}$ for every one of the $100$ configurations
-at every resolution; the largest value anywhere in the sample is
-$6.5\times10^{-11}$. That the field difference falls while the residual grows
+(Fig.~\ref{fig:tpval}). Its median rises along the same
+sequence, while remaining below the certification tolerance $10^{-10}$ for every one of the $100$ configurations
+at every resolution. That the field difference falls while the residual grows
 identifies the rise as roundoff amplification in unpopulated high-$m$ modes
 rather than a loss of convergence. The direction of refinement decides the size
 of the effect: raising $N_\phi$ instead makes the residual rise by six orders of
 magnitude and breach the tolerance, which is why the production sequence refines
 the meridian.
 
-The integral comparison, shown in Fig.~\ref{fig:tpval}, converges faster than
-the pointwise one: the median relative difference in the ADM mass falls from
-$4.5\times10^{-4}$ to $3.0\times10^{-6}$, a factor of $147$, and the best
-configuration reaches $6.2\times10^{-11}$. The two remain comparable, however:
-at the finest resolution their medians differ by a factor of $1.1$, and the ADM
-mass is the more accurate for only about half of the sample. What decides the
-ordering is the separation rather than the spin. At $b=3$ the integral is
-between two and twenty-five times the more accurate, while at $b=10$ it is two
-to three times the less accurate, its boundary derivative at $A=1$ being read
-from an increasingly small $\psi-1$. Both metrics are therefore worth reporting.
+The integral (ADM mass) comparison, shown in Fig.~\ref{fig:tpval}, converges faster than
+the pointwise (field) one. However, the two remain comparable.
 
 \begin{figure}[t]
   \centering
@@ -1615,70 +1588,60 @@ from an increasingly small $\psi-1$. Both metrics are therefore worth reporting.
     \textbf{Azimuthal structure of the quasi-circular data.} Azimuthal Fourier
     spectrum $|\hat u_m|/|\hat u_0|$ at the finest resolution: median with
     min--max whiskers over the same $100$ configurations as Fig.~\ref{fig:tpval},
-    with $m=0$ the normalization and not shown. The expansion of
-    Eq.~\eqref{eq:expansion} carries $|m|\le N_\phi/2$, so the production grid,
-    at $N_\phi=8$, reaches $m=4$ and every mode it represents is plotted. The
+    with $m=0$ the normalization and not shown. The
     last point is that grid's Nyquist mode (dotted): $\sin 4\phi$ vanishes
     identically on $N_\phi$ equispaced nodes, so it carries only the
     $\cos 4\phi$ component, one real degree of freedom against two for
-    $m=1$--$3$, and is not comparable like-for-like with them. Content above
-    $m=4$ folds into the plotted modes rather than appearing beyond them, so the
-    panel bounds the high-$m$ amplitudes rather than resolving them; that
-    $N_\phi=8$ suffices follows from refinement, reported in the text.}
+    $m=1$--$3$, and is not comparable like-for-like with them.}
 \end{figure}
 
 
 The azimuthal Fourier spectrum in Fig.~\ref{fig:tpspec} shows where the
 non-axisymmetry sits. These data are non-axisymmetric by construction: the
 tangential momentum populates $m=2$ and generic spins populate $m=1$. Across the
-sample both sit at the percent level, with medians of $1.7\times10^{-2}$ and
-$2.2\times10^{-2}$ and maxima of $2.4\times10^{-2}$ and $2.9\times10^{-2}$
-respectively. The spectrum then falls by more than two decades, the $m=3$ and
-$m=4$ medians being $8.6\times10^{-5}$ and $9.1\times10^{-5}$; the second is the
+sample both sit at the percent level. The spectrum then falls by more than two decades; $m=4$ is the
 Nyquist amplitude of the $N_\phi=8$ grid and bounds rather than resolves the
 high-$m$ content. A small number of Fourier modes accordingly resolves these
-data, as the refinement above establishes independently. The quasi-circular
-family therefore exercises the Fourier-in-$\phi$ solver of
-Sec.~\ref{sec:solve:abt} on its own.
+data, as the refinement above establishes independently.
 
 Two checks that the quasi-circular family cannot supply, because it is never
 axisymmetric, complete the picture. First, for a head-on configuration with spin
-along the collision axis, all $m\ge1$ modes remain at most $9.2\times10^{-17}$
+along the collision axis, all $m\ge1$ modes remain below $10^{-16}$
 across mass ratios and spin magnitudes, confirming that the Fourier-in-$\phi$
 operator does not manufacture spurious non-axisymmetry. Second, in this
 axisymmetric limit the pointwise field agreement approaches machine precision:
 for an equal-mass configuration with $b=3$ and axial momentum $P=0.5$, solved on
 the same grid sequence and compared against the same reference, the two
 independently discretized spectral codes agree in $\psi$ to $2.6\times10^{-10}$
-in the supremum norm and $4.3\times10^{-11}$ in root mean square, and in the
+in the supremum norm, and in the
 total ADM mass to a relative difference of $5.0\times10^{-11}$; the certified
 residual there is $1.2\times10^{-12}$. With no azimuthal structure to limit
 either code, this is the most stringent code-to-code reference available for the
-solver, some four orders of magnitude below the median of the quasi-circular
-sample.
-
-The ADM angular momentum provides a further integral diagnostic, computed from
-the conformal Bowen--York tensor by a York surface integral and compared both
-with the closed-form expression
-\[
-J^i=\sum_X\left[(S^{X})^{i}+(x_X\times P_X)^i\right]
-\]
-and with TwoPunctures. For pure spin, the inclination of the ADM angular
-momentum relative to the collision axis agrees with the spin inclination to
-machine precision for all tested spin magnitudes and separations. An
-antisymmetric off-axis momentum $P_x$ produces the expected orbital
-contribution $J_y=2bP_x$, which the surface integral recovers. After rotation
-to a common frame, the angular momentum reported by TwoPunctures agrees to
-$\le1.4\times10^{-14}$.
-
-The comparison with TwoPunctures is an external cross-check of the numerical
-implementation, over the box the parametric models are built on rather than at a
-single configuration; constraint satisfaction of the final data is established
-independently by the certified residual of Sec.~\ref{sec:polish}.
+solver.
 
 
 \subsection{Constraint violation on an evolution grid}
 \label{sec:validation:constraints}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{fig10_constraints.pdf}
+  \caption{\label{fig:constraints}%
+    \textbf{Constraint violation of the initial data on a uniform Cartesian
+    evolution grid.} Bulk $L_2$ norms of the Hamiltonian and momentum
+    constraints against the Cartesian grid spacing $h$, for the axisymmetric
+    configuration of App.~\ref{sec:validation:qc} (equal bare masses,
+    half-separation $b=3$, axial momentum $P=0.5$), on the four grids
+    $N^3$ with $N=40$, $56$, $72$, $88$ across a box of half-width $9\,M$ with
+    the punctures excluded to radius $1.5\,M$. Both norms are measured by the
+    generic finite-difference constraint monitor described in the text, which
+    makes no use of conformal flatness, and both fall at its second order
+    (measured $2.14$ and $2.02$; dotted, $\propto h^{2}$). Black open markers
+    repeat the measurement with the conformal factor supplied by TwoPunctures
+    on the same grids; the two agree to better than $10^{-6}$ relative at every
+    rung, so what is plotted is the truncation error of the Cartesian
+    discretization rather than a property of either initial-data solution.}
+\end{figure}
 
 As a final validation, we interpolate the spectral initial data onto a uniform
 Cartesian grid, as required by a numerical-relativity evolution code, and
@@ -1691,10 +1654,11 @@ discretization used to construct the initial data.
 We use the axisymmetric configuration of the preceding section, which carries
 the fewest confounds and is where the two initial-data solutions differ least.
 Both constraint norms converge at the expected second order with Cartesian grid
-spacing $h$, the measured orders being $2.14$ for $\|\mathcal{H}\|_2$ and $2.02$
+spacing $h$, as shown in Fig.~\ref{fig:constraints}, the measured orders being
+$2.14$ for $\|\mathcal{H}\|_2$ and $2.02$
 for $\|\mathcal{M}\|_2$. Repeating the calculation with the conformal factor
 obtained from TwoPunctures gives identical constraint violations on the same
-Cartesian grids. The measured residuals are therefore set by the
+Cartesian grids (Fig.~\ref{fig:constraints}, open markers). The measured residuals are therefore set by the
 finite-difference truncation error of the constraint monitor rather than by
 differences between the two initial-data solutions, and the accuracy of the
 spectral initial data lies below the truncation error introduced by the
