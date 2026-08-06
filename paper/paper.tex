@@ -1190,10 +1190,11 @@ Because the model is nothing but its stored nodal solves, its memory is
     (``guess'') and after each Newton step. Each curve is the median with
     min--max whiskers over the $1000$ points, the field error measured against the
     converged certified iterate. \emph{Dotted:} the certification threshold
-    $10^{-10}$. Both value-only and gradient-enhanced models are POD-compressed to the same
-    rank so that the two differ only in the gradient enhancement. Both
+    $10^{-10}$. Both value-only and gradient-enhanced models are POD-compressed onto the
+    same reduced basis at the same rank, so the two differ only in whether the
+    coefficient interpolation uses the node tangents. In both dimensions, both
     warm starts certify \emph{every} point to $\|R\|_\infty\le10^{-10}$ in at most
-    three Newton steps in four dimensions and four in eight.}
+    three Newton steps.}
 \end{figure*}
 
 \subsection{How many axes to enhance}
