@@ -14,6 +14,9 @@ Mirrors the 4-D producer verbatim:
 Input  : $LM_REPORTS/P2/models_chi/hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross.npz
 Output : $LM_REPORTS/P2/models_chi/pod_hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross_r<rank>.npz
 
+NOTE: the module name says ``r250`` for history only -- the shipped 8-D rank is
+``production_model.SHIPPED_RANK[8]`` (500), which is this driver's default.
+
 The output name carries ``--rank`` (:func:`out_path`), so building a second rank
 does not clobber an existing artifact -- each is a 1--2 h, >100 GB build.  Both
 paths resolve through :func:`lm.initial_data.paths.reports_root`, so ``r=250``
@@ -60,6 +63,7 @@ jax.config.update("jax_enable_x64", True)
 
 import numpy as np
 
+from lm.initial_data.pipeline import production_model as pm
 from lm.initial_data.parametric.parametric_nd import _load_npz, _unpack_meta
 from lm.initial_data.parametric.hermite_smolyak_cross import load_hermite_smolyak_cross
 from lm.initial_data.parametric.hermite_smolyak_pod_cross import (
@@ -85,7 +89,7 @@ def out_path(rank):
 OUT_8D = out_path(250)          # the historical consumer path (fig04 r=250 revision)
 
 
-def main(rank=250, project_rank=None):
+def main(rank=pm.SHIPPED_RANK[8], project_rank=None):
     t0 = time.time()
     meta = _unpack_meta(_load_npz(CROSS_8D))
     names = list(meta["axis_names"])
@@ -134,7 +138,7 @@ def main(rank=250, project_rank=None):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--rank", type=int, default=250,
+    ap.add_argument("--rank", type=int, default=pm.SHIPPED_RANK[8],
                     help="rank of the SHIPPED truncation (the consumer expects 250)")
     ap.add_argument("--project-rank", type=int, default=None,
                     help="project onto only the leading r POD modes (memory escape "
