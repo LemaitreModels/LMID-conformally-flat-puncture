@@ -17,7 +17,7 @@ src/lm/initial_data/
   pipeline/       canonical figure producers + model builders (runnable + importable)
 tests/            acceptance suite (float64, CPU)
 paper/            paper.tex + references + figures/ (data+plot scripts, helpers, registry)
-docs/             this file · DATA.md · STAGE2_HANDOFF.md
+docs/             this file · DATA.md · STAGE2_HANDOFF.md · GRTECLYN_CONSTRAINTS_PLAN.md
 ```
 
 ## Namespace
