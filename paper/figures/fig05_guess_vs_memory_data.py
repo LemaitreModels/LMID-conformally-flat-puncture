@@ -20,10 +20,17 @@ Sources (raw): gvm_all, gvm_4d_{value,cross,field,cross_field},
 The two 8-D value+gradient curves (residual, top right; field error, bottom right) must
 come from ONE model — ``_check_8d_enhanced`` enforces it.  See that function for why.
 
-Memory formulas (float64 stored arrays), matching the run drivers:
-  value POD bare   = 8 * N * nfeat                          (node_U only)
-  value+grad bare  = 8 * N * (1+d+npair) * nfeat            (node_U + d tangents + npair cross)
-  POD rank-r point = each pod_curve entry's own mem_bytes.
+MEMORY IS RECOMPUTED HERE, not read from the raw sweeps.  Every stored byte count is
+``pipeline.production_model`` applied to the number of fields the model actually
+stores per node -- ``1 + n_ENHANCED + n_pairs`` (:func:`production_model.blocks_of_model`).
+The sweeps themselves recorded ``1 + d + npair``, which inflated the shipped y-pair
+cross model by 1.5x (4-D) / 2.5x (8-D) because it counted a tangent for every axis
+rather than for the two enhanced ones; the accuracy statistics were never affected,
+so the correction is a re-distill (``make figdata``) and needs no re-sweep.  Raw files
+written after that fix carry their own ``blocks`` and are cross-checked against it.
+
+  value curves     blocks = 1                                  (node_U only)
+  cross curves     blocks = 1 + n_enh + npair = 4              (the shipped model)
 
 Run:  python fig05_guess_vs_memory_data.py
 """
@@ -32,6 +39,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _figdata import load_source, dump
+from lm.initial_data.pipeline import production_model as pm
 
 VAL_C, HERM_C = "C0", "C1"
 POD5 = ("r", "mem_bytes", "min", "median", "max")
@@ -68,8 +76,32 @@ def _thin(cur):
     return cur if len(cur) < DENSE_LADDER else [*cur[:-1][::2], cur[-1]]
 
 
-def _pod5(cur):
-    return [{k: c[k] for k in POD5} for c in _thin(cur)]
+def blocks_of(raw, kind):
+    """Stored fields per node for a raw sweep, in ``production_model``'s accounting.
+
+    ``kind`` is ``"value"`` (1 block) or ``"cross"`` (the shipped y-pair cross model,
+    ``1 + n_enh + npair``).  Newer sweeps record ``blocks`` themselves; when they do,
+    it must agree -- a mismatch means the sweep measured a different model from the
+    one this panel claims, which is exactly the confusion this guard exists to catch.
+    """
+    want = 1 if kind == "value" else 1 + pm.n_enhanced() + int(raw.get("npair", 1))
+    got = raw.get("blocks")
+    if got is not None and int(got) != want:
+        raise SystemExit(
+            f"fig05: sweep stores {int(got)} blocks/node but this panel treats it as "
+            f"'{kind}' ({want} blocks). The raw sweep is a different model than the "
+            f"panel claims -- check its 'model' field against production_model.model_stem().")
+    return want
+
+
+def _pod5(cur, N, nfeat, blocks):
+    """Distil a rank ladder, RECOMPUTING each point's memory from the block count."""
+    out = []
+    for c in _thin(cur):
+        e = {k: c[k] for k in POD5}
+        e["mem_bytes"] = pm.pod_bytes_of(int(c["r"]), N, nfeat, blocks)
+        out.append(e)
+    return out
 
 
 def _mmm(rec):
@@ -81,8 +113,17 @@ def _guess(key):
     return _mmm(load_source(key)["rows"]["guess"])
 
 
-def curve(cur, bare, bare_mem_mb, color, marker, bare_r, ann, drop_last):
-    return dict(cur=_pod5(cur), bare=bare, bare_mem=bare_mem_mb, bare_r=bare_r,
+def curve(raw, bare, color, marker, ann, drop_last, *, kind):
+    """One panel curve: the thinned rank ladder + its full-rank bare star.
+
+    Both memories come from :mod:`production_model`; the raw sweep supplies only
+    ``N``/``nfeat``/``npair`` and the accuracy statistics.
+    """
+    N, nfeat = int(raw["N"]), int(raw["nfeat"])
+    blocks = blocks_of(raw, kind)
+    return dict(cur=_pod5(raw["pod_curve"], N, nfeat, blocks), bare=bare,
+                bare_mem=pm.bare_bytes_of(N, nfeat, blocks) / 1e6,
+                bare_r=raw["r_full"], blocks=blocks,
                 color=color, marker=marker, ann=ann, drop_last=drop_last)
 
 
@@ -117,17 +158,31 @@ def _check_8d_enhanced(resid, field):
             "  Option (a) matches the 4-D bottom-left panel and fig03; (b) does not.")
 
 
+def _meta(gh4, gx8):
+    """Provenance: WHICH model each enhanced curve is, so a caption can never drift
+    from the measurement again (the fig06 lesson).  Read by tests/test_paper_figures."""
+    return dict(
+        model={str(dim): pm.model_stem(dim) for dim in (4, 8)},
+        enhanced_axes=list(pm.ENHANCED_AXES),
+        n_enhanced=pm.n_enhanced(), n_pairs=pm.n_pairs(),
+        blocks_per_node=pm.stored_blocks("shipped"),
+        shipped_rank={str(dim): pm.SHIPPED_RANK[dim] for dim in (4, 8)},
+        smolyak_level=pm.pb.SMOLYAK_LEVEL,
+        nodes={"4": int(gh4["N"]), "8": int(gx8["N"])},
+        bare_mib={"4": pm.bare_bytes(4) / 2**20, "8": pm.bare_bytes(8) / 2**20},
+        shipped_pod_mib={str(dim): pm.pod_bytes(pm.SHIPPED_RANK[dim], dim) / 2**20
+                         for dim in (4, 8)},
+        compression={str(dim): pm.compression_factor(dim) for dim in (4, 8)},
+    )
+
+
 def build():
     # ---- TOP-LEFT: 4D residual (value + value+gradient cross) ----
     gv = load_source("gvm_4d_value")
     gh = load_source("gvm_4d_cross")
-    N, nfeat, d = gh["N"], gh["nfeat"], gh["d"]
-    npair = gh.get("npair", 1)
-    TL = [curve(gv["pod_curve"], _guess("polish_table_4d"), 8.0 * N * nfeat / 1e6,
-                VAL_C, "o", gv["r_full"], "below", True),
-          curve(gh["pod_curve"], _guess("polish_table_4d_cross"),
-                8.0 * N * (1 + d + npair) * nfeat / 1e6,
-                HERM_C, "s", gh["r_full"], "above", True)]
+    TL = [curve(gv, _guess("polish_table_4d"), VAL_C, "o", "below", True, kind="value"),
+          curve(gh, _guess("polish_table_4d_cross"), HERM_C, "s", "above", True,
+                kind="cross")]
 
     # ---- TOP-RIGHT: 8D residual (value gapfill + value+gradient y-pair-CROSS gapfill) ----
     # Both to r_full over the SAME 1000 seed-0 points; the value+gradient curve is the RESIDUAL
@@ -135,11 +190,9 @@ def build():
     # two 8D value+gradient curves share identical x-positions (model, ranks, bare_mem).
     gv8 = load_source("gvm_8d_value")
     gx8 = load_source("gvm_8d_cross")
-    TR = [curve(gv8["pod_curve"], _guess("polish_table_8d_value"),
-                8.0 * gv8["N"] * gv8["nfeat"] / 1e6,
-                VAL_C, "o", gv8["r_full"], "below", True),
-          curve(gx8["pod_curve"], _mmm(gx8["pod_curve"][-1]), gx8["bare_mem_bytes"] / 1e6,
-                HERM_C, "s", gx8["r_full"], "above", True)]
+    TR = [curve(gv8, _guess("polish_table_8d_value"), VAL_C, "o", "below", True,
+                kind="value"),
+          curve(gx8, _mmm(gx8["pod_curve"][-1]), HERM_C, "s", "above", True, kind="cross")]
 
     # ---- BOTTOM-LEFT: 4D field error (value + value+gradient cross) ----
     # Flat schema, matching the 8-D siblings below.  Was ["value"]: a leftover
@@ -148,10 +201,8 @@ def build():
     # pod_curve/N/nfeat/r_full at top level exactly like gvm_8d_field.
     fv = load_source("gvm_4d_field")
     gc = load_source("gvm_4d_cross_field")
-    BL = [curve(fv["pod_curve"], _mmm(fv["pod_curve"][-1]), 8.0 * fv["N"] * fv["nfeat"] / 1e6,
-                VAL_C, "o", fv["r_full"], "below", True),
-          curve(gc["pod_curve"], _mmm(gc["pod_curve"][-1]), gc["bare_mem_bytes"] / 1e6,
-                HERM_C, "s", gc["r_full"], "above", True)]
+    BL = [curve(fv, _mmm(fv["pod_curve"][-1]), VAL_C, "o", "below", True, kind="value"),
+          curve(gc, _mmm(gc["pod_curve"][-1]), HERM_C, "s", "above", True, kind="cross")]
 
     # ---- BOTTOM-RIGHT: 8D field error (value + value+gradient cross) ----
     # BR_8D_ENHANCED selects which enhanced model this panel plots; the guard requires
@@ -159,11 +210,9 @@ def build():
     gvf8 = load_source("gvm_8d_field")
     gvhf8 = load_source(BR_8D_ENHANCED)
     _check_8d_enhanced(gx8, gvhf8)
-    BR = [curve(gvf8["pod_curve"], _mmm(gvf8["pod_curve"][-1]),
-                8.0 * gvf8["N"] * gvf8["nfeat"] / 1e6,
-                VAL_C, "o", gvf8["r_full"], "below", True),
-          curve(gvhf8["pod_curve"], _mmm(gvhf8["pod_curve"][-1]), gvhf8["bare_mem_bytes"] / 1e6,
-                HERM_C, "s", gvhf8["r_full"], "above", True)]
+    BR = [curve(gvf8, _mmm(gvf8["pod_curve"][-1]), VAL_C, "o", "below", True, kind="value"),
+          curve(gvhf8, _mmm(gvhf8["pod_curve"][-1]), HERM_C, "s", "above", True,
+                kind="cross")]
 
     panels = {
         # panel titles + curve labels live in the plot script (presentation, not data).
@@ -173,8 +222,9 @@ def build():
         "BL": dict(title=None, curves=BL),
         "BR": dict(title=None, curves=BR),
     }
-    p = dump("fig05_guess_vs_memory", dict(panels=panels))
+    p = dump("fig05_guess_vs_memory", dict(panels=panels, meta=_meta(gh, gx8)))
     print(f"wrote {os.path.relpath(p)}  (4 panels x value+gradient+cross)")
+    print(f"  {pm.describe(4)}\n  {pm.describe(8)}")
 
 
 if __name__ == "__main__":

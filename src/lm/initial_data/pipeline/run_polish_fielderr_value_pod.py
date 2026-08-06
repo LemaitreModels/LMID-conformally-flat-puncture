@@ -27,9 +27,9 @@ Writes ``reports/P3/polish_fielderr_value_pod_chi<dim>d_r<r>_<n>.json`` with a s
 Add-only.  Imports committed ``lm.initial_data`` modules read-only; edits nothing.
 
 Run:
-  python -m lm.initial_data.pipeline.run_polish_fielderr_value_pod --dim 4 --rank 75             # full 1000 pt
+  python -m lm.initial_data.pipeline.run_polish_fielderr_value_pod --dim 4 --rank 250             # full 1000 pt
   python -m lm.initial_data.pipeline.run_polish_fielderr_value_pod --dim 8 --rank 250
-  python -m lm.initial_data.pipeline.run_polish_fielderr_value_pod --dim 4 --rank 75 --n-points 3 # smoke test
+  python -m lm.initial_data.pipeline.run_polish_fielderr_value_pod --dim 4 --rank 250 --n-points 3 # smoke test
 """
 from __future__ import annotations
 

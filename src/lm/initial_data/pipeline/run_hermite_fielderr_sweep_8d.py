@@ -102,6 +102,7 @@ from lm.initial_data.pipeline.fielderr_shared import (
     attach_gate, certified_truth, enhanced_vs_value, truth_key)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+from lm.initial_data.pipeline import production_model as pm
 from lm.initial_data.paths import reports_root
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REP3 = os.path.join(REPORTS, "P3")
@@ -122,7 +123,7 @@ def _pod_mem_bytes_grad(r, N, nfeat, d):
     """VALUE+GRADIENT plain POD stored floats: Phi(nfeat*r) + value coeff(N*r)
     + d tangent coeffs(N*d*r) + mean(nfeat).  (The cross formula with npair dropped;
     d = all axes, matching the on-disk node_dU (N,d,*fs).)"""
-    return 8.0 * (nfeat * r + N * r + N * d * r + nfeat)
+    return pm.pod_bytes_of(r, N, nfeat, 1 + d)   # d == n_enh for the all-axis model only
 
 
 def _field_err(u, ut):

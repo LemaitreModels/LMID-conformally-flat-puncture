@@ -95,6 +95,7 @@ from lm.initial_data.pipeline.fielderr_shared import (
     attach_gate, certified_truth, enhanced_vs_value, truth_key)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+from lm.initial_data.pipeline import production_model as pm
 from lm.initial_data.paths import reports_root
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REP3 = os.path.join(REPORTS, "P3")
@@ -106,10 +107,11 @@ PLAIN_MODEL = os.path.join(
     "hermite_smolyak_spin8qc_L5_enh-chi_Ax-chi_Ay-chi_Az-chi_Bx-chi_By-chi_Bz.npz")
 
 
-def _pod_mem_bytes_cross(r, N, nfeat, d, npair):
+def _pod_mem_bytes_cross(r, N, nfeat, n_enh, npair):
     """CROSS POD stored floats — IDENTICAL to run_cross_fielderr_sweep:
-    Phi(nfeat*r) + value coeff(N*r) + d tangents(N*d*r) + npair cross(N*npair*r) + mean(nfeat)."""
-    return 8.0 * (nfeat * r + N * r + N * d * r + N * npair * r + nfeat)
+    Phi(nfeat*r) + value coeff(N*r) + n_ENHANCED tangents(N*n_enh*r)
+    + npair cross(N*npair*r) + mean(nfeat)."""
+    return pm.pod_bytes_of(r, N, nfeat, 1 + n_enh + npair)   # never 1+d
 
 
 def _pod_mem_bytes_value(r, N, nfeat):
@@ -209,7 +211,8 @@ def sweep_cross(pts, key, prob, names, fixed, n_points, seed):
                   f"ETA {rate*(n_points-i-1)/60:.1f} min)  "
                   f"med field-err@r_full={np.median(fe[ranks[-1]]):.2e}", flush=True)
 
-    pod_curve = [dict(r=int(r), mem_bytes=_pod_mem_bytes_cross(r, N, nfeat, d, npair),
+    pod_curve = [dict(r=int(r),
+                      mem_bytes=_pod_mem_bytes_cross(r, N, nfeat, len(tuple(mc.enhanced)), npair),
                       **stats(fe[r])) for r in ranks]
     out = dict(dim=8, metric="field_error_relL2", flavor="value+grad-cross",
                r_full=int(r_full), r_cap=int(r_full),
@@ -218,7 +221,7 @@ def sweep_cross(pts, key, prob, names, fixed, n_points, seed):
                u_tol=key["u_tol"], u_steps=key["u_steps"], u_true_source=src,
                u_true_res_med=float(np.median(ures)),
                model=os.path.basename(CROSS_MODEL),
-               bare_mem_bytes=8.0 * N * (1 + d + npair) * nfeat, pod_curve=pod_curve)
+               blocks=int(pm.blocks_of_model(mc)), bare_mem_bytes=pm.bare_bytes_of(N, nfeat, pm.blocks_of_model(mc)), pod_curve=pod_curve)
     outp = os.path.join(REP3, f"guess_vs_memory_8d_cross_field_{n_points}.json")
     _write(outp, out)
     med = {r: float(np.median(fe[r])) for r in ranks}

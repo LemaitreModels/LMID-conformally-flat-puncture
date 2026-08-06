@@ -57,6 +57,7 @@ from lm.initial_data.parametric.hermite_smolyak_pod import (
 from lm.initial_data.pipeline.run_cross_fielderror_chi import thin_ranks
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+from lm.initial_data.pipeline import production_model as pm
 from lm.initial_data.paths import reports_root
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REPDIR = os.path.join(REPORTS, "P3")
@@ -119,9 +120,15 @@ def load_pod_truncated(path, r_new) -> PODHermiteSmolyak:
 
 def mem_pod_bytes(r, N, nfeat, d):
     """Analytic stored-float memory of a rank-``r`` POD model (float64, dominant
-    arrays): Phi (nfeat*r) + node_U (N*r) + node_dU (N*d*r) + mean (nfeat).
-    Matches the on-disk .npz size to <0.5% at r_shipped."""
-    return 8.0 * (nfeat * r + N * r + N * d * r + nfeat)
+    arrays): Phi (nfeat*r) + node_U (N*r) + node_dU (N*n_enh*r) + mean (nfeat).
+    Matches the on-disk .npz size to <0.5% at r_shipped.
+
+    ``d`` here is the number of stored tangent blocks, which equals the dimension
+    ONLY for the all-axis gradient models this driver sweeps.  For a model enhanced
+    on a subset of axes (the shipped y-pair cross model) pass ``n_enhanced``, not
+    ``d`` -- see :func:`production_model.blocks_of_model`.
+    """
+    return pm.pod_bytes_of(r, N, nfeat, 1 + d)
 
 
 def mem_value_bytes(N, nfeat):
@@ -130,8 +137,9 @@ def mem_value_bytes(N, nfeat):
 
 
 def mem_hermite_bytes(N, nfeat, d):
-    """full gradient-enhanced Hermite: node_U (N*nfeat) + node_dU (N*d*nfeat)."""
-    return 8.0 * (N * (1 + d) * nfeat)
+    """full gradient-enhanced Hermite: node_U (N*nfeat) + node_dU (N*n_enh*nfeat);
+    ``d`` == n_enh only for the all-axis models here (see :func:`mem_pod_bytes`)."""
+    return pm.bare_bytes_of(N, nfeat, 1 + d)
 
 
 def offnode_points(box, n, seed):

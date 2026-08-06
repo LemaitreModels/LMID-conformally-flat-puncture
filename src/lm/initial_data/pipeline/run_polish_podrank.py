@@ -21,7 +21,7 @@ Writes ``reports/P3/polish_table_chi<dim>d_pod_r<r>_<n>.json`` with the
 Add-only.  Imports committed ``lm.initial_data`` + sibling drivers read-only; edits nothing.
 
 Run:
-  python src/lm/initial_data/pipeline/run_polish_podrank.py --dim 4 --rank 75
+  python src/lm/initial_data/pipeline/run_polish_podrank.py --dim 4 --rank 250
   python src/lm/initial_data/pipeline/run_polish_podrank.py --dim 8 --rank 250
 """
 from __future__ import annotations

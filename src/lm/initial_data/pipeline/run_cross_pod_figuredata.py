@@ -50,6 +50,7 @@ from lm.initial_data.pipeline.run_cross_fielderror_chi import (
     offnode_points, pod_rank_ladder, stats)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+from lm.initial_data.pipeline import production_model as pm
 from lm.initial_data.paths import reports_root
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REP3 = os.path.join(REPORTS, "P3")
@@ -57,23 +58,26 @@ MODELS = os.path.join(REPORTS, "P2", "models_chi")
 CROSS = os.path.join(MODELS, "hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz")
 
 
-def _pod_mem_bytes(r, N, nfeat, d, npair):
-    """Stored float memory of a rank-r cross POD: Phi(nfeat*r) + value coeff(N*r)
-    + tangent coeff(N*d*r) + cross coeff(N*npair*r) + mean(nfeat)."""
-    return 8.0 * (nfeat * r + N * r + N * d * r + N * npair * r + nfeat)
+def _pod_mem_bytes(r, N, nfeat, blocks):
+    """Stored float memory of a rank-r cross POD, via the single source of truth
+    (:mod:`production_model`).  ``blocks`` is ``pm.blocks_of_model(model)`` --
+    1 + n_ENHANCED + n_pairs.  Keying this on ``d`` inflated every memory number
+    the pipeline ever reported; see production_model's module docstring."""
+    return pm.pod_bytes_of(r, N, nfeat, blocks)
 
 
 def pod_out_path(rank):
     """Shipped-artifact path for the rank-``rank`` 4-D cross POD.
 
-    The name carries the rank so a second rank never clobbers an existing
-    artifact (``r=75`` is the original fig04 revision, ``r=250`` the current one).
+    Named by :func:`production_model.pod_stem`, so the model identity and the rank
+    in the filename cannot drift from the shipped definition.  The rank is in the
+    name so a second rank never clobbers an existing artifact.
     """
-    return os.path.join(MODELS, "pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_"
-                                f"cross_r{int(rank)}.npz")
+    return os.path.join(MODELS, pm.pod_stem(4, rank) + ".npz")
 
 
-def main(n_points=1000, seed=0, pod_out=None, rank=75, save_only=False):
+def main(n_points=1000, seed=0, pod_out=None, rank=pm.SHIPPED_RANK[4],
+         save_only=False):
     os.makedirs(REP3, exist_ok=True)
     t0 = time.time()
     meta = _unpack_meta(_load_npz(CROSS))
@@ -89,6 +93,7 @@ def main(n_points=1000, seed=0, pod_out=None, rank=75, save_only=False):
     nfeat = int(np.prod(mc.field_shape))
     d = mc.d
     npair = len(mc.cross_pairs_global)
+    blocks = pm.blocks_of_model(mc)   # 1 + n_enhanced + n_pairs -- NEVER 1+d (see production_model)
     r_full = (1 + d + npair) * N                          # value + d tangents + npair cross snapshots
     pod, diag = build_pod_hermite_smolyak_cross(mc, r=r_full)
     r_full = pod.r
@@ -136,11 +141,11 @@ def main(n_points=1000, seed=0, pod_out=None, rank=75, save_only=False):
     pod_curve = []
     for r in ranks:
         st = stats(res[r])
-        pod_curve.append(dict(r=int(r), mem_bytes=_pod_mem_bytes(r, N, nfeat, d, npair), **st))
+        pod_curve.append(dict(r=int(r), mem_bytes=_pod_mem_bytes(r, N, nfeat, blocks), **st))
     out = dict(dim=4, r_full=int(r_full), r_cap=int(r_full), N=int(N), nfeat=int(nfeat),
                d=int(d), npair=int(npair), n_points=int(n_points), seed=int(seed),
                n_ranks=len(ranks), norm="equilibrated",
-               bare_mem_bytes=8.0 * N * (1 + d + npair) * nfeat, pod_curve=pod_curve)
+               blocks=int(blocks), bare_mem_bytes=pm.bare_bytes_of(N, nfeat, blocks), pod_curve=pod_curve)
     outp = os.path.join(REP3, f"guess_vs_memory_4d_cross_gapfill_{n_points}.json")
     with open(outp, "w") as f:
         json.dump(out, f, indent=2, default=float)
@@ -152,8 +157,9 @@ def main(n_points=1000, seed=0, pod_out=None, rank=75, save_only=False):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--rank", type=int, default=75,
-                    help="rank of the SHIPPED cross-POD truncation (fig04 r=250 revision: 250)")
+    ap.add_argument("--rank", type=int, default=pm.SHIPPED_RANK[4],
+                    help=f"rank of the SHIPPED cross-POD truncation "
+                         f"(default {pm.SHIPPED_RANK[4]}, from production_model.SHIPPED_RANK)")
     ap.add_argument("--save-only", action="store_true",
                     help="write the truncated model and stop; skip the fig05 rank sweep")
     ap.add_argument("--n-points", type=int, default=1000)

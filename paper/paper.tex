@@ -890,7 +890,8 @@ Second, and this is why even that tail is harmless, the certified polish of
 Sec.~\ref{sec:polish} re-solves the constraint from the decoded guess,
 reconstructing precisely the high-derivative content the truncation discards; by the
 residual/field-accuracy decoupling above, the truncation changes the warm start's
-field error but not its Newton-step count. The differentiable evaluation of
+field error but, at any rank past the residual plateau of Fig.~\ref{fig:pod}, not
+its Newton-step count. The differentiable evaluation of
 Sec.~\ref{sec:param:diff} also survives: the parameter Jacobian of the compressed
 model is the full Jacobian projected onto $\Phi$, which loses a negligible fraction
 of the gradient. The decomposition is computed once from the existing corpus, with no
@@ -1254,15 +1255,15 @@ soft, its nearest real singularity receding as the fit range grows, so precessio
 introduces no new hard wall. At this dimension it is the polish, not the bare
 sparse interpolant, that carries the accuracy: the $1000$-point certified-polish
 statistics for both $\ell=5$ models are reported in Fig.~\ref{fig:polish}. The
-gradient-enhanced corpus reduced-basis compresses by a factor of $30$ with no loss
+gradient-enhanced corpus reduced-basis compresses by a factor of $20$ with no loss
 of certification or differentiability (Sec.~\ref{sec:model:pod}).
 
 \subsection{Reduced-basis compression of the model}
 \label{sec:model:pod}
 
 The corpora are correspondingly large: the gradient-enhanced four-dimensional
-$\ell=5$ corpus (values, the $d$ node tangents, \emph{and} the bilinear cross
-tangent) is $486$~MiB and the eight-dimensional one $12.1$~GiB. This is a
+$\ell=5$ corpus (values, the two enhanced-axis node tangents, \emph{and} their
+bilinear cross tangent) is $389$~MiB and the eight-dimensional one $5.4$~GiB. This is a
 distribution liability for an artifact
 meant to be hosted and cited, and it is entirely removable by the reduced-basis
 (POD) re-encoding of Sec.~\ref{sec:param:pod}: an SVD of the stored fields yields
@@ -1280,8 +1281,8 @@ the parameter resolution and the offline solve count, POD the spatial rank, and
 the two are independent.
 
 Figure~\ref{fig:pod} shows the resulting memory--accuracy tradeoff. At the shipped
-ranks the four-dimensional model shrinks by a factor of $49$ ($486$~MiB to
-$10.0$~MiB) and the eight-dimensional one by $30$ ($12.1$~GiB to $420$~MiB), and
+ranks ($r=250$ and $r=500$) the four-dimensional model shrinks by a factor of $13$
+($389$~MiB to $30$~MiB) and the eight-dimensional one by $20$ ($5.4$~GiB to $284$~MiB), and
 per-query evaluation, now a barycentric sum over $r$ coefficients rather than the
 full field, drops to a few milliseconds. The certified constraint residual, the
 number of Newton steps needed to reach it (Sec.~\ref{sec:polish}), and the
@@ -1305,8 +1306,8 @@ predictor. The decomposition is computed once from the existing corpus, with no 
     eight-dimensional quasi-circular model.
     Compressing raises the residual, but
     this warm-start quality is irrelevant to correctness: the certified polish
-    (Sec.~\ref{sec:polish}) drives every query to $\|R\|_\infty\le10^{-10}$ in the
-    same Newton-step count regardless. The field error \emph{saturates}
+    (Sec.~\ref{sec:polish}) drives every query to $\|R\|_\infty\le10^{-10}$ at any
+    rank, so compression can cost Newton steps but never accuracy. The field error \emph{saturates}
     at a far lower rank than the residual, so the redundancy discarded by
     compression is exactly the high-derivative content the residual amplifies and
     the field norm cannot see (the decoupling of Sec.~\ref{sec:polish}).}

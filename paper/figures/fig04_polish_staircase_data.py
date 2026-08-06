@@ -37,6 +37,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _figdata import load_source, have_source, dump
+from lm.initial_data.pipeline import production_model as pm
 
 
 def _stair(d):
@@ -88,6 +89,22 @@ def _value_curves(dim):
     return _stair(load_source(VALUE_TABLE[dim])), _field(load_source(f"polish_fielderr_value_{dim}d")["value"])
 
 
+def _check_rank(dim, r):
+    """The POD curves must be at the SHIPPED rank.
+
+    A staircase measured at some other rank is a different model from the one the
+    caption and Sec. sec:model:pod describe -- the failure mode that put r=76/359
+    numbers in the paper while the figure showed r=250/500.  production_model is the
+    only place the rank is defined.
+    """
+    want = pm.SHIPPED_RANK[dim]
+    if r is not None and int(r) != want:
+        raise SystemExit(
+            f"fig04: the {dim}-D POD staircase is at r={int(r)} but the shipped rank is "
+            f"{want} (production_model.SHIPPED_RANK). Either rebuild the sweep at the "
+            f"shipped rank, or change SHIPPED_RANK if the model really moved.")
+
+
 def build():
     cols = []
     for dim in (4, 8):
@@ -95,6 +112,7 @@ def build():
         fe = load_source(f"polish_fielderr_{dim}d")
         res_pod = _stair(pod)
         res_pod["r"] = pod["config"].get("r")
+        _check_rank(dim, res_pod["r"])
         res_value, fld_value = _value_curves(dim)
         cols.append(dict(
             dim=dim,   # panel title lives in the plot script (presentation, not data)

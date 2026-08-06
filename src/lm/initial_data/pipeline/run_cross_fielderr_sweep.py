@@ -59,6 +59,7 @@ from lm.initial_data.pipeline.run_cross_fielderror_chi import (
     offnode_points, pod_rank_ladder, stats)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+from lm.initial_data.pipeline import production_model as pm
 from lm.initial_data.paths import reports_root
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REP3 = os.path.join(REPORTS, "P3")
@@ -73,10 +74,10 @@ run shares the 1000 certified ``u_true`` solves -- the expensive part -- so both
 curves are measured against literally the same reference fields."""
 
 
-def _pod_mem_bytes(r, N, nfeat, d, npair):
+def _pod_mem_bytes(r, N, nfeat, blocks):
     """Cross POD stored float memory — IDENTICAL formula to run_cross_pod_figuredata:
     Phi(nfeat*r) + value coeff(N*r) + d tangents(N*d*r) + npair cross(N*npair*r) + mean(nfeat)."""
-    return 8.0 * (nfeat * r + N * r + N * d * r + N * npair * r + nfeat)
+    return pm.pod_bytes_of(r, N, nfeat, blocks)   # 1 + n_ENHANCED + n_pairs, never 1+d
 
 
 def _field_err(u, ut):
@@ -102,6 +103,7 @@ def main(n_points=1000, seed=0, u_tol=1e-11, u_steps=12, flavours=FLAVOURS):
     nfeat = int(np.prod(mc.field_shape))
     d = mc.d
     npair = len(mc.cross_pairs_global)
+    blocks = pm.blocks_of_model(mc)   # 1 + n_enhanced + n_pairs -- NEVER 1+d (see production_model)
     r_full = (1 + d + npair) * N
     pod, _diag = build_pod_hermite_smolyak_cross(mc, r=r_full)
     r_full = pod.r
@@ -187,13 +189,13 @@ def main(n_points=1000, seed=0, u_tol=1e-11, u_steps=12, flavours=FLAVOURS):
 
     pod_curve = []
     for r in ranks:
-        pod_curve.append(dict(r=int(r), mem_bytes=_pod_mem_bytes(r, N, nfeat, d, npair),
+        pod_curve.append(dict(r=int(r), mem_bytes=_pod_mem_bytes(r, N, nfeat, blocks),
                               **stats(fe[r])))
     out = dict(dim=4, metric="field_error_relL2", r_full=int(r_full), r_cap=int(r_full),
                N=int(N), nfeat=int(nfeat), d=int(d), npair=int(npair),
                n_points=int(n_points), seed=int(seed), n_ranks=len(ranks),
                u_tol=u_tol, u_steps=u_steps,
-               bare_mem_bytes=8.0 * N * (1 + d + npair) * nfeat, pod_curve=pod_curve)
+               blocks=int(blocks), bare_mem_bytes=pm.bare_bytes_of(N, nfeat, blocks), pod_curve=pod_curve)
     outp = os.path.join(REP3, f"guess_vs_memory_4d_cross_field_{n_points}.json")
     with open(outp, "w") as f:
         json.dump(out, f, indent=2, default=float)

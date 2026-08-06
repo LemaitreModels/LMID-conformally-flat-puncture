@@ -252,7 +252,12 @@ FIGURES = {
                                               "polish_table_8d_value", "gvm_8d_value",
                                               "gvm_8d_field", "gvm_8d_hermite_field",
                                               "gvm_8d_cross_field", "gvm_8d_cross"],
-                                     keys=["panels"]),
+                                     # 'meta' is the model-provenance block (which model,
+                                     # which enhanced axes, which rank, what memory
+                                     # accounting).  Declaring it makes a figdata built
+                                     # before the shipped-model fix read as STALE rather
+                                     # than silently feeding the paper old memory numbers.
+                                     keys=["panels", "meta"]),
     # ``meta`` carries the box/level/model the run was measured on, so a figdata built
     # against the superseded narrow model cannot be replotted silently (the caption
     # states the box).

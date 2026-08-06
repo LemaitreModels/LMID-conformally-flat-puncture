@@ -17,11 +17,12 @@ from lm.initial_data.parametric.parametric_nd_3d import theta_to_slice3d
 from lm.initial_data.parametric.hermite_smolyak_cross import load_hermite_smolyak_cross
 from lm.initial_data.parametric.hermite_smolyak_pod_cross import build_pod_hermite_smolyak_cross
 from lm.initial_data.pipeline.run_cross_fielderror_chi import offnode_points, pod_rank_ladder, stats
+from lm.initial_data.pipeline import production_model as pm
 from lm.initial_data.paths import reports_root
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 HERE = os.path.dirname(os.path.abspath(__file__)); REP3 = os.path.join(REPORTS, "P3")
-def _mem(r, N, nfeat, d, npair):
-    return 8.0 * (nfeat * r + N * r + N * d * r + N * npair * r + nfeat)
+def _mem(r, N, nfeat, n_enh, npair):
+    return pm.pod_bytes_of(r, N, nfeat, 1 + n_enh + npair)   # never 1+d
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cross-model", required=True)
@@ -35,7 +36,8 @@ def main():
     print("[resid8d] load cross + build full-rank POD ...", flush=True)
     mc = load_hermite_smolyak_cross(a.cross_model)
     N = int(mc.n_solver_nodes); nfeat = int(np.prod(mc.field_shape)); d = int(mc.d)
-    npair = len(mc.cross_pairs_global); r_full = (1 + d + npair) * N
+    npair = len(mc.cross_pairs_global); n_enh = len(tuple(mc.enhanced))
+    r_full = (1 + d + npair) * N          # snapshot count (all d tangents ARE solved)
     pod, _ = build_pod_hermite_smolyak_cross(mc, r=r_full); r_full = int(pod.r)
     print(f"[resid8d] r_full={r_full} N={N} nfeat={nfeat} d={d} npair={npair} ({time.time()-t0:.0f}s)", flush=True)
     ranks = pod_rank_ladder(r_full)
@@ -52,12 +54,13 @@ def main():
         if (i + 1) % 50 == 0 or i == a.n_points - 1:
             el = time.time() - tev
             print(f"   {i+1}/{a.n_points} ({el:.0f}s, {el/(i+1):.2f}s/pt) med@r_full={np.median(res[ranks[-1]]):.2e}", flush=True)
-    pod_curve = [dict(r=int(r), mem_bytes=_mem(r, N, nfeat, d, npair), **stats(res[r])) for r in ranks]
+    pod_curve = [dict(r=int(r), mem_bytes=_mem(r, N, nfeat, n_enh, npair), **stats(res[r]))
+                 for r in ranks]
     out = dict(dim=8, metric="equilibrated_residual", flavor="value+grad-cross",
                model=os.path.basename(a.cross_model), r_full=int(r_full), r_cap=int(r_full),
                N=int(N), nfeat=int(nfeat), d=int(d), npair=int(npair), n_points=int(a.n_points),
                seed=int(a.seed), n_ranks=len(ranks), norm="equilibrated",
-               bare_mem_bytes=8.0 * N * (1 + d + npair) * nfeat, pod_curve=pod_curve)
+               blocks=int(1 + n_enh + npair), bare_mem_bytes=pm.bare_bytes_of(N, nfeat, 1 + n_enh + npair), pod_curve=pod_curve)
     p = os.path.join(REP3, f"guess_vs_memory_8d_hermite_gapfill_{a.n_points}.json")
     json.dump(out, open(p, "w"), indent=2, default=float)
     print(f"[resid8d] wrote {os.path.basename(p)} ({(time.time()-t0)/60:.1f} min)", flush=True)

@@ -166,10 +166,23 @@ class PODHermiteSmolyakCross:
         return U, info
 
     # ----- persistence (numpy-only .npz) -----
-    def save(self, path, *, meta=None, coeff_dtype=np.float64, mode_dtype=np.float64):
+    def save(self, path, *, meta=None, coeff_dtype=np.float64, mode_dtype=np.float64,
+             slim=True):
         """Persist the deduplicated coeff pool (value + first tangents + cross, in
         POD-coeff space) + ``Φ``/``mean``.  Round-trips via
-        :func:`load_pod_hermite_smolyak_cross`."""
+        :func:`load_pod_hermite_smolyak_cross`.
+
+        ``slim`` (default) stores the tangent block ONLY for the enhanced axes,
+        which is **lossless**: :meth:`hermite_smolyak_cross.HermiteCrossSolutionND.evaluate`
+        and its jax twin read ``dU_nodes`` only at ``self.enhanced``, so the other
+        ``d - n_enh`` blocks are dead weight — they inflated the stored size by
+        ``(1+d+npair)/(1+n_enh+npair)`` (1.5x at d=4, 2.5x at d=8) without ever
+        being read.  The loader re-expands them as zeros, so the in-memory object
+        and every evaluation are bit-for-bit identical either way.
+
+        ``slim=False`` writes the historical full-``d`` layout.  Both layouts load;
+        the file records which one it uses in ``meta['dU_layout']``.
+        """
         path = str(path)
         if not path.endswith(".npz"):
             path += ".npz"
@@ -179,6 +192,9 @@ class PODHermiteSmolyakCross:
         node_thetas = np.array([pool[k][0] for k in keys], dtype=float)
         node_U = np.array([pool[k][1] for k in keys]).astype(coeff_dtype)
         node_dU = np.array([pool[k][2] for k in keys]).astype(coeff_dtype)
+        enh_sorted = sorted(int(e) for e in cm.enhanced)
+        if slim:                                  # drop the never-read tangent blocks
+            node_dU = node_dU[:, enh_sorted, :]
         node_cross = np.array([pool[k][3] for k in keys]).astype(coeff_dtype)
         node_iters = np.array([pool[k][4] for k in keys], dtype=np.int64)
         node_resids = np.array([pool[k][5] for k in keys], dtype=float)
@@ -192,11 +208,12 @@ class PODHermiteSmolyakCross:
             full_meta.update(meta)
         full_meta["format_version"] = FORMAT_VERSION
         full_meta["kind"] = "pod_hermite_smolyak_cross"
+        full_meta["dU_layout"] = "enhanced" if slim else "full"
         np.savez(path, Phi=self.Phi.astype(mode_dtype), mean=self.mean,
                  node_thetas=node_thetas, node_U=node_U, node_dU=node_dU,
                  node_cross=node_cross, node_iters=node_iters, node_resids=node_resids,
                  index_set=index_set, axes=axes,
-                 enhanced=np.asarray(sorted(int(e) for e in cm.enhanced), dtype=np.int64),
+                 enhanced=np.asarray(enh_sorted, dtype=np.int64),
                  cross_pairs=cross_pairs,
                  field_shape=np.asarray(self.field_shape, dtype=np.int64),
                  r=np.asarray(self.r, dtype=np.int64), meta_json=_pack_meta(full_meta))
@@ -311,6 +328,15 @@ def load_pod_hermite_smolyak_cross(path) -> PODHermiteSmolyakCross:
         index_set = [tuple(int(x) for x in row) for row in np.asarray(data["index_set"])]
         axes = [(float(a[0]), float(a[1])) for a in np.asarray(data["axes"], dtype=float)]
         enhanced = tuple(int(e) for e in np.asarray(data["enhanced"], dtype=np.int64))
+        # Slim files store the tangent block only for the enhanced axes; re-expand to
+        # the full (N, d, r) the evaluator indexes by GLOBAL axis index.  The restored
+        # blocks are the ones evaluate() never reads, so this is exact, not a default.
+        # Files written before the layout key are full-d.
+        if meta.get("dU_layout", "full") == "enhanced":
+            d = int(meta["d"])
+            full = np.zeros((node_dU.shape[0], d) + node_dU.shape[2:], dtype=float)
+            full[:, list(enhanced), :] = node_dU
+            node_dU = full
         pool: Dict[tuple, tuple] = {}
         for i in range(node_thetas.shape[0]):
             pool[_node_key(node_thetas[i])] = (

@@ -17,6 +17,11 @@ This repo was migrated out of the BBHFM monorepo (`sandbox/parasol/`) and cleane
 up: **the old add-only policy is retired.** Edit modules in place; keep exactly
 one canonical version of each model. Normal engineering hygiene applies.
 
+> **Which model is shipped is defined in exactly one place:**
+> `src/lm/initial_data/pipeline/production_model.py` (narrative: `docs/MODELS.md`).
+> Never restate the enhanced axes, POD ranks or stored-memory numbers anywhere else
+> — producers, figures, tests and the paper all read them from there.
+>
 > **Read `docs/HISTORY_AND_FINDINGS.md` before touching the parametric ROM,
 > rebuilding a corpus, or comparing models.** It records the project's origin and
 > the hard-won findings (equilibrated-vs-raw residual, field error as a separate

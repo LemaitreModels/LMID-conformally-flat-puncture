@@ -82,3 +82,7 @@ distribution all siblings depend on.
   "add-only"); the stale figures `README.md`. The old `sandbox/parasol/…`
   invocation strings have been repaired to real `-m lm.initial_data.pipeline.…`
   (or script-path) commands.
+
+## Which model is shipped
+
+`src/lm/initial_data/pipeline/production_model.py` is the single source of truth for the shipped surrogate (enhanced axes, cross term, POD ranks, stored-memory accounting); `production_box.py` is its sibling for the parameter box. Narrative and tables: [`MODELS.md`](MODELS.md).
