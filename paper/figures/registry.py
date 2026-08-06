@@ -200,20 +200,23 @@ SOURCES = {
                                  producer="run_qc_tp_validation.py", where="cluster",
                                  status="ready", figures=[]),
 
-    # ---- fig09 (the single TwoPunctures validation figure: BANDS over the box) ----
-    # This replaces both the former fig08 (non-axisymmetric validation) and the former
-    # single-configuration fig09.  The quasi-circular data are ALREADY non-axisymmetric --
-    # the tangential momentum puts ~2% of the field in the m=2 azimuthal mode, and generic
-    # spins add ~2% at m=1 -- so the QC family exercises the Fourier-in-phi solver by
-    # itself and a separate non-axisymmetric figure was redundant.  Every curve is now a
-    # min/median/max BAND over configurations sampled from the production box, so no
-    # panel depends on one arbitrary parameter point.  The axisymmetric-limit checks that
-    # QC cannot provide (aligned-spin m>=1 suppression, the head-on code-to-code anchor)
-    # are carried as quantitative statements in the appendix text.
+    # ---- fig08 + fig09 (the TwoPunctures validation: DISTRIBUTIONS over the box) ----
+    # One sweep, SHARED by two figures because it carries two abscissae: fig08 walks the
+    # meridional resolution ladder (pointwise + integral agreement, plus the certified
+    # residual), fig09 walks the azimuthal mode index at the best-resolved rung.  Every
+    # point in both is a median with min--max whiskers over configurations sampled from the
+    # production box, so no panel depends on one arbitrary parameter point.
+    #   The predecessor of this sweep was two single-configuration figures, one of them a
+    # separate non-axisymmetric check.  That check is redundant: the quasi-circular data are
+    # ALREADY non-axisymmetric -- the tangential momentum puts ~2% of the field in the m=2
+    # azimuthal mode and generic spins add ~2% at m=1 -- so the QC family exercises the
+    # Fourier-in-phi solver by itself, which is what fig09 now shows.  The axisymmetric-limit
+    # checks QC cannot provide (aligned-spin m>=1 suppression, the head-on code-to-code
+    # anchor) are carried as quantitative statements in the appendix text.
     "tp_band_sweep":        dict(reports="3D_parametric/qc/tp_band_sweep.json",
                                  producer="run_tp_random_sweep.py --n 100 --workers 6",
                                  where="cluster", status="ready",
-                                 figures=["fig09_tp_validation"]),
+                                 figures=["fig08_tp_validation", "fig09_tp_spectrum"]),
 }
 
 # --- figure -> the source keys it distills + its data-script filename -------------------------
@@ -256,8 +259,12 @@ FIGURES = {
     "fig06_targeting":          dict(sources=["qc_targeting"], keys=["methods", "meta"]),
     "fig07_eccentricity":       dict(sources=["qc_effpot", "effpot_model"],
                                      keys=["Jlist", "per_J", "bg", "n_scan", "n_grad"]),
-    "fig09_tp_validation":      dict(sources=["tp_band_sweep"],
-                                     keys=["ladder", "spectrum", "meta"]),
+    # one shared source, two figures: the resolution ladder and the azimuthal spectrum share
+    # no abscissa, so each distills its own block of tp_band_sweep (see SOURCES above)
+    "fig08_tp_validation":      dict(sources=["tp_band_sweep"],
+                                     keys=["ladder", "meta"]),
+    "fig09_tp_spectrum":        dict(sources=["tp_band_sweep"],
+                                     keys=["spectrum", "meta"]),
 }
 
 

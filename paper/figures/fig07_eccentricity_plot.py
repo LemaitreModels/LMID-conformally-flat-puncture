@@ -55,6 +55,8 @@ def main():
     # fontsize 10 matches Fig. 6, the figure with identical geometry (figdims(1,1) at
     # \columnwidth); the matplotlib default 'large' (12 pt) rendered visibly bigger.
     ax.set_title("Accelerated eccentricity reduction", fontsize=10)
+    # both axes are linear here, so "major" is the full grid (matches Figs. 2, 3, 5, 8, 9)
+    ax.grid(True, which="major", alpha=0.3)
     # Legend on the right: two columns, the J branches on the left and the two marker
     # keys (scan, then gradient) on the right, matplotlib filling column-major.  The
     # upper-right corner is the only region free of curves -- every E_b(b) branch lies

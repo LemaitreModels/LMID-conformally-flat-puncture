@@ -27,19 +27,62 @@ models**, so a colour means the same model in every figure:
 |---|---|---|
 | `tab:blue`   | `C0` | **value** model |
 | `tab:orange` | `C1` | **value+gradient** (Hermite) model |
-| `tab:green`  | `C2` | reserved for a third standard model, where one is shown |
+
+Only `C0` and `C1` are reserved. `C2` (`tab:green`) is **not** — an earlier version of this
+convention held it back for a third standard model, and no figure needs it.
 
 Everything else is a non-model colour:
 
 - **Any other categorical colour coding** — sampling ranges, spin/`J`/`|S|` values, tilt angles,
-  per-panel diagnostics (residual, `ψ`-vs-TP error, …) — **must start at `C3` (`tab:red`)** and step
-  through the default cycle (`tab:red`, `tab:purple`, `tab:brown`, `tab:pink`, `tab:gray`, …). Never
-  reuse `C0`–`C2` for a non-model series. In code this is just `color=f"C{3 + i}"` in the loop, or a
-  palette that starts at `tab:red`.
+  per-panel diagnostics (residual, `ψ`-vs-TP error, …) — **must start at `C2` (`tab:green`)** and step
+  through the default cycle (`tab:green`, `tab:red`, `tab:purple`, `tab:brown`, `tab:pink`,
+  `tab:gray`, …). Never reuse `C0`–`C1` for a non-model series. In code this is just
+  `color=f"C{2 + i}"` in the loop, or a palette that starts at `tab:green`.
+- A figure of **single-series panels** takes `C2` in *every* panel: with one series per panel there
+  is nothing to distinguish, and stepping the colour would imply a coding that is not there. Fig. 8
+  is the example.
 - **Grey** (`"0.6"`) is the cold-start / black-box baseline.
 - **Black** is for reference lines and oracle anchors (identity diagonals, TwoPunctures markers).
 
 When adding or editing a figure, check it against this table before committing.
+
+## Distributions — median marker with min–max whiskers (not a shaded band)
+
+Wherever a curve summarises a *sample* (held-out base points, sampled configurations, Newton
+polish steps), the paper draws it as a **median marker with whiskers spanning the sample minimum
+to maximum**, never as a shaded envelope. In code that is one `errorbar`:
+
+```python
+ax.errorbar(x + off, med, yerr=[med - lo, hi - med], fmt="-o", color=C,
+            ms=5, lw=1.7, capsize=3.5, elinewidth=1.1, capthick=1.1, label=...)
+```
+
+Two series in one panel are nudged apart in `x` (`off = ±0.10`) so their whiskers stay readable.
+Figures 1, 3, 4, 5, 6 and 8 all use this idiom; the whisker caps make the extremes of the sample
+legible in a way a translucent band does not, which matters because several claims in the text are
+about the *minimum* or *maximum* of the sample rather than its median. Do not add a separate
+"max" line — the upper whisker already carries it.
+
+## Lines are solid; no y sub-ticks
+
+Data series are drawn with **solid** lines (`fmt="-o"`), never dashed or dash-dotted: series are
+distinguished by colour and marker, and dashing a data line reads as a fit or a reference rather
+than a measurement. Broken lines mark things that are *not* measurements — dotted grey (`ls=":"`)
+for reference lines (thresholds, gates, Nyquist limits, identity diagonals) and dashed for fitted
+rate lines (Fig. 2).
+
+Log y axes carry **major ticks and gridlines only**:
+
+```python
+ax.yaxis.set_minor_locator(NullLocator())   # no y sub-ticks
+ax.grid(True, which="major", alpha=0.3)
+```
+
+Figures 2, 3, 8 and 9 all do this. It matters only for panels spanning few decades, which is
+where matplotlib's `LogLocator` emits sub-decade minors — measured, ~19 of them over 2.6 decades
+and ~35 over 4.6, dense enough to read as grey hatching behind the data. Wide-range panels
+(Fig. 6 spans 13.6 decades) get none from the locator anyway, so setting `NullLocator`
+unconditionally costs nothing and keeps every log panel in the paper looking the same.
 
 ## Figure size / aspect ratio (uniform across the paper)
 
@@ -115,10 +158,10 @@ consumed by both listed figures.
 | 5  | `fig05_guess_vs_memory_data.py`    | `gvm_all`, `gvm_4d_{value,cross,field,cross_field}`, `polish_table_{4d,4d_cross,8d_hermite}`, `gvm_8d_{value,field,hermite_field}` *(pending)* |
 | 6  | `fig06_targeting_data.py`          | `qc_targeting` |
 | 7  | `fig07_eccentricity_data.py`       | `qc_effpot` + `effpot_model` (surrogate `.npz`; distilled to json) |
-| 8  | `fig08_3d_validation_data.py`      | `sweep_3d` *(shared with fig 9)* |
-| 9  | `fig09_tp_validation_data.py`      | `sweep_3d` *(shared with fig 8)* + `tp_validation` |
+| 8  | `fig08_tp_validation_data.py`      | `tp_band_sweep` *(shared with fig 9)* — the resolution ladder |
+| 9  | `fig09_tp_spectrum_data.py`        | `tp_band_sweep` *(shared with fig 8)* — the azimuthal spectrum |
 
-**Status.** Figures 2, 3, 6, 7, 8, 9, 10, 11 are fully data-split and their `figdata/` json is
+**Status.** Figures 2, 3, 6, 7, 8, 9 are fully data-split and their `figdata/` json is
 committed; each regenerates pixel-identical to the shipped figure. Figures **1, 4, 5** still read
 `reports/` directly and are pending the 8D cluster runs (see `registry.py`; the `_data.py`/plotter
 split lands for them once the 8D bundle returns).
