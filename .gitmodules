@@ -1,0 +1,6 @@
+[submodule "LMID-conformally-flat-puncture"]
+	path = LMID-conformally-flat-puncture
+	url = git@github.com:LemaitreModels/LMID-conformally-flat-puncture.git
+[submodule "LMID-curved-puncture"]
+	path = LMID-curved-puncture
+	url = git@github.com:LemaitreModels/LMID-curved-puncture.git
