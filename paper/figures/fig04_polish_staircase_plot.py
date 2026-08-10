@@ -3,8 +3,8 @@
 
 A 2x2 grid with a SHARED Newton-step x-axis per column. Columns are 4D | 8D; each panel draws three
 curves as a median line with 1000-point min--max whiskers on every Newton polish step:
-(1) cold start (no model), (2) value-only model, and (3) the shipped gradient-enhanced
-(full-bilinear) POD warm start.
+(1) cold start, (2) value-only model, and (3) the shipped gradient-enhanced
+(full-bilinear) POD warm start. Each curve stops at its first certified/floored step.
 
   TOP row    constraint residual ||R||_inf per step (the certified quantity).
   BOTTOM row field error ||u-u_true||_2/||u_true||_2 per step; carries the per-column legend.
@@ -50,14 +50,17 @@ def _arr(s):
             np.array(s["med"]), np.array(s["lo"]), np.array(s["hi"]))
 
 
-def _trim(steps, med, extra=1):
+# Every curve stops at its FIRST converged step: the steps beyond it sit on the same
+# stagnation floor and carry no information, and dropping them also drops the trailing
+# x-slot that only the 8D cold start reached.
+def _trim(steps, med):
     fc = next((i for i, m in enumerate(med) if m <= THRESH), len(med) - 1)
-    return min(len(steps), fc + 1 + extra)
+    return min(len(steps), fc + 1)
 
 
-def _trim_field(med, extra=1):
+def _trim_field(med):
     fc = next((i for i, m in enumerate(med) if m <= FIELD_FLOOR), len(med) - 1)
-    return min(len(med), fc + 1 + extra)
+    return min(len(med), fc + 1)
 
 
 def _legend_spec(col):
@@ -72,7 +75,7 @@ def _legend_spec(col):
     """
     r = col.get("res_pod", {}).get("r")           # set only for the POD curves
     return ((fr"POD rank $r={r}$" if r else None),
-            ("cold start (no model)", "value-only", "gradient-enhanced"))
+            ("cold start", "value-only", "gradient-enhanced"))
 
 
 def _plot_residual(ax, col):
@@ -80,20 +83,20 @@ def _plot_residual(ax, col):
     _, (lab_cold, lab_value, lab_pod) = _legend_spec(col)
     xmax = 0
     x, med, lo, hi = _arr(col["res_cold"])
-    n = _trim(x, med, extra=1)
+    n = _trim(x, med)
     ax.errorbar(x[:n] - 0.12, med[:n], yerr=[med[:n] - lo[:n], hi[:n] - med[:n]],
                 fmt="-s", color=COLD_C, ms=5, lw=1.7, capsize=3.5,
                 elinewidth=1.1, capthick=1.1, zorder=3, label=lab_cold)
     xmax = max(xmax, x[n - 1])
     if "res_value" in col:                        # optional value-only series
         x, med, lo, hi = _arr(col["res_value"])
-        n = _trim(x, med, extra=1)
+        n = _trim(x, med)
         ax.errorbar(x[:n], med[:n], yerr=[med[:n] - lo[:n], hi[:n] - med[:n]],
                     fmt="-^", color=VALUE_C, ms=5, lw=1.7, capsize=3.5,
                     elinewidth=1.1, capthick=1.1, zorder=4, label=lab_value)
         xmax = max(xmax, x[n - 1])
     x, med, lo, hi = _arr(col["res_pod"])
-    n = _trim(x, med, extra=1)
+    n = _trim(x, med)
     ax.errorbar(x[:n] + 0.12, med[:n], yerr=[med[:n] - lo[:n], hi[:n] - med[:n]],
                 fmt="-o", color=POD_C, ms=5, lw=1.7, capsize=3.5,
                 elinewidth=1.1, capthick=1.1, zorder=5, label=lab_pod)
@@ -123,7 +126,7 @@ def _plot_field(ax, col):
         if fam_key not in col:                    # optional value-only series
             continue
         x, med, lo, hi = _arr(col[fam_key])
-        n = _trim_field(med, extra=1)
+        n = _trim_field(med)
         x = x[:n]
         med = np.maximum(med[:n], FIELD_FLOOR)
         lo = np.maximum(lo[:n], FIELD_FLOOR)
