@@ -6,7 +6,7 @@ masquerade as a physics disagreement, so it is unit-tested in isolation.
 
 import numpy as np
 
-from lemaitre.initial_data.conformally_flat.validation import conventions as cv
+from lemaitre.initial_data.conformally_flat_puncture.validation import conventions as cv
 
 
 def test_lm_initial_data_to_tp_basic_map():

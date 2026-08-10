@@ -28,11 +28,11 @@ import numpy as np
 import jax.numpy as jnp
 import pytest
 
-from lemaitre.initial_data.conformally_flat.solver import solver_abt as sa
-from lemaitre.initial_data.conformally_flat.solver import source
-from lemaitre.initial_data.conformally_flat.parametric import parametric_nd_2c as p3
-from lemaitre.initial_data.conformally_flat.applications import control as ctl
-from lemaitre.initial_data.conformally_flat.applications import sensitivity as sen
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as sa
+from lemaitre.initial_data.conformally_flat_puncture.solver import source
+from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_2c as p3
+from lemaitre.initial_data.conformally_flat_puncture.applications import control as ctl
+from lemaitre.initial_data.conformally_flat_puncture.applications import sensitivity as sen
 
 
 P = 0.5
@@ -300,7 +300,7 @@ def test_sensitivity_b_rejected(prob, ps_bq):
 # B3-T4 — add-only / standalone discipline
 # ==========================================================================
 def test_standalone_imports():
-    import lemaitre.initial_data.conformally_flat.applications.sensitivity as mod
+    import lemaitre.initial_data.conformally_flat_puncture.applications.sensitivity as mod
     src = open(mod.__file__).read()
     for forbidden in ("import nrpy", "src.bbhfm", "from bbhfm", "import context", "torch"):
         assert forbidden not in src, forbidden

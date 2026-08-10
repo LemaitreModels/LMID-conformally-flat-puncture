@@ -8,8 +8,8 @@ reference values and internal consistency.
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.conformally_flat.solver import solver_abt as sa, source
-from lemaitre.initial_data.conformally_flat.validation import adm
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as sa, source
+from lemaitre.initial_data.conformally_flat_puncture.validation import adm
 
 
 B, MA, MB, P = 3.0, 0.5, 0.5, 0.5

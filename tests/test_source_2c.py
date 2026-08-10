@@ -15,7 +15,7 @@ jax.config.update("jax_enable_x64", True)
 
 import numpy as np
 
-from lemaitre.initial_data.conformally_flat.solver import source
+from lemaitre.initial_data.conformally_flat_puncture.solver import source
 
 
 # --------------------------------------------------------------------------

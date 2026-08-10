@@ -12,8 +12,8 @@ Plus the real binary: LM-initial-data ID lands on the grid with O(h^2) constrain
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.conformally_flat.solver import solver_abt as sa, source
-from lemaitre.initial_data.conformally_flat.validation import constraints as cst
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as sa, source
+from lemaitre.initial_data.conformally_flat_puncture.validation import constraints as cst
 
 
 def _order(hs, errs):

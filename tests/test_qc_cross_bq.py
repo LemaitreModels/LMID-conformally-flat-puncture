@@ -19,13 +19,13 @@ import jax
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 
-from lemaitre.initial_data.conformally_flat.solver import solver_3d as s3
-from lemaitre.initial_data.conformally_flat.solver import solver_3d_nk as s3nk
-from lemaitre.initial_data.conformally_flat.solver import source_3d
-from lemaitre.initial_data.conformally_flat.parametric.parametric_nd_3d import theta_to_slice3d
-from lemaitre.initial_data.conformally_flat.applications import sensitivity_3d_qc as s3dqc
-from lemaitre.initial_data.conformally_flat.applications import sensitivity_3d_cross as cross
-from lemaitre.initial_data.conformally_flat.applications import sensitivity_3d_cross_bq as cbq
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d_nk as s3nk
+from lemaitre.initial_data.conformally_flat_puncture.solver import source_3d
+from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_3d import theta_to_slice3d
+from lemaitre.initial_data.conformally_flat_puncture.applications import sensitivity_3d_qc as s3dqc
+from lemaitre.initial_data.conformally_flat_puncture.applications import sensitivity_3d_cross as cross
+from lemaitre.initial_data.conformally_flat_puncture.applications import sensitivity_3d_cross_bq as cbq
 
 M_TOT = 1.0
 NA, NB, NPHI = 16, 12, 6

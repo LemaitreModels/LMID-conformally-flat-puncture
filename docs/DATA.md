@@ -29,7 +29,7 @@ gitignored build output while the rendered `paper/tables/tab??_*.tex` is committ
 
 **Laptop tier (fast).** Most figures recompute in seconds–minutes from a *shipped
 surrogate model artifact* (the χ Smolyak/Hermite/POD models) via the ROM. The
-per-figure producers live in `src/lemaitre/initial_data/conformally_flat/pipeline/` and are mapped
+per-figure producers live in `src/lemaitre/initial_data/conformally_flat_puncture/pipeline/` and are mapped
 to figures by `paper/figures/registry.py` (the single source of truth for
 the figure→producer→artifact graph).
 
@@ -68,7 +68,7 @@ the figure→producer→artifact graph).
   check: `validation/constraints.py` + its tests). Three stages, see
   `docs/GRTECLYN_CONSTRAINTS_PLAN.md`:
 
-  1. `python -m lemaitre.initial_data.conformally_flat.pipeline.run_export_grteclyn --out reports/grteclyn_export
+  1. `python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_export_grteclyn --out reports/grteclyn_export
      --tp` (cluster: `slurm/ivs/submit_export_grteclyn.slurm`, ~3 min) — solves each
      configuration and writes `<name>.lmid` plus a `<name>_reference.dat` table of `psi`
      and `Ahat` values that the C++ evaluator is validated against. With `--tp` it also
@@ -106,9 +106,9 @@ the figure→producer→artifact graph).
 
 ## Model-artifact location convention
 
-**One setting: `$LM_REPORTS`.** Every producer in `src/lemaitre/initial_data/conformally_flat/pipeline/`
+**One setting: `$LM_REPORTS`.** Every producer in `src/lemaitre/initial_data/conformally_flat_puncture/pipeline/`
 and `paper/figures/_figdata` resolves the heavy tree through
-`lemaitre.initial_data.conformally_flat.paths.reports_root()`:
+`lemaitre.initial_data.conformally_flat_puncture.paths.reports_root()`:
 
 1. `$LM_REPORTS` — explicit, `~` expanded, absolutised. Use this always.
 2. `<pipeline>/reports` — the producers' historical location, so their behaviour
@@ -178,7 +178,7 @@ writes `surrogate_smolyak_bpt_ecc_L5.npz`, which is both the wrong kind and the
 wrong name. The build must pass `--dense-Q` and `--dense-name`:
 
 ```bash
-python -m lemaitre.initial_data.conformally_flat.pipeline.build_surrogate \
+python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_surrogate \
     --box bpt_ecc --level 5 --dense-Q 16 --dense-name surrogate_bpt_ecc.npz \
     --Na 44 --Nb 32 --Nphi 8 --solver nk --store --code-tag chi-rebuild
 ```

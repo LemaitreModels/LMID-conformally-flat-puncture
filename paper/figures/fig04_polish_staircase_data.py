@@ -37,7 +37,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _figdata import load_source, have_source, dump
-from lemaitre.initial_data.conformally_flat.pipeline import production_model as pm
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 
 
 def _stair(d):

@@ -1,11 +1,11 @@
 # Which model is shipped
 
-**Authoritative source: [`src/lemaitre/initial_data/conformally_flat/pipeline/production_model.py`](../src/lemaitre/initial_data/conformally_flat/pipeline/production_model.py).**
+**Authoritative source: [`src/lemaitre/initial_data/conformally_flat_puncture/pipeline/production_model.py`](../src/lemaitre/initial_data/conformally_flat_puncture/pipeline/production_model.py).**
 It is executable and tested (`tests/test_production_model.py`); this page is the
 narrative. Every table below is printed by
 
 ```bash
-python -m lemaitre.initial_data.conformally_flat.pipeline.production_model
+python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.production_model
 ```
 
 so regenerate it rather than hand-editing. If a number about "the model" appears in

@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Guidance for Claude Code when working in **LMID-conformally-flat-puncture**
-(`lemaitre.initial_data.conformally_flat`).
+(`lemaitre.initial_data.conformally_flat_puncture`).
 
 > Keep this file current: when you add/rename a module, change the figure
 > pipeline, or add a doc, update the relevant section before finishing.
@@ -11,20 +11,20 @@ Guidance for Claude Code when working in **LMID-conformally-flat-puncture**
 The code + paper for a **certified, differentiable,
 parametric** reduced-order model of the binary-black-hole *constraint (initial
 data)* solve — quasi-circular Bowen–York punctures up to the 8-D general-spin
-model θ₈ = (b, q, χ_A, χ_B). It is the `conformally_flat` model of the
+model θ₈ = (b, q, χ_A, χ_B). It is the `conformally_flat_puncture` model of the
 `initial_data` domain of the **Lemaitre** package family (see `README.md` for the
 namespace, and `docs/STRUCTURE.md` for who owns which namespace level). Its
-sibling `lemaitre.initial_data.curved` (repo `LMID-curved-puncture`) is the
+sibling `lemaitre.initial_data.curved_puncture` (repo `LMID-curved-puncture`) is the
 non-conformally-flat successor and **depends on this package** — it reuses the
 ABT chart, the Newton–Krylov solver and the ROM. Never invert that: nothing here
-may import `lemaitre.initial_data.curved`.
+may import `lemaitre.initial_data.curved_puncture`.
 
 This repo was migrated out of the BBHFM monorepo (`sandbox/parasol/`) and cleaned
 up: **the old add-only policy is retired.** Edit modules in place; keep exactly
 one canonical version of each model. Normal engineering hygiene applies.
 
 > **Which model is shipped is defined in exactly one place:**
-> `src/lemaitre/initial_data/conformally_flat/pipeline/production_model.py` (narrative: `docs/MODELS.md`).
+> `src/lemaitre/initial_data/conformally_flat_puncture/pipeline/production_model.py` (narrative: `docs/MODELS.md`).
 > Never restate the enhanced axes, POD ranks or stored-memory numbers anywhere else
 > — producers, figures, tests and the paper all read them from there.
 >
@@ -46,7 +46,7 @@ one canonical version of each model. Normal engineering hygiene applies.
 - **float64 everywhere.** `jax.config.update("jax_enable_x64", True)` before any
   jax use. The solver is spectral; **no neural networks in the solver.**
 - **Intra-package imports are relative** (`from . import ...`, `from ..solver
-  import ...`). Absolute imports use the full `lemaitre.initial_data.conformally_flat.*` path
+  import ...`). Absolute imports use the full `lemaitre.initial_data.conformally_flat_puncture.*` path
   (producers, tests, figure scripts). Do not reintroduce `sys.path` bootstraps —
   the package is pip-installed.
 - **caffeinate long jobs** (macOS): wrap any local run >a few seconds in
@@ -68,7 +68,7 @@ make figures                                   # regenerate figure data (recompu
 
 ## Architecture
 
-`src/lemaitre/initial_data/conformally_flat/`
+`src/lemaitre/initial_data/conformally_flat_puncture/`
 
 - **`solver/`** — spatial elliptic (xCFC) solver. Production 3-D stack:
   `spectral` (1-D Chebyshev primitives), `operators_3d`/`source_3d` (Fourier-in-φ

@@ -26,10 +26,10 @@ import os
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.conformally_flat.solver import operators_abt as ops
-from lemaitre.initial_data.conformally_flat.solver import solver_3d as s3
-from lemaitre.initial_data.conformally_flat.solver import source, source_3d
-from lemaitre.initial_data.conformally_flat.validation import export_grteclyn as eg
+from lemaitre.initial_data.conformally_flat_puncture.solver import operators_abt as ops
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
+from lemaitre.initial_data.conformally_flat_puncture.solver import source, source_3d
+from lemaitre.initial_data.conformally_flat_puncture.validation import export_grteclyn as eg
 
 
 B_ANCHOR = 3.0
@@ -245,7 +245,7 @@ def test_reference_table(tmp_path):
 # Standalone discipline
 # ==========================================================================
 def test_standalone_imports():
-    import lemaitre.initial_data.conformally_flat.validation.export_grteclyn as mod
+    import lemaitre.initial_data.conformally_flat_puncture.validation.export_grteclyn as mod
     src = open(mod.__file__).read()
     for forbidden in ("import nrpy", "src.bbhfm", "from bbhfm",
                       "import context", "torch"):

@@ -19,9 +19,9 @@ import math
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.conformally_flat.parametric import quasicircular as qc
-from lemaitre.initial_data.conformally_flat.solver import diagnostics_3d as d3
-from lemaitre.initial_data.conformally_flat.validation import twopunctures as tp, conventions as cv
+from lemaitre.initial_data.conformally_flat_puncture.parametric import quasicircular as qc
+from lemaitre.initial_data.conformally_flat_puncture.solver import diagnostics_3d as d3
+from lemaitre.initial_data.conformally_flat_puncture.validation import twopunctures as tp, conventions as cv
 
 _oracle = pytest.mark.skipif(not tp.available(),
                              reason="TwoPunctures binary not built (see build.sh)")

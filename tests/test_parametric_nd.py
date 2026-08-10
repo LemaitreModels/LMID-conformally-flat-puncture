@@ -26,10 +26,10 @@ import numpy as np
 import jax.numpy as jnp
 import pytest
 
-from lemaitre.initial_data.conformally_flat.solver import solver_abt as sa
-from lemaitre.initial_data.conformally_flat.parametric import parametric_nd as pnd
-from lemaitre.initial_data.conformally_flat.parametric import parametric_nd_2c as p3
-from lemaitre.initial_data.conformally_flat.parametric import parametric_2c as p2c
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as sa
+from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd as pnd
+from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_2c as p3
+from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_2c as p2c
 
 
 # ==========================================================================

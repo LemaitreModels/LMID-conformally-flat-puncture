@@ -1,4 +1,4 @@
-"""Acceptance tests for :mod:`lemaitre.initial_data.conformally_flat.paths` — the heavy-corpora resolver.
+"""Acceptance tests for :mod:`lemaitre.initial_data.conformally_flat_puncture.paths` — the heavy-corpora resolver.
 
 The solve stores, χ surrogate models, and per-figure sweep outputs are multi-GB
 and gitignored, so they live outside version control.  Before this module there
@@ -19,7 +19,7 @@ import os
 
 import pytest
 
-from lemaitre.initial_data.conformally_flat import paths
+from lemaitre.initial_data.conformally_flat_puncture import paths
 
 
 # ==========================================================================
@@ -36,9 +36,9 @@ def test_default_is_the_in_package_path(monkeypatch):
     root = paths.reports_root()
     assert root == paths.DEFAULT_ROOT
     # DEFAULT_ROOT is derived from paths.__file__, so it tracks the package
-    # location: `<...>/lemaitre/initial_data/conformally_flat/pipeline/reports`.
+    # location: `<...>/lemaitre/initial_data/conformally_flat_puncture/pipeline/reports`.
     assert root.endswith(
-        os.path.join("conformally_flat", "pipeline", "reports"))
+        os.path.join("conformally_flat_puncture", "pipeline", "reports"))
 
 
 def test_default_is_independent_of_cwd(tmp_path, monkeypatch):
@@ -108,7 +108,7 @@ def test_require_error_flags_unset_env(monkeypatch):
 # ==========================================================================
 def test_producers_use_the_resolver():
     """No producer may rebuild a ``reports/`` path off its own ``__file__``."""
-    import lemaitre.initial_data.conformally_flat.pipeline as pipe
+    import lemaitre.initial_data.conformally_flat_puncture.pipeline as pipe
     pdir = os.path.dirname(os.path.abspath(pipe.__file__))
     offenders = [fn for fn in sorted(os.listdir(pdir))
                  if fn.endswith(".py")

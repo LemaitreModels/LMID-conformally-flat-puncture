@@ -31,10 +31,10 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.conformally_flat.solver import solver_abt as sa
-from lemaitre.initial_data.conformally_flat.validation import adm
-from lemaitre.initial_data.conformally_flat.parametric import parametric_nd_2c as p3
-from lemaitre.initial_data.conformally_flat.applications import control as ctl
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as sa
+from lemaitre.initial_data.conformally_flat_puncture.validation import adm
+from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_2c as p3
+from lemaitre.initial_data.conformally_flat_puncture.applications import control as ctl
 
 
 P = 0.5

@@ -1,6 +1,6 @@
 # Repository structure & migration notes
 
-`lemaitre.initial_data.conformally_flat` (the paper package) was migrated out of the BBHFM
+`lemaitre.initial_data.conformally_flat_puncture` (the paper package) was migrated out of the BBHFM
 monorepo (`sandbox/parasol/`) into this standalone repo, de-cluttered and
 restructured. This document is the package map and the record of what was kept,
 dropped, and deferred.
@@ -10,7 +10,7 @@ dropped, and deferred.
 ```
 src/lemaitre/                  namespace level, owned by the `lemaitre` core (no __init__.py here)
 src/lemaitre/initial_data/     namespace level, owned by `lemaitre-initial-data` (no __init__.py here)
-src/lemaitre/initial_data/conformally_flat/
+src/lemaitre/initial_data/conformally_flat_puncture/
   solver/         spectral elliptic (xCFC) solver
   parametric/     parameter-space collocation / Hermite / Smolyak / POD (the ROM)
   applications/   qc_targeting, qc_effpot, control, sensitivity_3d{,_qc,_cross,_cross_bq}
@@ -31,7 +31,7 @@ access:
 
 ```python
 import lemaitre as lm
-lm.initial_data.conformally_flat.solver.solver_3d_nk    # resolves lazily
+lm.initial_data.conformally_flat_puncture.solver.solver_3d_nk    # resolves lazily
 ```
 
 **Family bookkeeping:** exactly one installed distribution may own each
@@ -41,13 +41,13 @@ namespace `__init__.py`, and **neither belongs to this repo**:
 |---|---|---|
 | `lemaitre` | `lemaitre` (the core) | `Lemaitre` |
 | `lemaitre.initial_data` | `lemaitre-initial-data` (the umbrella) | `LM-initial-data` |
-| `lemaitre.initial_data.conformally_flat` | `lemaitre-initial-data-conformally-flat` | **this repo** |
-| `lemaitre.initial_data.curved` | `lemaitre-initial-data-curved` | `LMID-curved-puncture` |
+| `lemaitre.initial_data.conformally_flat_puncture` | `LMID-conformally-flat-puncture` | **this repo** |
+| `lemaitre.initial_data.curved_puncture` | `LMID-curved-puncture` | `LMID-curved-puncture` |
 
 This repo ships only its own leaf package; `src/lemaitre/` and
 `src/lemaitre/initial_data/` are bare directories that `setuptools`
 `find_namespace` walks through (`namespaces = true`, `include` scoped to
-`lemaitre.initial_data.conformally_flat*`). Shipping a second copy of either
+`lemaitre.initial_data.conformally_flat_puncture*`). Shipping a second copy of either
 namespace `__init__.py` would shadow the owner non-deterministically.
 
 ### Editable installs must use the static-path mode
@@ -66,9 +66,9 @@ out of them. It never reaches the umbrella's finder, which is the only thing
 that knows where the real `lemaitre/initial_data/__init__.py` lives.
 
 The damage is *partial and therefore easy to miss*: `import
-lemaitre.initial_data.conformally_flat` still works, because the leaf's own
+lemaitre.initial_data.conformally_flat_puncture` still works, because the leaf's own
 finder resolves it. What breaks is everything the umbrella's `__init__.py`
-provides — chiefly the lazy `__getattr__`, so `lm.initial_data.conformally_flat`
+provides — chiefly the lazy `__getattr__`, so `lm.initial_data.conformally_flat_puncture`
 raises `AttributeError` while the equivalent `import` succeeds.
 
 `editable_mode=compat` installs a plain `.pth` that puts each `src/` on
@@ -124,9 +124,9 @@ than letting a degraded install pass silently.
   solver/ROM (two-tier) is Stage 2 — see `STAGE2_HANDOFF.md` and `DATA.md`.
 - Cosmetic docstring cleanup (a few module/producer docstrings still say
   "add-only"); the stale figures `README.md`. The old `sandbox/parasol/…`
-  invocation strings have been repaired to real `-m lemaitre.initial_data.conformally_flat.pipeline.…`
+  invocation strings have been repaired to real `-m lemaitre.initial_data.conformally_flat_puncture.pipeline.…`
   (or script-path) commands.
 
 ## Which model is shipped
 
-`src/lemaitre/initial_data/conformally_flat/pipeline/production_model.py` is the single source of truth for the shipped surrogate (enhanced axes, cross term, POD ranks, stored-memory accounting); `production_box.py` is its sibling for the parameter box. Narrative and tables: [`MODELS.md`](MODELS.md).
+`src/lemaitre/initial_data/conformally_flat_puncture/pipeline/production_model.py` is the single source of truth for the shipped surrogate (enhanced axes, cross term, POD ranks, stored-memory accounting); `production_box.py` is its sibling for the parameter box. Narrative and tables: [`MODELS.md`](MODELS.md).

@@ -13,10 +13,10 @@ Standalone (numpy/scipy/jax); reuses the committed solver + the base QC tangent.
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.conformally_flat.solver import solver_3d as s3
-from lemaitre.initial_data.conformally_flat.parametric import parametric_nd_3d as p3d
-from lemaitre.initial_data.conformally_flat.applications import sensitivity_3d_qc as qc
-from lemaitre.initial_data.conformally_flat.pipeline.qc_chi_tangent import tangent_qc_chi
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
+from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_3d as p3d
+from lemaitre.initial_data.conformally_flat_puncture.applications import sensitivity_3d_qc as qc
+from lemaitre.initial_data.conformally_flat_puncture.pipeline.qc_chi_tangent import tangent_qc_chi
 
 M_TOT = 1.0
 NA, NB, NPHI = 16, 12, 6

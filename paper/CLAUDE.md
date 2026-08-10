@@ -39,7 +39,7 @@ ability to review.
 
 1. **Never invent a number, result, or citation.** Every quantitative statement in the
    text must trace to (a) an existing number already in `paper.tex`, (b) a value in
-   `figures/figdata/*.json`, (c) the code in `src/lemaitre/initial_data/conformally_flat/`, or (d) a cited
+   `figures/figdata/*.json`, (c) the code in `src/lemaitre/initial_data/conformally_flat_puncture/`, or (d) a cited
    source. If you cannot trace it, do not write it — ask.
 2. **Never add, remove, or reorder `\cite{}` keys, or add entries to `references.bib`,
    without explicit instruction.** The bibliography was verified entry-by-entry against

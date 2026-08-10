@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lemaitre-initial-data-conformally-flat"
+name = "LMID-conformally-flat-puncture"
 version = "0.1.0"
-description = "Certified, differentiable, parametric conformally-flat binary-black-hole puncture initial data — lemaitre.initial_data.conformally_flat"
+description = "Certified, differentiable, parametric conformally-flat binary-black-hole puncture initial data — lemaitre.initial_data.conformally_flat_puncture"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
@@ -32,7 +32,7 @@ dev = ["pytest"]
 # claiming either of them.
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["lemaitre.initial_data.conformally_flat*"]
+include = ["lemaitre.initial_data.conformally_flat_puncture*"]
 namespaces = true
 
 [tool.pytest.ini_options]

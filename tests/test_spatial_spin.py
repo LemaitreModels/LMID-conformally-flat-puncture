@@ -16,9 +16,9 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.conformally_flat.solver import solver_abt as sa
-from lemaitre.initial_data.conformally_flat.solver import diagnostics as diag
-from lemaitre.initial_data.conformally_flat.solver.solver_abt import Slice
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as sa
+from lemaitre.initial_data.conformally_flat_puncture.solver import diagnostics as diag
+from lemaitre.initial_data.conformally_flat_puncture.solver.solver_abt import Slice
 
 
 # --------------------------------------------------------------------------
@@ -168,7 +168,7 @@ def test_single_spinning_puncture_breaks_parity():
 def test_odd_modes_genuinely_populated():
     """Project the single-spin solution onto odd Legendre modes in B and confirm
     the odd content is >> roundoff (not numerical noise)."""
-    from lemaitre.initial_data.conformally_flat.solver import spectral
+    from lemaitre.initial_data.conformally_flat_puncture.solver import spectral
     prob = sa.make_problem(Na=40, Nb=28, P=0.5)
     sl = Slice(b=1.0, m_A=0.5, m_B=0.5, S_A=0.4, S_B=0.0)
     U, info = sa.newton_solve(prob, sl, tol=1e-9, max_iter=25)

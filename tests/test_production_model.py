@@ -1,7 +1,7 @@
 """Acceptance — the shipped-model single source of truth and its slim storage.
 
 Guards the five confusions catalogued in
-:mod:`lemaitre.initial_data.conformally_flat.pipeline.production_model`:
+:mod:`lemaitre.initial_data.conformally_flat_puncture.pipeline.production_model`:
 
   * the shipped model's identity (enhanced axes, cross term, ranks) is stated once
     and the axis INDICES differ between the two boxes;
@@ -26,13 +26,13 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.conformally_flat.pipeline import production_box as pb
-from lemaitre.initial_data.conformally_flat.pipeline import production_model as pm
-from lemaitre.initial_data.conformally_flat.parametric.hermite_smolyak import isotropic_index_set
-from lemaitre.initial_data.conformally_flat.parametric.parametric_nd_smolyak import _node_key
-from lemaitre.initial_data.conformally_flat.parametric.hermite_smolyak_cross import (
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as pb
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak import isotropic_index_set
+from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_smolyak import _node_key
+from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak_cross import (
     HermiteSmolyakCrossSolverND, build_cross_from_pool)
-from lemaitre.initial_data.conformally_flat.parametric.hermite_smolyak_pod_cross import (
+from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak_pod_cross import (
     build_pod_hermite_smolyak_cross, load_pod_hermite_smolyak_cross)
 
 MiB, GiB = 2**20, 2**30

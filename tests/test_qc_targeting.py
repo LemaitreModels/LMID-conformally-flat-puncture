@@ -29,9 +29,9 @@ the closed-form observable, so the file runs in seconds.
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.conformally_flat.parametric import quasicircular as qcmod
-from lemaitre.initial_data.conformally_flat.applications import qc_targeting as T
-from lemaitre.initial_data.conformally_flat.pipeline import production_box as pb
+from lemaitre.initial_data.conformally_flat_puncture.parametric import quasicircular as qcmod
+from lemaitre.initial_data.conformally_flat_puncture.applications import qc_targeting as T
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as pb
 
 M_TOT = 1.0
 

@@ -24,8 +24,8 @@ import os
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.conformally_flat.parametric import parametric_nd_smolyak as sm
-from lemaitre.initial_data.conformally_flat.parametric.parametric_nd import (
+from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_smolyak as sm
+from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd import (
     ParametricSolverND, ParametricSolutionND, load_parametric, attach_solve_fn_3d,
 )
 
@@ -250,8 +250,8 @@ def test_attach_solve_fn_certifies_both(tmp_path):
     """After a no-solver load, ``attach_solve_fn_3d`` lets ``evaluate_polished``
     reach certified ``‖R‖∞ ≤ 1e-10`` at a generic off-node θ — for BOTH the sparse
     and dense reloaded models (a small real 3-D grid)."""
-    from lemaitre.initial_data.conformally_flat.solver import solver_3d as s3
-    from lemaitre.initial_data.conformally_flat.parametric import parametric_nd_3d as p3
+    from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
+    from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_3d as p3
 
     prob = s3.make_problem(Na=24, Nb=18, Nphi=6)
     box = [{"name": "b", "min": 1.5, "max": 4.0},

@@ -24,8 +24,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SANDBOX = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 
 from _figdata import load_source, source, dump
-from lemaitre.initial_data.conformally_flat.solver import solver_3d as s3
-from lemaitre.initial_data.conformally_flat.applications import qc_effpot as E
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
+from lemaitre.initial_data.conformally_flat_puncture.applications import qc_effpot as E
 
 
 def build():

@@ -53,8 +53,8 @@ def test_production_box_table_matches_canonical_box():
     quasi-circular models have in common (one value column, no per-model column), so the
     per-model node counts are guarded where they are stated instead: the body text.
     """
-    from lemaitre.initial_data.conformally_flat.parametric.parametric_nd_2c import smolyak_points
-    from lemaitre.initial_data.conformally_flat.pipeline import production_box as pb
+    from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_2c import smolyak_points
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as pb
 
     tex = _tex("tab01_production_box")
     paper = _paper()
@@ -75,7 +75,7 @@ def test_production_box_table_matches_canonical_box():
 
 def test_producer_is_importable_and_standalone():
     """The canonical producer imports cleanly and does not reach outside the package."""
-    from lemaitre.initial_data.conformally_flat.pipeline import run_tangent_verification as rtv
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline import run_tangent_verification as rtv
     assert callable(rtv.operator_tangents) and callable(rtv.surrogate_tangents)
     with open(rtv.__file__) as f:
         src = f.read()

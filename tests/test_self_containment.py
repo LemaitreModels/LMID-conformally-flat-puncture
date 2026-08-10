@@ -1,4 +1,4 @@
-"""Self-containment guard for ``lemaitre.initial_data.conformally_flat``.
+"""Self-containment guard for ``lemaitre.initial_data.conformally_flat_puncture``.
 
 The package is **standalone**: it depends on `jax`, `numpy`, `scipy`,
 `matplotlib` and the dependency-free `lemaitre` / `lemaitre-initial-data`
@@ -18,7 +18,7 @@ import pytest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "src")
-PKG = os.path.join(SRC, "lemaitre", "initial_data", "conformally_flat")
+PKG = os.path.join(SRC, "lemaitre", "initial_data", "conformally_flat_puncture")
 
 #: Import roots that would break standalone-ness.  ``src`` covers the monorepo's
 #: ``src.bbhfm`` / ``src.*`` form as well as a bare ``import src``.
@@ -74,10 +74,10 @@ def test_no_forbidden_imports(path):
 def test_absolute_family_imports_are_own_leaf(path):
     """An absolute `lemaitre.*` import may only name this leaf.
 
-    Reaching into a sibling leaf (`lemaitre.initial_data.curved`) would invert
-    the dependency: `curved` reuses this package, not the other way round.
+    Reaching into a sibling leaf (`lemaitre.initial_data.curved_puncture`) would invert
+    the dependency: `curved_puncture` reuses this package, not the other way round.
     """
-    own = f"{FAMILY}.initial_data.conformally_flat"
+    own = f"{FAMILY}.initial_data.conformally_flat_puncture"
     for root, dotted in _import_roots(path):
         if root == FAMILY:
             assert dotted == own or dotted.startswith(own + "."), (
@@ -146,7 +146,7 @@ def test_two_level_namespace_is_live():
 
 
 def test_lazy_attribute_access():
-    """`import lemaitre as lm; lm.initial_data.conformally_flat...` resolves.
+    """`import lemaitre as lm; lm.initial_data.conformally_flat_puncture...` resolves.
 
     The documented idiom, with no explicit submodule import — this is what the
     PEP 562 `__getattr__` on each namespace level exists to provide.
@@ -154,8 +154,8 @@ def test_lazy_attribute_access():
     import lemaitre as lm
 
     try:
-        pkg = lm.initial_data.conformally_flat
+        pkg = lm.initial_data.conformally_flat_puncture
     except AttributeError as exc:  # pragma: no cover - diagnostic path
         raise AssertionError(f"lazy access failed: {exc}{INSTALL_HINT}") from exc
-    assert pkg.__name__ == "lemaitre.initial_data.conformally_flat"
-    assert lm.initial_data.conformally_flat.solver.__name__.endswith(".solver")
+    assert pkg.__name__ == "lemaitre.initial_data.conformally_flat_puncture"
+    assert lm.initial_data.conformally_flat_puncture.solver.__name__.endswith(".solver")

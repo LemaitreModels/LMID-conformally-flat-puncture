@@ -9,8 +9,8 @@ Recomputes (instantly, no solver, no corpus) from the two canonical sources:
 So the table cannot drift from the box the corpora were built on: retargeting an edge in
 ``production_box`` and re-running ``make tables`` moves the paper's number with it.
 """
-from lemaitre.initial_data.conformally_flat.parametric.parametric_nd_2c import smolyak_points
-from lemaitre.initial_data.conformally_flat.pipeline import production_box as pb
+from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_2c import smolyak_points
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as pb
 
 import _tabdata as td
 

@@ -28,10 +28,10 @@ frozen topology) run by default.  Small grids / Nφ≤12 throughout.
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.conformally_flat.solver import solver_3d as s3, solver_abt as sa
-from lemaitre.initial_data.conformally_flat.parametric import parametric_nd_3d as p3
-from lemaitre.initial_data.conformally_flat.parametric import parametric_nd_2c as p2c
-from lemaitre.initial_data.conformally_flat.validation import twopunctures as tp
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3, solver_abt as sa
+from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_3d as p3
+from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_2c as p2c
+from lemaitre.initial_data.conformally_flat_puncture.validation import twopunctures as tp
 
 _oracle = pytest.mark.skipif(not tp.available(),
                              reason="TwoPunctures binary not built (see build.sh)")
@@ -250,7 +250,7 @@ def test_tp_cross_check_3d():
     """ψ from a CERTIFIED interpolant prediction at a held-out 3-D θ matches the
     TwoPunctures oracle spectrally (the 3-D analog of Test E, now through the
     parametric layer)."""
-    from lemaitre.initial_data.conformally_flat.solver import source
+    from lemaitre.initial_data.conformally_flat_puncture.solver import source
     b, S_mag = 1.5, 0.3
     Na, Nb, Nphi = 56, 40, 10
     prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)

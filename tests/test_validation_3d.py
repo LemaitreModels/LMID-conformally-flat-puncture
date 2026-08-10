@@ -19,9 +19,9 @@ single proper rotation z^P→x^TP (``conventions.lm_initial_data_vec_to_tp``,
 import numpy as np
 import pytest
 
-from lemaitre.initial_data.conformally_flat.solver import solver_3d as s3, source, diagnostics_3d as d3
-from lemaitre.initial_data.conformally_flat.solver.solver_3d import Slice3D
-from lemaitre.initial_data.conformally_flat.validation import twopunctures as tp, conventions as cv
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3, source, diagnostics_3d as d3
+from lemaitre.initial_data.conformally_flat_puncture.solver.solver_3d import Slice3D
+from lemaitre.initial_data.conformally_flat_puncture.validation import twopunctures as tp, conventions as cv
 
 _oracle = pytest.mark.skipif(not tp.available(),
                              reason="TwoPunctures binary not built (see build.sh)")

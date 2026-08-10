@@ -39,7 +39,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _figdata import load_source, dump
-from lemaitre.initial_data.conformally_flat.pipeline import production_model as pm
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 
 VAL_C, HERM_C = "C0", "C1"
 POD5 = ("r", "mem_bytes", "min", "median", "max")
@@ -151,7 +151,7 @@ def _check_8d_enhanced(resid, field):
             "  They must be one model measured two ways (see this function's docstring).\n"
             "  Either:\n"
             "    (a) set BR_8D_ENHANCED = 'gvm_8d_cross_field' and produce it with\n"
-            "        python -m lemaitre.initial_data.conformally_flat.pipeline.run_hermite_fielderr_sweep_8d_cross\n"
+            "        python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_hermite_fielderr_sweep_8d_cross\n"
             "        (~6-7 h with the shared certified-truth cache warm, ~21 h cold), or\n"
             "    (b) keep the plain-Hermite field curve and repoint the TOP-RIGHT residual\n"
             "        panel at the matching plain-Hermite residual sweep.\n"

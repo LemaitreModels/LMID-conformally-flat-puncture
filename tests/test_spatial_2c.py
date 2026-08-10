@@ -13,9 +13,9 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import jax.numpy as jnp
 
-from lemaitre.initial_data.conformally_flat.solver import solver as psolver
-from lemaitre.initial_data.conformally_flat.solver import diagnostics as diag
-from lemaitre.initial_data.conformally_flat.solver.solver import Slice
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver as psolver
+from lemaitre.initial_data.conformally_flat_puncture.solver import diagnostics as diag
+from lemaitre.initial_data.conformally_flat_puncture.solver.solver import Slice
 
 
 # --------------------------------------------------------------------------

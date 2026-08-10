@@ -24,8 +24,8 @@ FIGDATA = os.path.join(HERE, "figdata")
 # The heavy corpora live outside the repo.  This used to be <repo_root>/reports
 # while the producers wrote to <pipeline>/reports, so a figure could not see the
 # output of the producer that fed it; both now resolve through the one setting,
-# $LM_REPORTS.  See lemaitre.initial_data.conformally_flat.paths and docs/DATA.md.
-from lemaitre.initial_data.conformally_flat.paths import reports_root  # noqa: E402  (pure stdlib; no jax)
+# $LM_REPORTS.  See lemaitre.initial_data.conformally_flat_puncture.paths and docs/DATA.md.
+from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root  # noqa: E402  (pure stdlib; no jax)
 
 REPORTS = reports_root()          # display convenience; source_path() resolves live
 
