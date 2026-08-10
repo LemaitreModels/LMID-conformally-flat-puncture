@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+.venv/
+
+# Heavy run corpora + model artifacts (regenerated on the cluster; see docs/DATA.md)
+reports/
+*.npz
+
+# Figure data (`make figdata`) IS COMMITTED — do not ignore it.
+#
+# The plotters read figdata/figNN_*.json and nothing else: no reports/, no model
+# corpus, no jax.  Committing it (~136 kB for all nine) is what makes the claim in
+# registry.py, figures/README.md and docs/DATA.md true — that every figure rebuilds
+# from a bare clone with only matplotlib.  Recomputing it instead needs the
+# multi-GB corpora and the cluster, which a reader or a co-author cloning the repo
+# does not have.
+#
+# This previously read `paper/figures/figdata/*.json` with a note that fig08/fig09
+# would be force-added as a fallback.  That force-add never happened, so figdata
+# was never committed at all and `figNN_*_plot.py` could not run from a clone.
+
+# Throwaway layout renders (see paper/figures/mockups/README.md). Placeholder panels
+# live here, so nothing in this directory may ever be mistaken for a paper figure.
+paper/figures/mockups/
+
+# Table build outputs (recomputed by `make tabdata`). The rendered tab??_*.tex ARE
+# committed, so `pdflatex` always works — as the figure PDFs are.
+paper/tables/tabdata/*.json
+
+# LaTeX build artifacts
+paper/*.aux
+paper/*.log
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz
+paper/*.out
+paper/*.blg
+
+# OS / editor
+.DS_Store
+
+# Cloud-sync conflicted-copy artifacts (never commit these)
+* [0-9].*
+
+# SLURM job logs (created at submit time)
+logs/

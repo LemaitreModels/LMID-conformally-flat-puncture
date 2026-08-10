@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lemaitre-initial-data-conformally-flat"
+version = "0.1.0"
+description = "Certified, differentiable, parametric conformally-flat binary-black-hole puncture initial data — lemaitre.initial_data.conformally_flat"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Frederik De Ceuster" }]
+dependencies = [
+    # the namespace levels this leaf plugs into (see the family table in README)
+    "lemaitre",
+    "lemaitre-initial-data",
+    # the solver stack — and nothing else; the standalone guard enforces it
+    "numpy",
+    "scipy",
+    "jax",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+# src/ layout.  This distribution owns ONLY its own leaf package: the `lemaitre`
+# root belongs to the `lemaitre` core and `lemaitre.initial_data` to the
+# `lemaitre-initial-data` umbrella, so neither has an `__init__.py` here.  Plain
+# `find` would stop at the first directory without one; `namespaces = true` walks
+# through both levels, and the `include` scope keeps this distribution from
+# claiming either of them.
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["lemaitre.initial_data.conformally_flat*"]
+namespaces = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: heavier B1 checks (external TwoPunctures oracle / Cartesian sweep)",
+]
