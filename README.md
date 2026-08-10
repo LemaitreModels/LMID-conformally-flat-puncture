@@ -17,7 +17,7 @@ lm.initial_data.conformally_flat.parametric         # the certified/differentiab
 Its sibling `lemaitre.initial_data.curved` (repo `LMID-curved-puncture`) is the
 non-conformally-flat successor, and reuses this package's ABT chart,
 Newton–Krylov solver and ROM directly. Further family members
-(`lemaitre.early_inspiral`, …) slot in under the same `lemaitre.` prefix when
+(`lemaitre.inspiral`, …) slot in under the same `lemaitre.` prefix when
 installed alongside.
 
 ## Install
