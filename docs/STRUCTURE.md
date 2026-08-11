@@ -9,7 +9,7 @@ dropped, and deferred.
 
 ```
 src/lemaitre/                  namespace level, owned by the `lemaitre` core (no __init__.py here)
-src/lemaitre/initial_data/     namespace level, owned by `lemaitre-initial-data` (no __init__.py here)
+src/lemaitre/initial_data/     namespace level, owned by `LM-initial-data` (no __init__.py here)
 src/lemaitre/initial_data/conformally_flat_puncture/
   solver/         spectral elliptic (xCFC) solver
   parametric/     parameter-space collocation / Hermite / Smolyak / POD (the ROM)
@@ -40,7 +40,7 @@ namespace `__init__.py`, and **neither belongs to this repo**:
 | namespace | `__init__.py` owned by | repository |
 |---|---|---|
 | `lemaitre` | `lemaitre` (the core) | `Lemaitre` |
-| `lemaitre.initial_data` | `lemaitre-initial-data` (the umbrella) | `LM-initial-data` |
+| `lemaitre.initial_data` | `LM-initial-data` (the umbrella) | `LM-initial-data` |
 | `lemaitre.initial_data.conformally_flat_puncture` | `LMID-conformally-flat-puncture` | **this repo** |
 | `lemaitre.initial_data.curved_puncture` | `LMID-curved-puncture` | `LMID-curved-puncture` |
 

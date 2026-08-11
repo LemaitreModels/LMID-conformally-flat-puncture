@@ -28,7 +28,7 @@ python -c "import lemaitre as lm; lm.initial_data.conformally_flat_puncture"   #
 ```
 
 Pure Python: `jax`, `numpy`, `scipy`, `matplotlib` (float64 throughout), plus the
-dependency-free `lemaitre` / `lemaitre-initial-data` namespace packages. No
+dependency-free `lemaitre` / `LM-initial-data` namespace packages. No
 machine-learning framework and no external solver code are required — the
 package is self-contained (enforced by `tests/test_self_containment.py`).
 
@@ -50,7 +50,7 @@ docs/             DATA.md (data regeneration + oracle) · STRUCTURE.md (package 
 
 Only `lemaitre/initial_data/conformally_flat_puncture/` is shipped by this distribution —
 `lemaitre/` and `lemaitre/initial_data/` are namespace levels owned by the
-`lemaitre` core and the `lemaitre-initial-data` umbrella respectively, so they
+`lemaitre` core and the `LM-initial-data` umbrella respectively, so they
 carry no `__init__.py` here.
 
 ## Reproduce the paper

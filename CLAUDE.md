@@ -38,7 +38,7 @@ one canonical version of each model. Normal engineering hygiene applies.
 ## Ground rules (load-bearing)
 
 - **Standalone.** Depend only on `jax`, `numpy`, `scipy`, `matplotlib` (plus the
-  dependency-free `lemaitre` / `lemaitre-initial-data` namespace packages). Never
+  dependency-free `lemaitre` / `LM-initial-data` namespace packages). Never
   import `bbhfm`, `src.*`, `context`, `torch`, or `nrpy`. Enforced by
   `tests/test_self_containment.py` (AST-parses the whole `src/` tree, and pins
   the namespace ownership) plus per-module `test_standalone_imports`

@@ -13,7 +13,7 @@ authors = [{ name = "Frederik De Ceuster" }]
 dependencies = [
     # the namespace levels this leaf plugs into (see the family table in README)
     "lemaitre",
-    "lemaitre-initial-data",
+    "LM-initial-data",
     # the solver stack — and nothing else; the standalone guard enforces it
     "numpy",
     "scipy",
@@ -26,7 +26,7 @@ dev = ["pytest"]
 
 # src/ layout.  This distribution owns ONLY its own leaf package: the `lemaitre`
 # root belongs to the `lemaitre` core and `lemaitre.initial_data` to the
-# `lemaitre-initial-data` umbrella, so neither has an `__init__.py` here.  Plain
+# `LM-initial-data` umbrella, so neither has an `__init__.py` here.  Plain
 # `find` would stop at the first directory without one; `namespaces = true` walks
 # through both levels, and the `include` scope keeps this distribution from
 # claiming either of them.

@@ -1,7 +1,7 @@
 """Self-containment guard for ``lemaitre.initial_data.conformally_flat_puncture``.
 
 The package is **standalone**: it depends on `jax`, `numpy`, `scipy`,
-`matplotlib` and the dependency-free `lemaitre` / `lemaitre-initial-data`
+`matplotlib` and the dependency-free `lemaitre` / `LM-initial-data`
 namespace packages, and on nothing else.  It must never reach back into the
 BBHFM monorepo it was migrated out of.
 
@@ -90,7 +90,7 @@ def test_namespace_levels_are_not_owned_here():
     """This distribution ships ONE package: its own leaf.
 
     `lemaitre/__init__.py` belongs to the `lemaitre` core and
-    `lemaitre/initial_data/__init__.py` to the `lemaitre-initial-data` umbrella.
+    `lemaitre/initial_data/__init__.py` to the `LM-initial-data` umbrella.
     A copy of either here would shadow the owner non-deterministically, which is
     exactly the collision the family split was made to prevent.
     """
