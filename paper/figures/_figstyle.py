@@ -14,14 +14,28 @@ nothing by it.  Fig. 1 (2x4) is left on the default: its panels are already shor
 columns wide.  Fig. 2 (3x1) predates this and keeps its own local ``PANEL_H_SHORT``, a height fixed
 by a measured RevTeX float-fitting limit rather than by appearance — see its plotter.
 
-FONTS.  Font sizes are deliberately NOT globally forced.  Each plotter keeps matplotlib's natural
-per-element hierarchy (title >= axis labels / ticks > legend > small in-panel data labels), which
-reads better than one flat size.  An earlier experiment that authored figures at their true render
-width and fixed every figure's text to the 9 pt caption size was REJECTED — it looked too large and
-unnatural.  So: keep the per-element ``fontsize=`` values in the plotters, and let LaTeX's mild
-downscale of the ``figdims`` size make the effective text a little smaller than the caption (the
-usual, natural look).
+FONTS.  The font *family* IS forced globally, here, as an import-time side effect: every plotter
+imports this module for ``figdims``, so this is the one place that keeps all ten figures on a single
+typeface — and that puts a new figure on it automatically.  matplotlib's default is DejaVu Sans,
+which clashes with the Times-like serif RevTeX sets for the body text; STIXGeneral with the ``stix``
+mathtext set is the Times-metric-compatible pair, so figure text and figure math now match the
+surrounding page.  STIX ships *with* matplotlib, so this needs neither a system font nor a LaTeX
+install (``text.usetex`` stays off) and the figures build identically everywhere.
+
+Font *sizes*, by contrast, are deliberately NOT globally forced.  Each plotter keeps matplotlib's
+natural per-element hierarchy (title >= axis labels / ticks > legend > small in-panel data labels),
+which reads better than one flat size.  An earlier experiment that authored figures at their true
+render width and fixed every figure's text to the 9 pt caption size was REJECTED — it looked too
+large and unnatural.  So: keep the per-element ``fontsize=`` values in the plotters, and let LaTeX's
+mild downscale of the ``figdims`` size make the effective text a little smaller than the caption
+(the usual, natural look).
 """
+import matplotlib as _mpl
+
+_mpl.rcParams["font.family"] = "serif"
+_mpl.rcParams["font.serif"] = ["STIXGeneral"]
+_mpl.rcParams["mathtext.fontset"] = "stix"
+
 PANEL_W = 4.5          # inches per panel (width)
 PANEL_H = 3.0          # inches per panel (height);  PANEL_W : PANEL_H = 3 : 2  (~golden)
 PANEL_H_STACK = 2.1    # flatter panel for two-row figures (see STACKED FIGURES above)
