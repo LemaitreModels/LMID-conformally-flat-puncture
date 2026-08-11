@@ -1,6 +1,6 @@
 """Export a converged solve to a plain file an evolution code can read.
 
-Written for the GRTeclyn constraint check (``docs/GRTECLYN_CONSTRAINTS_PLAN.md``):
+Written for the GRTeclyn constraint check:
 hand the initial data to an independent numerical-relativity code, let it compute
 the Hamiltonian and momentum constraints with its own fourth-order stencils in
 its own evolution variables, and report the convergence.  This module is the

@@ -20,7 +20,7 @@ omits the point count: the samplers draw from one sequential rng stream, so
 ``sampler(box, n, seed) == sampler(box, N, seed)[:n]`` for ``n <= N`` and a
 short smoke run reuses the prefix of a long run's cache for free.
 
-**Held-out accuracy gate.**  ``docs/HISTORY_AND_FINDINGS.md`` 2.7: certification
+**Held-out accuracy gate.**  Certification
 proves only that a Newton polish *from* the guess reaches the tolerance; it says
 nothing about the raw interpolant, and skipping the held-out comparison shipped
 bad models twice.  ``enhanced_vs_value`` prints the per-rank comparison, returns
@@ -191,8 +191,8 @@ def enhanced_vs_value(val_med, enh_med, *, label, expect_below, fatal=False,
 
     ``expect_below`` declares what this model is *supposed* to do, so the log
     distinguishes an expected outcome from a surprise.  The gradient-only
-    plain-Hermite models are expected to regress (HISTORY_AND_FINDINGS 2.4:
-    every multi-axis enhanced set degrades without the cross term); the
+    plain-Hermite models are expected to regress (every multi-axis enhanced set
+    degrades without the cross term); the
     cross-completed models are expected to win.
 
     ``fatal=True`` raises ``SystemExit(1)`` on a regression -- use it wherever a
@@ -216,7 +216,8 @@ def enhanced_vs_value(val_med, enh_med, *, label, expect_below, fatal=False,
         note = ("expected a regression (gradient-only without the cross term) but the "
                 "enhanced curve WINS" if beats else
                 "expected the enhanced curve to WIN but it regresses")
-        print(f"[{tag}] NOTE: {note} — see docs/HISTORY_AND_FINDINGS.md 2.4/2.7",
+        print(f"[{tag}] NOTE: {note} — a multi-axis enhanced set needs its cross "
+              f"term, and the held-out comparison is the only check that catches it",
               flush=True)
 
     block = dict(metric="median_field_error_relL2", margin=float(margin),
@@ -230,8 +231,9 @@ def enhanced_vs_value(val_med, enh_med, *, label, expect_below, fatal=False,
         raise SystemExit(
             f"[{tag}] FAILED held-out accuracy gate: {label} regresses below value-only "
             f"({len(below)}/{len(common)} ranks at/below).  This artifact must not be "
-            f"consumed as the paper's value+gradient curve.  See "
-            f"docs/HISTORY_AND_FINDINGS.md 2.7.")
+            f"consumed as the paper's value+gradient curve: certification proves only "
+            f"that a Newton polish from the guess converges, not that the raw "
+            f"interpolant is accurate.")
     return block
 
 

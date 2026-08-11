@@ -1,4 +1,4 @@
-"""Step 2 of docs/GRTECLYN_CONSTRAINTS_PLAN.md — the exporter and its reference
+"""Step 2 of the GRTeclyn constraint check — the exporter and its reference
 evaluator.
 
 The exported file is the interface to an external evolution code, so the format

@@ -143,7 +143,7 @@ SOURCES = {
                                  where="cluster", status="ready", figures=["fig05_guess_vs_memory"]),
     # The 8-D field sweeps come in TWO enhanced flavours, and they are not
     # interchangeable.  gvm_8d_hermite_field is the PLAIN Hermite (gradient-only on all
-    # six spin axes, no cross), which HISTORY_AND_FINDINGS 2.4 predicts regresses below
+    # six spin axes, no cross), which regresses below
     # value-only — it does (1.31e-2 vs 1.80e-3 at full rank).  gvm_8d_cross_field is the
     # y-pair CROSS, the model fig03, the 4-D bottom-left panel and gvm_8d_cross (the
     # residual sibling) all use.  Both producers wrote the *_hermite_field path until
@@ -271,7 +271,7 @@ FIGURES = {
     "fig09_tp_spectrum":        dict(sources=["tp_band_sweep"],
                                      keys=["spectrum", "meta"]),
     # DISTILLATION of an EXTERNAL run tree, not a recompute: the constraint norms are measured
-    # by GRTeclyn (docs/GRTECLYN_CONSTRAINTS_PLAN.md), so the data script only reads that code's
+    # by GRTeclyn, so the data script only reads that code's
     # constraint_norms.json output.  The tree lives outside the repo and outside reports/ --
     # pass --runs or set $LM_GRTECLYN_RUNS -- hence still ``inline`` (no reports/ key to
     # declare).  ``meta`` carries the box, ladder, exclusion radius and spectral grid the

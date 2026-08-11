@@ -1,6 +1,6 @@
 """Produce the initial-data files the GRTeclyn constraint check consumes.
 
-Step 2 of ``docs/GRTECLYN_CONSTRAINTS_PLAN.md``: run the certified Newton-Krylov
+Step 2 of the GRTeclyn constraint check: run the certified Newton-Krylov
 solve for each configuration and write it out in the plain format of
 ``validation.export_grteclyn``, together with a table of reference ``psi`` /
 ``Ahat`` values that the C++ port is validated against.

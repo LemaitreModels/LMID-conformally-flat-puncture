@@ -37,9 +37,9 @@ Design decisions
 * **chi, not S.**  The box coordinate is the dimensionless ``chi = S/m^2``, so the physical
   Bowen-York spin ``S_X = chi_X m_X^2`` MOVES with ``q``.  That conversion is q-coupled and
   must not be hand-rolled: it goes through the canonical mapping
-  ``parametric_nd_3d.theta_to_slice3d`` (docs/HISTORY_AND_FINDINGS.md 2.3).
+  ``parametric_nd_3d.theta_to_slice3d``.
 * **The residual is the EQUILIBRATED one** (``info.residual_norm``), never the raw nodal
-  norm (2.1).  Certification gate: ``<= 1e-10``.
+  norm.  Certification gate: ``<= 1e-10``.
 * **One oracle call per configuration, shared by every rung.**  The oracle is ~95% of the
   per-sample cost, which is what makes a whole ladder per configuration affordable.
 * **The reference must out-resolve the test in EVERY direction, phi included.**  The

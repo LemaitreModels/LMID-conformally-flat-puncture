@@ -34,7 +34,7 @@ QC-specific content vs the 2-centre prototype:
     (m=0)** field — the correct 3-D generalization of ``validation.adm``'s 2-D read.
 
 Spin parameterization.  The box coordinate is the **dimensionless** spin
-``χ_X = S_X/m_X²`` (HISTORY_AND_FINDINGS §2.3), so the physical spin moves with the
+``χ_X = S_X/m_X²``, so the physical spin moves with the
 masses at fixed χ and the spin term of ``J`` carries the mass→spin chain
 ``∂S_X/∂q = χ_X · ∂(m_X²)/∂q``.  Both ``J`` twins are written in χ and the analytic
 ``∂F/∂θ`` is ``jax.jacfwd`` of that closed form, so the chain is included by
@@ -103,7 +103,7 @@ def J_qc(theta, M_tot=1.0):
     """Orbital + spin angular momentum ``J = 2 b p_t + χ_Ay m_A² + χ_By m_B²``.
 
     The spin term is the PHYSICAL spin ``S_X = χ_X m_X²``, so at fixed χ it moves
-    with the mass ratio (HISTORY_AND_FINDINGS §2.3).
+    with the mass ratio.
     """
     b, q, chi_Ay, chi_By = (float(theta[0]), float(theta[1]),
                             float(theta[2]), float(theta[3]))
@@ -184,7 +184,7 @@ def build_F_jax(model, prob, target_names, M_tot=1.0):
 
     def J_jax(theta):
         # χ box: the spin term is the PHYSICAL S_X = χ_X m_X²(q), so jacfwd picks up
-        # the mass→spin chain ∂S_X/∂q automatically (HISTORY_AND_FINDINGS §2.3).
+        # the mass→spin chain ∂S_X/∂q automatically.
         b, q, chi_Ay, chi_By = theta[0], theta[1], theta[2], theta[3]
         m_A = M_tot * q / (1.0 + q)
         m_B = M_tot / (1.0 + q)

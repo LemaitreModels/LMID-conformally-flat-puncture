@@ -18,7 +18,7 @@ src/lemaitre/initial_data/conformally_flat_puncture/
   pipeline/       canonical figure producers + model builders (runnable + importable)
 tests/            acceptance suite (float64, CPU)
 paper/            paper.tex + references + figures/ (data+plot scripts, helpers, registry)
-docs/             this file · DATA.md · STAGE2_HANDOFF.md · GRTECLYN_CONSTRAINTS_PLAN.md
+docs/             this file · MODELS.md (shipped model) · DATA.md (data regeneration)
 ```
 
 ## Namespace
@@ -121,7 +121,7 @@ than letting a degraded install pass silently.
   Left in for a green baseline; can be pruned on request.
 - **Figure recompute (Stage 2).** The `figNN_*_data.py` scripts still carry the
   old "read `reports/` cache" logic. Rewiring them to genuinely recompute from the
-  solver/ROM (two-tier) is Stage 2 — see `STAGE2_HANDOFF.md` and `DATA.md`.
+  solver/ROM (two-tier) is Stage 2 — see `DATA.md` and `paper/figures/registry.py`.
 - Cosmetic docstring cleanup (a few module/producer docstrings still say
   "add-only"); the stale figures `README.md`. The old `sandbox/parasol/…`
   invocation strings have been repaired to real `-m lemaitre.initial_data.conformally_flat_puncture.pipeline.…`

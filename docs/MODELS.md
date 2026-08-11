@@ -22,9 +22,9 @@ that is a bug.
 > **r = 250 (4-D) / r = 500 (8-D)**, stored in the **slim** layout.
 
 Both the 4-D aligned-spin and the 8-D general-spin model enhance the *same two
-axes*. The 8-D model does **not** enhance its other four spin components: §2.4 of
-`HISTORY_AND_FINDINGS.md` is the measurement behind that ("enhance only a small
-axis set"), and the paper's `sec:model:enhanced` reports it.
+axes*. The 8-D model does **not** enhance its other four spin components —
+enhancing a larger axis set measurably degrades held-out accuracy — and the
+paper's `sec:model:enhanced` reports the measurement.
 
 | | 4-D aligned | 8-D general-spin |
 |---|---|---|

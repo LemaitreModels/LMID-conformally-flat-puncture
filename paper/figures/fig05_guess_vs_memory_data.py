@@ -51,7 +51,7 @@ DENSE_LADDER = 10   # rungs a pre-thinning run produced; see pipeline thin_ranks
 #                          panel, the BOTTOM-LEFT 4-D panel and fig03 all use.
 #   "gvm_8d_hermite_field" the PLAIN Hermite model (gradient-only on all six spin
 #                          axes, no cross term), which regresses below value-only
-#                          exactly as HISTORY_AND_FINDINGS 2.4 predicts.
+#                          because a multi-axis enhanced set needs its cross term.
 #
 # These are different models, and until 2026-08-02 both producers wrote the
 # *_hermite_field path, so the panel silently carried whichever ran last.  The two
@@ -59,7 +59,7 @@ DENSE_LADDER = 10   # rungs a pre-thinning run produced; see pipeline thin_ranks
 # enforces that below.  Changing this key is a scientific choice about what the
 # figure claims, so it is a single explicit line rather than an implicit default.
 #
-# The CROSS is the shipped model (HISTORY_AND_FINDINGS 2.4), and the one fig03, the
+# The CROSS is the shipped model, and the one fig03, the
 # 4-D panel and the residual panel above already plot.  Measured on the production
 # box it beats value-only by 1.692x (1.0641e-3 vs 1.8009e-3), matching fig03's
 # independent 1.700x to three digits.

@@ -54,7 +54,7 @@ Request --mem=200G.
 
 Schema mirrors ``guess_vs_memory_4d_cross_field_*.json`` (pod_curve of
 {r, mem_bytes, min/median/mean/p95/max}; metric ``field_error_relL2``; dim=8), plus
-the ``gate`` block from the held-out accuracy check (HISTORY_AND_FINDINGS 2.7).
+the ``gate`` block from the held-out accuracy check.
 The gate is FATAL here: a cross model that does not beat value-only must not be
 consumed as the paper's value+gradient curve.
 
@@ -330,7 +330,7 @@ def main(n_points=1000, seed=0, u_tol=1e-11, u_steps=12, with_value=False):
     if val_out:
         print(f"[hf8dx]   VALUE-only (opt) -> {os.path.basename(val_out)}  (r_full={val_rfull})")
 
-    # ---- held-out accuracy gate (HISTORY_AND_FINDINGS 2.7), FATAL here ----
+    # ---- held-out accuracy gate, FATAL here ----
     # The cross completion is exactly what is supposed to fix the plain-Hermite
     # regression; if it does not, the artifact must not become the paper's curve.
     if not with_value:

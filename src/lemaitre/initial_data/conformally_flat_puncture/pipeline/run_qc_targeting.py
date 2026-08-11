@@ -108,7 +108,7 @@ def _check_model_box(model):
     (b in [1.5,4]) and spin parameterization (dimensionful S, not χ) silently
     disagreed with the rest of the paper.  A mismatched box is invisible in the
     output — the run completes and the numbers look fine — so it is checked here
-    rather than left to a reader (HISTORY_AND_FINDINGS §2.6).
+    rather than left to a reader.
     """
     meta = getattr(model, "meta", None) or {}
     got_names = tuple(meta.get("axis_names", ()))

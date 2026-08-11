@@ -3,8 +3,7 @@
 
 Constraint violation of the initial data on an evolution grid, measured by
 **GRTeclyn** — an independent numerical-relativity code — rather than by the
-in-house finite-difference monitor this figure used previously.  See
-``docs/GRTECLYN_CONSTRAINTS_PLAN.md``.
+in-house finite-difference monitor this figure used previously.
 
 WHY THE MEASUREMENT MOVED.  The previous version interpolated the spectral data
 onto uniform Cartesian grids and evaluated the constraints with a bespoke

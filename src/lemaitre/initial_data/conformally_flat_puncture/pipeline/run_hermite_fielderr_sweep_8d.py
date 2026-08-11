@@ -11,7 +11,7 @@ The 8-D PLAIN-Hermite counterpart of the 4-D CROSS field-error sweep
 
 **``gvm_8d_hermite_field`` is the plain-Hermite curve, NOT the paper's 8-D
 "value+gradient" curve.**  This model is gradient-enhanced on all six spin axes
-with no cross term, which HISTORY_AND_FINDINGS 2.4 predicts will regress below
+with no cross term, which is expected to regress below
 value-only — and it does (measured 1.31e-2 vs 1.80e-3 at full rank on the
 production box).  The paper's 8-D value+gradient model is the y-pair CROSS,
 swept by ``run_hermite_fielderr_sweep_8d_cross.py`` -> ``gvm_8d_cross_field``,
@@ -252,7 +252,7 @@ def main(n_points=1000, seed=0, u_tol=1e-11, u_steps=12):
         8.0 * N * nfeat,
         pts, ut_flat, ures, N, nfeat, d, n_points, seed, u_tol, u_steps)
 
-    # ---- summary + the held-out accuracy gate (HISTORY_AND_FINDINGS 2.7) ----
+    # ---- summary + the held-out accuracy gate ----
     print(f"\n[hf8d] === SUMMARY ({n_points} pts, {(time.time()-t0)/60:.1f} min) ===")
     print(f"[hf8d]   VALUE-only  -> {os.path.basename(val_out)}  (r_full={val_rfull})")
     print(f"[hf8d]   VALUE+GRAD  -> {os.path.basename(grad_out)}  (r_full={grad_rfull})")

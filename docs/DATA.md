@@ -65,8 +65,7 @@ the figure→producer→artifact graph).
 
 - **Constraints on an evolution grid** (fig10) — measured by **GRTeclyn**, an external
   numerical-relativity code, not by the in-house monitor (which stays as an internal
-  check: `validation/constraints.py` + its tests). Three stages, see
-  `docs/GRTECLYN_CONSTRAINTS_PLAN.md`:
+  check: `validation/constraints.py` + its tests). Three stages:
 
   1. `python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_export_grteclyn --out reports/grteclyn_export
      --tp` (cluster: `slurm/ivs/submit_export_grteclyn.slurm`, ~3 min) — solves each

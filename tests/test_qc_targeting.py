@@ -8,7 +8,7 @@ being ``J = 2 b p_t + S_Ay + S_By`` and becomes
     J = 2 b p_t(b, q, χ) + χ_Ay m_A(q)² + χ_By m_B(q)²,
 
 so the spin term acquires a ``q`` dependence — the mass→spin chain
-``∂S_X/∂q = χ_X ∂(m_X²)/∂q`` of HISTORY_AND_FINDINGS §2.3, which is precisely what
+``∂S_X/∂q = χ_X ∂(m_X²)/∂q``, which is precisely what
 an earlier certified tangent dropped (exact at χ=0, ~900% wrong by |χ|≈0.6).  The
 gradient targeting method differentiates ``J`` with ``jax.jacfwd``, so a stale
 hand-written spin term would corrupt the search direction and be invisible at χ=0.

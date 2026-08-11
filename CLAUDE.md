@@ -28,12 +28,12 @@ one canonical version of each model. Normal engineering hygiene applies.
 > Never restate the enhanced axes, POD ranks or stored-memory numbers anywhere else
 > — producers, figures, tests and the paper all read them from there.
 >
-> **Read `docs/HISTORY_AND_FINDINGS.md` before touching the parametric ROM,
-> rebuilding a corpus, or comparing models.** It records the project's origin and
-> the hard-won findings (equilibrated-vs-raw residual, field error as a separate
-> metric, "enhance only a small axis set", the χ q-tangent bug, the stale-corpus
-> trap, the missing held-out-accuracy gate, 8-D needing ≥3 Newton steps) — several
-> were discovered twice. §2 there is "do not re-litigate".
+> **Several design choices here were learned the hard way** — the equilibrated
+> (not raw) residual as the certification metric, field error as a metric separate
+> from residual, the small gradient-enhanced axis set with its cross term, and the
+> held-out accuracy gate a model must pass before it is consumed. They are enforced
+> in the producers and tests rather than restated in prose. Do not re-tune them or
+> rebuild a corpus without checking with the maintainers first.
 
 ## Ground rules (load-bearing)
 
