@@ -35,7 +35,8 @@
 % ===========================================================================
 %  TITLE / AUTHOR BLOCK  --  USER-OWNED.  Do not auto-fill.
 % ===========================================================================
-\title{A Differentiable Parametric Model of Conformally-flat \\ Puncture Initial Data for Binary Black Holes}
+% \title{A Differentiable Parametric Model of Conformally-flat \\ Puncture Initial Data for Binary Black Holes}
+\title{A Differentiable Parametric Model of Binary-Black-Hole Initial Data: \texorpdfstring{\\}{ }Conformally flat Bowen--York punctures}
 
 \author{Frederik De Ceuster}
 \email{frederik.deceuster@kuleuven.be}
@@ -52,10 +53,10 @@
 
 \begin{abstract}
 Constraint-satisfying initial data for binary black holes require the repeated solution of a nonlinear elliptic boundary-value problem throughout the physical parameter space.
-We present a parametric initial-data solver that combines sparse-grid spectral interpolation with Newton refinement to construct certified, differentiable initial data over a chosen family of binary configurations.
+We present a parametric, differentiable initial-data solver that combines sparse-grid spectral interpolation with Newton refinement over a chosen family of binary configurations.
 Interpolation is used only to provide warm starts for the underlying elliptic solver, rather than to replace it.
-A small number of Newton iterations refines each interpolated solution to a constraint residual $\|R\|_\infty\le10^{-10}$, independent of the interpolation error, thereby certifying every generated initial-data set.
-A JAX implementation further provides derivatives of the certified initial data with respect to the physical parameters, enabling gradient-based parameter targeting, optimization, and sensitivity analysis.
+A small number of Newton iterations refines each interpolated solution to a discrete constraint residual $\|R\|_\infty\le10^{-10}$, independent of the interpolation error, so that every returned initial-data set satisfies the discretized constraint to that tolerance.
+A JAX implementation further provides analytic derivatives with respect to the physical parameters, enabling gradient-based parameter targeting, optimization, and sensitivity analysis.
 We demonstrate the method for quasi-circular binary-black-hole puncture initial data by constructing four-dimensional aligned-spin and eight-dimensional general-spin models.
 The resulting initial data are validated against TwoPunctures, and the method is applied to certified targeting of the physical ADM mass and angular momentum and to effective-potential eccentricity reduction using a dedicated $(b,P_t)$ model.
 \end{abstract}
@@ -67,7 +68,7 @@ The resulting initial data are validated against TwoPunctures, and the method is
 \label{sec:intro}
 % ===========================================================================
 Every numerical-relativity simulation of a binary black hole begins by solving the Einstein constraint equations on the initial time slice.
-For conformally flat, maximally sliced puncture data, this is a nonlinear elliptic boundary-value problem: the Hamiltonian constraint for the conformal factor in Lichnerowicz--York form ~\cite{York1979,BowenYork1980,BrandtBruegmann1997,Cook2000}.
+For conformally flat, maximally sliced puncture data, this is a nonlinear elliptic boundary-value problem: the Hamiltonian constraint for the conformal factor in Lichnerowicz--York form~\cite{York1979,BowenYork1980,BrandtBruegmann1997,Cook2000}.
 This problem must be solved once for each configuration.
 
 
@@ -91,23 +92,22 @@ These results suggest that binary-black-hole puncture initial data should also a
 
 Several recent developments have addressed complementary aspects of this problem.
 Mendes \emph{et al.}~\cite{Mendes2025} accelerate parameter targeting through a Broyden iteration that repeatedly re-solves the constraint equations.
-Tommasini \emph{et al.}~\cite{Tommasini2026} use Gaussian-process regression trained on the SXS catalogue to predict low-eccentricity orbital parameters, reducing the number of trial evolutions required for eccentricity reduction.
+Tommasini \emph{et al.}~\cite{Tommasini2026} use Gaussian-process regression trained on the SXS catalog to predict low-eccentricity orbital parameters, reducing the number of trial evolutions required for eccentricity reduction.
 Zhou \emph{et al.}~\cite{Zhou2026} introduce a physics-informed neural-network solver for the puncture Hamiltonian constraint on a single configuration and identify parameterized initial-data solvers as an important direction for future work.
 Analytic perturbative constructions~\cite{Ogurol2025} and neural representations of spacetime metrics~\cite{Cranganore2025} provide additional complementary approaches.
-None of these methods, however, constructs a parametric solver that can certify the constraint satisfaction, and provide exact derivatives of the resulting initial data with respect to the physical parameters.
+None of these methods, however, constructs a parametric solver that can certify the constraint satisfaction, and provide analytic derivatives of the resulting initial data with respect to the physical parameters.
 
 
-This paper addresses this gap by introducing a parametric solver for binary-black-hole puncture initial data with certified constraint satisfaction and exact differentiability with respect to the physical parameters.
+This paper addresses this gap by introducing a parametric solver for binary-black-hole puncture initial data that is analytically differentiable with respect to the physical parameters and whose every returned datum satisfies the constraints to a checked tolerance.
 Rather than replacing the elliptic solve with an approximation, the method constructs a sparse interpolant that provides a high-quality initial guess for the nonlinear solve, after which a small number of Newton iterations recover a fully converged solution satisfying the Einstein constraint equations.
 We demonstrate the approach for both a four-dimensional aligned-spin model and an eight-dimensional general-spin quasi-circular model, and apply it to two representative tasks: targeting physical parameters and reducing orbital eccentricity.
 
 
-The proposed solver combines three properties that, to our knowledge, have not previously been demonstrated together for binary-black-hole puncture initial data: it is parametric, provides certified constraint satisfaction, and is exactly differentiable with respect to the physical parameters.
-It provides \emph{certified constraint satisfaction}. Every queried parameter is refined by Newton iterations until the constraint residual satisfies $\|R\|_\infty \le 10^{-10}$, ensuring that every returned initial datum satisfies the Einstein constraints to a prescribed tolerance.
+The proposed solver is \emph{parametric} and \emph{analytically differentiable} with respect to the physical parameters, a combination that, to our knowledge, has not previously been demonstrated for binary-black-hole puncture initial data.
+The entire construction is implemented in JAX~\cite{Jax2018}, so the resulting parameter-to-solution map is differentiable with respect to the physical parameters, and these derivatives are obtained automatically through algorithmic differentiation rather than by finite differencing.
+Neither property is bought at the cost of accuracy.
+Every queried parameter is refined by Newton iterations of the genuine elliptic solver until the discrete constraint residual satisfies $\|R\|_\infty \le 10^{-10}$, a gate checked before the datum is returned; the corresponding continuum constraint violation is verified independently on an evolution grid in Appendix~\ref{sec:validation:constraints}.
 The sparse interpolant therefore accelerates the computation but does not replace the underlying elliptic solver.
-It provides \emph{exact differentiability}.
-The entire construction is implemented in JAX~\cite{Jax2018}, making the resulting parameter-to-solution map differentiable with respect to the physical parameters.
-These derivatives are obtained automatically through algorithmic differentiation.
 
 
 The remainder of this paper is organized as follows.
@@ -187,7 +187,8 @@ In the conformal decomposition, the spatial metric and extrinsic curvature are
 $\gamma_{ij} = \psi^4 f_{ij}$ and $K^{ij} = \psi^{-10}\Ahat^{ij}$, where
 $f_{ij}$ is the flat conformal metric and $\Ahat^{ij}$ is the conformal
 (Bowen--York) extrinsic curvature. We assume maximal slicing,
-$K\equiv f_{ij}K^{ij}=0$. If $\Ahat^{ij}$ is transverse with respect to the flat
+$K\equiv\gamma_{ij}K^{ij}=0$, equivalently $f_{ij}\Ahat^{ij}=0$ since
+$K=\psi^{-6}f_{ij}\Ahat^{ij}$. If $\Ahat^{ij}$ is transverse with respect to the flat
 metric, $\partial_i\Ahat^{ij}=0$, the momentum constraint is satisfied
 analytically (Sec.~\ref{sec:problem:source}), while the Hamiltonian constraint
 reduces to the nonlinear Lichnerowicz--York equation
@@ -303,7 +304,10 @@ The puncture decomposition isolates the singular part of the conformal factor in
 Near puncture $X$, $\psiBL^{-7}\sim r_X^7$, whereas the momentum and spin self-contractions scale as $\Ahat_{P,X}^2\sim r_X^{-4}$ and $\Ahat_{S,X}^2\sim r_X^{-6}$, respectively.
 Hence, their contributions to the effective source in Eq.~\eqref{eq:u_eq} vanish at least linearly as $r_X\to0$.
 The cross terms are likewise regular and vanish at the puncture.
-Consequently, $u$ is smooth throughout the compactified computational domain, making it well suited to the spectral discretization introduced in Sec.~\ref{sec:solve}.
+A source vanishing linearly leaves $u$ with a local $r_X^3$ term, which in Cartesian coordinates is only twice differentiable at the puncture.
+The compactified prolate chart of Sec.~\ref{sec:solve:abt} removes this obstruction: inverting Eq.~\eqref{eq:abt_map} gives $r_{A,B}=b\,[A^2(1\pm B)+(1\mp B)]/(1-A^2)$, upper sign for the puncture at $z=+b$, a rational function of the coordinates that vanishes only at the corresponding corner.
+The odd powers of $r_X$ generated at a puncture are therefore analytic in $(A,B)$.
+Together with the associated-Legendre prefactor that carries the $B=\pm1$ behavior (Sec.~\ref{sec:solve:abt}), this is what makes $u$ smooth throughout the compactified computational domain, and well suited to the spectral discretization introduced in Sec.~\ref{sec:solve}.
 
 
 
@@ -360,10 +364,12 @@ with basis functions,
   \phi_{nl}^{m}(A,B,\phi) \, \equiv \, T_n(2A-1) \, P_l(B) (1-B^2)^{|m|/2} \, e^{im\phi} .
   \label{eq:basis}
 \end{equation}
-The basis consists of a Fourier expansion in the azimuthal angle $\phi$, (with $c^{-m}_{nl}=(c^{m}_{nl})^{*}$ since
-$u$ is real), Chebyshev polynomials $T_n$ in the compactified radial coordinate
+The basis consists of a Fourier expansion in the azimuthal angle $\phi$ (with
+$c^{-m}_{nl}=(c^{m}_{nl})^{*}$ since $u$ is real, and with the Nyquist term
+$|m|=N_\phi/2$ counted once, since on $N_\phi$ equispaced nodes it retains only
+its cosine part; see Fig.~\ref{fig:tpspec}), Chebyshev polynomials $T_n$ in the compactified radial coordinate
 $A$, and Legendre polynomials $P_l$ in the angle $B$. The associated-Legendre
-prefactor $(1-B^2)^{|m|/2}$ carries the exact behaviour of the regular $m$-mode at
+prefactor $(1-B^2)^{|m|/2}$ carries the exact behavior of the regular $m$-mode at
 the outer axis $B=\pm1$. For odd $m$ this yields a square-root branch point that a bare
 polynomial can only resolve algebraically, so we solve for the smooth polynomial
 factor and differentiate the prefactor analytically, restoring spectral
@@ -469,7 +475,8 @@ satisfy the constraint. Row equilibration removes it: scaling each row by
 $s^{(m)}_i \equiv \max_j \bigl|(M_0^{(m)})_{ij}\bigr|$ leaves the solution
 unchanged, so the honest measure is the \emph{row-equilibrated} residual
 $\max_m \max_i \big|\hat R^{(m)}_{i}/s^{(m)}_{i} \big|$, and it is this
-well-conditioned norm that the Newton iteration drives to zero.
+well-conditioned norm that the Newton iteration drives to zero. Throughout this
+paper $\|R\|_\infty$ denotes this row-equilibrated discrete residual.
 This residual is nonetheless a \emph{solver-internal} diagnostic; the
 \emph{physical} constraint violation of the emitted data, measured on an
 evolution grid by an independent numerical-relativity code with no reference to
@@ -498,10 +505,13 @@ Bowen--York spin that enters the analytic source is $\vect{S}^{X} = \boldsymbol{
 interpolation axes are $q$, $b$, and the individual spin \emph{components}
 $\chi^{X}_{i}$, i.e.\ up to eight scalar axes for the full two-spin family.
 
-Sampling the spins in $\chi^{X}_{i}$ keeps the parameter domain rectangular,
-because the physical Kerr bound $|\chi^{X}_{i}|\le1$ is independent of the
-component masses. The spin axes are therefore fixed independent of $q$ and
-symmetric about zero. Each
+Sampling the spins in $\chi^{X}_{i}$ keeps the parameter domain rectangular:
+because $\boldsymbol{\chi}^{X}$ is normalized to its own puncture mass, its range
+does not depend on the component masses, so the spin axes are fixed independent of
+$q$ and symmetric about zero. The domain is thus a hypercube in the spin
+\emph{components}. It is a box of free data rather than a physical spin domain:
+the free-data spin parameter is not the horizon spin of the resulting hole, a
+distinction we return to in Sec.~\ref{sec:conclusions}. Each
 interpolation axis is finally mapped affinely onto $[-1,1]$, the natural domain
 of the Chebyshev basis.
 
@@ -574,10 +584,11 @@ solver of Sec.~\ref{sec:solve:newton}. Taking the barycentric prediction as the
 initial iterate, $u^{(0)} = \mathcal{I}[u](\theta)$, we then apply the Newton
 iteration of Eq.~\eqref{eq:newton}, with the residual $R$ and analytic Jacobian $J$ of
 Eqs.~(\ref{eq:residual},\ref{eq:jacobian}). Because the guess is already close,
-a few steps drive the constraint residual to $\|R\|_\infty \le 10^{-10}$
-at \emph{any} queried parameter,
-\emph{independent} of the interpolation error. This is the certification guarantee;
-Sec.~\ref{sec:model:joint} makes it quantitative for the shipped models.
+a few steps drive the constraint residual to $\|R\|_\infty \le 10^{-10}$,
+\emph{independent} of the interpolation error, and that residual is checked before
+the datum is returned, so a query cannot be silently wrong. This is the
+certification guarantee; Sec.~\ref{sec:model:joint} makes it quantitative for the
+shipped models.
 
 Two quite different quantities measure how good a guess $u^{(0)}$ is: its
 \emph{field} error $\|u^{(0)}-u_{\rm true}\|_2/\|u_{\rm true}\|_2$, the ordinary
@@ -622,8 +633,10 @@ first-order forward-sensitivity equation
   \label{eq:tangent}
 \end{equation}
 with the same Jacobian $J=\partial R/\partial U$ (Eq.~\ref{eq:jacobian}) that the
-certified solve has already factored, so each tangent costs one back-solve and no new
-factorization. What each axis needs is its own right-hand side, and on every axis of the
+certified solve uses. The tangent therefore reuses that matrix-free operator and its
+block-diagonal preconditioner (Sec.~\ref{sec:solve:newton}), costing one
+preconditioned GMRES solve and no further nonlinear solve.
+What each axis needs is its own right-hand side, and on every axis of the
 box that derivative is closed-form. On the interior rows
 $\partial R/\partial\theta_k =
 \tfrac{1}{8}\bigl[(\psiBL+u)^{-7}\,\partial\Ahat^2/\partial\theta_k
@@ -655,8 +668,9 @@ interpolating a derivative: this error is the derivative of the field interpolat
 error, and is not bounded by it.
 
 Certification and differentiability therefore coexist rather than compete: every
-returned datum satisfies the constraints to tolerance, and its exact dependence on
-the physical parameters is available at once. This is what separates these
+returned datum satisfies the constraints to tolerance, and an analytic, never
+finite-differenced parameter gradient is available at once, anchored at the nodes
+to the certified sensitivity of Eq.~\eqref{eq:tangent}. This is what separates these
 sensitivities from those of a bare interpolant or a neural-network surrogate, and
 what makes the gradient-based applications of Sec.~\ref{sec:applications} possible.
 
@@ -666,7 +680,7 @@ what makes the gradient-based applications of Sec.~\ref{sec:applications} possib
 % ===========================================================================
 Every certified solution carries verified parameter tangents, produced during the
 offline build (Sec.~\ref{sec:param:build}) for the cost
-of a single back-solve against the node's already-factored Jacobian
+of a single linear solve against the node's Jacobian
 (Sec.~\ref{sec:param:diff}). This derivative information has therefore already been
 paid for, and to interpolate only the stored field values $U_i$ of
 Eq.~\eqref{eq:surrogate} would discard it. Gradient-enhanced (Hermite) collocation
@@ -754,8 +768,8 @@ gives the second-order forward-sensitivity equation
   \label{eq:cross_tangent}
 \end{equation}
 \end{widetext}
-with the \emph{same} factored Jacobian $J=\partial R/\partial U$ as the first tangent
-(Eq.~\ref{eq:jacobian}), i.e.\ one further back-solve and no new factorization.
+with the \emph{same} Jacobian $J=\partial R/\partial U$ as the first tangent
+(Eq.~\ref{eq:jacobian}), i.e.\ one further linear solve and no further nonlinear solve.
 Because the spins enter the residual only through $\Ahat^2$
 (Sec.~\ref{sec:param:diff}), every term on the right is a closed-form, node-diagonal
 function of the source and its first two spin-derivatives, so no finite differencing
@@ -771,9 +785,9 @@ the higher mixed partials of the correspondingly larger tensor product, and we d
 pursue it: Sec.~\ref{sec:model:enhanced} finds that a larger enhanced set degrades the
 model rather than improving it.
 
-The gradient-enhanced model is thus more accurate at no additional expensive cost: it
-reuses derivative information already produced by the offline build, introduces no
-new elliptic solves, and concentrates its accuracy gain along the slowly converging
+The gradient-enhanced model is thus more accurate without any additional nonlinear
+elliptic solves: it reuses derivative information already produced by the offline
+build, and concentrates its accuracy gain along the slowly converging
 spin directions where interpolation is hardest.
 What it does cost is storage, since the tangents and their cross are kept alongside the
 value at every node; Sec.~\ref{sec:model:pod} weighs the two families against stored
@@ -790,7 +804,7 @@ parameter point $\theta$ from an initial guess and, optionally, the parameter
 tangent $dU/d\theta$. The interpolation nodes are populated by traversing the
 tensor grid in a boustrophedon (reflected-serpentine) order, so that successive
 nodes only differ by a single parameter increment. Each Newton solve can therefore
-warm-start from the converged solution at a neighbouring parameter point,
+warm-start from the converged solution at a neighboring parameter point,
 while only the first solve requires a cold start.
 
 
@@ -842,7 +856,9 @@ nodes are nested, the union of these subgrids is the sparse grid, and every node
 solved only once.
 
 The sparse grid replaces the exponential offline solve count with one that grows as $O(m\,(\log m)^{d-1})$ nodes versus $O(m^d)$,
-i.e.\ polynomially in the per-axis resolution and near-linearly in the dimension, while retaining nearly the full
+i.e.\ near-linearly in the per-axis resolution $m$ at fixed $d$, with a
+polylogarithmic factor whose order still grows with $d$: the dimensional dependence
+is strongly mitigated rather than removed. It retains nearly the full
 tensor-product accuracy. This scalability makes the higher-dimensional general-spin
 family tractable, where the full tensor grid is not, and the saving in offline solve
 count is quantified in Sec.~\ref{sec:model:joint}.
@@ -857,7 +873,7 @@ the isotropic simplex can be replaced by a \emph{dimension-adaptive} downward-cl
 index set~\cite{NobileTemponeWebster2008} grown greedily along the axes whose
 surpluses remain large, a refinement we leave to future work. In every case the
 sparse grid reduces the number of expensive offline solves without weakening the
-certification guarantee or the exact differentiability that define the method.
+certification guarantee or the analytic differentiability that define the method.
 
 % ===========================================================================
 \subsection{Reduced-basis re-encoding}
@@ -866,7 +882,8 @@ certification guarantee or the exact differentiability that define the method.
 Because the model \emph{is} its stored nodal solves (Eq.~\ref{eq:surrogate}), its
 memory grows linearly in the node count, which becomes a liability in
 high dimension. However, since the parameter-to-field map is smoothly low
-rank, the corpus admits a lossless reduced-basis re-encoding.
+rank, the corpus admits a low-rank reduced-basis re-encoding whose truncation the
+certified polish removes.
 
 We compress by \emph{proper orthogonal decomposition} (POD, equivalent to
 principal-component analysis)~\cite{Sirovich1987,BerkoozHolmesLumley1993}. Stacking
@@ -881,7 +898,7 @@ coefficient vector at each node, i.e.\ $r$ numbers per node in place of the full
 barycentric/Smolyak machinery of Eq.~\eqref{eq:surrogate} and decode
 $u(\theta)=\bar u+\Phi\,c(\theta)$.
 
-Two properties make this a re-encoding rather than a lossy approximation. First,
+Two properties keep the truncation harmless. First,
 interpolation is linear, so interpolating the projected coefficients is
 \emph{identical} to projecting the full-field interpolant onto the $r$ leading
 modes: the compressed model is exactly the rank-$r$ truncation of
@@ -910,10 +927,13 @@ dimensionless spins with every component in $[-0.9,0.9]$, at fixed total mass
 $M=1$: a four-dimensional \emph{aligned-spin} model
 $\theta=(b,q,\chi^{A}_{y},\chi^{B}_{y})$ and the full eight-dimensional
 \emph{general-spin} model $\theta=(b,q,\boldsymbol{\chi}^{A},\boldsymbol{\chi}^{B})$
-(Sec.~\ref{sec:model:8d}), whose in-plane spin axes are centred on zero so the
+(Sec.~\ref{sec:model:8d}), whose in-plane spin axes are centered on zero so the
 aligned model nests, node-for-node, inside it.
 Table~\ref{tab:box} collects the box and the build configuration the two models
-share, for reference.
+share, for reference. The spin box is a hypercube in the components, so its corners
+combine them into $|\boldsymbol{\chi}^{X}|=0.9\sqrt3\approx1.56$; these are
+Bowen--York free-data parameters rather than horizon spins, which saturate well
+below them (Sec.~\ref{sec:conclusions}).
 
 \begin{table}[t]
   \caption{\label{tab:box}%
@@ -1012,8 +1032,8 @@ Sweeping one parameter at a time, every axis converges geometrically
 (Fig.~\ref{fig:peraxis}). The separation $b$ and mass ratio $q$ are the fastest;
 the spins are somewhat slower, but all eight rates lie within a narrow band, and
 the two holes' spin axes converge at comparable rates. Gradient enhancement (Sec.~\ref{sec:param:hermite}) roughly doubles every
-rate for the price of one extra back-solve per node against the node's
-already-factored Jacobian. Because the joint held-out error is governed by the
+rate for the price of one extra linear solve per node against the node's
+Jacobian. Because the joint held-out error is governed by the
 slowest of these axes, it is the spin directions that set the offline cost of the
 model (Fig.~\ref{fig:joint} and Sec.~\ref{sec:model:joint}).
 
@@ -1169,13 +1189,15 @@ Because the model is nothing but its stored nodal solves, its memory is
   \caption{\label{fig:joint}%
     \textbf{Joint held-out convergence.} Joint held-out error over $1000$ random
     off-node points against solver node count (logarithmic, shared between
-    panels), with the Smolyak level $\ell=1$--$5$ labelled at each point, shown as
+    panels), with the Smolyak level $\ell=1$--$5$ labeled at each point, shown as
     the best, median, and worst of the distribution.
     \emph{Left (four-dimensional model):} the
     value-only sparse interpolant against the full-bilinear gradient-enhanced
     model enhanced on the two spin axes, which is more accurate
     at every level and reaches a $\sim\!35\times$ deeper best-case floor at the
-    same node count, from the node tangents alone.
+    same node count, from derivative information already stored at the nodes --- the
+    two first tangents \emph{and} their bilinear cross --- at no additional nonlinear
+    elliptic solves.
     \emph{Right (eight-dimensional model):} the same two curves.}
 \end{figure*}
 
@@ -1201,7 +1223,7 @@ Because the model is nothing but its stored nodal solves, its memory is
 \subsection{How many axes to enhance}
 \label{sec:model:enhanced}
 
-Because the enhanced subspace is where the extra back-solves are spent, we tested
+Because the enhanced subspace is where the extra linear solves are spent, we tested
 whether $\mathcal{E}$ should be enlarged beyond the two aligned-spin axes. It should
 not. Enhancing a \emph{single} axis always improves on the value interpolant, but
 enhancing several axes with tangents alone degrades it, and it does so whichever axes
@@ -1221,7 +1243,7 @@ degradation is only the \emph{number} of simultaneously enhanced axes.
 
 The mechanism we expect is the following, although we have not established it
 directly. The Smolyak interpolant of Eq.~\eqref{eq:smolyak} is a \emph{signed} sum:
-neighbouring subgrid interpolants enter with opposite signs and cancel almost
+neighboring subgrid interpolants enter with opposite signs and cancel almost
 completely, so the retained result is a small difference of much larger terms, and its
 error is limited by the size of those terms and not by their difference. That size is
 set by the operator norms of the one-dimensional rules the term is built from, one
@@ -1245,7 +1267,7 @@ Promoting the two aligned spins to full vectors takes the model to eight
 dimensions, $\theta=(b,q,\boldsymbol{\chi}^{A},\boldsymbol{\chi}^{B})$, where the
 tensor grid's $Q^d$ cost makes the Smolyak construction of
 Sec.~\ref{sec:param:smolyak} not merely advantageous but necessary. The method is
-unchanged: with the in-plane spin axes centred on zero, the four-dimensional
+unchanged: with the in-plane spin axes centered on zero, the four-dimensional
 aligned model nests, node-for-node, inside the eight-dimensional one, and the
 $\ell=5$ grid is $15{,}713$ solver nodes, reusing the entire aligned corpus and
 adding only the genuinely-new precessing nodes. Its in-plane spin axes converge
@@ -1299,15 +1321,15 @@ predictor. The decomposition is computed once from the existing corpus, with no 
     residual $\|R\|_\infty$ (top row) and
     relative field error $\|u-u_{\rm true}\|_2/\|u_{\rm true}\|_2$ (bottom row), as the POD
     truncation rank $r$ is swept. Median line with min--max whiskers over $1000$
-    uniformly-random off-node query points; each point is labelled by $r$ and
+    uniformly-random off-node query points; each point is labeled by $r$ and
     $\star$ marks the full-rank model.
     Columns share the memory axis:
     \emph{left,} the four-dimensional and \emph{right,} the
     eight-dimensional quasi-circular model.
     Compressing raises the residual, but
     this warm-start quality is irrelevant to correctness: the certified polish
-    (Sec.~\ref{sec:polish}) drives every query to $\|R\|_\infty\le10^{-10}$ at any
-    rank, so compression can cost Newton steps but never accuracy. The field error \emph{saturates}
+    (Sec.~\ref{sec:polish}) drives every query to $\|R\|_\infty\le10^{-10}$ at every
+    rank shown, so compression can cost Newton steps but never accuracy. The field error \emph{saturates}
     at a far lower rank than the residual, so the redundancy discarded by
     compression is exactly the high-derivative content the residual amplifies and
     the field norm cannot see (the decoupling of Sec.~\ref{sec:polish}).}
@@ -1332,7 +1354,23 @@ demonstrate both in two applications: certified parameter targeting on a
 four-dimensional quasi-circular model, and eccentricity reduction on a
 purpose-built two-dimensional $(b,P_t)$ model. Each targets
 a standard numerical-relativity initial-data workflow, and in each the honest cost
-metric is the number of \emph{certified} elliptic solves.
+metric is the number of \emph{certified} elliptic solves, i.e.\ nonlinear solves
+whose returned field has passed the $\|R\|_\infty\le10^{-10}$ gate of
+Sec.~\ref{sec:polish}. This is the unit used in every cost statement and figure
+below; the Newton steps and linear solves inside one such solve are not counted
+separately.
+
+Both applications read physical observables off that certified field. The ADM mass
+is the monopole of the solved conformal factor,
+$\Madm=(m_A+m_B)-2b\,\langle\partial_A u\rangle_{A=1}$ on the $m=0$ mode at the
+compactified outer edge; the angular momentum $J$ is the Bowen--York surface
+integral, which for the nonspinning configurations targeted here reduces to the
+closed form $2bP_t^{\rm tot}$ of Sec.~\ref{sec:model:qc}; and the individual hole
+masses are the Brandt--Br\"ugmann puncture masses
+$M_X=m_X\bigl(1+u(\vect{x}_X)+m_Y/2D\bigr)$ with $Y\neq X$, evaluated at the
+punctures on the same field. Each is therefore a differentiable function of the
+parameters through $u$, and each is validated against TwoPunctures in
+Appendix~\ref{sec:validation:qc}.
 
 \subsection{Certified parameter targeting}
 \label{sec:applications:targeting}
@@ -1347,9 +1385,12 @@ the four-dimensional aligned-spin model of Sec.~\ref{sec:model}. A \emph{cold} b
 solves the constraints from scratch at each control evaluation. A \emph{warm} black
 box seeds each solve from the interpolant, so every constraint solve begins close to
 its answer. The \emph{differentiable} method runs the entire Gauss--Newton control
-loop on the free parametric model using the analytic $\partial F/\partial\theta$, then certifies the
-result with a few Newton steps (i.e.\ no
-elliptic solve per step, and no finite-difference Jacobian).
+loop on the free parametric model using the analytic $\partial F/\partial\theta$, so
+that no elliptic solve and no finite-difference Jacobian enters the loop. It then
+certifies the result and, because the free model carries interpolation error, applies
+a short last-mile correction whose every step is re-certified, so the target residual
+is always measured on a certified field. That certification and its last-mile
+correction are the certified solves counted below.
 
 Differentiability changes the cost class here
 (Fig.~\ref{fig:targeting}). The gradient method reaches every target in at most
@@ -1427,8 +1468,8 @@ $\partial e/\partial\theta$ for gradient-based eccentricity reduction.
 
 Both workflows make the same point: the differentiable, certified map turns a
 black-box search (a control loop and an effective-potential scan) into a gradient
-problem solved on the free parametric model and certified in a handful of Newton steps,
-where the black box instead pays a full certified elliptic solve at every trial.
+problem solved on the free parametric model and closed out in a handful of certified
+solves, where the black box instead pays a full certified elliptic solve at every trial.
 
 % ===========================================================================
 \section{Discussion and conclusions}
@@ -1439,10 +1480,10 @@ that combines sparse interpolation with Newton refinement. The interpolation
 supplies an inexpensive parameter-dependent initial guess, while the subsequent
 elliptic solve certifies every returned datum to a prescribed constraint tolerance.
 Because the construction is implemented in JAX, the resulting parameter-to-solution
-map is also exactly differentiable with respect to the physical parameters. The
+map is also analytically differentiable with respect to the physical parameters. The
 four-dimensional aligned-spin and eight-dimensional general-spin models demonstrate
-that this construction remains practical across physically relevant
-binary-black-hole parameter spaces, while the parameter-targeting and
+that this construction remains practical across the aligned- and general-spin
+parameter spaces of moving-puncture practice, while the parameter-targeting and
 eccentricity-reduction examples show how its derivatives can reduce the number of
 certified elliptic solves required in downstream workflows.
 
@@ -1467,7 +1508,7 @@ nearly-extremal-spin simulations use conformally curved (e.g.\ superposed
 Kerr--Schild) initial data~\cite{Lovelace2008}. Within the moving-puncture
 mainstream ($\chi\lesssim0.9$) the family built here is the standard input; and
 because the parametric layer is solver-agnostic
-(Sec.~\ref{sec:param:build}), a conformally-curved solver could be swapped in
+(Sec.~\ref{sec:param:build}), a conformally curved solver could be swapped in
 under the same interpolation, certification, and compression machinery.
 We will explore this in future work.
 
@@ -1484,12 +1525,12 @@ content, while the physically populated modes stay three orders of magnitude
 below. The floor is therefore set by empty modes rather than by the physics, and
 the certification tolerance should be read at the grid it is quoted for.
 
-Finally, beyond the immediate use cases, the method produces exactly the kind of
-object a broader surrogate or foundation-model programme for binary-black-hole
-spacetimes needs at its base: a fast, \emph{exact} (constraint-certified), and
-\emph{differentiable} initial-data generator across a physical parameter space.
-Such a generator can serve as a certified training source and a warm-start oracle
-for those models, supplying gradients $\dID$ for end-to-end parameter inference.
+Finally, beyond the immediate use cases, the method supplies what a data-driven
+model of binary-black-hole spacetimes needs at its input: a fast,
+\emph{differentiable} initial-data generator across a physical parameter space
+whose output satisfies the constraints to a checked tolerance. Such a generator can
+serve as a training source and a warm-start oracle for those models, supplying
+gradients $\dID$ for end-to-end parameter inference.
 
 % ===========================================================================
 \begin{acknowledgments}
@@ -1653,7 +1694,7 @@ variables of the CCZ4 system rather than from the conformal factor directly, so
 the measurement also exercises the conversion into evolution form that a
 simulation actually performs.
 
-The data is transferred as the solved conformal factor on its spectral grid and
+The data are transferred as the solved conformal factor on its spectral grid and
 evaluated in the evolution code by a direct port of the interpolation used here.
 Since the transfer accepts a conformal factor from any source, we also run the TwoPunctures solution through
 it, on the same spectral grid, so that the initial data is the only difference
