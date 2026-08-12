@@ -23,11 +23,10 @@ Modes:
   (default)   1000 truth solves + build L=1..5 from store + best/median/worst.
   --smoke     8 points, levels 1-2 (~a few min).
 
-Run (single node; ~1000 modified-Newton truth solves ~2-4 h):
-  sbatch --time=12:00:00 \
-    --export=ALL,DRIVER=run_qc_joint_dist_chi.py,ARGS=--box d4_qc_chi_prod,\
-JOB_DIR=reports/3D_parametric/qc_chi/_mark_jointdist \
-    slurm/ivs/submit_lm_initial_data_cpu_hi.slurm
+Run (single node, ~1000 modified-Newton truth solves ~2-4 h — so on a cluster give
+it a walltime of ~12 h):
+  python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_qc_joint_dist_chi \
+      --box d4_qc_chi_prod
 """
 from __future__ import annotations
 import argparse, glob, json, os, sys, time

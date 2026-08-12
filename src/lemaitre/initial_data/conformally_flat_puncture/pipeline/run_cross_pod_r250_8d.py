@@ -31,7 +31,7 @@ nfeat) = 11520 = nfeat, i.e. no compression) allocates the same again.
 
     peak RSS ~ 205 GB      runtime ~ 1-2 h      output ~ 340 MB
 
-Request the memory accordingly (``--mem=240G`` on a 256 GB ivs-long node).
+Request the memory accordingly (``--mem=240G`` on a 256 GB node).
 ``--project-rank`` is the escape hatch if that much is unavailable: it projects
 onto the leading ``r`` POD modes instead of all ``r_full`` of them, which drops
 the peak to ~125 GB.  ``pod_basis`` always computes the *same* full SVD and then

@@ -68,7 +68,8 @@ the figure→producer→artifact graph).
   check: `validation/constraints.py` + its tests). Three stages:
 
   1. `python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_export_grteclyn --out reports/grteclyn_export
-     --tp` (cluster: `slurm/ivs/submit_export_grteclyn.slurm`, ~3 min) — solves each
+     --tp` (~3 min; needs a machine with AVX, so on a cluster submit it as a batch
+     job) — solves each
      configuration and writes `<name>.lmid` plus a `<name>_reference.dat` table of `psi`
      and `Ahat` values that the C++ evaluator is validated against. With `--tp` it also
      writes the TwoPunctures conformal factor **on the identical spectral grid**, so the
@@ -83,8 +84,8 @@ the figure→producer→artifact graph).
 
   The oracle cost collapses in this arrangement: it is queried at ~15 000 **spectral
   nodes** (~26 s) instead of the ~26 million Cartesian points the in-house comparison
-  needed (~13 h serial). `slurm/ivs/submit_fig10_constraints.slurm` drove that old sweep
-  and is retired.
+  needed (~13 h serial). The cluster sweep that drove the old arrangement is retired
+  along with it.
 
 ## What is committed vs regenerated
 

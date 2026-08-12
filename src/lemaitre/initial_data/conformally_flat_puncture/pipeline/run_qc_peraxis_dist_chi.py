@@ -35,11 +35,10 @@ Add-only: no existing module or driver is modified.  Output ->
 Smoke (1 axis, 2 samples, Q=[4,6]; times value-solve vs tangent for the ETA):
   python run_qc_peraxis_dist_chi.py --smoke
 
-Full run (cluster job array; e.g. 40 tasks, <=20 concurrent):
-  sbatch --array=0-39%20 \
-    --export=ALL,DRIVER=run_qc_peraxis_dist_chi.py \
-    slurm/ivs/submit_lm_initial_data_cpu_array_hi.slurm
-  # then, after all tasks finish:
+Full run (cluster job array; e.g. 40 tasks, <=20 concurrent).  Each task takes a
+disjoint stride of the sample pool from ``SLURM_ARRAY_TASK_ID`` /
+``SLURM_ARRAY_TASK_COUNT``, so submit this module as an array job with whatever
+submit script your cluster uses, then merge:
   python run_qc_peraxis_dist_chi.py --assemble
 """
 from __future__ import annotations

@@ -35,8 +35,8 @@ Every emitted configuration is certified to ``‖R‖∞ ≤ 1e-10``.  Writes
 Each target is an independent work unit (its own known-answer target and its own
 three control loops), so the ``--n 100`` study strides across a job array and merges:
 
-  sbatch --array=0-9 --export=ALL,DRIVER=run_qc_targeting,ARGS="--n 100" \
-      slurm/ivs/submit_lm_initial_data_cpu_array_hi.slurm
+  # submit as a 10-task array (``--n 100``) with your cluster's submit script; each
+  # task strides on SLURM_ARRAY_TASK_ID / SLURM_ARRAY_TASK_COUNT, then:
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_qc_targeting --n 100 --assemble
 
 ``--ntasks 1`` (the default off SLURM) runs every target in one process and writes the

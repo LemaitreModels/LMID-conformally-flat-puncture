@@ -24,9 +24,10 @@ FAITHFUL + CHEAP:
 
 Add-only.  Imports committed ``lemaitre.initial_data.conformally_flat_puncture`` modules read-only; edits nothing.
 
-Run (compute node, via sbatch):
-  DRIVER=run_qc_joint_dist_hermite_8d.py sbatch ... slurm/ivs/submit_lm_initial_data_cpu_hi.slurm
-Smoke:  ARGS="--smoke"
+Run (a compute node with ~256 GB — see the memory note above; submit it as a batch
+job with whatever submit script your cluster uses):
+  python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_qc_joint_dist_hermite_8d
+Smoke:  ... run_qc_joint_dist_hermite_8d --smoke
 """
 from __future__ import annotations
 import argparse, gc, glob, itertools, json, os, sys, time
