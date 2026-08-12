@@ -9,6 +9,7 @@
 *.synctex.gz
 *.toc
 *.pdf
+paperNotes.bib
 # vector figures are paper sources — keep them tracked (not build artifacts)
 !figures/*.pdf
 !references/*.pdf
