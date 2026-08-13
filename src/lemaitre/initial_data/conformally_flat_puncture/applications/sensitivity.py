@@ -57,6 +57,7 @@ from ..solver import operators_abt as ops
 from ..solver import source
 from ..parametric import parametric_nd_2c as p3
 from ..parametric.parametric_nd import ParametricSolutionND
+from ..parametric.certification import CERT_TOL
 from . import control as ctl   # reused verbatim: evaluate_observables (B2's ADM map)
 
 
@@ -298,7 +299,7 @@ def gauss_newton_target(ps: ParametricSolutionND, control_names: Sequence[str],
                         lm_init: float = 1e-3, lm_down: float = 0.5,
                         lm_up: float = 4.0, lm_max: float = 1e10,
                         polish: bool = True, polish_steps: int = 2,
-                        polish_tol: float = 1e-12) -> GNResult:
+                        polish_tol: float = CERT_TOL) -> GNResult:
     """Hit ``F(θ)=target`` by **damped Gauss–Newton** on the analytic ``∂F/∂θ``.
 
     The outer loop runs on the **differentiable surrogate** (each evaluation is a
@@ -320,7 +321,12 @@ def gauss_newton_target(ps: ParametricSolutionND, control_names: Sequence[str],
     F-evaluations are *interpolations* (no solve).  The certified elliptic solve is
     run **once** at the end (``ps.evaluate_polished``, 1–2 Newton steps of the
     *real* solver), so the returned ID satisfies ‖R‖∞ ≤ tol independently of the
-    surrogate's interpolation error (R7).
+    surrogate's interpolation error (R7).  ``polish_tol`` is the package gate
+    ``CERT_TOL``; it was ``1e-12`` until 2026-08-13, which no solve here could ever
+    reach — ``solver_abt.newton_solve`` floors at the nonlinear-source residual
+    (~1e-11 at moderate ``Na``) — so the certified residual was reported but the
+    tolerance it was reported against was unreachable, contradicting this
+    docstring's own ‖R‖∞ ≤ 1e-10 claim.
 
     The **value** of ``F`` is read through the node-safe numpy interpolant
     (``ps.evaluate`` + B2's ``control.evaluate_observables`` — byte-identical to

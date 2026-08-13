@@ -301,3 +301,10 @@ def test_polish_tol_defaults_are_the_gate():
 
     assert inspect.signature(T.gauss_newton_target).parameters["polish_tol"].default == CERT_TOL
     assert inspect.signature(T.broyden_target).parameters["tol_inner"].default == CERT_TOL
+
+    # `sensitivity` is the axisymmetric ABT cousin of the same loop. Its default was
+    # 1e-12 — below `solver_abt.newton_solve`'s ~1e-11 residual floor, so the
+    # tolerance its own docstring claimed (1e-10) was not the one it used.
+    from lemaitre.initial_data.conformally_flat_puncture.applications import sensitivity as S
+
+    assert inspect.signature(S.gauss_newton_target).parameters["polish_tol"].default == CERT_TOL
