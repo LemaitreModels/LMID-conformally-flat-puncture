@@ -61,6 +61,7 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import jax.numpy as jnp
 
+from .certification import CERT_TOL, certified_return   # the residual gate (one place)
 from .parametric_nd import (              # reused verbatim (the N-D primitives + IO)
     tensor_param_nodes,
     snake_order,
@@ -203,19 +204,22 @@ class HermiteSolutionND:
         return accV
 
     # ----- certified evaluation (unchanged; reuses the attached solve_fn) -----
-    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = 1e-12):
+    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
+                          strict: bool = False):
         """Hermite prediction + 1–2 Newton steps → certified ``‖R‖≤tol`` at ``θ``.
 
         The Hermite object is only a *guess*; certification is unchanged from the
         committed path (the attached ``solve_fn`` → ``newton_solve``).  Returns
         ``(U, info)`` with ``info.residual_norm`` the certified constraint
-        residual, independent of any interpolation error."""
+        residual, independent of any interpolation error.  ``strict=True`` closes
+        the gate: a datum that misses ``tol`` raises
+        :class:`~.certification.CertificationError` instead of being returned."""
         if self._solve_fn is None:
             raise RuntimeError(
                 "no solve_fn attached; build via HermiteSolverND / from_problem_nd_hermite")
         guess = jnp.asarray(self.evaluate(theta))
         U, info = self._solve_fn(np.asarray(theta, dtype=float), guess, tol, newton_steps)
-        return U, info
+        return certified_return(U, info, theta, tol, strict)
 
     # ----- persistence (numpy-only .npz; reuses the parametric_nd helpers) -----
     def save(self, path, *, meta=None):

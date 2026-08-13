@@ -26,6 +26,8 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import jax.numpy as jnp
 
+from .certification import CERT_TOL, certified_return   # the residual gate (one place)
+
 
 # --------------------------------------------------------------------------
 # Parameter nodes (Chebyshev–Gauss–Lobatto on [q_min, q_max])
@@ -79,17 +81,20 @@ class ParametricSolution:
         return out[0] if np.ndim(q) == 0 else out
 
     # ----- certified evaluation (§5.5) -----
-    def evaluate_polished(self, q, newton_steps: int = 2, tol: float = 1e-12):
+    def evaluate_polished(self, q, newton_steps: int = 2, tol: float = CERT_TOL,
+                          strict: bool = False):
         """Barycentric prediction + 1-2 Newton steps -> certified ||R||<=tol.
 
         Returns ``(U, info)`` where ``info.residual_norm`` is the certified
         constraint residual at q, independent of any interpolation error.
+        ``strict=True`` closes the gate: a datum that misses ``tol`` raises
+        :class:`~.certification.CertificationError` instead of being returned.
         """
         if self._solve_fn is None:
             raise RuntimeError("no solve_fn attached; build via ParametricSolver/from_problem")
         guess = jnp.asarray(self.evaluate(q))
         U, info = self._solve_fn(float(q), guess, tol, newton_steps)
-        return U, info
+        return certified_return(U, info, q, tol, strict)
 
 
 class ParametricSolver:

@@ -42,6 +42,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from .parametric import cheb_param_nodes   # reused verbatim (the 1-D CGL layer)
+from .certification import CERT_TOL, certified_return   # the residual gate (one place)
 
 
 # --------------------------------------------------------------------------
@@ -151,16 +152,19 @@ class ParametricSolutionND:
         return V
 
     # ----- certified evaluation (§5.5) -----
-    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = 1e-12):
+    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
+                          strict: bool = False):
         """Barycentric prediction + 1–2 Newton steps → certified ‖R‖≤tol at θ.
 
         Returns ``(U, info)``; ``info.residual_norm`` is the certified constraint
-        residual at θ, independent of any interpolation error (R7)."""
+        residual at θ, independent of any interpolation error (R7).  ``strict=True``
+        closes the gate: a datum that misses ``tol`` raises
+        :class:`~.certification.CertificationError` instead of being returned."""
         if self._solve_fn is None:
             raise RuntimeError("no solve_fn attached; build via ParametricSolverND/from_problem_nd")
         guess = jnp.asarray(self.evaluate(theta))
         U, info = self._solve_fn(np.asarray(theta, dtype=float), guess, tol, newton_steps)
-        return U, info
+        return certified_return(U, info, theta, tol, strict)
 
     # ----- persistence (numpy-only .npz; no pickle, no new deps) -----
     def save(self, path, *, meta=None):
@@ -350,7 +354,8 @@ def load_parametric(path) -> "ParametricSolutionND":
 
 def attach_solve_fn_3d(sol, prob, axis_names, *, M_tot: float = 1.0, fixed=None,
                        use_cache: bool = True, solver: str = "nk",
-                       gmres_rtol: float = 1e-4):
+                       gmres_rtol: float = 1e-4,
+                       retry_tol: Optional[float] = CERT_TOL):
     """Attach a 3-D ``solve_fn`` to a loaded surrogate so ``evaluate_polished``
     works (certified ``‖R‖∞ ≤ 1e-10``).
 
@@ -364,9 +369,20 @@ def attach_solve_fn_3d(sol, prob, axis_names, *, M_tot: float = 1.0, fixed=None,
     order).  This is the ONLY part of the persistence layer that needs jax / the
     solver — plain ``evaluate`` on a loaded model needs only numpy + the
     parametric modules (a standalone predictor).
+
+    ``retry_tol`` defaults **on** here, at the certification gate, unlike
+    ``make_solve_fn`` (whose default is ``None`` so that build-time behaviour is
+    bit-for-bit unchanged).  This is the query path of a *shipped* model, and it
+    is the path the certification claim is made about: at the extreme corners of
+    the box NK suffers a global-convergence stall from any start (see
+    ``make_solve_fn``), so without the damped-Newton globalization the one code
+    path a user actually calls is the one path with no fallback.  The retry fires
+    only when the NK solve misses the gate, so a well-converged query pays
+    nothing.  Pass ``retry_tol=None`` to reproduce the pre-2026-08 behaviour.
     """
     from .parametric_nd_3d import make_solve_fn
     solve_fn, _ = make_solve_fn(prob, list(axis_names), M_tot=M_tot, fixed=fixed,
-                                use_cache=use_cache, solver=solver, gmres_rtol=gmres_rtol)
+                                use_cache=use_cache, solver=solver, gmres_rtol=gmres_rtol,
+                                retry_tol=retry_tol)
     sol._solve_fn = solve_fn
     return sol

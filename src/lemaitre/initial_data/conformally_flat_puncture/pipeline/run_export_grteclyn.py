@@ -44,6 +44,7 @@ import time
 import numpy as np
 
 from lemaitre.initial_data.conformally_flat_puncture.parametric import quasicircular as qc
+from lemaitre.initial_data.conformally_flat_puncture.parametric.certification import CERT_TOL
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d_nk as nk
 from lemaitre.initial_data.conformally_flat_puncture.validation import export_grteclyn as eg
@@ -170,9 +171,13 @@ def main():
                     help="appended to the output names, so a "
                          "resolution variant does not overwrite the "
                          "production export")
-    # The paper's certification threshold.  1e-12 is below the equilibrated
-    # residual's roundoff floor (~2e-12 at this grid), so it never "converges".
-    ap.add_argument("--tol", type=float, default=1e-10)
+    # The paper's certification threshold, single-sourced from `parametric
+    # .certification`.  1e-12 is below the equilibrated residual's roundoff floor
+    # (~2e-12 at this grid), so it never "converges" — which is why CERT_TOL, not
+    # the tightest representable number, is the gate.  The `info.converged` check
+    # below is this script's copy of the gate: an export that misses it aborts
+    # rather than writing a .lmid an evolution would then trust.
+    ap.add_argument("--tol", type=float, default=CERT_TOL)
     ap.add_argument("--n-ref", type=int, default=256,
                     help="reference-table points for the C++ port test")
     args = ap.parse_args()

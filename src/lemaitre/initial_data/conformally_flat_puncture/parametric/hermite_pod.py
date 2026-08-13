@@ -107,6 +107,7 @@ from .parametric_nd import (              # persistence helpers, reused verbatim
 )
 from .hermite import cardinal_deriv_at_nodes           # node-set primitive (verbatim)
 from .hermite_nd import HermiteSolutionND               # the H2 interpolant (verbatim)
+from .certification import CERT_TOL, certified_return   # the residual gate (one place)
 
 
 # --------------------------------------------------------------------------
@@ -312,18 +313,21 @@ class PODHermiteND:
         return jnp.reshape(u, self.field_shape)
 
     # ----- certified evaluation (unchanged; decode → committed solve_fn) -----
-    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = 1e-12):
+    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
+                          strict: bool = False):
         """POD-decoded Hermite guess + 1–2 Newton steps → certified ``‖R‖≤tol``.
 
         Certification is unchanged: the compressed object is only a *guess*; the
-        attached ``solve_fn`` → ``newton_solve`` is the certificate."""
+        attached ``solve_fn`` → ``newton_solve`` is the certificate.  ``strict=True``
+        closes the gate: a datum that misses ``tol`` raises
+        :class:`~.certification.CertificationError` instead of being returned."""
         if self._solve_fn is None:
             raise RuntimeError(
                 "no solve_fn attached; build via project_hermite_pod with a solver-backed "
                 "HermiteSolutionND, or reattach a solve_fn")
         guess = jnp.asarray(self.evaluate(theta))
         U, info = self._solve_fn(np.asarray(theta, dtype=float), guess, tol, newton_steps)
-        return U, info
+        return certified_return(U, info, theta, tol, strict)
 
     # ----- persistence (numpy-only .npz) -----
     def save(self, path, *, meta=None, coeff_dtype=np.float64, mode_dtype=np.float64):

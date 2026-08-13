@@ -55,6 +55,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from .parametric_nd import snake_order, FORMAT_VERSION, _pack_meta, _git_commit
+from .certification import CERT_TOL, certified_return   # the residual gate (one place)
 from .parametric_nd_smolyak import (          # committed sparse primitives (verbatim)
     nested_levels,
     isotropic_index_set,
@@ -124,17 +125,20 @@ class HermiteSmolyakSolutionND:
         return out
 
     # ----- certified evaluation (the "cannot be silently wrong" gate) -----
-    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = 1e-12):
+    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
+                          strict: bool = False):
         """Sparse Hermite prediction + 1–2 Newton steps → certified ‖R‖≤tol at θ.
 
         Unchanged from the committed path: the sparse Hermite object is only a
-        *guess*; the attached ``solve_fn`` → ``newton_solve`` is the certificate."""
+        *guess*; the attached ``solve_fn`` → ``newton_solve`` is the certificate.
+        ``strict=True`` closes the gate: a datum that misses ``tol`` raises
+        :class:`~.certification.CertificationError` instead of being returned."""
         if self._solve_fn is None:
             raise RuntimeError("no solve_fn attached; build via HermiteSmolyakSolverND / "
                                "from_problem_hermite_smolyak_3d")
         guess = jnp.asarray(self.evaluate(theta))
         U, info = self._solve_fn(np.asarray(theta, dtype=float), guess, tol, newton_steps)
-        return U, info
+        return certified_return(U, info, theta, tol, strict)
 
     # ----- persistence: store the DEDUPLICATED node pool (value + tangent) -----
     def _dedup_pool(self) -> Dict[tuple, tuple]:

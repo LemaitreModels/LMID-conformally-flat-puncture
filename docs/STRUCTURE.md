@@ -81,6 +81,41 @@ tree, so the question never arises.
 `::test_lazy_attribute_access` fail loudly, with this fix in the message, rather
 than letting a degraded install pass silently.
 
+## The certification gate
+
+`parametric/certification.py` owns the one number the paper's central claim rests
+on — `CERT_TOL = 1e-10`, the threshold on the *equilibrated* discrete constraint
+residual — plus the comparison that enforces it. It is the default `tol` of every
+`evaluate_polished` in the package; the threshold is not restated anywhere else.
+
+The split to know:
+
+- **Measuring** is unconditional. Every `evaluate_polished` computes the residual
+  of the field it returns (after the last Newton step, on the returned iterate)
+  and hands it back as `info.residual_norm`.
+- **Enforcing** is opt-in, via `strict=True`. It has to be: the polish-history
+  producers (`run_polish_table.py`, `run_polish_cold.py`) query at `tol=1e-12`
+  precisely to watch the residual fall *through* `1e-10`, and a library-level
+  raise would make that measurement untakeable.
+- The gate is **closed at every exit** — `applications/qc_targeting.py`,
+  `applications/qc_effpot.py`, and `pipeline/run_export_grteclyn.py`. That is what
+  makes the paper's "a gate checked before the datum is returned" true of the
+  package rather than only of its bookkeeping.
+
+Historical note, because the failure mode was silent: before 2026-08-13 the
+default `tol` was `1e-12` — *below* the equilibrated residual's roundoff floor
+(~2e-12 on the production grid) — so `info.converged` was False on every
+default-tol query, the solver's own `if rn < tol: break` was unreachable, and no
+caller compared the residual to anything. `tests/test_certification.py` pins all
+of it, including that the `1e-12` default cannot creep back.
+
+`attach_solve_fn_3d` (the loader-side wiring that makes a *shipped* model
+queryable) defaults `retry_tol=CERT_TOL`, enabling the damped-Newton
+globalization that `make_solve_fn` leaves off by default. The asymmetry is
+deliberate: build-time behaviour stays bit-for-bit unchanged, while the query
+path — the one the certification claim is about, and the one that meets the
+extreme corners where Newton–Krylov stalls globally — gets the fallback.
+
 ## What was kept
 
 - The full `solver` / `parametric` / `applications` / `validation` module
@@ -93,8 +128,9 @@ than letting a degraded install pass silently.
   rungs `parametric`, `parametric_nd`, `hermite`, `hermite_nd`, `hermite_pod`,
   `parametric_nd_2c/_3d`). These are the paper's method ladder — each a distinct
   model, all test-covered — not redundant copies.
-- The 32-file acceptance suite (fast tier: **262 passing**; 29 `slow` tests need
-  the external TwoPunctures oracle).
+- The acceptance suite (as of 2026-08-13: 40 files, **589 tests, 2h01m**; 1
+  expected failure — `sympy` is an undeclared test dependency — and 29 `slow`
+  tests need the external TwoPunctures oracle).
 - The canonical figure producers + χ model builders, as `…pipeline`.
 - The paper source + figure scripts + the 9 figure PDFs.
 

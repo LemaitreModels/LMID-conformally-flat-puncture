@@ -34,6 +34,14 @@ one canonical version of each model. Normal engineering hygiene applies.
 > held-out accuracy gate a model must pass before it is consumed. They are enforced
 > in the producers and tests rather than restated in prose. Do not re-tune them or
 > rebuild a corpus without checking with the maintainers first.
+>
+> **The certification gate lives in exactly one place:**
+> `src/lemaitre/initial_data/conformally_flat_puncture/parametric/certification.py`.
+> `CERT_TOL = 1e-10` is the paper's threshold and the default `tol` of every
+> `evaluate_polished`; never restate the number elsewhere. The gate is **opt-in**
+> (`strict=True`) because the polish-history producers query below it on purpose —
+> but it is **closed at every point where a datum leaves the package** (`qc_targeting`,
+> `qc_effpot`, the GRTeclyn export). If you add such an exit, close it there too.
 
 ## Ground rules (load-bearing)
 
@@ -66,6 +74,25 @@ caffeinate -i pytest tests/test_solver_3d.py -v
 make figures                                   # regenerate figure data (recompute) + plot
 ```
 
+**The full suite is a two-hour job, not a forty-minute one.** Measured
+2026-08-13: **589 tests, 2h01m** on an M-series laptop. (An earlier note here said
+"542 tests, ~36 min"; the suite has grown and that figure was stale.) Start it in
+the background and do other work — and do not pipe it through `tail`/`head`,
+which buffers until pytest exits so a running suite looks hung.
+
+`tests/test_source_spin.py::test_sympy_exact_spin_closed_form` fails on a clean
+environment: `sympy` is an undeclared test dependency, missing from both
+`environment.yml` and this leaf's `[dev]` extras. That failure is expected and
+unrelated to whatever you changed.
+
+For a fast check while iterating, these three cover the structural invariants in
+about four seconds:
+
+```bash
+caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.py \
+                       tests/test_qc_wiring.py          # 255 tests, ~2 s
+```
+
 ## Architecture
 
 `src/lemaitre/initial_data/conformally_flat_puncture/`
@@ -80,7 +107,8 @@ make figures                                   # regenerate figure data (recompu
 - **`parametric/`** — the ROM. Production: `parametric_nd_smolyak` (sparse-grid
   value model), `hermite_smolyak`/`hermite_smolyak_pod`/`hermite_smolyak_pod_cross`
   (gradient-enhanced + POD + full-bilinear cross term), `quasicircular` (PN QC
-  momenta), `solve_store` (content-addressed solve cache). The `parametric`,
+  momenta), `solve_store` (content-addressed solve cache), `certification`
+  (`CERT_TOL` + the `‖R‖∞ ≤ tol` gate — see below). The `parametric`,
   `parametric_nd`, `hermite`, `hermite_nd`, `hermite_pod`, `parametric_nd_2c/_3d`
   layers are the base rungs the Smolyak/POD models build on.
 - **`applications/`** — `qc_targeting` (gradient parameter targeting),

@@ -63,6 +63,7 @@ from ..solver import solver_3d_nk as nk
 from ..parametric import parametric_nd_smolyak as sm
 from ..parametric.parametric_nd import attach_solve_fn_3d
 from ..parametric.parametric_nd_3d import theta_to_slice3d
+from ..parametric.certification import CERT_TOL, certified_return
 
 NAMES = ("b", "q", "chi_Ay", "chi_By")
 FIXED = {"qc": 1.0}
@@ -238,14 +239,20 @@ def first_crossing(history, tol):
 # Method 1 — black-box Broyden (cold or interp-warm), the "TwoPunctures" baseline
 # ==========================================================================
 def _certified_solve(model, prob, theta, guess, tol, max_iter):
-    """One certified elliptic solve at ``theta`` warm-started from ``guess``."""
+    """One certified elliptic solve at ``theta`` warm-started from ``guess``.
+
+    The gate is closed here (``strict``): this is a configuration-emitting path,
+    so a datum that misses ``tol`` raises rather than being returned with a
+    residual only the caller's ``worst_R`` bookkeeping would notice.
+    """
     sl = theta_to_slice3d(np.asarray(theta, float), NAMES, 1.0, FIXED)
     U, info = nk.newton_solve_nk(prob, sl, U0=guess, tol=tol, max_iter=max_iter)
+    certified_return(U, info, theta, tol, strict=True)
     return U, float(info.residual_norm)
 
 
 def broyden_target(model, prob, target, theta0, target_names, box, *,
-                   mode="interp", active=(0, 1), tol_ctrl=1e-8, tol_inner=1e-10,
+                   mode="interp", active=(0, 1), tol_ctrl=1e-8, tol_inner=CERT_TOL,
                    max_steps=40, fd_h=1e-4, max_inner=25, max_step_frac=0.35,
                    budget=None):
     """Mendes-style Broyden on ``G(θ)=F(θ)−target`` over the ``active`` knobs.
@@ -364,7 +371,7 @@ def _nudge(theta, node_sets, box, trigger=1e-8, shift_frac=2e-3):
 def gauss_newton_target(model, prob, target, theta0, target_names, box, *,
                         active=(0, 1), tol_ctrl=1e-8, max_steps=60,
                         lm_init=1e-3, lm_down=0.5, lm_up=4.0, lm_max=1e10,
-                        polish_steps=2, polish_tol=1e-10, correction_steps=3,
+                        polish_steps=2, polish_tol=CERT_TOL, correction_steps=3,
                         budget=None):
     """Hit ``F(θ)=target`` by damped Gauss–Newton on the **free** surrogate, then a
     certified last-mile.
@@ -435,7 +442,8 @@ def gauss_newton_target(model, prob, target, theta0, target_names, box, *,
     worst_R = 0.0
     n_solves = 0
     hist = []
-    U, info = model.evaluate_polished(theta, newton_steps=polish_steps, tol=polish_tol)
+    U, info = model.evaluate_polished(theta, newton_steps=polish_steps, tol=polish_tol,
+                                      strict=True)
     worst_R = max(worst_R, float(info.residual_norm)); n_solves += 1
     F_true = observe(prob, np.asarray(U), theta, target_names)
     G_true = F_true - target
@@ -452,7 +460,8 @@ def gauss_newton_target(model, prob, target, theta0, target_names, box, *,
             d_active = -np.linalg.lstsq(Jm, G_true, rcond=None)[0]
         cand = theta.copy(); cand[active] = theta[active] + d_active
         theta = clip(cand)
-        U, info = model.evaluate_polished(theta, newton_steps=polish_steps, tol=polish_tol)
+        U, info = model.evaluate_polished(theta, newton_steps=polish_steps, tol=polish_tol,
+                                          strict=True)
         worst_R = max(worst_R, float(info.residual_norm)); n_solves += 1
         F_true = observe(prob, np.asarray(U), theta, target_names)
         G_true = F_true - target

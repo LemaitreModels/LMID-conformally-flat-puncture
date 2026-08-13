@@ -47,6 +47,7 @@ from scipy.optimize import brentq
 
 from ..solver import solver_3d as s3
 from ..parametric.parametric_nd import load_parametric, attach_solve_fn_3d
+from ..parametric.certification import CERT_TOL
 from . import qc_targeting as qt
 
 NAMES = ("b", "P_x")
@@ -90,10 +91,16 @@ def binding_energy(prob, U, b):
     return M_ADM - (M_A + M_B)
 
 
-def Eb_certified(model, prob, b, P_t, newton_steps=2, tol=1e-10):
-    """One CERTIFIED binding energy: polish at (b,P_t), then E_b on the certified U."""
+def Eb_certified(model, prob, b, P_t, newton_steps=2, tol=CERT_TOL):
+    """One CERTIFIED binding energy: polish at (b,P_t), then E_b on the certified U.
+
+    ``strict``: E_b is differenced across neighbouring separations to locate the
+    ISCO, so an uncertified U does not merely carry a larger error — it
+    contaminates a finite difference of two nearly equal numbers, where a residual
+    at the 1e-8 level is comparable to the signal being extracted.
+    """
     U, info = model.evaluate_polished(np.array([b, P_t]), newton_steps=newton_steps,
-                                      tol=tol)
+                                      tol=tol, strict=True)
     return binding_energy(prob, np.asarray(U), b), float(info.residual_norm)
 
 

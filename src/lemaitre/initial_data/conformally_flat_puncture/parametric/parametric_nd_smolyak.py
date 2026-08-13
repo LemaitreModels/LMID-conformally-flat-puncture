@@ -54,6 +54,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from .parametric import cheb_param_nodes          # the 1-D CGL layer (verbatim)
+from .certification import CERT_TOL, certified_return   # the residual gate (one place)
 from .parametric_nd import ParametricSolutionND, snake_order   # the dense layer (verbatim)
 
 
@@ -196,18 +197,21 @@ class SmolyakSolutionND:
         return out
 
     # ----- certified evaluation (the "cannot be silently wrong" gate) -----
-    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = 1e-12):
+    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
+                          strict: bool = False):
         """Sparse prediction + 1–2 Newton steps → certified ‖R‖≤tol at θ.
 
         Returns ``(U, info)``; ``info.residual_norm`` is the certified constraint
         residual at θ, independent of the (sparse) interpolation error — exactly
-        as for the dense :class:`ParametricSolutionND`.
+        as for the dense :class:`ParametricSolutionND`.  ``strict=True`` closes the
+        gate: a datum that misses ``tol`` raises
+        :class:`~.certification.CertificationError` instead of being returned.
         """
         if self._solve_fn is None:
             raise RuntimeError("no solve_fn attached; build via SmolyakSolverND/from_problem_smolyak_*")
         guess = jnp.asarray(self.evaluate(theta))
         U, info = self._solve_fn(np.asarray(theta, dtype=float), guess, tol, newton_steps)
-        return U, info
+        return certified_return(U, info, theta, tol, strict)
 
     # ----- persistence: store the DEDUPLICATED node pool (numpy-only .npz) -----
     def _dedup_pool(self) -> Dict[tuple, tuple]:

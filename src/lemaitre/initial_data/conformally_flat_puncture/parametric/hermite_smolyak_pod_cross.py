@@ -53,6 +53,7 @@ import jax.numpy as jnp
 from .parametric_nd import (FORMAT_VERSION, _pack_meta, _unpack_meta,
                             _git_commit, _load_npz, _check_meta)
 from .parametric_nd_smolyak import _node_key
+from .certification import CERT_TOL, certified_return   # the residual gate (one place)
 from .hermite_nd import HermiteSolutionND
 from .hermite_pod import pod_basis, project_hermite_pod
 from .hermite_smolyak_cross import (HermiteCrossSolutionND,
@@ -157,13 +158,18 @@ class PODHermiteSmolyakCross:
         c = jnp.reshape(self.coeff_model.evaluate_jax(theta), (-1,))
         return jnp.reshape(self._mean_j + self._Phi_j @ c, self.field_shape)
 
-    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = 1e-12):
+    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
+                          strict: bool = False):
+        """POD-decoded cross-term guess + 1–2 Newton steps → certified ``‖R‖≤tol``.
+
+        ``strict=True`` closes the gate: a datum that misses ``tol`` raises
+        :class:`~.certification.CertificationError` instead of being returned."""
         if self._solve_fn is None:
             raise RuntimeError("no solve_fn attached; build via build_pod_hermite_smolyak_cross "
                                "with a solver-backed model, or reattach a solve_fn")
         guess = jnp.asarray(self.evaluate(theta))
         U, info = self._solve_fn(np.asarray(theta, dtype=float), guess, tol, newton_steps)
-        return U, info
+        return certified_return(U, info, theta, tol, strict)
 
     # ----- persistence (numpy-only .npz) -----
     def save(self, path, *, meta=None, coeff_dtype=np.float64, mode_dtype=np.float64,
