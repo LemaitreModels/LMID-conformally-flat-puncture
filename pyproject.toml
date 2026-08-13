@@ -22,7 +22,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+# sympy is a TEST-only dependency: tests/test_source_spin.py derives the
+# Bowen-York spin tensor symbolically and compares it to the shipped numerics.
+# It is not importable from src/ — the standalone guard forbids that — and the
+# test does not skip without it, it fails, so leaving it undeclared made a clean
+# environment report a failure unrelated to whatever was being changed.
+dev = ["pytest", "sympy"]
 
 # src/ layout.  This distribution owns ONLY its own leaf package: the `lemaitre`
 # root belongs to the `lemaitre` core and `lemaitre.initial_data` to the

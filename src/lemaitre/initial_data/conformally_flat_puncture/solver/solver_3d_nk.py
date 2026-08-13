@@ -26,11 +26,20 @@ in physical space, so multiplying by it is a *pointwise* product in φ — i.e. 
   ``asm.M0`` verbatim (linear, block-diagonal in m); the second is the
   mode-coupling the modified Newton drops.  The nodal action is the irfft.
 
-* **Preconditioner** = the EXISTING per-m block, i.e. exactly what
-  ``solver_3d.newton_step`` solves: ``M̂_m = M0_m + diag(interior · d̄ · w_m)``,
-  factored ONCE per Newton step (LU on the row-equilibrated block).  It is J
-  minus the mode-coupling, so ``M⁻¹`` is an excellent preconditioner — one
-  ``rfft_φ`` + per-m triangular solve + ``irfft_φ``.
+* **Preconditioner** — two of them, chosen by :func:`choose_separable`:
+
+  - *separable* (the default above Nφ=1): the exact inverse of the LINEAR block
+    alone, by fast diagonalization of its 1-D Kronecker factors
+    (``solver/separable.py``).  It drops the nonlinear diagonal, which is exactly
+    what makes it independent of ``b``, of θ and of the iterate — so it is built
+    ONCE per grid and there is nothing to refactor per Newton step or per
+    parameter point.  Measured cost: one extra GMRES iteration per step, flat in
+    Nφ up to 24.
+  - *dense*: the EXISTING per-m block, i.e. exactly what
+    ``solver_3d.newton_step`` solves: ``M̂_m = M0_m + diag(interior · d̄ · w_m)``,
+    factored ONCE per Newton step (LU on the row-equilibrated block).  It is J
+    minus only the mode-coupling.  At Nφ=1 there is no mode-coupling, so it IS J
+    and GMRES converges in one iteration — which is why that case keeps it.
 
 * **Outer loop**: classical Newton, ``δu = J⁻¹(−R)`` via ``scipy gmres`` with a
   ``LinearOperator`` for J and for ``M⁻¹``.  Quadratic convergence → ``‖R‖`` to
@@ -52,6 +61,7 @@ import numpy as np
 import scipy.linalg as sla
 from scipy.sparse.linalg import LinearOperator, gmres
 
+from . import operators_3d as ops3
 from . import solver_3d as s3
 from .solver_3d import Assembly3D, Problem3D, Slice3D  # noqa: F401  (re-export)
 
@@ -74,8 +84,57 @@ def _lu_factor_equilibrated(M: np.ndarray):
 
 
 def _lu_solve_equilibrated(fac, rhs: np.ndarray) -> np.ndarray:
+    """Apply the factorization to a real-or-complex right-hand side.
+
+    The factors are real and the mode-space right-hand sides complex, so passing
+    the complex vector straight to ``lu_solve`` promotes the *factors* — a fresh
+    complex copy of an ``(Na·Nb)²`` array, and complex triangular solves, on
+    every preconditioner apply.  Solving ``[Re rhs, Im rhs]`` as two real columns
+    is the same arithmetic (the factors are real, so real and imaginary parts do
+    not mix) in one real ``getrs`` call.  A mode whose imaginary part is exactly
+    zero — m=0, and the Nyquist mode when Nφ is even — takes the one-column real
+    solve, which is cheaper again and bit-identical to the axisymmetric path.
+    """
     lu, piv, scale = fac
-    return sla.lu_solve((lu, piv), np.asarray(rhs) / scale)
+    y = np.asarray(rhs) / scale
+    yr = ops3._real_part_if_real(y)
+    if yr is not None:
+        out = sla.lu_solve((lu, piv), yr)
+        return out.astype(complex) if np.iscomplexobj(y) else out
+    return ops3._join_ri(sla.lu_solve((lu, piv), ops3._split_ri(y)))
+
+
+# --------------------------------------------------------------------------
+# Which representation of the linear operator a solve should build
+# --------------------------------------------------------------------------
+def choose_separable(prob: Problem3D, separable, n_warmup: int = 0) -> bool:
+    """Resolve ``separable=None`` (the default) into a decision, and say why.
+
+    The separable route is the default because it is much cheaper — the operator
+    is built once per grid rather than per parameter point, and there is no LU to
+    refactor per Newton step.  Two cases deliberately opt back out:
+
+    * **Nφ=1.**  With one azimuthal mode there is no mode-coupling, so the
+      block-diagonal preconditioner IS the full Jacobian and GMRES converges in a
+      single iteration — an exact solve.  The separable preconditioner drops the
+      nonlinear diagonal, so it would take several iterations to reach the same
+      answer.  Choosing the exact one here is not a special case for the tests'
+      benefit: it is faster, and it keeps the axisymmetric reduction identical to
+      the frozen 2-D Newton (``tests/test_solver_3d.py``).
+    * **``n_warmup > 0``.**  The warm-up steps are ``solver_3d.newton_step``,
+      whose Jacobian carries the nonlinear diagonal and so needs the dense blocks.
+
+    Pass ``separable=True``/``False`` to force either route.  A caller that
+    supplies its own ``asm`` bypasses this entirely — the assembly it built
+    already fixes the representation.
+    """
+    if separable is not None:
+        return bool(separable)
+    if int(prob.Nphi) == 1:
+        return False
+    if n_warmup:
+        return False
+    return True
 
 
 # --------------------------------------------------------------------------
@@ -84,9 +143,13 @@ def _lu_solve_equilibrated(fac, rhs: np.ndarray) -> np.ndarray:
 def _block_scales(asm: Assembly3D):
     """Per-m row-equilibration scale ``max|M0_m row|`` (the solve's row scaling).
 
-    Computed once per slice (the linear blocks ``asm.M0`` are b-fixed); reused by
-    :func:`equil_residual_inf` every Newton iteration.
+    Depends only on the linear blocks, so it is computed with them by
+    ``operators_3d.mode_operators_cached`` and carried on the assembly; this
+    recomputes it only for an assembly built by hand (``asm.scales is None``),
+    which would otherwise re-scan ~79 MiB of blocks per Newton iteration.
     """
+    if getattr(asm, "scales", None) is not None:
+        return asm.scales
     scales = []
     for mi in range(asm.m_vals.size):
         M0 = np.asarray(asm.M0[mi])
@@ -158,13 +221,26 @@ def newton_step_nk(asm: Assembly3D, U: np.ndarray,
     D_nl = -0.875 * base ** (-8.0) * asm.A2          # (Ntot, Nφ) node-diagonal deriv
     d_bar = D_nl.mean(axis=1)                          # φ-average -> m=0 diagonal
 
-    # pre-factor the block-diagonal preconditioner  M̂_m = M0_m + diag(interior·d̄·w_m)
-    facs = []
-    for mi in range(Nm):
-        Jm = np.array(M0[mi])
-        di = np.where(interior, d_bar * w[mi], 0.0)
-        Jm[np.diag_indices_from(Jm)] += di
-        facs.append(_lu_factor_equilibrated(Jm))
+    # The preconditioner.  Two routes, and the difference is what they include:
+    #
+    #  * dense (default) — M̂_m = M0_m + diag(interior·d̄·w_m), i.e. exactly what
+    #    solver_3d.newton_step solves, LU-factored once per Newton step.  It is J
+    #    minus only the azimuthal mode-coupling, so at Nφ=1 it IS J and GMRES
+    #    converges in one iteration.  The factorizations are ~80% of the step.
+    #  * separable — the LINEAR block alone, inverted exactly by fast
+    #    diagonalization (solver/separable.py).  Dropping the nonlinear diagonal
+    #    is what makes it b- and θ-independent, so there is nothing left to
+    #    factor per step or per parameter point; it costs a GMRES iteration or
+    #    two, and at Nφ=1 it is no longer the exact Jacobian.
+    sep = asm.sep
+    facs = None
+    if sep is None:
+        facs = []
+        for mi in range(Nm):
+            Jm = np.array(M0[mi])
+            di = np.where(interior, d_bar * w[mi], 0.0)
+            Jm[np.diag_indices_from(Jm)] += di
+            facs.append(_lu_factor_equilibrated(Jm))
 
     def _Jmatvec(dU_flat):
         dU = dU_flat.reshape(Ntot, Nphi)
@@ -172,7 +248,7 @@ def newton_step_nk(asm: Assembly3D, U: np.ndarray,
         DdU_hat = np.fft.rfft(D_nl * dU, axis=1)        # the mode-coupling term
         out = np.empty((Ntot, Nm), dtype=complex)
         for mi in range(Nm):
-            out[:, mi] = (M0[mi] @ (dUhat[:, mi] / w[mi])
+            out[:, mi] = (s3.linear_apply(asm, mi, dUhat[:, mi] / w[mi])
                           + np.where(interior, DdU_hat[:, mi], 0.0))
         return np.fft.irfft(out, n=Nphi, axis=1).ravel()
 
@@ -181,7 +257,11 @@ def newton_step_nk(asm: Assembly3D, U: np.ndarray,
         yhat = np.fft.rfft(y, axis=1)
         dUhat = np.empty((Ntot, Nm), dtype=complex)
         for mi in range(Nm):
-            dvhat = _lu_solve_equilibrated(facs[mi], yhat[:, mi])
+            if sep is None:
+                dvhat = _lu_solve_equilibrated(facs[mi], yhat[:, mi])
+            else:
+                dvhat = sep.solve(mi, yhat[:, mi].reshape(sep.Na1, sep.Nb1),
+                                  asm.b).ravel()
             dUhat[:, mi] = w[mi] * dvhat                # δu_m = w · δv_m
         return np.fft.irfft(dUhat, n=Nphi, axis=1).ravel()
 
@@ -221,7 +301,8 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
                     asm: Optional[Assembly3D] = None,
                     n_warmup: int = 0,
                     gmres_rtol: float = 1e-4,
-                    verbose: bool = False):
+                    verbose: bool = False,
+                    separable: Optional[bool] = None):
     """Solve the non-axisymmetric two-centre Lichnerowicz equation by Newton–Krylov.
 
     Returns ``(U, NKInfo)`` with ``U`` shaped (Na+1, Nb, Nφ).  Convergence is
@@ -235,9 +316,23 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
     ``n_warmup`` optional cheap modified-Newton (``solver_3d.newton_step``) steps
     first — gets into the basin without a GMRES solve, then NK polishes.  Tracks
     the BEST iterate and stops once the equilibrated residual stagnates.
+
+    ``separable`` picks the representation of the linear operator: the assembly is
+    built without dense blocks and preconditioned by the exact inverse of the
+    *linear* operator (``solver/separable.py``) instead of an LU of the linear
+    operator plus the nonlinear diagonal.  Same equation, same residual, same
+    certified monitor — only the linear algebra inside the step differs, and it
+    typically costs one extra GMRES iteration per Newton step.  The default
+    (``None``) is *auto*: separable except at Nφ=1 and with ``n_warmup``, where
+    the dense blocks are needed or strictly better — see :func:`choose_separable`.
+    Ignored when the caller supplies ``asm``, which already fixes the choice.
     """
     if asm is None:
-        asm = s3.assemble(prob, sl)
+        asm = s3.assemble(prob, sl,
+                          separable=choose_separable(prob, separable, n_warmup))
+    if asm.sep is not None and n_warmup:
+        raise ValueError("n_warmup needs the dense blocks, and this assembly is "
+                         "separable; rebuild it with assemble(..., separable=False)")
     shp = prob.shape
     scales = _block_scales(asm)
     U = (np.zeros((prob.Ntot2d, prob.Nphi)) if U0 is None
@@ -275,7 +370,8 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
 # --------------------------------------------------------------------------
 def evaluate_polished_nk(prob: Problem3D, sl: Slice3D, U_guess: np.ndarray,
                          newton_steps: int = 2, tol: float = 1e-10,
-                         asm: Optional[Assembly3D] = None):
+                         asm: Optional[Assembly3D] = None,
+                         separable: Optional[bool] = None):
     """Warm guess + ≤``newton_steps`` NK-Newton steps → certified ``‖R‖∞`` ≤ tol.
 
     The 3-D certified-evaluation gate: ``info.residual_norm`` is the constraint
@@ -285,4 +381,5 @@ def evaluate_polished_nk(prob: Problem3D, sl: Slice3D, U_guess: np.ndarray,
     the residual at the start of each iteration).
     """
     return newton_solve_nk(prob, sl, U0=U_guess, tol=tol,
-                           max_iter=newton_steps + 1, asm=asm, gmres_rtol=1e-4)
+                           max_iter=newton_steps + 1, asm=asm, gmres_rtol=1e-4,
+                           separable=separable)

@@ -120,7 +120,7 @@ extreme corners where Newton–Krylov stalls globally — gets the fallback.
 
 - The full `solver` / `parametric` / `applications` / `validation` module
   hierarchy. The production QC/χ stack (`solver_3d`, `solver_3d_nk`,
-  `operators_3d`, `source_3d`, `diagnostics_3d`; `parametric_nd_smolyak`,
+  `operators_3d`, `separable`, `source_3d`, `diagnostics_3d`; `parametric_nd_smolyak`,
   `hermite_smolyak{,_pod,_pod_cross}`, `quasicircular`, `solve_store`;
   `sensitivity_3d{,_qc,_cross,_cross_bq}`, `qc_targeting`, `qc_effpot`,
   `control`) plus its **transitively-required base layers** (the axisymmetric
@@ -128,8 +128,11 @@ extreme corners where Newton–Krylov stalls globally — gets the fallback.
   rungs `parametric`, `parametric_nd`, `hermite`, `hermite_nd`, `hermite_pod`,
   `parametric_nd_2c/_3d`). These are the paper's method ladder — each a distinct
   model, all test-covered — not redundant copies.
-- The acceptance suite (as of 2026-08-13: 40 files, **589 tests, 2h01m**; 1
-  expected failure — `sympy` is an undeclared test dependency — and 29 `slow`
+- The acceptance suite (as of 2026-08-13: 41 files, **611 tests, 36m35s**, all
+  passing; `sympy` is now a declared `[dev]` extra, so the one long-standing
+  expected failure is gone. It was 589 tests / 2h01m earlier the same day — the
+  suite is dominated by elliptic solves and the solver got several times cheaper,
+  so re-measure rather than quoting this. 29 `slow`
   tests need the external TwoPunctures oracle).
 - The canonical figure producers + χ model builders, as `…pipeline`.
 - The paper source + figure scripts + the 9 figure PDFs.

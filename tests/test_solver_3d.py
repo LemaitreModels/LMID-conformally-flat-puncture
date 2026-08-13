@@ -124,8 +124,7 @@ def _manufactured(prob, b, parts):
     Each piece is ``(coeff_fn(x,y,z,r2)->u_part, S_fn(...)->Δu_part)`` evaluated
     on the (A,B,φ) node cloud (edges -> 0).
     """
-    Lap, rho, z, Af, Bf, DA, DB, inv = ops3.axisym_blocks(
-        prob.A, prob.B, prob.DA1, prob.DB1, b)
+    rho, z, Af, Bf, inv = ops3.meridian_geometry(prob.A, prob.B, b)
     fin = np.isfinite(rho)
     rs, zs = np.where(fin, rho, 1.0), np.where(fin, z, 0.0)
     u = np.zeros((prob.Ntot2d, prob.Nphi))

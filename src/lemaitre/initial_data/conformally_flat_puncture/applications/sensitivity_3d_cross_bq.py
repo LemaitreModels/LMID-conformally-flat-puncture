@@ -277,7 +277,7 @@ def _lap_nodal(asm: s3.Assembly3D, prob: s3.Problem3D, V: np.ndarray) -> np.ndar
     Vhat = np.fft.rfft(V, axis=1)
     linhat = np.empty((prob.Ntot2d, asm.m_vals.size), dtype=complex)
     for mi in range(asm.m_vals.size):
-        linhat[:, mi] = asm.M0[mi] @ (Vhat[:, mi] / asm.w[mi])
+        linhat[:, mi] = s3.linear_apply(asm, mi, Vhat[:, mi] / asm.w[mi])
     return np.fft.irfft(linhat, n=prob.Nphi, axis=1)
 
 

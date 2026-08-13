@@ -227,7 +227,8 @@ def theta_to_slice3d(theta_vec, active_names: Sequence[str], M_tot: float = 1.0,
 # D7 — per-b assembly cache (byte-identical to solver_3d.assemble)
 # --------------------------------------------------------------------------
 def assemble_cached_3d(prob: Problem3D, sl: Slice3D,
-                       cache: Dict[float, tuple]) -> s3.Assembly3D:
+                       cache: Dict[float, tuple],
+                       separable: bool = False) -> s3.Assembly3D:
     """``solver_3d.assemble`` with the b-dependent geometry + per-m operators
     cached by ``sl.b``.
 
@@ -238,27 +239,35 @@ def assemble_cached_3d(prob: Problem3D, sl: Slice3D,
     IDENTICAL ``ops3``/``source``/``source_3d`` functions as ``solver_3d.assemble``,
     so the returned ``Assembly3D`` is byte-identical to a fresh ``s3.assemble``
     (verified in the test suite).
+
+    ``separable=True`` bypasses the cache entirely: there are no dense blocks to
+    reuse, the 1-D factors are already shared per grid by
+    ``separable.get_separable``, and the meridian geometry costs microseconds.
+    The cache stays keyed on ``b`` alone and holds only dense assemblies, so a
+    modified-Newton globalization still finds what it needs even when the
+    surrounding NK build is separable.
     """
+    if separable:
+        return s3.assemble(prob, sl, separable=True)
     key = sl.b
     geo = cache.get(key)
     if geo is None:
-        Lap, rho, z, Af, Bf, DA, DB, inv_rho2 = ops3.axisym_blocks(
-            prob.A, prob.B, prob.DA1, prob.DB1, sl.b)
-        M0_list, w_list, interior = ops3.mode_operators(
+        rho, z, Af, Bf, inv_rho2 = ops3.meridian_geometry(prob.A, prob.B, sl.b)
+        M0_list, w_list, interior, scales = ops3.mode_operators_cached(
             prob.A, prob.B, prob.DA1, prob.DB1, sl.b, prob.m_vals)
         finite = np.isfinite(rho)
         rho_s = np.where(finite, rho, 1.0)
         z_s = np.where(finite, z, 0.0)
-        geo = (M0_list, w_list, interior, rho, z, finite, rho_s, z_s)
+        geo = (M0_list, w_list, interior, rho, z, finite, rho_s, z_s, scales)
         cache[key] = geo
-    M0_list, w_list, interior, rho, z, finite, rho_s, z_s = geo
+    M0_list, w_list, interior, rho, z, finite, rho_s, z_s, scales = geo
 
     psi = np.array(source.psi_BL_2c(rho_s, z_s, sl.b, sl.m_A, sl.m_B))
     psi = np.where(finite, psi, 1.0)
     A2 = source_3d.A2_at_nodes_3d(rho, z, prob.phi, sl.b,
                                   sl.P_A_vec, sl.P_B_vec, sl.S_A_vec, sl.S_B_vec)
     return s3.Assembly3D(M0=M0_list, w=w_list, interior=interior, rho=rho, z=z,
-                         psi=psi, A2=A2, m_vals=prob.m_vals)
+                         psi=psi, A2=A2, m_vals=prob.m_vals, scales=scales)
 
 
 # --------------------------------------------------------------------------
@@ -267,7 +276,8 @@ def assemble_cached_3d(prob: Problem3D, sl: Slice3D,
 def make_solve_fn(prob: Problem3D, active_names: Sequence[str], M_tot: float = 1.0,
                   fixed: Optional[Dict[str, float]] = None, use_cache: bool = True,
                   solver: str = "nk", gmres_rtol: float = 1e-4,
-                  retry_tol: Optional[float] = None):
+                  retry_tol: Optional[float] = None,
+                  separable: Optional[bool] = None):
     """Return ``solve_fn(theta, guess, tol, max_iter) -> (U, info)`` (+ its cache).
 
     ``solver='nk'`` (default) → the **certified** Newton–Krylov solve; the
@@ -301,20 +311,28 @@ def make_solve_fn(prob: Problem3D, active_names: Sequence[str], M_tot: float = 1
 
     def solve_fn(theta, guess, tol, max_iter):
         sl = theta_to_slice3d(theta, active_names, M_tot, fixed)
-        asm = assemble_cached_3d(prob, sl, cache) if use_cache else None
         if solver == "nk":
+            sep = s3nk.choose_separable(prob, separable)
+            asm = assemble_cached_3d(prob, sl, cache, separable=sep) if use_cache else None
             U, info = s3nk.newton_solve_nk(prob, sl, U0=guess, tol=tol,
                                            max_iter=int(max_iter) + 1, asm=asm,
-                                           gmres_rtol=gmres_rtol)
+                                           gmres_rtol=gmres_rtol, separable=separable)
             if retry_tol is not None and info.residual_norm > retry_tol:
+                # The globalization is a modified-Newton solve, whose Jacobian
+                # carries the nonlinear diagonal and so needs the DENSE blocks.
+                # Build them only here: this fires on stagnation, so a healthy
+                # build never pays for them.
+                asm_d = (assemble_cached_3d(prob, sl, cache, separable=False)
+                         if use_cache else s3.assemble(prob, sl))
                 Um, _ = s3.newton_solve(prob, sl, U0=None, tol=tol,
-                                        max_iter=max(60, int(max_iter)), asm=asm)
+                                        max_iter=max(60, int(max_iter)), asm=asm_d)
                 U2, info2 = s3nk.newton_solve_nk(prob, sl, U0=np.asarray(Um), tol=tol,
                                                  max_iter=int(max_iter) + 1, asm=asm,
                                                  gmres_rtol=gmres_rtol)
                 if info2.residual_norm < info.residual_norm:
                     U, info = U2, info2
             return U, info
+        asm = assemble_cached_3d(prob, sl, cache) if use_cache else None
         return s3.newton_solve(prob, sl, U0=guess, tol=tol,
                                max_iter=int(max_iter), asm=asm)
 

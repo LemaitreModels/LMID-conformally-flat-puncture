@@ -256,7 +256,7 @@ def test_dA2_dtheta_vs_fd_source(prob):
 
     # b: the nodes move with b (ρ,z = abt_map(A,B,b)); FD must recompute them
     from lemaitre.initial_data.conformally_flat_puncture.solver import operators_abt as ops
-    _, _, _, Af, Bf, _, _, _ = ops3.axisym_blocks(prob.A, prob.B, prob.DA1, prob.DB1, sl.b)
+    _, _, Af, Bf, _ = ops3.meridian_geometry(prob.A, prob.B, sl.b)
 
     def A2_b(bv):
         rr, zz = ops.abt_map(Af, Bf, bv)

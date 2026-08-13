@@ -128,14 +128,47 @@ class Assembly3D:
     psi: np.ndarray           # (Ntot2d,) ψ_BL on the grid (A=1 -> 1)
     A2: np.ndarray            # (Ntot2d, Nφ) summed BY Â² on the φ-collocation grid
     m_vals: np.ndarray
+    # per-m row-equilibration scale max|M0_m row|, carried from the operator cache
+    # so the certified monitor does not re-scan the blocks every Newton iteration.
+    # ``None`` for an assembly built by hand; solver_3d_nk._block_scales falls back.
+    scales: Optional[list] = None
+    b: Optional[float] = None          # the separation this assembly was built at
+    # Set only for a SEPARABLE assembly (``assemble(..., separable=True)``), in
+    # which case ``M0`` is None and the linear operator is applied and inverted
+    # from its 1-D Kronecker factors instead (``solver/separable.py``).
+    sep: Optional[object] = None
 
 
-def assemble(prob: Problem3D, sl: Slice3D) -> Assembly3D:
-    Lap, rho, z, Af, Bf, DA, DB, inv_rho2 = ops3.axisym_blocks(
-        prob.A, prob.B, prob.DA1, prob.DB1, sl.b)
-    # per-m FACTORED operators (acting on v_m = u_m / w; spectral odd-m) + BC rows
-    M0_list, w_list, interior = ops3.mode_operators(
-        prob.A, prob.B, prob.DA1, prob.DB1, sl.b, prob.m_vals)
+def assemble(prob: Problem3D, sl: Slice3D, separable: bool = False) -> Assembly3D:
+    """Per-slice assembly: the linear operator plus ψ_BL and Â² on the grid.
+
+    ``separable=True`` skips the dense per-m blocks entirely and attaches a
+    :class:`~lemaitre.initial_data.conformally_flat_puncture.solver.separable.SeparableModes`
+    instead — the same operator, held as 1-D Kronecker factors (0.1 MiB against
+    79 MiB at the production grid) and built once per grid rather than per
+    separation.  The nonlinear source is unaffected; only the linear algebra
+    changes.  ``solver_3d.newton_step`` (modified Newton) needs the dense blocks
+    and is not available on a separable assembly.
+    """
+    rho, z, Af, Bf, inv_rho2 = ops3.meridian_geometry(prob.A, prob.B, sl.b)
+    if separable:
+        from . import separable as sepmod
+        sep = sepmod.get_separable(prob.Na, prob.Nb, prob.Nphi)
+        M0_list = None
+        w_list = [ops3.bc_factor(Bf, int(m))[0] for m in prob.m_vals]
+        interior = np.ones(prob.Ntot2d, dtype=bool)
+        interior[:prob.B.size] = False                 # A=1 (infinity) BC rows
+        interior[-prob.B.size:] = False                # A=0 (inner axis) BC rows
+        scales = sep.row_scales(sl.b)
+    else:
+        # per-m FACTORED operators (acting on v_m = u_m / w; spectral odd-m) + BC
+        # rows.  Shared, read-only and cached per (grid, b): they do not depend on
+        # the masses, the momenta, the spins or the iterate, so a second slice at
+        # the same separation reuses them.  Newton copies before adding its
+        # nonlinear diagonal.
+        sep = None
+        M0_list, w_list, interior, scales = ops3.mode_operators_cached(
+            prob.A, prob.B, prob.DA1, prob.DB1, sl.b, prob.m_vals)
     # analytic ψ_BL (φ-independent) and the non-axisymmetric Â²
     finite = np.isfinite(rho)
     rho_s = np.where(finite, rho, 1.0)
@@ -145,7 +178,8 @@ def assemble(prob: Problem3D, sl: Slice3D) -> Assembly3D:
     A2 = source_3d.A2_at_nodes_3d(rho, z, prob.phi, sl.b,
                                   sl.P_A_vec, sl.P_B_vec, sl.S_A_vec, sl.S_B_vec)
     return Assembly3D(M0=M0_list, w=w_list, interior=interior, rho=rho, z=z,
-                      psi=psi, A2=A2, m_vals=prob.m_vals)
+                      psi=psi, A2=A2, m_vals=prob.m_vals, scales=scales,
+                      b=float(sl.b), sep=sep)
 
 
 # --------------------------------------------------------------------------
@@ -159,6 +193,19 @@ def _nl_source(asm: Assembly3D, U: np.ndarray):
     base = asm.psi[:, None] + U
     S_nl = 0.125 * base ** (-7.0) * asm.A2
     return S_nl, base
+
+
+def linear_apply(asm: Assembly3D, mi: int, vhat: np.ndarray) -> np.ndarray:
+    """``M0_m @ v̂_m`` for one mode, dense or separable, whichever this assembly has.
+
+    The one place that knows which representation of the linear operator is in
+    play, so the residual, the Jacobian action and the tangents do not each have
+    to branch on it.
+    """
+    if asm.sep is None:
+        return ops3.apply_mode_block(asm.M0[mi], vhat)
+    shp = (asm.sep.Na1, asm.sep.Nb1)
+    return asm.sep.apply(mi, np.asarray(vhat).reshape(shp), asm.b).ravel()
 
 
 def residual_modes(asm: Assembly3D, U: np.ndarray):
@@ -175,7 +222,8 @@ def residual_modes(asm: Assembly3D, U: np.ndarray):
     interior = asm.interior
     for mi in range(asm.m_vals.size):
         vhat = Uhat[:, mi] / asm.w[mi]                     # u_m = w · v_m
-        Rm[:, mi] = asm.M0[mi] @ vhat + np.where(interior, Shat[:, mi], 0.0)
+        Rm[:, mi] = (linear_apply(asm, mi, vhat)
+                     + np.where(interior, Shat[:, mi], 0.0))
     return Rm
 
 
@@ -197,6 +245,13 @@ def newton_step(asm: Assembly3D, U: np.ndarray) -> Tuple[np.ndarray, np.ndarray]
     reconstructs δu_m = w · δv_m.  The source Jacobian in v-space is
     diag(interior · d̄ · w) (chain rule ∂u/∂v = w; d̄ = φ-averaged source deriv).
     """
+    if asm.sep is not None:
+        raise ValueError(
+            "solver_3d.newton_step needs the dense per-m blocks: its Jacobian is "
+            "M0_m + diag(interior·d̄·w_m), and the nonlinear diagonal breaks the "
+            "Kronecker structure a separable assembly stores.  Use "
+            "solver_3d_nk.newton_step_nk, whose separable preconditioner drops "
+            "that diagonal on purpose, or assemble without separable=True.")
     Nphi = U.shape[1]
     Rm = residual_modes(asm, U)
     S_nl, base = _nl_source(asm, U)
@@ -207,7 +262,7 @@ def newton_step(asm: Assembly3D, U: np.ndarray) -> Tuple[np.ndarray, np.ndarray]
         Jm = np.array(asm.M0[mi])
         di = np.where(asm.interior, d_bar * asm.w[mi], 0.0)
         Jm[np.diag_indices_from(Jm)] += di
-        dvhat = ops.solve_equilibrated(Jm, -Rm[:, mi])
+        dvhat = ops3.solve_mode_block(Jm, -Rm[:, mi])
         dUhat[:, mi] = asm.w[mi] * dvhat               # δu_m = w · δv_m
     dU = np.fft.irfft(dUhat, n=Nphi, axis=1)
     return U + dU, Rm
@@ -327,14 +382,14 @@ def solve_poisson(prob: Problem3D, b: float, S_nodal: np.ndarray) -> np.ndarray:
     the azimuthal mode m, one ``solve_equilibrated`` per m.  Returns u of shape
     (Na+1, Nb, Nφ).
     """
-    M0_list, w_list, interior = ops3.mode_operators(
+    M0_list, w_list, interior, _ = ops3.mode_operators_cached(
         prob.A, prob.B, prob.DA1, prob.DB1, b, prob.m_vals)
     S = np.asarray(S_nodal, dtype=float).reshape(prob.Ntot2d, prob.Nphi)
     Shat = np.fft.rfft(S, axis=1)
     Uhat = np.empty((prob.Ntot2d, prob.m_vals.size), dtype=complex)
     for mi in range(prob.m_vals.size):
         rhs = np.where(interior, Shat[:, mi], 0.0)        # BC rows -> 0 (v=0 -> u=0)
-        vhat = ops.solve_equilibrated(M0_list[mi], rhs)
+        vhat = ops3.solve_mode_block(M0_list[mi], rhs)
         Uhat[:, mi] = w_list[mi] * vhat                   # u_m = w · v_m
     U = np.fft.irfft(Uhat, n=prob.Nphi, axis=1)
     return U.reshape(prob.shape)

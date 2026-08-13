@@ -39,14 +39,14 @@ one assembly is amortised across all axes — the ``sensitivity.certified_tangen
     reproduces the finite-difference of the certified solve to the residual floor
     for a genuinely non-axisymmetric slice.
   * ``jac="modified"`` — the cheap **block-diagonal** per-mode back-solve
-    (``dv_m = operators_abt.solve_equilibrated(Ĵ_m, −∂R̂/∂θ|_m)``) reusing exactly
+    (``dv_m = operators_3d.solve_mode_block(Ĵ_m, −∂R̂/∂θ|_m)``) reusing exactly
     the ``solver_3d.newton_step`` per-``m`` factored block.  For an axisymmetric /
     aligned slice (φ-independent source) it *is* the full Jacobian, so it matches
     ``jac="nk"`` bit-for-bit; the modified-vs-nk gap measures the dropped
     mode-coupling for a misaligned slice.
 
 Add-only / standalone: imports the frozen ``solver_3d`` / ``solver_3d_nk`` /
-``operators_abt`` / ``source`` / ``source_3d`` **verbatim** and defines no new
+``operators_3d`` / ``source`` / ``source_3d`` **verbatim** and defines no new
 physics; the analytic derivatives are new functions here (no existing signature
 changes).  numpy + scipy + the frozen siblings.
 """
@@ -61,7 +61,7 @@ from scipy.sparse.linalg import LinearOperator, gmres
 
 from ..solver import solver_3d as s3
 from ..solver import solver_3d_nk as s3nk  # noqa: F401  (reduce-to gate uses the NK node/solve)
-from ..solver import operators_abt as ops
+from ..solver import operators_3d as ops3
 from ..solver import source
 from ..solver import source_3d
 from ..solver.solver_3d import Assembly3D, Problem3D, Slice3D
@@ -235,7 +235,7 @@ def dR_dtheta_node(prob: Problem3D, asm: Assembly3D, U: np.ndarray, sl: Slice3D,
         Uhat = np.fft.rfft(U, axis=1)
         linhat = np.empty((prob.Ntot2d, asm.m_vals.size), dtype=complex)
         for mi in range(asm.m_vals.size):
-            linhat[:, mi] = asm.M0[mi] @ (Uhat[:, mi] / asm.w[mi])
+            linhat[:, mi] = s3.linear_apply(asm, mi, Uhat[:, mi] / asm.w[mi])
         lap_nodal = np.fft.irfft(linhat, n=prob.Nphi, axis=1)
         dR_int = dR_int + (-2.0 / sl.b) * lap_nodal
     return np.where(interior[:, None], dR_int, 0.0)
@@ -249,7 +249,7 @@ def _tangent_solve_modified(asm: Assembly3D, U: np.ndarray,
     """``J_mod·dU = −∂R/∂θ`` — one per-mode back-solve against the ``newton_step``
     block ``Ĵ_m = M0_m + diag(interior·d̄·w_m)`` (``d̄`` = φ-averaged source deriv).
 
-    The cheap plan-literal tangent: ``dv_m = operators_abt.solve_equilibrated(Ĵ_m,
+    The cheap plan-literal tangent: ``dv_m = operators_3d.solve_mode_block(Ĵ_m,
     −∂R̂/∂θ|_m)`` reusing exactly the factored per-``m`` block the Newton step
     builds.  For a φ-independent source (axisymmetric / aligned) this IS the full
     Jacobian (``d̄ = D_nl``), so it matches :func:`_tangent_solve_nk` bit-for-bit.
@@ -264,7 +264,7 @@ def _tangent_solve_modified(asm: Assembly3D, U: np.ndarray,
         Jm = np.array(asm.M0[mi])
         di = np.where(asm.interior, d_bar * asm.w[mi], 0.0)
         Jm[np.diag_indices_from(Jm)] += di
-        dvhat = ops.solve_equilibrated(Jm, -dRm[:, mi])
+        dvhat = ops3.solve_mode_block(Jm, -dRm[:, mi])
         dUhat[:, mi] = asm.w[mi] * dvhat
     return np.fft.irfft(dUhat, n=Nphi, axis=1)
 
@@ -291,12 +291,20 @@ def _tangent_solve_nk(asm: Assembly3D, U: np.ndarray, dR_node: np.ndarray,
     D_nl = -0.875 * base ** (-8.0) * asm.A2
     d_bar = D_nl.mean(axis=1)
 
-    facs = []
-    for mi in range(Nm):
-        Jm = np.array(M0[mi])
-        di = np.where(interior, d_bar * w[mi], 0.0)
-        Jm[np.diag_indices_from(Jm)] += di
-        facs.append(s3nk._lu_factor_equilibrated(Jm))
+    # Same two representations of the linear operator as the Newton step, and for
+    # the same reason: the tangent reuses the Newton Jacobian and preconditioner.
+    # Note the separable setup sits entirely OUTSIDE this path — it depends on the
+    # grid alone, not on b, not on theta and not on the iterate — so no gradient is
+    # ever taken through an eigendecomposition.
+    sep = asm.sep
+    facs = None
+    if sep is None:
+        facs = []
+        for mi in range(Nm):
+            Jm = np.array(M0[mi])
+            di = np.where(interior, d_bar * w[mi], 0.0)
+            Jm[np.diag_indices_from(Jm)] += di
+            facs.append(s3nk._lu_factor_equilibrated(Jm))
 
     def _Jmatvec(dU_flat):
         dU = dU_flat.reshape(Ntot, Nphi)
@@ -304,7 +312,7 @@ def _tangent_solve_nk(asm: Assembly3D, U: np.ndarray, dR_node: np.ndarray,
         DdU_hat = np.fft.rfft(D_nl * dU, axis=1)
         out = np.empty((Ntot, Nm), dtype=complex)
         for mi in range(Nm):
-            out[:, mi] = (M0[mi] @ (dUhat[:, mi] / w[mi])
+            out[:, mi] = (s3.linear_apply(asm, mi, dUhat[:, mi] / w[mi])
                           + np.where(interior, DdU_hat[:, mi], 0.0))
         return np.fft.irfft(out, n=Nphi, axis=1).ravel()
 
@@ -313,7 +321,11 @@ def _tangent_solve_nk(asm: Assembly3D, U: np.ndarray, dR_node: np.ndarray,
         yhat = np.fft.rfft(y, axis=1)
         dUhat = np.empty((Ntot, Nm), dtype=complex)
         for mi in range(Nm):
-            dvhat = s3nk._lu_solve_equilibrated(facs[mi], yhat[:, mi])
+            if sep is None:
+                dvhat = s3nk._lu_solve_equilibrated(facs[mi], yhat[:, mi])
+            else:
+                dvhat = sep.solve(mi, yhat[:, mi].reshape(sep.Na1, sep.Nb1),
+                                  asm.b).ravel()
             dUhat[:, mi] = w[mi] * dvhat
         return np.fft.irfft(dUhat, n=Nphi, axis=1).ravel()
 

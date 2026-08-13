@@ -74,16 +74,26 @@ caffeinate -i pytest tests/test_solver_3d.py -v
 make figures                                   # regenerate figure data (recompute) + plot
 ```
 
-**The full suite is a two-hour job, not a forty-minute one.** Measured
-2026-08-13: **589 tests, 2h01m** on an M-series laptop. (An earlier note here said
-"542 tests, ~36 min"; the suite has grown and that figure was stale.) Start it in
-the background and do other work — and do not pipe it through `tail`/`head`,
-which buffers until pytest exits so a running suite looks hung.
+**The full suite is a ~40-minute job.** Measured 2026-08-13: **611 tests,
+36m35s** on an M-series laptop (with another pytest run competing for part of it).
+Start it in the background and do other work — and do not pipe it through
+`tail`/`head`, which buffers until pytest exits so a running suite looks hung.
 
-`tests/test_source_spin.py::test_sympy_exact_spin_closed_form` fails on a clean
-environment: `sympy` is an undeclared test dependency, missing from both
-`environment.yml` and this leaf's `[dev]` extras. That failure is expected and
-unrelated to whatever you changed.
+That figure has moved twice, so treat it as a measurement and not a constant.
+Earlier the same day it was **589 tests, 2h01m**, and before that "542 tests,
+~36 min". The drop back to ~36 min is not a stale note: the suite is dominated by
+elliptic solves, and the solver's assembly and per-step linear algebra were made
+several times cheaper (see `solver/operators_3d.py` and `solver/separable.py`).
+Re-measure rather than quoting this line if the number matters to a decision.
+
+`tests/test_source_spin.py::test_sympy_exact_spin_closed_form` needs `sympy`,
+which is a **test-only** dependency — the standalone guard forbids importing it
+from `src/`. It is declared in this leaf's `[dev]` extra and in the workspace
+`environment.yml`; keep the two in step. It used to be declared in neither, and
+because the test fails rather than skips without it, a clean environment reported
+a failure unrelated to whatever was being changed. If you see that failure, the
+environment is stale — `pip install -e ".[dev]"`, or `./scripts/create_env.sh`
+from the workspace root.
 
 For a fast check while iterating, these three cover the structural invariants in
 about four seconds:
@@ -99,11 +109,46 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
 
 - **`solver/`** — spatial elliptic (xCFC) solver. Production 3-D stack:
   `spectral` (1-D Chebyshev primitives), `operators_3d`/`source_3d` (Fourier-in-φ
-  non-axisymmetric operator + Bowen–York source), `solver_3d` (modified-Newton
+  non-axisymmetric operator + Bowen–York source), `separable` (the same operator
+  as 1-D Kronecker factors + its exact inverse), `solver_3d` (modified-Newton
   build), `solver_3d_nk` (Newton–Krylov, the *certified* solve), `diagnostics_3d`
   (ADM diagnostics + `convergence_table`). The axisymmetric two-centre base
   (`operators_abt`, `source`, `solver_abt`) is a **transitively-required base
   layer** of the 3-D stack — not dead code.
+
+  **Who owns the linear operator.** `operators_3d` owns the *dense* per-m blocks
+  and is the only place they are built; `operators_3d.mode_operators_cached`
+  hands out shared, **read-only** blocks memoized on `(Na, Nb, Nφ, b)`, so a
+  second slice at the same separation costs nothing (Newton copies before adding
+  its nonlinear diagonal). `separable` owns the *matrix-free* representation: the
+  1-D Kronecker factors of each block, its fast-diagonalization inverse, and the
+  row-equilibration scales in `O(Na·Nb)` — built once per grid and reused at every
+  separation and every parameter point. `solver_3d.linear_apply` is the single
+  place that knows which of the two an assembly holds; the residual, the Jacobian
+  action and the tangents all go through it. Which representation an assembly gets
+  is chosen once, in `solver_3d.assemble(..., separable=)`.
+
+  > **`operators_abt` is the axisymmetric regression oracle, and the m=0 3-D block
+  > must equal its operator BIT-FOR-BIT.** That is what makes the Nφ=1 reduction
+  > reproduce the 2-D Newton solve to ~1e-16 rather than ~1e-13, and it is a
+  > tighter constraint than "don't edit `operators_abt`": any change to how
+  > `operators_3d` assembles the m=0 block breaks it just as effectively. Pinned by
+  > `tests/test_solver_3d_fast.py::test_m0_block_is_the_frozen_axisymmetric_operator`.
+  > In particular the assembly does **not** use
+  > `kron(D,I) @ kron(D,I) = kron(D@D, I)`, which would be ~40× cheaper but agrees
+  > only to ~1e-16: taking it needs the same change in `operators_abt` in the same
+  > commit, and that is a maintainer decision.
+
+  > **The separable preconditioner is opt-in, not the default.** `separable=True`
+  > drops the nonlinear diagonal from the preconditioner — that is exactly what
+  > makes it b- and θ-independent — so it is no longer the exact Jacobian at
+  > Nφ=1, and GMRES takes a handful of iterations there instead of one. The
+  > default (dense) route keeps that property, and
+  > `test_solver_3d.py::test_nk_axisym_reduction_reproduces_2d` keeps asserting
+  > it. The separable path has its own same-answer gate in
+  > `tests/test_solver_3d_fast.py`. Flipping the default would change the Krylov
+  > behaviour of every production solve, the corpus and the figure data — check
+  > with the maintainers first.
 - **`parametric/`** — the ROM. Production: `parametric_nd_smolyak` (sparse-grid
   value model), `hermite_smolyak`/`hermite_smolyak_pod`/`hermite_smolyak_pod_cross`
   (gradient-enhanced + POD + full-bilinear cross term), `quasicircular` (PN QC
