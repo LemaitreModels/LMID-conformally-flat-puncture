@@ -93,10 +93,22 @@ def sweep(n=24, grid=None, seed=20260813, newton_steps=4, verbose=True):
     rng = np.random.default_rng(seed)
     thetas = lo + (hi - lo) * rng.random((n, len(box)))
 
-    fns = {}
+    # Keep each forward map's per-b cache, because it has to be CLEARED between
+    # points.  `make_solve_fn`'s cache is keyed on the separation and is
+    # UNBOUNDED, which is right for a corpus build — those snake with b outermost,
+    # so a handful of separations are each reused for many nodes — and wrong here,
+    # where every point draws a fresh random b and so adds a fresh entry.  At the
+    # production grid one entry is 5 dense blocks of (Na·Nb)² float64 = 79 MiB, so
+    # 240 points retain ~18.5 GiB and the process is killed. Measured: an early
+    # 240-point cluster run died at MaxRSS 33.5 GB.
+    #
+    # Note `operators_3d.clear_block_cache()` alone does NOT fix this: that cache
+    # is bounded already, but the assemblies held here keep strong references to
+    # the very arrays it evicts, so the memory stays live. Both have to go.
+    fns, caches = {}, {}
     for label, sep in (("dense", False), ("separable", True)):
-        fns[label], _ = p3.make_solve_fn(prob, names, fixed=QC, solver="nk",
-                                         separable=sep)
+        fns[label], caches[label] = p3.make_solve_fn(prob, names, fixed=QC,
+                                                     solver="nk", separable=sep)
 
     if verbose:
         print(f"{'#':>3s} {'b':>5s} {'q':>5s} {'|chiA|':>6s} {'|chiB|':>6s}  "
@@ -105,6 +117,14 @@ def sweep(n=24, grid=None, seed=20260813, newton_steps=4, verbose=True):
               f"{'dU/|U|':>9s} {'x':>5s}")
     rows = []
     for i, th in enumerate(thetas):
+        # Drop everything held from the previous point. This bounds memory (see
+        # above) and is also what makes the timings honest: a certified query in
+        # production pays its own assembly, so neither route may be credited with
+        # a cache the previous point warmed.
+        for c in caches.values():
+            c.clear()
+        ops3.clear_block_cache()
+
         th_near = th.copy()
         th_near[0] = min(th[0] * WARM_B_FACTOR, hi[0])
         U0, _ = fns["dense"](th_near, None, CERT_TOL, 8)
@@ -112,9 +132,8 @@ def sweep(n=24, grid=None, seed=20260813, newton_steps=4, verbose=True):
 
         out = {}
         for label in ("dense", "separable"):
-            # a cold operator cache each time, so the timing is the honest
-            # per-parameter-point cost and neither route is credited with the
-            # other's warm cache
+            for c in caches.values():
+                c.clear()
             ops3.clear_block_cache()
             t0 = time.perf_counter()
             U, info = fns[label](th, U0, CERT_TOL, newton_steps)
