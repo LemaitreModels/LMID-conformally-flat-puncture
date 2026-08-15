@@ -27,9 +27,48 @@ import jax.numpy as jnp
 import pytest
 
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as sa
+from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric as p1d
 from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd as pnd
 from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_2c as p3
-from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_2c as p2c
+
+
+# --------------------------------------------------------------------------
+# The 1-D oracle for the bit-for-bit reduction gates below
+# --------------------------------------------------------------------------
+# ``parametric.ParametricSolver`` is solver-agnostic: it needs only a
+# ``solve_fn`` (and optionally a tangent predictor).  These two closures inject
+# the ABT two-centre solver for the b- and q-sweeps.  They lived in
+# ``parametric/parametric_2c.py`` until that module was pruned as test-only
+# (its study toolkit is the 1-D predecessor of ``parametric_nd_2c``'s, which is
+# what the paper's fig02 walls are actually built from).  Kept verbatim here so
+# the reduction gates still compare against the *same* 1-D construction.
+def _oracle_b(prob, m_A, m_B, b_min, b_max, Q):
+    """1-D b-sweep at fixed masses on the frozen ABT grid."""
+    def solve_fn(b, guess, tol, max_iter):
+        return sa.newton_solve(prob, sa.Slice(float(b), m_A, m_B),
+                               U0=guess, tol=tol, max_iter=max_iter)
+
+    def tangent_fn(b, U):
+        return sa.tangent_b(prob, np.asarray(U), sa.Slice(float(b), m_A, m_B))
+
+    return p1d.ParametricSolver(solve_fn, b_min, b_max, Q, tangent_fn=tangent_fn)
+
+
+def _oracle_q(prob, b, M_tot, q_min, q_max, Q):
+    """1-D mass-ratio sweep at fixed ``b`` and fixed total mass ``M_tot``."""
+    def _masses(q):
+        return M_tot * float(q) / (1.0 + float(q)), M_tot / (1.0 + float(q))
+
+    def solve_fn(q, guess, tol, max_iter):
+        mA, mB = _masses(q)
+        return sa.newton_solve(prob, sa.Slice(b, mA, mB),
+                               U0=guess, tol=tol, max_iter=max_iter)
+
+    def tangent_fn(q, U):
+        mA, mB = _masses(q)
+        return sa.tangent_q(prob, np.asarray(U), sa.Slice(b, mA, mB), M_tot)
+
+    return p1d.ParametricSolver(solve_fn, q_min, q_max, Q, tangent_fn=tangent_fn)
 
 
 # ==========================================================================
@@ -64,7 +103,7 @@ def test_snake_single_axis_matches_argsort():
 def test_b_axis_reduces_bit_for_bit():
     prob = sa.make_problem(Na=24, Nb=18, P=0.5)
     Q = 8
-    ps1d = p2c.from_problem_b(prob, 0.5, 0.5, 3.0, 12.0, Q).build(tol=1e-12, max_iter=20)
+    ps1d = _oracle_b(prob, 0.5, 0.5, 3.0, 12.0, Q).build(tol=1e-12, max_iter=20)
     psnd = p3.from_problem_nd(prob, [{"name": "b", "min": 3.0, "max": 12.0, "Q": Q}],
                               M_tot=1.0, use_cache=False).build(tol=1e-12, max_iter=20)
     assert np.array_equal(ps1d.q_nodes, psnd.nodes[0])
@@ -78,7 +117,7 @@ def test_b_axis_reduces_bit_for_bit():
 def test_q_axis_reduces_bit_for_bit():
     prob = sa.make_problem(Na=24, Nb=18, P=0.5)
     Q = 8
-    ps1d = p2c.from_problem_q(prob, b=4.0, M_tot=1.0, q_min=1.0, q_max=3.0, Q=Q).build(
+    ps1d = _oracle_q(prob, b=4.0, M_tot=1.0, q_min=1.0, q_max=3.0, Q=Q).build(
         tol=1e-12, max_iter=20)
     psnd = p3.from_problem_nd(prob, [{"name": "q", "min": 1.0, "max": 3.0, "Q": Q}],
                               M_tot=1.0, fixed={"b": 4.0}, use_cache=False).build(
