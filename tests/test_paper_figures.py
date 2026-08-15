@@ -1,15 +1,20 @@
-"""Paper figures — every committed figdata json is current for its plotter.
+"""Paper figures — every committed figdata json is present and current for its plotter.
 
-The figure tier is two-step (``figNN_*_data.py`` -> ``figdata/figNN_*.json`` -> ``figNN_*_plot.py``),
-and ``figdata/*.json`` is a gitignored build output rebuilt from heavy ``reports/`` sources, most of
-them cluster-side.  So the failure mode is not a missing json but a **stale** one: a figdata built
-before a block was added to its producer loads fine and then dies deep inside the plotter with a
-bare ``KeyError``.  That is exactly how Fig. 2 broke — its PDF carries the mass-ratio panel while an
-older local figdata had no ``Q_wall_q``.
+The figure tier is two-step (``figNN_*_data.py`` -> ``figdata/figNN_*.json`` -> ``figNN_*_plot.py``).
+All ten ``figdata/*.json`` are **committed** (see ``.gitignore``, which says so explicitly): they are
+the distilled few-kB artifacts that let a clone rebuild every figure with no ``reports/``, no
+models, no solves and no jax.  So there are two failure modes, and this file guards both.
 
-This guard asserts that whatever figdata is present carries the top-level keys its plotter reads
-(``registry.FIGURES[stem]["keys"]``).  It reads files only — no solves, no jax — so it belongs in
-the fast tier.  Rebuild a stale one with ``python paper/figures/make_figdata.py --fig NN --force``.
+*Stale*: a figdata built before a block was added to its producer loads fine and then dies deep
+inside the plotter with a bare ``KeyError``.  That is exactly how Fig. 2 broke — its PDF carries the
+mass-ratio panel while an older local figdata had no ``Q_wall_q``.
+
+*Absent*: a committed artifact that has gone missing.  This used to ``skip``, on the since-corrected
+premise that figdata was a gitignored build output — so deleting one passed the suite silently while
+``make figures`` would then plot nothing.  It is a failure now.
+
+Everything here reads files only — no solves, no jax — so it belongs in the fast tier.  Rebuild a
+stale one with ``python paper/figures/make_figdata.py --fig NN --force``.
 """
 from __future__ import annotations
 
@@ -30,10 +35,13 @@ import registry as reg  # noqa: E402
 
 @pytest.mark.parametrize("stem", reg.figure_stems())
 def test_committed_figdata_is_current(stem):
-    """If figdata/<stem>.json exists, it has every key the plotter reads."""
+    """figdata/<stem>.json is present, and has every key the plotter reads."""
     p = fd.figdata_path(stem)
-    if not os.path.exists(p):
-        pytest.skip(f"{stem} figdata absent (make figdata; most sources are cluster-side)")
+    assert os.path.exists(p), (
+        f"{os.path.relpath(p, ROOT)} is MISSING.  Every figdata is committed — a clone must "
+        f"rebuild all ten figures from the repo alone — so an absent one is a deleted artifact, "
+        f"not an un-run build.  Restore it (git checkout) or rebuild: "
+        f"python paper/figures/make_figdata.py --fig {stem} --force")
     with open(p) as f:
         d = json.load(f)
     miss = fd.missing_keys(stem, d)
