@@ -328,7 +328,7 @@ def make_solve_fn(prob: Problem3D, active_names: Sequence[str], M_tot: float = 1
                                         max_iter=max(60, int(max_iter)), asm=asm_d)
                 U2, info2 = s3nk.newton_solve_nk(prob, sl, U0=np.asarray(Um), tol=tol,
                                                  max_iter=int(max_iter) + 1, asm=asm,
-                                                 gmres_rtol=gmres_rtol)
+                                                 gmres_rtol=gmres_rtol, separable=separable)
                 if info2.residual_norm < info.residual_norm:
                     U, info = U2, info2
             return U, info
