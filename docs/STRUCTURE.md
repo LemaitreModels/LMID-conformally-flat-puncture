@@ -14,7 +14,7 @@ src/lemaitre/initial_data/conformally_flat_puncture/
   solver/         spectral elliptic (xCFC) solver
   parametric/     parameter-space collocation / Hermite / Smolyak / POD (the ROM)
   applications/   qc_targeting, qc_effpot, control, sensitivity_3d{,_qc,_cross,_cross_bq}
-  validation/     twopunctures, conventions, adm, constraints, compare
+  validation/     twopunctures, conventions, adm, constraints, export_grteclyn
   pipeline/       canonical figure producers + model builders (runnable + importable)
 tests/            acceptance suite (float64, CPU)
 paper/            paper.tex + references + figures/ (data+plot scripts, helpers, registry)
@@ -152,15 +152,68 @@ extreme corners where Newton–Krylov stalls globally — gets the fallback.
   `__pycache__`, `manuscript/papers/` (reference PDFs), and the gitignored
   bare-mass `reports/*/models/` corpora (superseded by the χ models).
 
+## What the prune removed (2026-08-15)
+
+The prune deferred at migration time (see "Deferred", below), executed. Every
+deletion was grepped against the
+sibling `LMID-curved-puncture`'s `src/` **and** `tests/` first — a leaf's own
+suite is blind to its consumers — and the sibling imports none of it. What it
+does import from here is unchanged: `solver.{operators_3d, operators_abt,
+separable, solver_3d, solver_3d_nk, solver_abt, source, source_3d}`,
+`validation.adm`, and `parametric.{quasicircular, parametric_nd, hermite_smolyak*,
+parametric_nd_smolyak}`.
+
+**Modules (7).** The 1-D pedagogical rung `solver/{solver.py, operators.py,
+diagnostics.py}`, reachable only from `tests/test_spatial_2c.py` once
+`parametric.from_problem` went; `parametric/parametric_2c.py`, test-only;
+`validation/compare.py`, a full orphan; `pipeline/plot_3d_sweep.py`, which
+plotted retired figure identities and ran `os.makedirs` at *import*, creating
+junk inside the installed package; `pipeline/run_3d_validation_sweep.py`,
+superseded by `run_tp_random_sweep`.
+
+**Symbols.** `parametric.from_problem` (bit-rotted: it called
+`solver.newton_solve(prob, m=q, …)`, a kwarg that never existed, and
+`solver.tangent`, which does not exist — uncallable since the migration);
+`ParametricSolverND`'s tangent-predictor branch, unreachable because no
+construction site ever passed `tangent_fn`, and wrong for any non-1-D field;
+`operators_3d.block_operator_m`; `solver_3d._interp1`; `solver_abt.{adm_mass,
+residual_norm}`, superseded by `validation.adm`'s spectral extraction;
+`validation.adm.psi_at`; `sensitivity_3d_qc.QC_TANGENT_AXES`;
+`qc_targeting.M_ADM`'s unused `q=` parameter; a dead `scipy.linalg` import and a
+stale `noqa: F401` on an import that *is* used.
+
+**Tests.** `test_spatial_2c.py` and `test_parametric_2c.py` went with their
+modules. No gate on a published claim was lost: the P=0 exact-fixed-point gate
+survives at both kept layers (`test_abt_2c.py`, `test_solver_3d.py`), and the
+analyticity-wall study behind the paper's fig02 is `parametric_nd_2c`'s — gated
+twice over, in `test_parametric_nd.py` and `test_parametric_3d.py`, on the same
+`b_min` ladder. The bit-for-bit 1-D reduction oracle moved into
+`test_parametric_nd.py` as two local closures over `parametric.ParametricSolver`,
+so the reduction gates still compare against the same construction.
+
+**Relocations.** `convergence_table` moved from the pruned `diagnostics` to
+`diagnostics_3d` — the attribution `CLAUDE.md` carried before 2026-08-15, and now
+true rather than aspirational. `MODELS`,
+`load_pod_truncated` and `GAP_MIN` moved from the *producer*
+`pipeline/run_guess_vs_memory.py` into `pipeline/fielderr_shared.py`, where
+library code belongs — three other producers were importing a producer's module
+globals. `run_guess_vs_memory` re-exports them, so no consumer broke.
+
+**Kept deliberately.** `pipeline/run_separable_sweep.py` is not dead: it is the
+evidence producer behind the separable default, and was referenced nowhere in the
+public tree. It is now documented in [`DATA.md`](DATA.md) with what it gates and
+its pass criteria. Also kept: `validation/constraints.py`,
+`pipeline/qc_chi_tangent.py`, and the whole of `applications/`.
+
 ## Deferred (not done in this migration)
 
-- **Marginal module prune.** The import-closure trace found only 3 tiny 1-D
-  pedagogical modules (`solver/solver.py`, `operators.py`, `diagnostics.py`) plus
-  `parametric/parametric_2c.py` are *truly* unreachable by the production closure.
-  Dropping them needs minor test surgery (relocate a `convergence_table` printer;
-  drop/repoint a few 1-D/2c tests). `applications/sensitivity.py` is NOT droppable
-  — surviving Hermite-ND tests use it via `hermite_nd.from_problem_nd_hermite`.
-  Left in for a green baseline; can be pruned on request.
+- **Marginal module prune — done 2026-08-15.** The 3 tiny 1-D pedagogical modules
+  (`solver/solver.py`, `operators.py`, `diagnostics.py`) and
+  `parametric/parametric_2c.py` were unreachable by the production closure and are
+  gone, with three orphans beside them (`validation/compare.py`,
+  `pipeline/plot_3d_sweep.py`, `pipeline/run_3d_validation_sweep.py`) — see "What
+  the prune removed", above. `applications/sensitivity.py` was NOT droppable and
+  stays — surviving Hermite-ND tests use it via `hermite_nd.from_problem_nd_hermite`.
 - **Figure recompute (Stage 2).** The `figNN_*_data.py` scripts still carry the
   old "read `reports/` cache" logic — every one of them distils via
   `_figdata.load_source`, and none runs the solver. Rewiring them to genuinely

@@ -170,6 +170,26 @@ different model against the production corpus.
 Still without any producer: `gvm_4d_value`/`gvm_4d_field` are now covered by the
 two entries above; nothing else in `registry.SOURCES` is orphaned.
 
+## Producers that gate a decision rather than feed a figure
+
+Not every producer under `pipeline/` writes figure data. One gates a **solver
+default**, and it is the one to re-run after any change to the preconditioner or
+the linear algebra underneath it.
+
+| producer | what it gates | pass criteria |
+|---|---|---|
+| `run_separable_sweep --n 240` | the **separable preconditioner being the default** (`solver_3d.assemble(separable=)` via `choose_separable`). Solves each sampled point twice from the *same* warm start — separable vs dense — through the shipped forward map `parametric_nd_3d.make_solve_fn`, so it measures production rather than a reimplementation. | three, all in the module docstring and enforced in code: (1) separable certifies **wherever dense does** (a point failing on *both* is a solver limitation, reported separately and not charged to this gate); (2) the two converged fields agree to `FIELD_TOL = 1e-9` relative; (3) extra Newton steps are at most **one** per point at no more than `MAX_EXTRA_FRAC = 0.05` of points. Exit status is 0 only on a clean pass, so it can gate a cluster job. |
+
+The gate on extra Newton steps is a **rate, not an absolute**. It read "zero
+extra steps" until 2026-08-15, a criterion inherited from a 24-point prototype
+sweep; at 240 points three of them (1.25 %) cost one step, every one at or above
+the 90th percentile of total spin `|χ_A|+|χ_B|` — exactly where dropping the
+nonlinear diagonal from the preconditioner should first show. Do not re-tighten
+it to zero without re-reading that reasoning.
+
+The certification threshold is imported from `parametric.certification.CERT_TOL`,
+never restated — see the single-source rule in `CLAUDE.md`.
+
 ## The eccentricity family (fig07)
 
 `run_qc_effpot` needs a 2-D `(b, P_t)` surrogate, `surrogate_bpt_ecc.npz`, which

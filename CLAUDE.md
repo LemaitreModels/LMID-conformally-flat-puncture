@@ -120,10 +120,12 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   non-axisymmetric operator + Bowen–York source), `separable` (the same operator
   as 1-D Kronecker factors + its exact inverse), `solver_3d` (modified-Newton
   build), `solver_3d_nk` (Newton–Krylov, the *certified* solve), `diagnostics_3d`
-  (ADM diagnostics; the `convergence_table` printer still lives in the 1-D
-  `diagnostics`, which is why that module is not prunable yet). The axisymmetric two-centre base
+  (ADM diagnostics, plus the shared `convergence_table` printer the tests use).
+  The axisymmetric two-centre base
   (`operators_abt`, `source`, `solver_abt`) is a **transitively-required base
-  layer** of the 3-D stack — not dead code.
+  layer** of the 3-D stack — not dead code. The 1-D pedagogical rung
+  (`solver.py`, `operators.py`, `diagnostics.py`) was pruned on 2026-08-15; see
+  `docs/STRUCTURE.md`.
 
   **Who owns the linear operator.** `operators_3d` owns the *dense* per-m blocks
   and is the only place they are built; `operators_3d.mode_operators_cached`
@@ -175,7 +177,8 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   parameter control), `sensitivity_3d`/`_qc`/`_cross`/`_cross_bq` (differentiable
   tangents dU/dθ, incl. the full-bilinear cross term).
 - **`validation/`** — `twopunctures` (external oracle wrapper), `conventions`
-  (convention map), `adm`, `constraints`, `compare` (LM-initial-data-vs-TwoPunctures).
+  (convention map), `adm`, `constraints`, `export_grteclyn` (the GRTeclyn export,
+  a certification exit).
 
 `pipeline/` holds the canonical producers/builders directly — `run_*.py` producers
 and `build_*.py` model builders, no subdirectories; `paper/figures/` holds the
