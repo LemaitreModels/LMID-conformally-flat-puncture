@@ -12,7 +12,7 @@ The off-node points are drawn by the committed ``run_polish_table``
 ``random_offnode_points`` (seed-shared, same box / grid / gap rule), so this
 staircase lands on the IDENTICAL 1000 points as the cold-start (``run_polish_cold``)
 and the shipped-r POD tables.  Truncation reuses the committed
-``run_guess_vs_memory.load_pod_truncated`` (bit-for-bit the POD loader, sliced).
+``fielderr_shared.load_pod_truncated`` (bit-for-bit the POD loader, sliced).
 
 Writes ``reports/P3/polish_table_chi<dim>d_pod_r<r>_<n>.json`` with the
 ``run_polish_table`` summary schema PLUS the raw per-step residual arrays
@@ -43,7 +43,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd im
 # committed sibling drivers (read-only reuse — identical points + truncation)
 from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_table import (
     random_offnode_points, step_residuals, _stats, REPDIR)
-from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_guess_vs_memory import MODELS, load_pod_truncated
+from lemaitre.initial_data.conformally_flat_puncture.pipeline.fielderr_shared import MODELS, load_pod_truncated
 
 
 def run(dim, rank, n_points=1000, seed=0):

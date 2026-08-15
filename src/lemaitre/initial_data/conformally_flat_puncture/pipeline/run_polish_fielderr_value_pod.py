@@ -52,8 +52,9 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_fielder
 from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_smolyak import _node_key
 from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak import HermiteSmolyakSolverND
 from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak_pod import PODHermiteSmolyak
-from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_guess_vs_memory import (
-    MODELS, _load_npz, _unpack_meta, _check_meta,
+from lemaitre.initial_data.conformally_flat_puncture.pipeline.fielderr_shared import MODELS
+from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd import (
+    _load_npz, _unpack_meta, _check_meta,
 )
 
 HERE = os.path.dirname(os.path.abspath(__file__))

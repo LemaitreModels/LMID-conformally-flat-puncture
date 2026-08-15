@@ -42,15 +42,10 @@ import numpy as np
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d_nk as s3nk
 from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric import cheb_param_nodes
-from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd import (
-    _load_npz, _unpack_meta, _check_meta,
-)
-from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_smolyak import _node_key
 from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as pb
 from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_3d import theta_to_slice3d, assemble_cached_3d
-from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak import HermiteSmolyakSolverND
 from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak_pod import (
-    PODHermiteSmolyak, load_pod_hermite_smolyak,
+    load_pod_hermite_smolyak,
 )
 from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_cross_fielderror_chi import thin_ranks
 
@@ -59,61 +54,13 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REPDIR = os.path.join(REPORTS, "P3")
-GAP_MIN = 1e-4
 
-# ---- shipped models (the SAME corpus, three re-encodings, per dimension) -----
-MODELS = {
-    4: dict(
-        pod=os.path.join(REPORTS, "P2/models_chi/"
-                         "pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz"),
-        ranks=[1, 2, 3, 5, 8, 12, 20, 30, 45, 60, 75, 87],
-        ref_value="polish_table_qc_chi_prod_1000.json",
-        ref_hermite="polish_table_qc_chi_prod_hermite_1000.json",
-    ),
-    8: dict(
-        pod=os.path.join(REPORTS, "P2/models_chi/pod_hermite_smolyak_"
-                         "spin8qc_L5_enh-chi_Ax-chi_Ay-chi_Az-chi_Bx-chi_By-chi_Bz.npz"),
-        ranks=[1, 5, 15, 30, 60, 100, 150, 200, 250, 300, 350, 394],
-        ref_value="polish_table_chi8d_value_1000.json",
-        ref_hermite="polish_table_chi8d_hermite_1000.json",   # pending (cluster)
-    ),
-}
-
-
-# ------------------------------------------------------------------- helpers
-def load_pod_truncated(path, r_new) -> PODHermiteSmolyak:
-    """A PODHermiteSmolyak truncated to the leading ``r_new`` modes.
-
-    Mirrors ``hermite_smolyak_pod.load_pod_hermite_smolyak`` verbatim but slices
-    ``Phi[:, :r_new]`` / ``node_U[:, :r_new]`` / ``node_dU[..., :r_new]`` before
-    the finalize.  ``r_new == r_shipped`` reproduces the committed loader
-    bit-for-bit; ``evaluate`` at any ``r_new`` equals ``mean + Phi[:, :r_new] @
-    c[:r_new]`` (leading-r' POD reconstruction).  NO re-solve, NO corpus.
-    """
-    data = _load_npz(path)
-    meta = _unpack_meta(data); _check_meta(meta, "pod_hermite_smolyak")
-    r_full = int(data["r"]); r_new = int(min(r_new, r_full))
-    Phi = np.asarray(data["Phi"], dtype=float)[:, :r_new]
-    mean = np.asarray(data["mean"], dtype=float)
-    field_shape = tuple(int(x) for x in np.asarray(data["field_shape"], dtype=np.int64))
-    node_thetas = np.asarray(data["node_thetas"], dtype=float)
-    node_U = np.asarray(data["node_U"], dtype=float)[:, :r_new]
-    node_dU = np.asarray(data["node_dU"], dtype=float)[:, :, :r_new]
-    node_iters = np.asarray(data["node_iters"])
-    node_resids = np.asarray(data["node_resids"], dtype=float)
-    index_set = [tuple(int(x) for x in row) for row in np.asarray(data["index_set"])]
-    axes = [(float(a[0]), float(a[1])) for a in np.asarray(data["axes"], dtype=float)]
-    enhanced = tuple(int(e) for e in np.asarray(data["enhanced"], dtype=np.int64))
-    pool = {}
-    for i in range(node_thetas.shape[0]):
-        pool[_node_key(node_thetas[i])] = (
-            np.asarray(node_U[i], dtype=float), np.asarray(node_dU[i], dtype=float),
-            int(node_iters[i]), float(node_resids[i]))
-    solver = HermiteSmolyakSolverND(solve_fn=None, axes=axes, tangent_fn=None,
-                                    enhanced_axes=enhanced)
-    pod = PODHermiteSmolyak(solver._finalize(index_set, pool), Phi, mean, field_shape)
-    pod.meta = meta
-    return pod
+# ``MODELS``/``load_pod_truncated``/``GAP_MIN`` are library, not producer state:
+# three other producers import them from here.  They now live in
+# ``fielderr_shared`` and are re-exported for those importers.
+from lemaitre.initial_data.conformally_flat_puncture.pipeline.fielderr_shared import (  # noqa: E402
+    GAP_MIN, MODELS, load_pod_truncated,
+)
 
 
 def mem_pod_bytes(r, N, nfeat, d):
