@@ -68,6 +68,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak_
 # metadata / box / grid / axes / fixed source (the SAME plain 8-D model
 # run_polish_cold --dim 8 reads its metadata + off-node points from)
 from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_guess_vs_memory import MODELS
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 # reuse the EXACT seed-shared off-node sampling of the residual staircases
 from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_cold import random_offnode_points, read_meta
 
@@ -172,10 +173,11 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--cold-steps", type=int, default=8)   # match polish_cold_chi8d (--steps 8)
     ap.add_argument("--pod-steps", type=int, default=4)    # match polish_table_chi8d_pod_r* (MAXSTEPS=4)
-    ap.add_argument("--rank", type=int, default=500,
+    ap.add_argument("--rank", type=int, default=pm.SHIPPED_RANK[8],
                     help="cross-POD warm-start rank; must match the rank of the "
                          "run_polish_podrank / run_polish_fielderr_value_pod curves "
-                         "it is plotted beside (fig04 revision: 500)")
+                         "it is plotted beside.  Default: production_model.SHIPPED_RANK[8] "
+                         f"(={pm.SHIPPED_RANK[8]}), which is where that rank is defined")
     ap.add_argument("--reuse-cold", default=None,
                     help="path to a previous polish_fielderr_chi8d_*.json whose cold "
                          "family to reuse verbatim.  The cold staircase is warm-start-free "

@@ -13,6 +13,10 @@ mass-ratio panel while an older local figdata had no ``Q_wall_q``.
 premise that figdata was a gitignored build output — so deleting one passed the suite silently while
 ``make figures`` would then plot nothing.  It is a failure now.
 
+A third guard pins ``registry``'s producer commands, because ``make_figdata.py --check`` prints them
+as the rebuild command and three of them named a module that could not write the file (§9.2 of the
+2026-08-15 review): the drift class had happened twice with no test on it.
+
 Everything here reads files only — no solves, no jax — so it belongs in the fast tier.  Rebuild a
 stale one with ``python paper/figures/make_figdata.py --fig NN --force``.
 """
@@ -20,13 +24,18 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 
 import pytest
 
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 FIGURES = os.path.join(ROOT, "paper", "figures")
+PIPELINE_DIR = os.path.join(
+    ROOT, "src", "lemaitre", "initial_data", "conformally_flat_puncture", "pipeline")
 sys.path.insert(0, FIGURES)
 
 import _figdata as fd  # noqa: E402
@@ -73,3 +82,62 @@ def test_declared_keys_are_grounded_in_the_plotter():
             text = f.read()
         assert any(f'"{k}"' in text for k in keys), (
             f"{stem}_plot.py names none of its declared keys {keys}")
+
+
+# --------------------------------------------------------------------------
+# registry provenance: the producer commands must be runnable and current
+# --------------------------------------------------------------------------
+@pytest.mark.parametrize("key", sorted(reg.SOURCES))
+def test_producer_module_exists_and_ranks_match_the_shipped_model(key):
+    """Each source names a real ``pipeline/`` module, and every rank it passes is the shipped one.
+
+    Two independent drifts this pins, both of which had already happened:
+
+    * a producer string naming a module that cannot write the artifact
+      (``run_guess_vs_memory`` writes one flat ``guess_vs_memory.json``, never the
+      ``*_gapfill_1000.json`` three entries claimed) — ``--check`` prints these as the
+      rebuild command, so a wrong one sends the reader to the wrong script;
+    * a rank restated beside ``production_model.SHIPPED_RANK`` and left behind when the
+      shipped rank moved (docs/DATA.md still carries an r75 row from that era).
+
+    ``producer_cmd`` resolves ``{rank}``/``{pod_stem}``/``{model_stem}`` from
+    ``SHIPPED_RANK``, so this asserts the wiring rather than a copy: an entry that
+    hard-codes a rank instead of using the placeholder fails the second half.
+    """
+    p = reg.SOURCES[key]["producer"]
+    cmd = reg.producer_cmd(key)                      # raises on an unresolved placeholder
+
+    if p["module"] is None:
+        return
+    src = os.path.join(PIPELINE_DIR, p["module"] + ".py")
+    assert os.path.exists(src), (
+        f"source {key!r} names producer module {p['module']!r}, which does not exist under "
+        f"pipeline/.  Declared command: {cmd}")
+
+    for r in re.findall(r"--(?:cross-)?rank\s+(\d+)", cmd):
+        assert p["dim"] is not None, f"{key}: passes --rank but declares no dim"
+        assert int(r) == pm.SHIPPED_RANK[p["dim"]], (
+            f"{key}: producer passes --rank {r} but production_model.SHIPPED_RANK"
+            f"[{p['dim']}] is {pm.SHIPPED_RANK[p['dim']]}.  The shipped rank is defined "
+            f"there and nowhere else (CLAUDE.md); use the '{{rank}}' placeholder.")
+
+
+def test_producer_ranks_are_not_hard_coded():
+    """No entry restates a shipped rank as a literal where the placeholder belongs.
+
+    Deliberately narrow, so an unrelated numeric argument (``--n-points 500``, say)
+    cannot trip it: only the two positions a rank is ever written in are checked —
+    the value after a ``--rank`` flag, and the ``_r<N>`` suffix of a POD artifact name.
+    """
+    ranks = {str(r) for r in pm.SHIPPED_RANK.values()}
+    offenders = []
+    for key, spec in reg.SOURCES.items():
+        argv = spec["producer"]["argv"]
+        for i, a in enumerate(argv):
+            after_rank_flag = i and argv[i - 1] in ("--rank", "--cross-rank") and a in ranks
+            pod_name_suffix = any(re.search(rf"_r{r}(\D|$)", a) for r in ranks)
+            if after_rank_flag or pod_name_suffix:
+                offenders.append((key, a))
+    assert not offenders, (
+        f"producer argv restates a shipped rank literally: {offenders}.  Use '{{rank}}' / "
+        f"'{{pod_stem}}' so production_model stays the single source (CLAUDE.md).")

@@ -53,6 +53,7 @@ from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as 
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d_nk as s3nk
 from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_3d import theta_to_slice3d
 from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak_pod_cross import load_pod_hermite_smolyak_cross
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 # reuse the EXACT seed-shared off-node sampling of the residual staircases
 from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_cold import random_offnode_points, read_meta
 
@@ -157,10 +158,11 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--cold-steps", type=int, default=8)   # match polish_cold_chi4d
     ap.add_argument("--pod-steps", type=int, default=4)    # match polish_table_chi4d_pod_r*_cross
-    ap.add_argument("--rank", type=int, default=250,
+    ap.add_argument("--rank", type=int, default=pm.SHIPPED_RANK[4],
                     help="cross-POD warm-start rank; must match the rank of the "
                          "run_polish_podrank / run_polish_fielderr_value_pod curves "
-                         "it is plotted beside (fig04 revision: 250)")
+                         "it is plotted beside.  Default: production_model.SHIPPED_RANK[4] "
+                         f"(={pm.SHIPPED_RANK[4]}), which is where that rank is defined")
     args = ap.parse_args()
     pod_path = pod_cross_path(args.rank)
     os.makedirs(REPDIR, exist_ok=True)

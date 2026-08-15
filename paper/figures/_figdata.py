@@ -115,7 +115,7 @@ def source(key):
         m = source_meta(key)
         raise FileNotFoundError(
             f"missing raw source {key!r}: {os.path.relpath(p, REPO_ROOT)}\n"
-            f"  produce it: {m['producer']}   [{m['where']}"
+            f"  produce it: {_reg.producer_cmd(key)}   [{m['where']}"
             f"{'; PENDING' if m.get('status') == 'pending' else ''}]\n"
             f"  (heavy cluster runs: see docs/DATA.md / paper/figures/README.md)")
     return p

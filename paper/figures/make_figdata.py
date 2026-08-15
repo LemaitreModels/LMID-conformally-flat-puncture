@@ -91,7 +91,8 @@ def check():
         for k in miss:
             m = st[k][1]
             print(f"        - needs {k:22s} [{m['where']}"
-                  f"{'; PENDING' if m.get('status') == 'pending' else ''}]  {m['producer']}")
+                  f"{'; PENDING' if m.get('status') == 'pending' else ''}]")
+            print(f"            {reg.producer_cmd(k)}")
     print(f"\n=== sources (dedup) ===  {sum(v[0] for v in st.values())}/{len(st)} present")
     for k, (ok, m) in st.items():
         figs = ", ".join(m["figures"])
