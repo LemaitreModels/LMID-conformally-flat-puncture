@@ -24,6 +24,7 @@ import argparse
 import os
 import subprocess
 import sys
+from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -61,15 +62,26 @@ def check():
 
 
 def build(stem, force=False):
+    """Recompute one tabdata.  Returns ``"kept"``, ``"built"`` or ``"failed"``.
+
+    Same defect as ``figures/make_figdata.build`` had: a crashed data script
+    returned the same falsey value as "nothing to do" and the driver exited 0,
+    so ``make tables`` went on to re-render the committed .tex from whatever
+    stale json was lying around.
+    """
     if os.path.exists(td.tabdata_path(stem)) and not force:
         print(f"[{stem}] tabdata present — skip (use --force to recompute)")
-        return True
+        return "kept"
     script = os.path.join(HERE, f"{stem}_data.py")
     if not os.path.exists(script):
-        print(f"[{stem}] no data script {os.path.basename(script)} — skip")
-        return False
+        print(f"[{stem}] FAILED: no data script {os.path.basename(script)}")
+        return "failed"
     print(f"[{stem}] recomputing via {os.path.basename(script)} ...")
-    return subprocess.run([sys.executable, script], cwd=HERE).returncode == 0
+    r = subprocess.run([sys.executable, script], cwd=HERE)
+    if r.returncode != 0:
+        print(f"[{stem}] FAILED: {os.path.basename(script)} exited {r.returncode}")
+        return "failed"
+    return "built"
 
 
 def main():
@@ -84,8 +96,13 @@ def main():
         check()
         return
     stems = [_stem(args.tab)] if args.tab else list(TABLES)
-    ok = sum(build(s, args.force) for s in stems)
-    print(f"\nbuilt/kept {ok}/{len(stems)}")
+    outcome = {s: build(s, args.force) for s in stems}
+    n = Counter(outcome.values())
+    print(f"\nbuilt {n['built']}, kept {n['kept']}, FAILED {n['failed']}  "
+          f"({len(stems)} table{'' if len(stems) == 1 else 's'})")
+    failed = [s for s, o in outcome.items() if o == "failed"]
+    if failed:
+        raise SystemExit(f"tabdata build FAILED for: {', '.join(failed)}")
 
 
 if __name__ == "__main__":

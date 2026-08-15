@@ -15,15 +15,17 @@ test:
 figdata:
 	$(PY) paper/figures/make_figdata.py --all
 
+# `|| exit 1` is load-bearing: a bare `for` loop reports only its LAST command's
+# status, so without it every plotter but the tenth could die unnoticed.
 figures: figdata
-	cd paper/figures && for f in fig??_*_plot.py; do echo ">> $$f"; $(PY) "$$f"; done
+	cd paper/figures && for f in fig??_*_plot.py; do echo ">> $$f"; $(PY) "$$f" || exit 1; done
 
 # --- tables: recompute data from the solver, then render the LaTeX bodies ---
 tabdata:
 	$(PY) paper/tables/make_tabdata.py --all
 
 tables: tabdata
-	cd paper/tables && for f in tab??_*_tex.py; do echo ">> $$f"; $(PY) "$$f"; done
+	cd paper/tables && for f in tab??_*_tex.py; do echo ">> $$f"; $(PY) "$$f" || exit 1; done
 
 # --- heavy tier (documented, mostly cluster) ---
 models:

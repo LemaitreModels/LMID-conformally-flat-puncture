@@ -23,6 +23,7 @@ import json
 import os
 import subprocess
 import sys
+from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -107,20 +108,31 @@ def check():
 
 
 def build(stem, force=False):
+    """Build one figdata.  Returns ``"kept"``, ``"built"`` or ``"failed"``.
+
+    "kept" and "built" were both ``True`` before, so ``main`` could not tell a
+    successful rebuild from a producer that had crashed — and the crash exited 0,
+    leaving the committed (now stale) figdata in place to be silently replotted.
+    """
     # A STALE figdata is rebuilt without --force: keeping it would fail the plotter anyway.
     stale = _figdata_tag(stem)[0] == "figdata STALE"
     if os.path.exists(fd.figdata_path(stem)) and not force and not stale:
         print(f"[{stem}] figdata present — skip (use --force to rebuild)")
-        return True
+        return "kept"
     if stale and not force:
         print(f"[{stem}] figdata STALE ({_figdata_tag(stem)[1]}) — rebuilding")
     script = os.path.join(HERE, f"{stem}_data.py")
     if not os.path.exists(script):
-        print(f"[{stem}] no data script {os.path.basename(script)} yet — skip")
-        return False
+        # Reaching here means the figdata is absent (or being forced) AND nothing
+        # can produce it: the registry declares a figure the tree cannot build.
+        print(f"[{stem}] FAILED: no data script {os.path.basename(script)}")
+        return "failed"
     print(f"[{stem}] building via {os.path.basename(script)} ...")
     r = subprocess.run([sys.executable, script], cwd=HERE)
-    return r.returncode == 0
+    if r.returncode != 0:
+        print(f"[{stem}] FAILED: {os.path.basename(script)} exited {r.returncode}")
+        return "failed"
+    return "built"
 
 
 def main():
@@ -135,8 +147,15 @@ def main():
         check()
         return
     stems = [_stem(args.fig)] if args.fig else list(reg.FIGURES)
-    ok = sum(build(s, args.force) for s in stems)
-    print(f"\nbuilt/kept {ok}/{len(stems)}")
+    outcome = {s: build(s, args.force) for s in stems}
+    n = Counter(outcome.values())
+    print(f"\nbuilt {n['built']}, kept {n['kept']}, FAILED {n['failed']}  "
+          f"({len(stems)} figure{'' if len(stems) == 1 else 's'})")
+    failed = [s for s, o in outcome.items() if o == "failed"]
+    if failed:
+        # Exit non-zero: `make figures` must not go on to replot the stale
+        # committed figdata of a figure whose producer just died.
+        raise SystemExit(f"figdata build FAILED for: {', '.join(failed)}")
 
 
 if __name__ == "__main__":
