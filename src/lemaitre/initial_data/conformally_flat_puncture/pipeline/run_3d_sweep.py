@@ -25,12 +25,14 @@ Four blocks, all written to ``reports/3D/sweep_results.json``:
 
 The TwoPunctures oracle is OPTIONAL here: block B's psi cross-check and block D
 (the anchor solves) skip cleanly when the binary is absent, and the remaining
-blocks -- which are what ``fig08_3d_validation`` distils -- still run.  Contrast
-``run_3d_validation_sweep``, whose ``main`` returns immediately without the
-oracle and which writes a DIFFERENT artifact (``3D_parametric/validation_results.json``).
+blocks still run.
+
+This sweep feeds **no figure** any more -- ``run_tp_random_sweep`` superseded it
+as the validation source (``registry.SOURCES["sweep_3d"]``, ``docs/DATA.md``).
+It is kept because the appendix still quotes its ADM-angular-momentum
+diagnostics (theta_J vs theta_S to ~1e-14 deg, J_y = 2 b P_x).
 
 Run:  python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_3d_sweep
-The companion plotter is ``plot_3d_sweep.py`` (reads the JSON, writes figures).
 """
 
 from __future__ import annotations
