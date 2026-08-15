@@ -58,7 +58,6 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import jax.numpy as jnp
 
-from ..solver import solver_3d as s3
 from ..solver import solver_3d_nk as nk
 from ..parametric import parametric_nd_smolyak as sm
 from ..parametric.parametric_nd import attach_solve_fn_3d
@@ -113,7 +112,7 @@ def J_qc(theta, M_tot=1.0):
             + chi_Ay * m_A ** 2 + chi_By * m_B ** 2)
 
 
-def M_ADM(prob, U, b, M_tot=1.0, q=None):
+def M_ADM(prob, U, b, M_tot=1.0):
     """``M_ADM = m_A+m_B - 2b⟨∂_A u⟩_{A=1}`` on the φ-averaged (m=0) field (numpy)."""
     Umat = np.asarray(U).reshape(prob.shape)               # (Na+1, Nb, Nphi)
     Uavg = Umat.mean(axis=2)                                # m=0 meridian

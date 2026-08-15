@@ -52,13 +52,6 @@ from ..solver import source_3d
 from . import sensitivity_3d as s3d
 
 
-# the QC-family axes (momentum is determined, so no free "P"/"P_x")
-QC_TANGENT_AXES = ("b", "q", "S_x", "S_z", "S_mag", "theta_S",
-                   "S_Ax", "S_Ay", "S_Az", "S_Bx", "S_By", "S_Bz",
-                   # dimensionless-spin axes (chi = S/m^2), chi rebuild
-                   "chi_Ax", "chi_Ay", "chi_Az", "chi_Bx", "chi_By", "chi_Bz")
-
-
 # ==========================================================================
 # 1.  The jnp twin of quasicircular.qc_momenta (autodiff'd for dP/d(args))
 # ==========================================================================

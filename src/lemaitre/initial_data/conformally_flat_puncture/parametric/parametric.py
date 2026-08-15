@@ -9,9 +9,9 @@ The layer is *solver-agnostic*: it only needs
   * solve_fn(q, guess, tol, max_iter) -> (U, info)   (Newton from an optional warm start)
   * (optional) tangent_fn(q, U) -> dU/dq             (continuation predictor)
   * a flatten convention — here U is just an array, interpolated elementwise.
-A two-puncture head-on solver (parameter = mass ratio) would reuse this file
-verbatim; only the injected callables change.  ``from_problem`` wires the
-single-puncture solver in solver.py.
+A two-puncture head-on solver (parameter = mass ratio) reuses this file
+verbatim; only the injected callables change.  Callers construct
+:class:`ParametricSolver` directly with their own ``solve_fn``.
 """
 
 from __future__ import annotations
@@ -91,7 +91,7 @@ class ParametricSolution:
         :class:`~.certification.CertificationError` instead of being returned.
         """
         if self._solve_fn is None:
-            raise RuntimeError("no solve_fn attached; build via ParametricSolver/from_problem")
+            raise RuntimeError("no solve_fn attached; build via ParametricSolver")
         guess = jnp.asarray(self.evaluate(q))
         U, info = self._solve_fn(float(q), guess, tol, newton_steps)
         return certified_return(U, info, q, tol, strict)
@@ -140,23 +140,3 @@ class ParametricSolver:
             U_nodes=np.stack(U_nodes), iters=iters, residuals=resids,
             _solve_fn=self.solve_fn,
         )
-
-
-# --------------------------------------------------------------------------
-# Convenience: wire the single-puncture solver (solver.py)
-# --------------------------------------------------------------------------
-def from_problem(prob, q_min: float, q_max: float, Q: int):
-    """Build a ParametricSolver around the single-puncture spatial solver.
-
-    q == m (bare puncture mass); the spatial Problem is m-independent (fixed L),
-    so it is built once and reused at every parameter node.
-    """
-    from ..solver import solver
-
-    def solve_fn(q, guess, tol, max_iter):
-        return solver.newton_solve(prob, m=q, U0=guess, tol=tol, max_iter=max_iter)
-
-    def tangent_fn(q, U):
-        return solver.tangent(prob, jnp.asarray(U), m=q)
-
-    return ParametricSolver(solve_fn, q_min, q_max, Q, tangent_fn=tangent_fn)

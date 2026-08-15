@@ -55,11 +55,10 @@ from __future__ import annotations
 from typing import Dict, Optional, Sequence, Tuple
 
 import numpy as np
-import scipy.linalg as sla
 from scipy.sparse.linalg import LinearOperator, gmres
 
 from ..solver import solver_3d as s3
-from ..solver import solver_3d_nk as s3nk  # noqa: F401  (reduce-to gate uses the NK node/solve)
+from ..solver import solver_3d_nk as s3nk
 from ..solver import operators_3d as ops3
 from ..solver import source
 from ..solver import source_3d

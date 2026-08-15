@@ -158,22 +158,6 @@ def axisym_blocks(A, B, DA1, DB1, b):
     return Lap, rho, z, Af, Bf, DA, DB, inv_rho2
 
 
-def block_operator_m(Lap, inv_rho2, m: int) -> np.ndarray:
-    """The raw (no-BC) 2-D operator for azimuthal mode m: ``Lap − m² diag(1/ρ²)``.
-
-    The UNfactored form, on ``u_m`` rather than ``v_m``; the solver uses the
-    factored :func:`block_operator_m_v` instead (spectral odd-m convergence).
-    Kept as the plain statement of what the mode block is; feed it ``Lap`` from
-    ``operators_abt.laplacian_matrix`` and ``inv_rho2`` from
-    :func:`meridian_geometry`.
-    """
-    if m == 0:
-        return np.array(Lap, dtype=float)
-    L = np.array(Lap, dtype=float)
-    L[np.diag_indices_from(L)] -= (m ** 2) * inv_rho2
-    return L
-
-
 # --------------------------------------------------------------------------
 # Associated-Legendre basis factoring — spectral odd-m convergence
 # --------------------------------------------------------------------------

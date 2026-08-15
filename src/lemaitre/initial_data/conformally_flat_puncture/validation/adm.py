@@ -105,18 +105,6 @@ def KK_physical(psi, A2):
 
 
 # --------------------------------------------------------------------------
-# psi on the grid (solved) at arbitrary meridian points
-# --------------------------------------------------------------------------
-def psi_at(prob, U, rho, z, sl):
-    """Full conformal factor psi = psi_BL + u at meridian points ``(rho, z)``."""
-    rho = np.atleast_1d(np.asarray(rho, dtype=float))
-    z = np.atleast_1d(np.asarray(z, dtype=float))
-    u = np.asarray(sa.evaluate_field_phys(prob, U, rho, z, sl.b))
-    psiBL = np.asarray(source.psi_BL_2c(rho, z, sl.b, sl.m_A, sl.m_B))
-    return psiBL + u
-
-
-# --------------------------------------------------------------------------
 # ADM mass — spectral boundary extraction (primary), monopole-tail + surface
 # integral (independent cross-checks)
 # --------------------------------------------------------------------------

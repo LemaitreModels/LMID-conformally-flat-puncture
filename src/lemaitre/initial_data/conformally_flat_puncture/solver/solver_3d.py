@@ -343,15 +343,6 @@ def _bary_weights(x):
     return w
 
 
-def _interp1(xq, x, w, vals):
-    d = xq - x
-    hit = np.isclose(d, 0.0, atol=1e-13)
-    if np.any(hit):
-        return vals[int(np.argmax(hit))]
-    t = w / d
-    return (t @ vals) / t.sum()
-
-
 def _fourier_interp(vals, phi_q):
     """Trig interpolation of equispaced periodic samples ``vals`` at ``phi_q``.
 

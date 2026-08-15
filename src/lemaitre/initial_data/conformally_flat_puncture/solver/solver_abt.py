@@ -276,32 +276,3 @@ def evaluate_field_phys(prob: Problem, U, rho, z, b):
     return evaluate_field_AB(prob, U, A_q, B_q)
 
 
-def residual_norm(prob: Problem, U, sl) -> float:
-    asm = assemble(prob, sl)
-    R = residual_vec(asm, np.asarray(U).ravel())
-    return float(np.max(np.abs(R)))
-
-
-def adm_mass(prob: Problem, U, sl) -> float:
-    """ADM mass M_ADM = (m_A+m_B) + 2 lim_{r->inf} r u.
-
-    Read the 1/r tail from the field along the outer axis (B=+1 edge ~ z>=b)
-    just inside infinity: fit r*u ~ c + d/r over the farthest finite A-nodes.
-    """
-    U = np.asarray(U).reshape(prob.shape)
-    # outer axis above A: use B closest to +1 (largest B node) and A near 1
-    jmax = int(np.argmax(prob.B))
-    rho, z = ops.abt_map(prob.A, np.full(prob.A.size, prob.B[jmax]), sl.b)
-    r = np.hypot(rho, z)
-    u_line = U[:, jmax]
-    fin = np.isfinite(r) & (r > 2.0 * sl.b)
-    r_f, u_f = r[fin], u_line[fin]
-    order = np.argsort(r_f)
-    r_f, u_f = r_f[order], u_f[order]
-    k = min(4, r_f.size)
-    rs = r_f[-k:]
-    y = rs * u_f[-k:]
-    t = 1.0 / rs
-    tn = t / t.max()
-    d, c = np.polyfit(tn, y, 1)
-    return float(sl.M + 2.0 * c)

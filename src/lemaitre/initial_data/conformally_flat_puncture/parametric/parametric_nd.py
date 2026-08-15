@@ -212,17 +212,21 @@ class ParametricSolutionND:
 # Driver: snake march over the tensor grid, warm-starting Newton each step
 # --------------------------------------------------------------------------
 class ParametricSolverND:
-    """Drives the boustrophedon continuation sweep and builds the N-D interpolant."""
+    """Drives the boustrophedon continuation sweep and builds the N-D interpolant.
 
-    def __init__(self, solve_fn: Callable, axes: Sequence[Tuple[float, float, int]],
-                 tangent_fn: Optional[Callable] = None):
+    The warm start is the previous node's converged field — plain continuation,
+    no tangent predictor.  The gradient-enhanced N-D march that *does* use one
+    lives in :class:`~.hermite_nd.HermiteSolverND` (``use_tangent=True``), whose
+    predictor contracts ``dU`` correctly against the multi-dimensional field.
+    """
+
+    def __init__(self, solve_fn: Callable, axes: Sequence[Tuple[float, float, int]]):
         # solve_fn(theta_vec, guess, tol, max_iter) -> (U, info); guess=None => cold start
         self.solve_fn = solve_fn
         self.axes = [tuple(a) for a in axes]
         self.d = len(self.axes)
-        self.tangent_fn = tangent_fn
 
-    def build(self, use_tangent: bool = False, tol: float = 1e-12,
+    def build(self, tol: float = 1e-12,
               max_iter: int = 20) -> ParametricSolutionND:
         nodes, weights = tensor_param_nodes(self.axes)
         shape = tuple(len(n) for n in nodes)
@@ -233,14 +237,9 @@ class ParametricSolverND:
         iters = np.zeros(shape, dtype=int)
         resids = np.zeros(shape, dtype=float)
         guess = None
-        theta_prev = None
         for idx in order:
             theta = np.array([nodes[k][idx[k]] for k in range(self.d)], dtype=float)
-            g = guess
-            if use_tangent and guess is not None and self.tangent_fn is not None:
-                dU = self.tangent_fn(theta_prev, guess)       # dU/dθ at previous node
-                g = guess + np.asarray((theta - theta_prev) @ np.atleast_2d(dU))
-            U, info = self.solve_fn(theta, g, tol, max_iter)
+            U, info = self.solve_fn(theta, guess, tol, max_iter)
             Ua = np.asarray(U)
             if U_nodes is None:
                 field_shape = Ua.shape
@@ -249,7 +248,6 @@ class ParametricSolverND:
             iters[idx] = info.iters
             resids[idx] = info.residual_norm
             guess = jnp.asarray(Ua)
-            theta_prev = theta
 
         return ParametricSolutionND(
             axes=self.axes, nodes=nodes, weights=weights,
