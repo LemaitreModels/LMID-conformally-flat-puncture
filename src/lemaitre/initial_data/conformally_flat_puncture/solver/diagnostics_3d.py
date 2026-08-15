@@ -134,3 +134,37 @@ def adm_mass_spectral_3d(prob, U, sl):
     dUdA_at_inf = (DA @ u0)[0, :]                              # A[0]=1 edge
     c = -sl.b * float(np.mean(dUdA_at_inf))
     return float(sl.M + 2.0 * c)
+
+
+# --------------------------------------------------------------------------
+# Convergence-table printer (shared test infrastructure)
+# --------------------------------------------------------------------------
+# Solver-agnostic: it formats rows of numbers.  It lives here because this is
+# the diagnostics module of the production stack — the 1-D ``diagnostics.py``
+# that used to own it was pruned once its other observables went dead.
+def convergence_table(rows, headers, title=None):
+    """Print an aligned table of ``rows`` under ``headers``; return it as a string."""
+    lines = []
+    if title:
+        lines.append(title)
+    widths = [max(len(str(h)), max((len(_fmt(r[i])) for r in rows), default=0))
+              for i, h in enumerate(headers)]
+    lines.append("  ".join(str(h).rjust(widths[i]) for i, h in enumerate(headers)))
+    lines.append("  ".join("-" * widths[i] for i in range(len(headers))))
+    for r in rows:
+        lines.append("  ".join(_fmt(r[i]).rjust(widths[i]) for i in range(len(r))))
+    s = "\n".join(lines)
+    print(s)
+    return s
+
+
+def _fmt(v):
+    if isinstance(v, (int, np.integer)):
+        return str(int(v))
+    if isinstance(v, float) or isinstance(v, np.floating):
+        if v == 0:
+            return "0"
+        if abs(v) < 1e-3 or abs(v) >= 1e4:
+            return f"{v:.3e}"
+        return f"{v:.6f}"
+    return str(v)

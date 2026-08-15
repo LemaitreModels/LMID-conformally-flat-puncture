@@ -31,7 +31,7 @@ from lemaitre.initial_data.conformally_flat_puncture.solver import operators_3d 
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
 from lemaitre.initial_data.conformally_flat_puncture.solver import source_3d
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as sa
-from lemaitre.initial_data.conformally_flat_puncture.solver import diagnostics as diag
+from lemaitre.initial_data.conformally_flat_puncture.solver import diagnostics_3d as diag
 from lemaitre.initial_data.conformally_flat_puncture.solver.solver_abt import Slice
 from lemaitre.initial_data.conformally_flat_puncture.solver.solver_3d import Slice3D
 

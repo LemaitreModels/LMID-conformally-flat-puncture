@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as sa
-from lemaitre.initial_data.conformally_flat_puncture.solver import diagnostics as diag
+from lemaitre.initial_data.conformally_flat_puncture.solver import diagnostics_3d as diag
 from lemaitre.initial_data.conformally_flat_puncture.solver.solver_abt import Slice
 
 
