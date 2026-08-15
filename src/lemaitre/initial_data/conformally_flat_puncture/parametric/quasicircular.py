@@ -1,11 +1,10 @@
 """LM-initial-data — quasi-circular (QC) puncture momenta from PN closed forms.
 
-**Phase P0 de-risk** of the "beyond head-on" extension (see
-``notes/qc_extension_plan.md``): turn the free momentum knob into a *deterministic*
+The "beyond head-on" extension: turn the free momentum knob into a *deterministic*
 function of ``(b, q, spins)`` set by a post-Newtonian quasi-circularity condition,
 so every surrogate node is astrophysical (inspiral/merger) rather than head-on
-infall.  This module is **add-only and self-contained** — it computes the momenta
-only; it does NOT touch ``theta_to_slice3d`` (that wiring is Phase P1).
+infall.  This module is **self-contained** — it computes the momenta only; the
+wiring into the parameter map lives in ``parametric_nd_3d.theta_to_slice3d``.
 
     qc_momenta(b, m_A, m_B, S_A_vec, S_B_vec) -> (P_A_vec, P_B_vec)
 

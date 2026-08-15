@@ -9,7 +9,7 @@ slices.  A durable node store turns that overlap into a shared, growing asset:
 once a physical slice is solved (on the laptop or the cluster), any later
 surrogate build reuses it instead of re-solving.
 
-This module is **ADD-ONLY**.  It reuses ``theta_to_slice3d`` /
+It reuses ``theta_to_slice3d`` /
 ``make_solve_fn`` / ``SmolyakSolverND`` / ``ParametricSolverND`` / ``_finalize``
 verbatim; it does not touch the pool / finalize / build logic.  A
 :class:`SolveStore` is a directory of one ``.npz`` per solved slice, keyed by the

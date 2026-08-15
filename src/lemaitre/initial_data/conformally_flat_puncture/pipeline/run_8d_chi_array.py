@@ -13,7 +13,7 @@ model with the store fully populated (all hits):
 
 Chunking is by stride (task k solves nodes[k::ntasks]), so tasks are disjoint (no
 duplicate solves); the store additionally serves the in-plane=0 sub-slice from the
-shared 4D corpus (S3), a free bonus.  Enumeration matches build_isotropic's node
+shared 4D corpus, a free bonus.  Enumeration matches build_isotropic's node
 set exactly (same isotropic_index_set + subgrid nodes + _node_key dedup), so the
 array populates precisely the nodes the assembly needs.
 

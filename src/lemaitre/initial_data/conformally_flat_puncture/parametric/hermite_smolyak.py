@@ -1,23 +1,24 @@
-"""LM-initial-data — gradient-enhanced (Hermite) SPARSE-grid collocation (H5b).
+"""LM-initial-data — gradient-enhanced (Hermite) SPARSE-grid collocation.
 
 The sparse (Smolyak) sibling of the dense gradient-enhanced layer
 (:mod:`hermite_nd`), and the gradient-enhanced sibling of the committed
-value-only Smolyak layer (:mod:`parametric_nd_smolyak`).  H3 proved the
-value-only Hermite interpolant telescopes into the combination technique
-**bit-for-bit**; H5a delivered the missing ``solver_3d`` certified tangent
-(:func:`applications.sensitivity_3d.certified_tangent_3d`).  H5b is the sparse
-plumbing that rolls the *gradient* enhancement onto the sparse path, changed in
-exactly the three places called out in ``GRADIENT_ENHANCED_PLAN.md`` §4 H5b:
+value-only Smolyak layer (:mod:`parametric_nd_smolyak`).  Two earlier results make
+it possible: the value-only Hermite interpolant telescopes into the combination
+technique **bit-for-bit** (:mod:`hermite_pod`, ``value_only_combination``), and the
+``solver_3d`` certified tangent exists
+(:func:`applications.sensitivity_3d.certified_tangent_3d`).  This module is the
+sparse plumbing that rolls the *gradient* enhancement onto the sparse path, and it
+differs from the value-only layer in exactly three places:
 
   (i)   the node pool stores the per-node **tangent stack** ``(U, dU, iters,
         resid)`` (``dU`` is the full ``(d, *field)`` certified tangent from the
-        ``tangent_fn``, one shared assembly + ``d`` back-solves per node, per §0);
+        ``tangent_fn``, one shared assembly + ``d`` back-solves per node);
   (ii)  each subgrid is assembled as a :class:`hermite_nd.HermiteSolutionND`
         (Hermite-enhanced on the hard axes) instead of a
         :class:`parametric_nd.ParametricSolutionND`;
   (iii) ``evaluate = Σ_l c_l·sub_l.evaluate(θ)`` is UNCHANGED (same signature,
-        same combination coefficients — H3 proved the value-only limit is
-        bit-for-bit ``SmolyakSolutionND``).
+        same combination coefficients — the value-only limit is bit-for-bit
+        ``SmolyakSolutionND``).
 
 **The level-0 decision (H3 blocker (ii) / R7 — committed default).**  A fixed
 per-axis 1-D operator sequence ``{I_l}`` keeps the combination telescoping
@@ -30,11 +31,11 @@ Hermite-enhances axis ``k`` iff ``k`` is globally enhanced **and** ``l_k ≥ 1``
 every subgrid is value-only and the whole object reduces bit-for-bit to
 :class:`parametric_nd_smolyak.SmolyakSolutionND`.
 
-**Add-only.**  Reuses the committed Smolyak primitives (``nested_levels``,
+**Reuses** the Smolyak primitives (``nested_levels``,
 ``isotropic_index_set``/``anisotropic_index_set``, ``combination_coeffs``,
 ``_node_key``, ``_assert_downward_closed``), ``hermite_nd.HermiteSolutionND``,
 ``hermite.cardinal_deriv_at_nodes``, ``parametric_nd.snake_order`` and the
-persistence helpers **verbatim**; never edits a committed module.  Certification
+persistence helpers **verbatim**.  Certification
 is unchanged — the Hermite-Smolyak object is only a *guess*;
 ``evaluate_polished`` reuses the committed ``solve_fn`` → ``newton_solve``.
 
@@ -376,7 +377,7 @@ def from_problem_hermite_smolyak_3d(prob, axes: Sequence[dict], enhanced: Sequen
     flag is set with no explicit ``tangent_fn``; pass the QC chain-rule tangent
     (``sensitivity_3d_qc``) instead.
 
-    Add-only: imports ``parametric_nd_3d``, ``solver_3d``, and
+    Imports ``parametric_nd_3d``, ``solver_3d``, and
     ``applications.sensitivity_3d`` (all reused verbatim); defines no new physics.
     """
     from .parametric_nd_3d import make_solve_fn, theta_to_slice3d

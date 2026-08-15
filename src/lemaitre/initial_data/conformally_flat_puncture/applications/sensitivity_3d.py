@@ -45,10 +45,9 @@ one assembly is amortised across all axes — the ``sensitivity.certified_tangen
     ``jac="nk"`` bit-for-bit; the modified-vs-nk gap measures the dropped
     mode-coupling for a misaligned slice.
 
-Add-only / standalone: imports the frozen ``solver_3d`` / ``solver_3d_nk`` /
-``operators_3d`` / ``source`` / ``source_3d`` **verbatim** and defines no new
-physics; the analytic derivatives are new functions here (no existing signature
-changes).  numpy + scipy + the frozen siblings.
+Standalone: imports ``solver_3d`` / ``solver_3d_nk`` / ``operators_3d`` /
+``source`` / ``source_3d`` and defines no new physics — the analytic derivatives
+are the new functions here.  numpy + scipy + those siblings.
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 """LM-initial-data — build the FULL BILINEAR (cross-enhanced) 4-D χ Hermite–Smolyak model.
 
-Add-only POST-PROCESS of a shipped gradient-only Hermite–Smolyak model with TWO
+POST-PROCESS of a shipped gradient-only Hermite–Smolyak model with TWO
 enhanced axes: it reuses the stored per-node value ``node_U`` and first tangents
 ``node_dU`` (NO Newton re-solves), computes the missing mixed second partial
 ``∂²U/∂θ_{e0}∂θ_{e1}`` at every node via the certified second-order cross tangent
@@ -43,7 +43,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak_
 
 def main(model_path, out_path, jac="nk", checkpoint=50, M_tot=1.0, enhanced_names=None,
          cross_fn="committed"):
-    # ADD-ONLY: select the second-order cross-tangent routine.  Default "committed"
+    # Select the second-order cross-tangent routine.  Default "committed"
     # calls sensitivity_3d_cross.cross_tangent_3d_qc EXACTLY as before (byte-for-byte
     # for a spin-spin enhanced set — the only case the committed routine supports).
     # "bq" routes to the 4-axis dispatcher sensitivity_3d_cross_bq.cross_tangent_3d_qc_bq

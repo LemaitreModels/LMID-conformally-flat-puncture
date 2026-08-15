@@ -291,7 +291,7 @@
       "by_p010": "GRTeclyn analytic Bowen--York, $P=0.1$",
       "qc": "quasi-circular with spins"
     },
-    "runs_root": "/home/USER/GRTeclyn-new/runs/lm_constraints"
+    "runs_root": "lm_constraints"
   },
   "amr": [
     {

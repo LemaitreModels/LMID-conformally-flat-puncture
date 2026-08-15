@@ -1,4 +1,4 @@
-"""LM-initial-data — axisymmetric flat Laplacian (§3.2 of plan.md).
+"""LM-initial-data — axisymmetric flat Laplacian.
 
 The axisymmetric flat Laplacian is *diagonal in the Legendre degree* ell:
 

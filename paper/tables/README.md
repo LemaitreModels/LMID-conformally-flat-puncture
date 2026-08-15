@@ -1,11 +1,13 @@
 # Paper tables — two-tier, recompute-by-default
 
 Same pattern as `paper/figures/`, one tier shorter because every table recomputes
-on a laptop in seconds (no `reports/` corpus, no cluster):
+on a laptop in seconds (no `reports/` corpus, no cluster). Unlike the figures —
+which distil cached run output — this tier really does recompute:
 
 ```
-tabNN_<name>_data.py   recomputes from the solver  ->  tabdata/tabNN_<name>.json   (gitignored)
-tabNN_<name>_tex.py    reads ONLY that json        ->  tabNN_<name>.tex            (committed)
+tabNN_<name>_data.py   recomputes from the canonical  ->  tabdata/tabNN_<name>.json   (gitignored)
+                       source modules (no solve)
+tabNN_<name>_tex.py    reads ONLY that json           ->  tabNN_<name>.tex            (committed)
 ```
 
 `paper.tex` keeps `\begin{table}`, `\caption`, and `\label`, and `\input`s the

@@ -20,8 +20,6 @@ The recorded per-step residual staircase (``residual_rows``) reproduces the comm
 value residual tables — a built-in cross-check that the model and the seed-0 sampling
 match the fig04 top row.
 
-Add-only.  Imports committed ``lemaitre.initial_data.conformally_flat_puncture`` modules read-only; edits nothing.
-
 Run:
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_fielderr_value --dim 4              # full 1000 pt
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_fielderr_value --dim 8

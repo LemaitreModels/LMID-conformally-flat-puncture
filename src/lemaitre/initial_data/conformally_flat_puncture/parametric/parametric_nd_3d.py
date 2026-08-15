@@ -77,7 +77,7 @@ AXIS_NAMES_3D = ("b", "S_mag", "theta_S", "S_x", "S_z", "P", "P_x", "q",
                  # 8-D "vary both spin vectors" extension; source_3d already supports
                  # arbitrary S_A/S_B, this exposes them as independent knobs.
                  "S_Ax", "S_Ay", "S_Az", "S_Bx", "S_By", "S_Bz",
-                 # dimensionless-spin axes chi_Xi = S_Xi/m_X^2 (add-only; converted
+                 # dimensionless-spin axes chi_Xi = S_Xi/m_X^2 (converted
                  # to the physical spin S in theta_to_slice3d once m_A,m_B are known)
                  "chi_Ax", "chi_Ay", "chi_Az", "chi_Bx", "chi_By", "chi_Bz")
 DEFAULTS_3D = {
@@ -140,7 +140,7 @@ def theta_to_slice3d(theta_vec, active_names: Sequence[str], M_tot: float = 1.0,
     m_A = M_tot * q / (1.0 + q)
     m_B = M_tot / (1.0 + q)
 
-    # --- dimensionless-spin (chi) axes (add-only) -------------------------------
+    # --- dimensionless-spin (chi) axes -------------------------------
     # A chi_Xi axis carries the Kerr-like dimensionless spin S_Xi/m_X^2; the
     # Bowen--York source takes the physical spin, so convert here (m_A,m_B known):
     # S_Xi = chi_Xi * m_X^2.  Downstream every branch sees the physical S_*; the

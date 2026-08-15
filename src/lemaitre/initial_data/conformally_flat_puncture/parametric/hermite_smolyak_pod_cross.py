@@ -30,7 +30,7 @@ projection ``mean + ΦΦᵀ(full_cross_interpolant − mean)`` of the full cross
 interpolant, so the reduce-to-committed / node-exactness properties carry over and
 the certified polish is unchanged (the compressed object is only a *guess*).
 
-**Add-only.**  Reuses ``hermite_pod`` (``pod_basis``, ``project_hermite_pod``,
+**Reuses** ``hermite_pod`` (``pod_basis``, ``project_hermite_pod``,
 ``rank_for_tail``), ``hermite_smolyak_cross`` (``HermiteCrossSolutionND``,
 ``HermiteSmolyakCrossSolutionND``, ``build_cross_from_pool``, ``_global_pairs``),
 and the ``parametric_nd`` persistence helpers — all verbatim; never edits a

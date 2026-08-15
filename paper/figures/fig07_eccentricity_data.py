@@ -9,7 +9,7 @@ figdata/fig07_eccentricity.json, so the plotter (and every other figure) is pure
 Sources (raw):
   reports/P3/qc_effpot_Jsweep.json                          (key "qc_effpot")   — scan + minima
   reports/3D_parametric/models/surrogate_bpt_ecc.npz        (key "effpot_model") — for the curves
-Needs the BBHFM env (jax + LM-initial-data); no solves are run.
+Needs jax + the installed package; no solves are run.
 
 Run:  python fig07_eccentricity_data.py
 """

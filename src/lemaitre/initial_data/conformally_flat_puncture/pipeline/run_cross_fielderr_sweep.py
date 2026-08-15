@@ -22,8 +22,6 @@ Writes ``reports/P3/guess_vs_memory_4d_cross_field_1000.json`` with schema
 mirroring ``guess_vs_memory_4d_cross_gapfill_1000.json`` (pod_curve of
 {r, mem_bytes, min, median, mean, p95, max}; metric ``field_error_relL2``).
 
-Add-only.  Imports committed ``lemaitre.initial_data.conformally_flat_puncture`` modules read-only; edits nothing.
-
 Run:
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_cross_fielderr_sweep                 # full 1000 pt
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_cross_fielderr_sweep --n-points 5    # smoke test

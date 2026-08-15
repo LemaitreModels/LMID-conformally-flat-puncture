@@ -1,4 +1,4 @@
-"""LM-initial-data — 1-D spectral primitives (§3.1 of plan.md).
+"""LM-initial-data — 1-D spectral primitives.
 
 Standalone: depends only on numpy (matrix construction) and jax/jax.numpy.
 Re-derives every building block from scratch (Chebyshev D-matrix, algebraic
@@ -49,7 +49,7 @@ def radial_grid(N: int, L: float):
     With CGL ordering, index 0 is r=inf and index N is r=0; both are dropped
     from the interior (they become BC rows in operators.py).
 
-    Chain rule (derived in plan.md §3.1):
+    Chain rule for the algebraic map, differentiated once and twice:
         dx/dr   = (1-x)^2 / (2L)          (= 0 at x=+1)
         d2x/dr2 = -(1-x)^3 / (2L^2)       (= 0 at x=+1)
         Dr  = diag(dx/dr) @ D

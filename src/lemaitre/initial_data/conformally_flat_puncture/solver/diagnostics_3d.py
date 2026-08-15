@@ -1,6 +1,6 @@
 """LM-initial-data-3D — non-axisymmetric ADM diagnostics (Test E).
 
-Add-only sibling of :mod:`lemaitre.initial_data.conformally_flat_puncture.solver.diagnostics` / :mod:`lemaitre.initial_data.conformally_flat_puncture.validation.adm`
+Sibling of :mod:`lemaitre.initial_data.conformally_flat_puncture.solver.diagnostics` / :mod:`lemaitre.initial_data.conformally_flat_puncture.validation.adm`
 for the first non-axisymmetric solver (``solver_3d``).  Two observables:
 
 * **ADM angular momentum** ``J^i`` — the genuinely-3-D quantity.  Computed from

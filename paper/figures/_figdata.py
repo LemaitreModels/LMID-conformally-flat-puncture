@@ -117,7 +117,7 @@ def source(key):
             f"missing raw source {key!r}: {os.path.relpath(p, REPO_ROOT)}\n"
             f"  produce it: {m['producer']}   [{m['where']}"
             f"{'; PENDING' if m.get('status') == 'pending' else ''}]\n"
-            f"  (heavy cluster runs: see the paper cluster prompt / figures/README.md)")
+            f"  (heavy cluster runs: see docs/DATA.md / paper/figures/README.md)")
     return p
 
 

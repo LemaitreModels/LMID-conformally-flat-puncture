@@ -18,8 +18,6 @@ Writes ``reports/P3/polish_table_chi<dim>d_pod_r<r>_<n>.json`` with the
 ``run_polish_table`` summary schema PLUS the raw per-step residual arrays
 (``residuals``) so the figure can draw honest min--max whiskers.
 
-Add-only.  Imports committed ``lemaitre.initial_data.conformally_flat_puncture`` + sibling drivers read-only; edits nothing.
-
 Run:
   python src/lemaitre/initial_data/conformally_flat_puncture/pipeline/run_polish_podrank.py --dim 4 --rank 250
   python src/lemaitre/initial_data/conformally_flat_puncture/pipeline/run_polish_podrank.py --dim 8 --rank 250

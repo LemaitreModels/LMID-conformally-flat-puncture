@@ -31,8 +31,8 @@ Facts worth stating:
     tangent.  The chain rule bites for ``b``, ``q`` (always), and the aligned
     ``S_Ay``/``S_By``.
 
-Add-only / standalone: imports the committed ``sensitivity_3d`` / ``solver_3d`` /
-``source_3d`` / ``quasicircular`` **verbatim**; defines no new physics beyond the
+Standalone: imports ``sensitivity_3d`` / ``solver_3d`` /
+``source_3d`` / ``quasicircular``; defines no new physics beyond the
 jnp twin of the PN momenta.  numpy + jax.
 """
 
@@ -343,7 +343,7 @@ def from_problem_hermite_smolyak_3d_qc(prob, axes, enhanced=(), M_tot: float = 1
     do not hand-build it.  ``fixed`` defaults to ``{"qc": 1.0}`` (the QC family).
     Everything else is forwarded verbatim.
 
-    Add-only: imports the committed ``hermite_smolyak`` layer lazily (avoids an
+    Imports the ``hermite_smolyak`` layer lazily (avoids an
     import cycle); defines no new physics.
     """
     from ..parametric.hermite_smolyak import from_problem_hermite_smolyak_3d

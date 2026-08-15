@@ -26,9 +26,9 @@ interpolant (no solve per step), certifying only at the end — versus the class
 certified-solve scan.  The honest metric is the number of certified elliptic
 solves; every emitted configuration is certified ``‖R‖∞ ≤ 1e-10``.
 
-Add-only / standalone: imports the frozen ``solver_3d`` / ``parametric_nd`` /
-``parametric_nd_3d`` / ``validation.adm`` verbatim and reuses ``qc_targeting.M_ADM``;
-defines no new physics.  numpy + jax only.
+Standalone: imports ``solver_3d`` / ``parametric_nd`` / ``parametric_nd_3d`` /
+``validation.adm`` and reuses ``qc_targeting.M_ADM``; defines no new physics.
+numpy + jax only.
 """
 
 from __future__ import annotations

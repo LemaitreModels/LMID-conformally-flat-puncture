@@ -68,23 +68,31 @@ one canonical version of each model. Normal engineering hygiene applies.
 ## Commands
 
 ```bash
-pip install -e ".[dev]" --config-settings editable_mode=compat   # install
 caffeinate -i pytest -q                        # full acceptance suite
 caffeinate -i pytest tests/test_solver_3d.py -v
-make figures                                   # regenerate figure data (recompute) + plot
+make figures                                   # build any MISSING figure data, then plot
 ```
 
-**The full suite is a ~40-minute job.** Measured 2026-08-13: **611 tests,
-36m35s** on an M-series laptop (with another pytest run competing for part of it).
-Start it in the background and do other work — and do not pipe it through
-`tail`/`head`, which buffers until pytest exits so a running suite looks hung.
+Installing needs the two unpublished namespace parents in order, so a bare
+`pip install -e .` here fails — see the `README.md` install block.
 
-That figure has moved twice, so treat it as a measurement and not a constant.
-Earlier the same day it was **589 tests, 2h01m**, and before that "542 tests,
-~36 min". The drop back to ~36 min is not a stale note: the suite is dominated by
-elliptic solves, and the solver's assembly and per-step linear algebra were made
-several times cheaper (see `solver/operators_3d.py` and `solver/separable.py`).
-Re-measure rather than quoting this line if the number matters to a decision.
+**The full suite is a ~40-minute job.** Measured 2026-08-15 on the post-Wave-0
+tree: **622 passed, 40m57s**, no failures and no skips, on an M-series laptop with
+`uptime` load running 8→16 throughout (a peer session held the box). Start it in
+the background and do other work — and do not pipe it through `tail`/`head`, which
+buffers until pytest exits so a running suite looks hung.
+
+That figure has now moved four times, so treat it as a measurement and not a
+constant. It was **611 tests, 36m35s** on 2026-08-13, **589 tests, 2h01m** earlier
+that day, and "542 tests, ~36 min" before that. The wall-clock swings are real —
+the suite is dominated by elliptic solves, the solver's assembly and per-step
+linear algebra were made several times cheaper (see `solver/operators_3d.py` and
+`solver/separable.py`), and a competing suite on eight cores costs the rest.
+
+**The 611 → 622 count is only partly accounted for.** The evaluate_field/GRTeclyn
+commit adds 7 gates, which reaches 618; the remaining **four tests are
+unexplained**, and nobody has bisected them. Do not treat 622 as 611+7. Re-measure
+rather than quoting this line if the number matters to a decision.
 
 `tests/test_source_spin.py::test_sympy_exact_spin_closed_form` needs `sympy`,
 which is a **test-only** dependency — the standalone guard forbids importing it
@@ -112,7 +120,8 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   non-axisymmetric operator + Bowen–York source), `separable` (the same operator
   as 1-D Kronecker factors + its exact inverse), `solver_3d` (modified-Newton
   build), `solver_3d_nk` (Newton–Krylov, the *certified* solve), `diagnostics_3d`
-  (ADM diagnostics + `convergence_table`). The axisymmetric two-centre base
+  (ADM diagnostics; the `convergence_table` printer still lives in the 1-D
+  `diagnostics`, which is why that module is not prunable yet). The axisymmetric two-centre base
   (`operators_abt`, `source`, `solver_abt`) is a **transitively-required base
   layer** of the 3-D stack — not dead code.
 
@@ -139,16 +148,21 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   > only to ~1e-16: taking it needs the same change in `operators_abt` in the same
   > commit, and that is a maintainer decision.
 
-  > **The separable preconditioner is opt-in, not the default.** `separable=True`
-  > drops the nonlinear diagonal from the preconditioner — that is exactly what
-  > makes it b- and θ-independent — so it is no longer the exact Jacobian at
-  > Nφ=1, and GMRES takes a handful of iterations there instead of one. The
-  > default (dense) route keeps that property, and
-  > `test_solver_3d.py::test_nk_axisym_reduction_reproduces_2d` keeps asserting
-  > it. The separable path has its own same-answer gate in
-  > `tests/test_solver_3d_fast.py`. Flipping the default would change the Krylov
-  > behaviour of every production solve, the corpus and the figure data — check
-  > with the maintainers first.
+  > **The separable preconditioner IS the default.** `newton_solve_nk` resolves
+  > `separable=None` through `choose_separable`, which picks separable because it
+  > is much cheaper — the operator is built once per grid rather than per
+  > parameter point, and there is no LU to refactor per Newton step. Two cases
+  > deliberately opt back out to dense: **Nφ=1**, where the block-diagonal
+  > preconditioner *is* the full Jacobian so GMRES converges in one iteration
+  > (this is what keeps
+  > `test_solver_3d.py::test_nk_axisym_reduction_reproduces_2d` exact, and it is a
+  > flat-leaf fact that does not transfer to a curved background), and the
+  > **`n_warmup > 0`** steps, which are `solver_3d.newton_step` and need the
+  > nonlinear diagonal. The separable path has its own same-answer gate in
+  > `tests/test_solver_3d_fast.py`. Flipping the default either way would change
+  > the Krylov behaviour of every production solve, the corpus and the figure
+  > data — check with the maintainers first. (This paragraph asserted the
+  > opposite until 2026-08-15; `paper.tex` was correct throughout.)
 - **`parametric/`** — the ROM. Production: `parametric_nd_smolyak` (sparse-grid
   value model), `hermite_smolyak`/`hermite_smolyak_pod`/`hermite_smolyak_pod_cross`
   (gradient-enhanced + POD + full-bilinear cross term), `quasicircular` (PN QC
@@ -167,13 +181,22 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
 and `build_*.py` model builders, no subdirectories; `paper/figures/` holds the
 recompute+plot scripts. See `docs/STRUCTURE.md`.
 
-## Figure pipeline (two-tier, recompute-by-default)
+## Figure pipeline (two-tier)
 
-`paper/figures/figNN_*_data.py` **recomputes** each figure's numbers from
-the solver/ROM (loading a shipped surrogate model artifact), writing
-`figdata/NN.json` as a build output; `figNN_*_plot.py` draws the PDF from it.
-Driver: `make figdata` / `make figures`. Heavy inputs (χ corpora, TwoPunctures)
-are the `make models` / `make oracle` tier — see `docs/DATA.md`.
+`paper/figures/figNN_*_data.py` **distils** each figure's numbers out of a raw run
+artifact under `$LM_REPORTS` into a **committed** `figdata/figNN_*.json`;
+`figNN_*_plot.py` draws the PDF from that json and nothing else. Driver:
+`make figdata` / `make figures`. Heavy inputs (χ corpora, TwoPunctures, the
+GRTeclyn constraint runs) are the `make models` / `make oracle` tier — see
+`docs/DATA.md`.
+
+**Do not describe this as "recompute".** No figure runs the solver: every data
+script goes through `_figdata.load_source`. The two partial exceptions are fig07,
+which evaluates a shipped surrogate `.npz` through the ROM, and fig10, which
+distils an external GRTeclyn run tree. Rewiring them to compute from the
+solver/ROM is Stage 2 and is **not done** (`docs/STRUCTURE.md`, `docs/DATA.md`).
+Note also that `make figdata` **skips any figdata already present**, and all ten
+are committed — so `make figures` on a clone replots and rebuilds nothing.
 
 `registry.FIGURES[stem]["keys"]` lists the top-level figdata keys a figure needs;
 `tests/test_paper_figures.py` fails on any figdata missing one, which is how a
@@ -187,9 +210,13 @@ The paper's **tables** follow the same two tiers in `paper/tables/`:
 `tabNN_*_data.py` recomputes from the solver into `tabdata/NN.json` (gitignored),
 `tabNN_*_tex.py` renders the `ruledtabular` body into a committed `tabNN_*.tex`
 that `paper.tex` `\input`s, so no number is hand-transcribed. Driver:
-`make tabdata` / `make tables`; the canonical producer is
-`pipeline/run_tangent_verification.py`; `tests/test_paper_tables.py` guards both
-the rendered rows and the hand-written captions against drift.
+`make tabdata` / `make tables`. There is **one** table today,
+`tab01_production_box`, and it is its own producer: it derives the box edges and
+node counts from `pipeline/production_box.py` and `parametric_nd_2c.smolyak_points`,
+with no solve. `pipeline/run_tangent_verification.py` is **not** a table producer —
+its own docstring says so; it fed a withdrawn appendix and stays as the runnable
+cross-check behind Sec. IV's sensitivity claims. `tests/test_paper_tables.py`
+guards both the rendered rows and the hand-written captions against drift.
 
 ## Working cadence
 

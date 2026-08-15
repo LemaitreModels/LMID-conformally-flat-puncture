@@ -21,7 +21,7 @@ ETA (Na=44, Nb=32, Nφ=8): sparse L=3 ≈ 137 solves (~8 min); dense Q=5 ≈ 129
 solves (~70 min) — the dense build dominates.  Omit ``--dense-Q`` to skip it.
 Run in the background under caffeinate:
 
-    caffeinate -ims ~/micromamba/envs/BBHFM/bin/python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_surrogate \
+    caffeinate -ims python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_surrogate \
         --Na 44 --Nb 32 --Nphi 8 --box d4 --level 3 --dense-Q 5 --solver nk
 """
 from __future__ import annotations
@@ -233,7 +233,7 @@ def main():
                          "commits (store/persistence/build script) do not fork the "
                          "key space and break cross-tier reuse.  QC tier builds "
                          "(d4_qc, and the future 8-D precessing QC) must all use "
-                         "'--code-tag fb4f07f' — the P1 QC-wiring commit under "
+                         "'--code-tag fb4f07f' — the QC-wiring commit under "
                          "which the d4_qc corpus was built.")
     args = ap.parse_args()
 

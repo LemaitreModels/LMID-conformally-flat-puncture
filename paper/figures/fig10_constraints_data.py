@@ -16,12 +16,26 @@ initial data's own error at a spacing a second-order monitor cannot: the same
 absolute error that needs ``h ~ 2e-4 M`` at second order arrives near
 ``h ~ 1e-1 M`` at fourth.
 
-WHAT THIS SCRIPT DOES.  It distils GRTeclyn's ``constraint_norms.json`` output
-(one file per rung, collected per series into ``<tag>/ladder.json`` by
-``runs/lm_constraints/run_ladder.sh``).  No solver, no oracle, no jax here — the
-heavy tier is the GRTeclyn runs, a cluster job
-(``runs/lm_constraints/submit_step4.slurm``).  Point ``--runs`` at that tree or
-set ``$LM_GRTECLYN_RUNS``.
+WHAT THIS SCRIPT DOES.  It distils GRTeclyn's ``constraint_norms.json`` output.
+No solver, no oracle, no jax here — the heavy tier is the GRTeclyn runs
+themselves, a cluster job against an external code.  Point ``--runs`` at the
+resulting tree, or set ``$LM_GRTECLYN_RUNS``.
+
+THE INPUT CONTRACT.  This script reads, and only reads, ``<root>/<tag>/ladder.json``
+for each ``tag`` in SERIES/VARIANTS/AMR_TAGS below — one file per series,
+collecting that series' rungs::
+
+    {"rungs": [{"h": ..., "N": ..., "n_cells": ...,
+                "L2_Ham": ..., "L2_Mom": ..., "Linf_Ham": ..., "Linf_Mom": ...,
+                "norm": ..., "r_excl": ..., "border_cells": ...,
+                "levels": [{"dx": ...}, ...]},   # levels: AMR tags only
+               ...]}
+
+Missing series are skipped with a printed note, so a partial tree still builds.
+The batch scripts that submit the GRTeclyn ladder and collect the per-rung
+``constraint_norms.json`` into these files are **not part of this repository, and
+not part of the GRTeclyn checkout either** — supply them, or assemble
+``ladder.json`` by hand to the schema above.  See docs/DATA.md.
 
 THE SERIES, AND WHAT EACH IS FOR.
 
@@ -79,8 +93,8 @@ def _runs_root(cli):
     if not root:
         raise SystemExit(
             "Point --runs at the GRTeclyn run tree (or set $LM_GRTECLYN_RUNS).\n"
-            "Produce it with runs/lm_constraints/submit_step4.slurm on the "
-            "cluster; see docs/DATA.md.")
+            "It holds one <tag>/ladder.json per series; see this module's "
+            "docstring for the schema and docs/DATA.md for how it is produced.")
     if not os.path.isdir(root):
         raise SystemExit(f"--runs {root!r} is not a directory")
     return root
@@ -201,7 +215,11 @@ def main():
         has_tp=have.get("tp", False), has_by=have.get("by_p010", False),
         has_amr=bool(amr), has_variants=bool(variants),
         series={k: lab for _, k, lab in SERIES if have.get(k)},
-        runs_root=os.path.abspath(root),
+        # The run tree's BASENAME only.  figdata/ is committed and world-readable,
+        # so the absolute path of whoever ran the ladder must not travel with it;
+        # the basename is the part that identifies the campaign.  Do not restore
+        # os.path.abspath here.
+        runs_root=os.path.basename(os.path.normpath(root)),
     )
     dump("fig10_constraints",
          dict(curves=curves, meta=meta, amr=amr, variants=variants))

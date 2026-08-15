@@ -24,8 +24,8 @@ guess is ``mean + Phi[:,:r] @ (Phi.T (u_value - mean))[:r]`` (memory-lean; equal
 committed-style construction verbatim (imported), so gvm_8d_value and gvm_8d_field
 share one value-only POD — only the metric differs (residual here vs field error).
 
-Add-only.  Imports committed ``lemaitre.initial_data.conformally_flat_puncture`` modules + the add-only 8-D field-sweep
-helpers read-only; edits nothing.
+Imports the package's modules + the 8-D field-sweep
+helpers read-only.
 
 Run:
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_value_pod_gapfill_8d                 # full 1000 pt

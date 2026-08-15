@@ -1,4 +1,4 @@
-"""LM-initial-data — accelerated parameter control (Milestone B2, the payoff).
+"""LM-initial-data — accelerated parameter control.
 
 A minimal **Mendes-style control loop** (Mendes et al. 2025, *Parameter control
 for binary black hole initial data*, PRD 112, 124049): given **target physical
@@ -7,24 +7,25 @@ control residual ``G(θ) = F(θ) − target``, where ``F`` maps free data to ADM
 observables (total/individual ADM mass, total angular momentum) via a *certified*
 elliptic constraint solve.
 
-The point of B2 (and the rebuttal to PAPER_PLAN risk R5 — *"this is just
-TwoPunctures + interpolation"*): the P3 interpolant is **not** the end product —
-it **accelerates** a real control loop while **every step stays certified**.  We
-run the same loop two ways and report the reduction:
+The point of this module, and the answer to the obvious objection — *"this is just
+TwoPunctures + interpolation"* — is that the parametric interpolant is **not** the
+end product: it **accelerates** a real control loop while **every step stays
+certified**.  We run the same loop two ways and report the reduction:
 
   * **cold** — each ``F``-evaluation cold-solves the constraints from scratch
     (Newton from ``u≡0``);
-  * **interp (warm)** — each ``F``-evaluation seeds Newton from the P3 interpolant
+  * **interp (warm)** — each ``F``-evaluation seeds Newton from the interpolant
     ``ps.evaluate(θ)`` (mode (a): the surrogate supplies the *initial guess*; the
     inner solve is then 1–2 *certified* Newton steps).  Gradient-based targeting
-    via ``∂F/∂θ`` is B3, deliberately out of scope here.
+    via ``∂F/∂θ`` is deliberately out of scope here — see
+    :mod:`..applications.qc_targeting`.
 
 A third honest baseline, **continuation** (warm-start each inner solve from the
 *previous* control iterate), is also reported: it shows the interpolant gives a
 *global* certified warm start (any θ, no connected march, robust to large Broyden
 steps), of which continuation is the local special case.
 
-Fair accounting (see reports/B2/analysis.md):
+Fair accounting:
   * a **solver call** == one ``F``-evaluation == one ``newton_solve``;
   * a **Newton iteration** == one inner Newton residual cycle (``info.iters``);
     the dominant cost is the dense LU per step (``≈ iters−1`` solves);
@@ -42,8 +43,8 @@ Trade-off vs finite-difference Newton (``d`` extra solves/step, more robust) is
 noted in the report; the choice is identical in every mode so the comparison is
 fair regardless.
 
-Standalone / add-only: imports the frozen ``solver_abt`` + ``validation.adm`` +
-``parametric_nd*`` **verbatim**; defines no new physics.  numpy + jax only.
+Standalone: imports ``solver_abt`` + ``validation.adm`` + ``parametric_nd*``;
+defines no new physics.  numpy + jax only.
 """
 
 from __future__ import annotations
@@ -69,7 +70,7 @@ from ..parametric.parametric_nd import ParametricSolutionND
 # --------------------------------------------------------------------------
 # Each entry is a pure function of the *already-solved* (prob, U, sl); the solve
 # itself happens once per F-evaluation in ``solve_and_observe``.  These reuse
-# ``validation.adm`` verbatim (B1's re-derived, oracle-validated diagnostics).
+# ``validation.adm`` verbatim (the re-derived, oracle-validated diagnostics).
 OBSERVABLES: Dict[str, Callable] = {
     "M_ADM": lambda prob, U, sl: adm.adm_mass_spectral(prob, U, sl),
     "M_A": lambda prob, U, sl: adm.puncture_adm_mass(prob, U, sl, "A"),
@@ -97,9 +98,9 @@ class ControlProblem:
     is *adjusted* (the loop's unknowns); ``target_names`` the ordered observables
     that are *targeted* (keys of :data:`OBSERVABLES`).  Inactive knobs take
     ``parametric_nd_2c.DEFAULTS`` overridden by ``fixed``.  ``M_tot`` is the fixed
-    total *bare* mass (the P3 grid convention, default 1).  ``box`` = per-axis
+    total *bare* mass (the grid convention, default 1).  ``box`` = per-axis
     ``(lo, hi)`` for clamping the iterates (the interpolant's validity region).
-    ``interpolant`` is the P3 surrogate over exactly ``control_names`` (warm mode).
+    ``interpolant`` is the surrogate over exactly ``control_names`` (warm mode).
     """
     prob: sa.Problem
     control_names: tuple
@@ -108,7 +109,7 @@ class ControlProblem:
     fixed: Optional[Dict[str, float]] = None
     box: Optional[np.ndarray] = None          # shape (2, d): [lo_row, hi_row]
     interpolant: Optional[ParametricSolutionND] = None
-    geom_cache: Optional[Dict[float, tuple]] = None   # per-b operator cache (P3 D7)
+    geom_cache: Optional[Dict[float, tuple]] = None   # per-b operator cache (D7)
 
     @property
     def d(self) -> int:
@@ -146,7 +147,7 @@ def solve_and_observe(cp: ControlProblem, theta, guess, tol: float, max_iter: in
     tallies and the wall-clock of this single solve.
 
     If ``cp.geom_cache`` is set, the b-dependent dense prolate operator ``M0`` is
-    reused across calls at the same ``b`` (P3's byte-identical ``assemble_cached``,
+    reused across calls at the same ``b`` (the byte-identical ``assemble_cached``,
     D7) — removing the fixed per-call operator-assembly cost so the wall-clock gain
     of the warm start reflects the Newton-step (LU-solve) reduction.  The cache is
     mode-independent (it never changes the solution), so the comparison stays fair.
@@ -318,14 +319,14 @@ def run_comparison(cp: ControlProblem, theta0, target, *,
 
 
 # --------------------------------------------------------------------------
-# Convenience: build the P3 interpolant over the control axes (warm-mode surrogate)
+# Convenience: build the interpolant over the control axes (warm-mode surrogate)
 # --------------------------------------------------------------------------
 def build_interpolant(prob: sa.Problem, control_names: Sequence[str],
                       ranges: Dict[str, tuple], Qs: Dict[str, int],
                       M_tot: float = 1.0, fixed: Optional[Dict[str, float]] = None,
                       tol: float = 1e-12, max_iter: int = 20) -> ParametricSolutionND:
     """Build a :class:`ParametricSolutionND` over exactly ``control_names`` (the
-    P3 tensor-product CGL interpolant, ``from_problem_nd``), so it warm-starts the
+    tensor-product CGL interpolant, ``from_problem_nd``), so it warm-starts the
     control loop directly.  ``ranges[name]=(lo,hi)``, ``Qs[name]=Q`` per axis."""
     axes = [{"name": n, "min": ranges[n][0], "max": ranges[n][1], "Q": Qs[n]}
             for n in control_names]

@@ -19,8 +19,6 @@ The guess residual is the *equilibrated* constraint residual of the decoded fiel
 ``history[0]`` but computed WITHOUT the wasted Newton step, and with the (guess-
 independent) assembly shared across the whole rank ladder at each point.
 
-Add-only.  Imports committed ``lemaitre.initial_data.conformally_flat_puncture`` modules read-only; edits nothing.
-
 Run:
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_guess_vs_memory               # sweep + plot
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_guess_vs_memory --replot      # re-plot from JSON

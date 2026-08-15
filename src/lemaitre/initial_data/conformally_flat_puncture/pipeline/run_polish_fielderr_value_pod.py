@@ -24,8 +24,6 @@ both fig04 rows: ``residual_rows`` (top) and ``field_rows`` (bottom).
 Writes ``reports/P3/polish_fielderr_value_pod_chi<dim>d_r<r>_<n>.json`` with a single
 ``value_pod`` family (``field_rows`` + ``residual_rows``, ``run_polish_fielderr`` schema).
 
-Add-only.  Imports committed ``lemaitre.initial_data.conformally_flat_puncture`` modules read-only; edits nothing.
-
 Run:
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_fielderr_value_pod --dim 4 --rank 250             # full 1000 pt
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_fielderr_value_pod --dim 8 --rank 250

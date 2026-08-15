@@ -62,8 +62,8 @@ terms all vanish.  It **raises** for a pair involving ``b``, ``q``, ``S_mag`` or
 ``theta_S`` (which need extra geometry/``ψ``/nonlinear-vector second-order terms)
 — outside the ``(χ_Ay, χ_By)`` target.
 
-Add-only / standalone: imports the committed ``sensitivity_3d`` /
-``sensitivity_3d_qc`` / ``solver_3d`` / ``source_3d`` **verbatim**; defines no new
+Standalone: imports ``sensitivity_3d`` /
+``sensitivity_3d_qc`` / ``solver_3d`` / ``source_3d``; defines no new
 physics beyond the second derivative of the (already-committed) PN-momenta twin.
 numpy + jax.
 """
@@ -224,7 +224,7 @@ def cross_tangent_3d_qc(prob: s3.Problem3D, U: np.ndarray, sl: s3.Slice3D,
     Solves ``J·U_ij = −[R_ij + R_Ui·U_j + R_Uj·U_i + R_UU·U_i·U_j]`` for the pair
     of spin axes ``(name_i, name_j)`` (both in :data:`_LINEAR_SPIN_AXES`; ``b``,
     ``q``, ``S_mag``, ``theta_S`` raise), reusing the shared per-slice assembly
-    ``asm`` and the H5a full-``J`` (``jac='nk'``) / block-diagonal
+    ``asm`` and the full-``J`` (``jac='nk'``) / block-diagonal
     (``jac='modified'``) tangent solvers.
 
     ``dU_i``/``dU_j`` are the first tangents ``dU/dθ_i``/``dU/dθ_j`` — pass the

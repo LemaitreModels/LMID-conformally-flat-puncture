@@ -20,8 +20,6 @@ Writes ``reports/P3/polish_cold_<tag>_<n>.json`` with the same summary schema as
 %certified) PLUS the raw per-step residual arrays (``residuals`` per stage) so the
 figure builder can draw honest min--max whiskers.
 
-Add-only.  Imports committed ``lemaitre.initial_data.conformally_flat_puncture`` modules read-only; edits nothing.
-
 Run:
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_cold                 # 4-D then 8-D
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_cold --dim 4

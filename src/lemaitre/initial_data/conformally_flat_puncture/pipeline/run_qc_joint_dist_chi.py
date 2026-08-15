@@ -1,13 +1,14 @@
 """LM-initial-data — JOINT held-out DISTRIBUTION (best/median/worst) over 1000 random
 representative binaries vs Smolyak node count, DIMENSIONLESS-spin (chi) model
-(paper revision R1 for the joint convergence figure).
+(the joint convergence figure).
 
 The committed joint blocks (run_qc_walls_sweep_chi.py block_D, run_qc_dense_stats.py,
 run_qc_wide_build_stats.py) report the WORST held-out error over a handful of points
-(6-50).  R1 (notes/paper_revision_2.md line 15) asks for the full DISTRIBUTION
-(best/median/worst) over ~1000 random points.  This is cheap for the JOINT model
+(6-50).  The paper reports the full DISTRIBUTION (best/median/worst) over ~1000
+random points instead.  This is cheap for the JOINT model
 because the model is built ONCE per Smolyak level from the shared solve corpus
-(all store hits: S3 populated the 4D d4_qc_chi_prod L=5 pool, S6 the 8D one), so the
+(all store hits: ``build_surrogate_chi`` populated the 4D d4_qc_chi_prod L=5 pool,
+``run_8d_chi_array`` the 8D one), so the
 only new cost is the ~1000 direct reference solves (shared across all levels).
 
 For each Smolyak level L the model is (re)built from the store and evaluated at the
@@ -16,8 +17,8 @@ same 1000 random off-node points; the per-point held-out errors
 count.
 
 Boxes (from build_surrogate_chi.py, verbatim):
-  d4_qc_chi_prod    = production_box.aligned_box()   [S3 -- READY]
-  spin8_qc_chi_prod = production_box.spin8_box()     [S6 -- gated on assembly]
+  d4_qc_chi_prod    = production_box.aligned_box()   [built by build_surrogate_chi]
+  spin8_qc_chi_prod = production_box.spin8_box()     [built by run_8d_chi_array]
 
 Modes:
   (default)   1000 truth solves + build L=1..5 from store + best/median/worst.

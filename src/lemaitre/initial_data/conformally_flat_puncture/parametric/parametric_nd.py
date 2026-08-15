@@ -21,7 +21,7 @@ Solver-agnostic: it needs only
 The ABT two-centre wiring (``θ=(q,b,χ_A,χ_B) -> Slice -> newton_solve``) lives in
 ``parametric_nd_2c.py``; this file knows nothing of the physics.
 
-Design (see reports/P3/analysis.md §0):
+Design (the two labels are used as shorthand throughout this package):
   D4 — successive-tensordot barycentric, exact for one axis (bit-for-bit);
   D5 — snake march, per-axis forward = descending index = ascending value, so a
        single active axis matches the 1-D ``np.argsort`` march exactly.
@@ -259,7 +259,7 @@ class ParametricSolverND:
 
 
 # --------------------------------------------------------------------------
-# Persistence layer (numpy-only .npz; no pickle, no new deps) — ADD-ONLY
+# Persistence layer (numpy-only .npz; no pickle, no new deps)
 # --------------------------------------------------------------------------
 # A built surrogate becomes a reusable on-disk artifact ("we provide the
 # solution, no need to solve").  Shared by the dense ``ParametricSolutionND``

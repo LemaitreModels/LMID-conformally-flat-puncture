@@ -1,23 +1,23 @@
-"""LM-initial-data paper-integration P2 — build & persist the SHIPPED gradient-enhanced
+"""LM-initial-data — build & persist the SHIPPED gradient-enhanced
 (Hermite) quasi-circular model + its POD compression.
 
-Add-only. Mirrors ``build_surrogate.py`` (the value-only shipped-model build) but on
+Mirrors ``build_surrogate.py`` (the value-only shipped-model build) but on
 the sparse gradient-enhanced path: it builds the 4-D quasi-circular model
 ``d4_qc = (b, q, S_Ay, S_By)`` as a :class:`HermiteSmolyakSolutionND`
-**Hermite-enhanced on the two slow aligned-spin axes ``S_Ay``, ``S_By``** (D2, the
+**Hermite-enhanced on the two slow aligned-spin axes ``S_Ay``, ``S_By``** (the
 axes that dominate the offline solve count; ``b``,``q`` stay value-only), with the
-Newton–Krylov solve and the **QC chain-rule** certified tangent (H5c
-``sensitivity_3d_qc``); then compresses it with the H5d
+Newton–Krylov solve and the **QC chain-rule** certified tangent
+(``sensitivity_3d_qc``); then compresses it with
 :mod:`hermite_smolyak_pod` and saves both artifacts.
 
 Why enhanced-only tangents: the two enhanced axes are the only ones the interpolant
-consumes (``evaluate`` uses ``dU/dθ`` only for ``enhanced``), and the H5d POD only
+consumes (``evaluate`` uses ``dU/dθ`` only for ``enhanced``), and the POD only
 compresses the enhanced derivative corpora, so we compute the certified QC tangent
 for ``S_Ay``/``S_By`` and store zeros in the ``b``/``q`` slots — halving the per-node
 back-solve cost versus computing the full 4-axis stack.
 
 Reduce-to-committed: with ``--enhanced ''`` this builds the value-only
-``SmolyakSolutionND`` limit (bit-for-bit, H5b) — a sanity mode, not the deliverable.
+``SmolyakSolutionND`` limit (bit-for-bit) — a sanity mode, not the deliverable.
 
 ETA (Na=44, Nb=32, Nφ=8, NK, enhanced S_Ay,S_By): the value-only ℓ=4 build is
 ~3.0e3 s / 401 nodes (paper Table timing); each node here adds two NK tangent
@@ -25,8 +25,8 @@ back-solves (reusing the node's factored per-m blocks) + the closed-form qc-mome
 source, so budget ~1.5–2.5× that, i.e. ~1.5–2.5 h at ℓ=4. Run in the background
 under caffeinate:
 
-    caffeinate -ims ~/Software/micromamba/micromamba run -n BBHFM python \\
-        python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_pod_hermite_model --Na 44 --Nb 32 --Nphi 8 --level 4
+    caffeinate -ims python \\
+        -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_pod_hermite_model --Na 44 --Nb 32 --Nphi 8 --level 4
 
 Smoke (fast, confirms the pipeline end-to-end): ``--Na 16 --Nb 12 --Nphi 6 --level 3``.
 """
@@ -230,7 +230,7 @@ def main():
     _t(f"   raw model on-disk: {_human(os.path.getsize(m_path))}  "
        f"(value + {len(enhanced)} tangent fields/node, field_shape {model.field_shape})")
 
-    # ----- H5d POD compression (stacked value+derivative corpus) -----
+    # ----- POD compression (stacked value+derivative corpus) -----
     _t(f"\n===== POD compression (H5d) tail={args.pod_tail:.0e} =====")
     t0 = time.time()
     pod, diag = hpod.build_pod_hermite_smolyak(model, tail=args.pod_tail,

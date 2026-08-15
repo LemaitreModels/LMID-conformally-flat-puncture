@@ -2,7 +2,7 @@
 
 The sparse-grid sibling of :mod:`parametric_nd` (the dense tensor-product
 Chebyshev-in-parameter layer).  The dense layer pays a ``∏_k (Q_k+1) = O(Q^d)``
-node count; the 4-D scaling run (`reports/3D_parametric/analysis.md` §8) showed
+node count; the 4-D scaling run (measured) showed
 this needs ~30k anisotropic / ~65k isotropic solver calls to reach a held-out
 1e-9 over the unequal-mass misaligned-spin head-on family ``(b, |S|, θ_S, q)``.
 This module breaks that curse with a **Smolyak sparse grid** built by the
@@ -409,7 +409,7 @@ class SmolyakSolverND:
     def build_adaptive(self, max_nodes: int = 200, tol: float = 1e-12, max_iter: int = 20,
                        indicator_tol: float = 1e-13, max_level: int = 12,
                        verbose: bool = False,
-                       # --- ADD-ONLY options (all default to the committed behaviour) ---
+                       # --- options (all default to the committed behaviour) ---
                        indicator: str = "surplus", seed_level: int = 0,
                        probe_points: Optional[Sequence] = None,
                        probe_values: Optional[Sequence] = None) -> SmolyakSolutionND:
@@ -428,7 +428,7 @@ class SmolyakSolverND:
         Smolyak.  On the *moderately*-anisotropic real head-on family the local
         surplus indicator over-invests in single hard axes ``(l,0,0,0)`` before
         adding the cross-coupling indices generic held-out points need
-        (`smolyak_analysis.md` §4) — the three **add-only** knobs below target
+        (measured) — the three knobs below target
         that failure mode (all default off → the committed behaviour is
         byte-for-byte unchanged):
 

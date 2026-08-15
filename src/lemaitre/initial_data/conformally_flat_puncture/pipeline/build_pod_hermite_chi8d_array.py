@@ -1,6 +1,6 @@
 """S7 (array) — CHUNKED 8-D χ gradient-enhanced (Hermite) build over a SLURM array.
 
-Add-only parallelization of ``build_pod_hermite_model_chi_8d.py``'s reuse-value
+Parallelization of ``build_pod_hermite_model_chi_8d.py``'s reuse-value
 tangent loop.  That single-process driver computes the 6 QC certified tangents for
 ALL ~15.7k dedup nodes serially (~50-130 h wall) — infeasible under a deadline.
 This driver splits the tangent loop across a job array (each task solves a disjoint
@@ -10,22 +10,21 @@ finalizes + POD-compresses + certified-spot-checks the shipped model.
 The physics/solve/tangent/POD/certify are all REUSED byte-for-byte from the committed
 ``build_pod_hermite_model`` (and the 8-D box + 6-spin defaults from
 ``build_pod_hermite_model_chi_8d``, imported for its module-level ``bh.BOX`` swap).
-No committed module is modified.
 
 Modes
 -----
-  chunk:  --mode chunk --taskid K --ntasks N --reuse-value <S6 8D npz> \
+  chunk:  --mode chunk --taskid K --ntasks N --reuse-value <8-D value npz> \
           --partial-dir <dir> [--enhanced ...] [--Na 44 --Nb 32 --Nphi 8]
       Loads the value corpus, computes the enhanced-only QC tangents for the node
       stride ``keys[K::N]``, and writes ``<dir>/tangents_task<K>.npz`` (thetas, dUs).
       taskid/ntasks default to SLURM_ARRAY_TASK_ID / SLURM_ARRAY_TASK_COUNT
       (override --ntasks for a subset resubmit, exactly as run_8d_chi_array.py).
 
-  merge:  --mode merge --reuse-value <S6 8D npz> --partial-dir <dir> \
+  merge:  --mode merge --reuse-value <8-D value npz> --partial-dir <dir> \
           --outdir <dir> [--enhanced ...] [--Na .. --Nb .. --Nphi ..]
       Combines every partial into the full ``key -> (U, dU, iters, resid)`` pool,
       finalizes the HermiteSmolyakSolutionND (bit-for-bit the from-scratch build —
-      same index_set/nodes/deterministic tangents), saves it, POD-compresses (H5d),
+      same index_set/nodes/deterministic tangents), saves it, POD-compresses,
       and runs the certified spot-check (worst ‖R‖ must be ≤ 1e-10).
 
 Smoke (end-to-end, tiny): build a small 8-D value corpus first, e.g.
@@ -80,7 +79,7 @@ def _human(nbytes):
 
 def _common_args(ap):
     ap.add_argument("--reuse-value", default=None,
-                    help="path to the 8-D value-only SmolyakSolutionND .npz (S6); "
+                    help="path to the 8-D value-only SmolyakSolutionND .npz; "
                          "required for chunk/merge, unused by pod mode")
     ap.add_argument("--enhanced", default=SPIN_AXES,
                     help="comma-separated enhanced axes (default the 6 chi spins)")
@@ -191,7 +190,7 @@ def run_merge(args):
     _t(f"[S7-merge] model: {model.n_solver_nodes} nodes, field {model.field_shape}, "
        f"{_human(os.path.getsize(m_path))} → {m_path}")
 
-    # ----- H5d POD compression -----
+    # ----- POD compression -----
     _t(f"[S7-merge] POD compression (tail={args.pod_tail:.0e}) ...")
     t0 = time.time()
     pod, diag = hpod.build_pod_hermite_smolyak(model, tail=args.pod_tail,

@@ -13,7 +13,7 @@ Sweeping several J shows the circular-orbit sequence (the effective-potential
 minimum shifting with J), and the turning-point eccentricity e(b0;J) reads off the
 same differentiable E_b (e→0 at the circular orbit).
 
-Run: ~/micromamba/envs/BBHFM/bin/python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_qc_effpot
+Run: python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_qc_effpot
      [--J 1.00 1.05 1.10] [--n-scan 13]
 """
 from __future__ import annotations

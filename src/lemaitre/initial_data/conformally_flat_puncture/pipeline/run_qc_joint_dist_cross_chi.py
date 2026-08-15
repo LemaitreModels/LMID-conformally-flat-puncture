@@ -3,7 +3,7 @@ value+gradient+CROSS (full-bilinear Hermite-Smolyak) 4-D chi model, over the
 Smolyak level.  The gradient-enhanced companion to run_qc_joint_dist_chi.py
 (the BARE-interpolant left panel of paper Fig. 5).
 
-Add-only.  Mirrors run_qc_joint_dist_chi.py EXACTLY -- SAME box d4_qc_chi_prod,
+Mirrors run_qc_joint_dist_chi.py EXACTLY -- SAME box d4_qc_chi_prod,
 SAME 1000 seed-0 random off-node points (random_points, verbatim), SAME max-abs
 held-out metric max|model(theta) - u_true(theta)|, SAME levels 1..5 -- but the
 per-level model is the full-bilinear cross Hermite-Smolyak model (enhanced
@@ -22,7 +22,7 @@ Writes:
   reports/3D_parametric/qc_chi/joint_dist_cross_d4_qc_chi_prod.json
 
 Run (background, ~1-2 h for the 1000 truth solves):
-  caffeinate -ims ~/Software/micromamba/micromamba run -n BBHFM python \\
+  caffeinate -ims python \\
       -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_qc_joint_dist_cross_chi
 Smoke (a few min):
   ... run_qc_joint_dist_cross_chi.py --smoke

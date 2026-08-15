@@ -44,12 +44,12 @@ properties and the certified polish all carry over; the exposed parameter gradie
 of the compressed model is the full sparse gradient projected onto ``Φ`` (preserved
 to the truncation tail).
 
-**Add-only.**  Reuses :mod:`hermite_pod` (``pod_basis``, ``project_hermite_pod``,
+**Reuses** :mod:`hermite_pod` (``pod_basis``, ``project_hermite_pod``,
 ``rank_for_tail``, ``randomized_svd`` — verbatim), :mod:`hermite_smolyak`
 (``HermiteSmolyakSolutionND``, ``HermiteSmolyakSolverND`` — the combination
 container + the loader ``_finalize``, verbatim), :mod:`hermite_nd`
 (``HermiteSolutionND``), and the ``parametric_nd`` persistence helpers verbatim;
-never edits a committed module.  Certification is unchanged — the compressed object
+Certification is unchanged — the compressed object
 is only a *guess*; ``evaluate_polished`` reuses the committed ``solve_fn`` →
 ``newton_solve``.
 

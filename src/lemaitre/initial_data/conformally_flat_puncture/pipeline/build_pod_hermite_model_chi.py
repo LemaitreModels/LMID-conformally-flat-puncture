@@ -1,11 +1,11 @@
 """LM-initial-data — build & persist the SHIPPED gradient-enhanced (Hermite) model in the
-DIMENSIONLESS-SPIN (chi) parameterization (chi-rebuild S4).
+DIMENSIONLESS-SPIN (chi) parameterization.
 
-Add-only chi twin of ``build_pod_hermite_model.py``.  It does NOT copy that
+The chi twin of ``build_pod_hermite_model.py``.  It does NOT copy that
 module's body; it imports it, swaps the 4-D QC box to the chi box
 ``d4_qc_chi_prod`` = the production 4-D aligned box of ``production_box``
-(rev-2 R4 separation range), and dispatches to ``build_pod_hermite_model.main()``
-verbatim — so the Newton–Krylov solve, the QC chain-rule tangent, the H5d POD
+(the production separation range), and dispatches to ``build_pod_hermite_model.main()``
+verbatim — so the Newton–Krylov solve, the QC chain-rule tangent, the POD
 compression, the save, and the certified spot-check are reused byte-for-byte and
 the committed builder is untouched.
 
@@ -19,7 +19,7 @@ Usage (mirrors build_pod_hermite_model.py):
         --Na 44 --Nb 32 --Nphi 8 --level 5 --enhanced chi_Ay,chi_By \
         --outdir reports/P2/models_chi
 
-    # fastest: reuse the S3 value corpus (skip the re-solve, compute only tangents)
+    # fastest: reuse the 4-D value corpus (skip the re-solve, compute only tangents)
     ... --reuse-value reports/3D_parametric/models_chi/surrogate_smolyak_d4_qc_chi_L5.npz
 
 Smoke: --Na 16 --Nb 12 --Nphi 6 --level 2 (enhanced chi_Ay,chi_By).

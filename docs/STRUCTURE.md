@@ -128,14 +128,17 @@ extreme corners where Newton–Krylov stalls globally — gets the fallback.
   rungs `parametric`, `parametric_nd`, `hermite`, `hermite_nd`, `hermite_pod`,
   `parametric_nd_2c/_3d`). These are the paper's method ladder — each a distinct
   model, all test-covered — not redundant copies.
-- The acceptance suite (as of 2026-08-13: 41 files, **611 tests, 36m35s**, all
-  passing; `sympy` is now a declared `[dev]` extra, so the one long-standing
-  expected failure is gone. It was 589 tests / 2h01m earlier the same day — the
-  suite is dominated by elliptic solves and the solver got several times cheaper,
-  so re-measure rather than quoting this. 29 `slow`
-  tests need the external TwoPunctures oracle).
+- The acceptance suite (measured 2026-08-15: **622 passed, 40m57s**, no failures
+  and no skips, with a peer suite competing for the box at load 8–16; `sympy` is a
+  declared `[dev]` extra, so the one long-standing expected failure is gone. 29
+  `slow` tests need the external TwoPunctures oracle). Earlier measurements: 611 /
+  36m35s and 589 / 2h01m on 2026-08-13. **The count is only partly accounted
+  for** — the evaluate_field/GRTeclyn commit adds 7 gates to 611, reaching 618, and
+  the remaining four tests are unexplained and unbisected. Re-measure rather than
+  quoting this; the suite is dominated by elliptic solves and both the solver cost
+  and the machine load move it.
 - The canonical figure producers + χ model builders, as `…pipeline`.
-- The paper source + figure scripts + the 9 figure PDFs.
+- The paper source + figure scripts + the 10 figure PDFs.
 
 ## What was dropped (add-only clutter, not migrated)
 
@@ -159,12 +162,25 @@ extreme corners where Newton–Krylov stalls globally — gets the fallback.
   — surviving Hermite-ND tests use it via `hermite_nd.from_problem_nd_hermite`.
   Left in for a green baseline; can be pruned on request.
 - **Figure recompute (Stage 2).** The `figNN_*_data.py` scripts still carry the
-  old "read `reports/` cache" logic. Rewiring them to genuinely recompute from the
-  solver/ROM (two-tier) is Stage 2 — see `DATA.md` and `paper/figures/registry.py`.
-- Cosmetic docstring cleanup (a few module/producer docstrings still say
-  "add-only"); the stale figures `README.md`. The old `sandbox/parasol/…`
-  invocation strings have been repaired to real `-m lemaitre.initial_data.conformally_flat_puncture.pipeline.…`
-  (or script-path) commands.
+  old "read `reports/` cache" logic — every one of them distils via
+  `_figdata.load_source`, and none runs the solver. Rewiring them to genuinely
+  recompute from the solver/ROM (two-tier) is Stage 2 — see `DATA.md` and
+  `paper/figures/registry.py`. Until it is done, do not write "recompute" in a
+  doc: `README.md` and `CLAUDE.md` both claimed it, and both were corrected on
+  2026-08-15.
+- **Docstring cleanup — done 2026-08-15.** The retired add-only banners, the
+  citations to private planning documents (`plan.md`, `PAPER_PLAN`,
+  `GRADIENT_ENHANCED_PLAN.md`, `notes/`, `reports/*/analysis.md`,
+  `experiments/ml/`), the private milestone jargon in prose, and the
+  `~/micromamba/envs/BBHFM/bin/python` invocation strings were swept out of
+  `src/`, the docs and `paper/figures/`. Two deliberate survivors: this file's and
+  `CLAUDE.md`'s references to the BBHFM monorepo, which are migration *history*;
+  and `solver/operators_3d.py:6`, which states that the add-only policy **is**
+  retired. Still open: milestone tags inside runtime `print`/plot-title strings
+  (`[S6]`, `[S7-merge]`, `risk R3`) — changing those changes program output, so
+  they were left for whoever touches the code.
+  The old `sandbox/parasol/…` invocation strings were repaired earlier to real
+  `-m lemaitre.initial_data.conformally_flat_puncture.pipeline.…` commands.
 
 ## Which model is shipped
 

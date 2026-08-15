@@ -76,7 +76,7 @@ Output
 
 Run (~2-8 min of oracle per configuration, so budget hours; embarrassingly parallel)::
 
-    caffeinate -i ~/micromamba/envs/BBHFM/bin/python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_tp_random_sweep \
+    caffeinate -i python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_tp_random_sweep \
         --n 100 --workers 6
 """
 from __future__ import annotations

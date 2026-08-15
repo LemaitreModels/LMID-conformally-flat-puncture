@@ -15,9 +15,9 @@ CROSS model (`hermite_smolyak_cross`), re-encoded by POD:
      `--save-only` writes just this model and skips artifact 1 (the ~hour sweep),
      which is all a fig04 rank change needs.
 
-Add-only.  Uses the same seed-0 off-node sampling as run_polish_table (via
+Uses the same seed-0 off-node sampling as run_polish_table (via
 run_cross_fielderror_chi.offnode_points), the equilibrated residual
-(solver_3d_nk.equil_residual_inf — the paper convention, notes/conventions.md),
+(solver_3d_nk.equil_residual_inf — the paper convention; see parametric/certification.py),
 and the committed hermite_smolyak_pod_cross POD layer.
 
 Run:  python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_cross_pod_figuredata

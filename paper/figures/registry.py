@@ -25,7 +25,7 @@ from __future__ import annotations
 
 # --- raw run outputs (under reports/); NOT committed --------------------------
 # where: "laptop"  -> the distill step only reshapes json already on disk (no solves)
-#        "cluster" -> the source is produced by a heavy CPU run on IVS (see the cluster prompt)
+#        "cluster" -> the source is produced by a heavy CPU run on a cluster (see docs/DATA.md)
 # status: "ready"   -> present on the laptop today
 #         "pending" -> an 8D artifact still to be produced on the cluster
 SOURCES = {

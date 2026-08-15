@@ -24,7 +24,7 @@ one code path.
 Why a separate module rather than a ``--dim`` flag on the 8-D one: the package
 already pairs per-dimension producers this way (``run_cross_pod_figuredata`` /
 ``run_cross_pod_resid_8d``; ``run_polish_fielderr`` / ``run_polish_fielderr_8d``),
-and it keeps this add-only with respect to a module the campaign is running.
+and it leaves untouched a module the campaign is running.
 
 NO certified solve is needed — the constraint residual is a function of the guess
 and the PDE alone: one shared assembly + per-m scales per point, then
@@ -33,8 +33,8 @@ ladder is the dense 10-point geomspace; ``fig05``'s ``_thin`` reduces it at figu
 time (its docstring: dense ladders are thinned there, pre-thinned ones pass
 through), so this stays consistent with its panel partner.
 
-Add-only.  Imports committed ``lemaitre.initial_data.conformally_flat_puncture`` modules + the 8-D field-sweep
-helpers read-only; edits nothing.
+Imports the package's modules + the 8-D field-sweep
+helpers read-only.
 
 Run:
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_value_pod_gapfill_4d                 # full 1000 pt

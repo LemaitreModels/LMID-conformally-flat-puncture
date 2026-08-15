@@ -1,4 +1,4 @@
-"""Add-only: the chi-parameterized QC tangent — now a thin PASS-THROUGH.
+"""The chi-parameterized QC tangent — now a thin PASS-THROUGH.
 
 **Kept as a documented alias to ``sensitivity_3d_qc.certified_tangent_3d_qc`` so
 existing imports keep working and so the double-count trap it once caused is on record.

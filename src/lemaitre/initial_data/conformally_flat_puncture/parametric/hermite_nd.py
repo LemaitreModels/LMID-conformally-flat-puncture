@@ -1,7 +1,7 @@
-"""LM-initial-data — N-D gradient-enhanced (hard-axis-only) Hermite surrogate (H2).
+"""LM-initial-data — N-D gradient-enhanced (hard-axis-only) Hermite surrogate.
 
-The N-D lift of the 1-D foundation :mod:`hermite` (H1), following the
-**anisotropic** route of ``GRADIENT_ENHANCED_PLAN.md`` §2/§4 H2: enhance only the
+The N-D lift of the 1-D foundation :mod:`hermite`, on the
+**anisotropic** route: enhance only the
 1–2 *hard* axes (near-merger separation ``b``, small-hole spin ``χ_B``/``S_By``)
 with 1-D Hermite, and keep the easy axes (``q``, ``S_Ay``) **value-only**
 barycentric.  This is a tensor product of 1-D operators:
@@ -22,13 +22,13 @@ only missing ingredient is the single mixed partial ``∂²U/∂θ_i∂θ_j`` be
 enhanced axes — a **second-order** implicit-function tangent that **does not exist
 anywhere in the committed tree** (``sensitivity.certified_tangent`` and
 ``solver_abt.tangent_{b,q}``/``tangent_chi`` are all first-order).  Deriving it
-would be new physics, outside the add-only scope (§6) and the R3 mitigation.  So
-H2 builds the **gradient-only** form (first derivatives, **no mixed partial** —
-the §2 fallback): the interpolant carries one derivative accumulator per enhanced
+would be new physics, deliberately out of scope here.  So this module builds the
+**gradient-only** form (first derivatives, **no mixed partial**): the interpolant
+carries one derivative accumulator per enhanced
 axis and drops the ``ĥ·(mixed)`` cross-term.  This is:
 
-  * **exact** for ≤1 enhanced axis (all four H2 acceptance gates use ≤1 enhanced
-    axis — the productized Phase-0 Q1 rate win is a single-enhanced-axis sweep);
+  * **exact** for ≤1 enhanced axis (all four acceptance gates use ≤1 enhanced
+    axis — the rate win they productize is a single-enhanced-axis sweep);
   * **node-exact for values and for the tangent along each enhanced axis** for any
     number of enhanced axes (``h_i(θ_j)=δ_ij``, ``ĥ_i(θ_j)=0``);
   * a documented first-order approximation of the *off-node cross-curvature* for
@@ -37,7 +37,7 @@ axis and drops the ``ĥ·(mixed)`` cross-term.  This is:
 Both value-only and single-enhanced-axis reductions are **bit-for-bit** (same
 float ops, same reused primitives) — the H2 reduce-to-committed gates.
 
-**Add-only.**  Reuses ``parametric_nd`` (``tensor_param_nodes``/``snake_order`` and
+**Reuses** ``parametric_nd`` (``tensor_param_nodes``/``snake_order`` and
 the persistence helpers) and ``hermite`` (``cardinal_deriv_at_nodes``,
 ``_hermite_bases_np``/``_hermite_bases_jax``) **verbatim**; never edits a committed
 module.  Certification is unchanged — the Hermite object is only a *guess*;
@@ -389,7 +389,7 @@ def from_problem_nd_hermite(prob, axes: Sequence[dict], enhanced: Sequence[str] 
     on the committed **modified-Newton** nodes is floor-insensitive (≈2e-14), so
     **no NK build is needed**.
 
-    Add-only: imports ``parametric_nd_2c`` and ``applications.sensitivity`` (both
+    Imports ``parametric_nd_2c`` and ``applications.sensitivity`` (both
     reused verbatim); defines no new physics.
     """
     from . import parametric_nd_2c as p3

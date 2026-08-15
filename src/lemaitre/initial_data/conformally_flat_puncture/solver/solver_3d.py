@@ -1,7 +1,7 @@
 """LM-initial-data-3D — non-axisymmetric two-centre Newton solve (Fourier-in-φ).
 
 The first non-axisymmetric LM-initial-data solver.  The frozen axisymmetric path
-(``solver_abt.py``) stays the regression oracle; this add-only sibling lifts it
+(``solver_abt.py``) stays the regression oracle; this sibling lifts it
 to 3-D by a Fourier collocation in φ.
 
 Unknown: the NODAL field ``U[i, j, k] = u(A_i, B_j, φ_k)`` (shape

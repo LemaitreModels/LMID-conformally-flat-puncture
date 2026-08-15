@@ -8,7 +8,10 @@ install:
 test:
 	caffeinate -i pytest -q
 
-# --- figures: regenerate data (recompute from the solver/ROM), then plot ---
+# --- figures: distil any MISSING figdata from the raw run artifacts, then plot ---
+# NOTE: --all skips a figdata that is already present, and all ten are committed,
+# so on a clone this rebuilds nothing and `figures` simply replots.  Use
+# `make_figdata.py --all --force` to actually re-distil (needs the heavy tier).
 figdata:
 	$(PY) paper/figures/make_figdata.py --all
 
@@ -25,7 +28,10 @@ tables: tabdata
 # --- heavy tier (documented, mostly cluster) ---
 models:
 	@echo "Heavy chi surrogate build (cluster). See docs/DATA.md."
-	@echo "  pipeline/models/{build_surrogate_chi,run_8d_chi_array,build_pod_hermite_model_chi,...}.py"
+	@echo "  python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.<builder>"
+	@echo "  builders: build_surrogate_chi, run_8d_chi_array, build_pod_hermite_model_chi,"
+	@echo "            build_pod_hermite_model_chi_8d, build_pod_hermite_chi8d_array,"
+	@echo "            build_cross_model_chi"
 
 oracle:
 	@echo "Build the external TwoPunctures oracle binary. See docs/DATA.md."

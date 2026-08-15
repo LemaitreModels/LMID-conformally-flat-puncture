@@ -14,7 +14,7 @@ output was invisible to the figure that consumed it:
 Both now resolve through :func:`reports_root`, so one setting moves the whole tree
 and the two halves of the pipeline always agree:
 
-    export LM_REPORTS=/home/USER/lm-reports
+    export LM_REPORTS=/path/to/lm-reports
     python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_3d_sweep
 
 Resolution order:

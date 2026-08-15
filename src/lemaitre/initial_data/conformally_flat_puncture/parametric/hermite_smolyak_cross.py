@@ -30,10 +30,10 @@ axes** (the shipped ``enh=[χ_Ay, χ_By]`` target).  For ``n>2`` enhanced axes t
 carries all pairwise (second-order) crosses but not the ``≥3``-order mixed
 partials (a documented pairwise-bilinear truncation of the ``2^n`` full product).
 
-**Add-only.**  Subclasses / reuses the committed
+**Subclasses / reuses** the
 :class:`hermite_nd.HermiteSolutionND`,
 :class:`hermite_smolyak.HermiteSmolyakSolutionND` and the committed Smolyak
-primitives / persistence helpers **verbatim**; never edits a committed module.  The
+primitives / persistence helpers **verbatim**.  The
 per-node cross field is supplied by the build driver (from
 ``applications.sensitivity_3d_cross``); this module only stores, combines and
 persists it.  Certification is unchanged (``evaluate_polished`` reuses the attached

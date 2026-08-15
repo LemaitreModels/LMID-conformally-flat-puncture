@@ -1,12 +1,14 @@
 """LM-initial-data — POD (reduced-basis) re-encoding of the gradient-enhanced Hermite
-surrogate + the Smolyak-compatibility decision (H3).
+surrogate.
 
-The H3 milestone of ``GRADIENT_ENHANCED_PLAN.md`` §4.  Two pieces.
+Two pieces: the POD re-encoding itself, and a Smolyak-compatibility decision that
+has since been superseded (kept below, marked, because it explains the level-0
+rule the sparse layer inherited).
 
 POD (the main deliverable).
 ---------------------------
-The committed value-only reduced-basis re-encoding (``experiments/ml/pod_surrogate.py``,
-paper Sec.~\\ref{sec:param:pod}/\\ref{sec:model:pod}) compresses a corpus of
+The value-only reduced-basis re-encoding (paper
+Sec.~\\ref{sec:param:pod}/\\ref{sec:model:pod}) compresses a corpus of
 solved fields ``U_i(x)`` by proper orthogonal decomposition: an SVD of the stacked
 (mean-subtracted) fields gives orthonormal spatial modes ``Φ``; keep the leading
 ``r`` and store the length-``r`` coefficient vector per node instead of the full
@@ -38,47 +40,57 @@ certified polish all carry over; the exposed parameter gradient of the compresse
 model is the full Hermite gradient projected onto ``Φ`` (``P_r·∂U/∂θ``), preserved to
 the truncation tail.
 
-Smolyak compatibility (the decision).
--------------------------------------
-**Decision: (b) — the gradient (Hermite) enhancement targets the dense/anisotropic
-path only.**  The *value-only* interpolant already slots into the combination
+Smolyak compatibility — SUPERSEDED, and why it is kept.
+-------------------------------------------------------
+> **This decision no longer holds, and the shipped model is the counterexample.**
+> It read: *the gradient (Hermite) enhancement targets the dense/anisotropic path
+> only.*  Both of its reasons have since been removed —
+> :func:`applications.sensitivity_3d.certified_tangent_3d` supplied the missing
+> ``solver_3d`` tangent, and :mod:`hermite_smolyak` supplied the level-0 rule.  The
+> package now ships a gradient-enhanced **sparse** model
+> (:mod:`hermite_smolyak_pod_cross`; see ``pipeline/production_model.py``, which is
+> the single source of truth for what is shipped).  The reasoning is retained
+> because reason 2 is *why* the sparse layer has a level-0 rule at all.
+
+The *value-only* interpolant slots into the combination
 technique bit-for-bit (a value-only :class:`hermite_nd.HermiteSolutionND` telescopes
 identically to a :class:`parametric_nd_smolyak.SmolyakSolutionND` subgrid —
 demonstrated in :func:`value_only_combination` and its test), so the interpolant
-*family* is Smolyak-compatible.  The **enhancement** is dense-only, for two
-code-grounded reasons:
+*family* was never in question.  The **enhancement** was held to the dense path for
+two reasons, both now resolved:
 
-  1. **No certified tangent exists for the Smolyak-wrapped solver.**  The gradient
+  1. **No certified tangent existed for the Smolyak-wrapped solver.**  The gradient
      enhancement consumes the certified implicit-function tangent ``dU/dθ_k``, which
-     lives only in ``applications.sensitivity.certified_tangent`` over the
+     at the time lived only in ``applications.sensitivity.certified_tangent`` over the
      **axisymmetric** ``solver_abt`` family ``(q,b,χ_A,χ_B)`` — the DENSE
      ``ParametricSolverND`` path.  The sparse builders
      (``SmolyakSolverND`` / ``from_problem_smolyak_3d``) wrap
-     ``parametric_nd_3d`` (the 3-D quasi-circular non-axisymmetric solver), which has
-     **no** certified tangent (locked scope; a ``solver_3d`` IFT tangent is
-     future work) — and the committed Smolyak build loop stores only values
-     (``pool[key] = (U, iters, resid)``), never a tangent.  So a gradient-enhanced
-     Smolyak model is not constructible today.
+     ``parametric_nd_3d`` (the 3-D quasi-circular non-axisymmetric solver), which then
+     had **no** certified tangent, and the Smolyak build loop stored only values
+     (``pool[key] = (U, iters, resid)``).
+     *Resolved:* ``sensitivity_3d.certified_tangent_3d`` is that tangent, and
+     :mod:`hermite_smolyak`'s pool stores ``(U, dU, iters, resid)``.
   2. **The Smolyak level-0 factor degenerates to the fragile 1-node Taylor on the
      enhanced axis.**  A Smolyak subgrid carries the enhanced hard axis at level 0
      (a single midpoint node) in every subgrid that spends its levels elsewhere.
      A value-only level-0 factor is the constant ``U_0``; the *Hermite* level-0
-     factor is the 1-node linear Taylor ``U_0 + (θ−θ_0)·dU_0`` — precisely the R4
-     ``Taylor radius`` mode the plan demotes to a fallback/diagnostic (it collapses
-     near the merger wall ``b→0``, exactly the enhanced hard axis).  Enhancing a
+     factor is the 1-node linear Taylor ``U_0 + (θ−θ_0)·dU_0``, which collapses
+     near the merger wall ``b→0`` — exactly the enhanced hard axis.  Enhancing a
      level-0 factor injects that fragile predictor into the combination sum.
      (:func:`level0_enhanced_is_taylor` demonstrates the degeneracy.)
+     *Resolved:* :mod:`hermite_smolyak` enhances axis ``k`` in subgrid ``l`` only
+     when ``l_k >= 1``, so a level-0 factor stays value-only.  **This paragraph is
+     the derivation of that rule — do not delete it with the rest.**
 
-The two features attack orthogonal cost axes (paper: Smolyak the parameter
+The three features attack orthogonal cost axes (paper: Smolyak the parameter
 resolution / offline solve count, POD the spatial rank, gradient-enhancement the
-per-node convergence rate on the dense anisotropic path) — so this is a clean design
-boundary, not a limitation of the algebra.
+per-node convergence rate), which is why they compose.
 
-**Add-only.**  Reuses :mod:`hermite_nd` (``HermiteSolutionND`` verbatim),
+**Reuses** :mod:`hermite_nd` (``HermiteSolutionND`` verbatim),
 :mod:`parametric_nd` (persistence helpers), and
 :mod:`parametric_nd_smolyak` (``nested_levels``/``isotropic_index_set``/
 ``combination_coeffs``/``SmolyakSolutionND`` — only for the value-only demonstration)
-verbatim; never edits a committed module.  Certification is unchanged — the compressed
+verbatim.  Certification is unchanged — the compressed
 object is only a *guess*; ``evaluate_polished`` reuses the committed ``solve_fn``.
 
 Standalone: numpy + jax + the sibling ``parametric``/``parametric_nd``/``hermite``/
@@ -111,14 +123,13 @@ from .certification import CERT_TOL, certified_return   # the residual gate (one
 
 
 # --------------------------------------------------------------------------
-# SVD / rank helpers (mirror experiments/ml/pod_phase1.py; self-contained)
+# SVD / rank helpers (self-contained)
 # --------------------------------------------------------------------------
 def randomized_svd(A, n_modes, n_oversample=20, n_iter=2, seed=0):
     """Top-``n_modes`` left singular vectors + singular values of ``A`` (``m×n``).
 
     Halko–Martinsson–Tropp randomized range finder with a couple of power
     iterations (the POD spectrum decays geometrically, so ``n_iter=2`` suffices).
-    Mirrors ``experiments/ml/pod_phase1.py`` verbatim.
     """
     rng = np.random.default_rng(seed)
     m, n = A.shape

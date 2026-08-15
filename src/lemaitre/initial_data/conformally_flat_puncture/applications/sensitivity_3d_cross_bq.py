@@ -6,7 +6,7 @@ The committed :mod:`applications.sensitivity_3d_cross` supplies ``∂²U/∂θ_i
 for a pair of **spin** axes only (``_LINEAR_SPIN_AXES`` — the source-only case, no
 geometry/``ψ``/nonlinear-vector second-order terms).  A full pairwise-bilinear
 4-axis model needs ``C(4,2)=6`` crosses; the shipped module covers only the
-spin–spin ``(χ_Ay, χ_By)`` one.  This add-only module supplies the other five:
+spin–spin ``(χ_Ay, χ_By)`` one.  This module supplies the other five:
 
     (b, q),  (b, χ_Ay),  (b, χ_By),  (q, χ_Ay),  (q, χ_By).
 
@@ -61,9 +61,9 @@ pair, so the general code reduces to the committed one analytically):
 Every term is closed-form / node-diagonal in the source and the operator scale —
 no finite differencing in the shipped tangent (FD is validation only).
 
-Add-only / standalone: imports the committed ``sensitivity_3d`` /
-``sensitivity_3d_qc`` / ``sensitivity_3d_cross`` / ``solver_3d`` / ``source_3d``
-**verbatim**; defines no new physics beyond the (already-committed) PN-momenta
+Standalone: imports ``sensitivity_3d`` /
+``sensitivity_3d_qc`` / ``sensitivity_3d_cross`` / ``solver_3d`` / ``source_3d``;
+defines no new physics beyond the (already-committed) PN-momenta
 twin's second derivative.  numpy + jax.
 """
 

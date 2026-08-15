@@ -1,9 +1,9 @@
 """LM-initial-data — build & persist the DIMENSIONLESS-SPIN (chi) production surrogates.
 
-Add-only chi twin of ``build_surrogate.py`` (S3 of the chi-rebuild ledger).  It
+The chi twin of ``build_surrogate.py``.  It
 does NOT copy build_surrogate's body; it imports it and injects two chi boxes,
 then dispatches to build_surrogate.main() verbatim — so the store/save/certified-
-spot-check machinery is reused byte-for-byte and the committed module is
+spot-check machinery is reused byte-for-byte and ``build_surrogate.py`` is
 untouched.
 
 Boxes added (all edges from ``production_box``).  The ``_prod`` pair is the
@@ -16,7 +16,8 @@ retargeting an edge in ``production_box`` does not strand the name:
 
 The chi_* axes are value axes already handled by ``parametric_nd_3d.theta_to_slice3d``
 (S_Xi = chi_Xi * m_X^2), so the value-only Smolyak/dense build works with only
-the box swap — no tangent/derivative path is used (that is S4's separate concern).
+the box swap — no tangent/derivative path is used (that is the gradient-enhanced
+builder's separate concern).
 
 Usage (mirrors build_surrogate.py; add --box d4_qc_chi / spin8_qc_chi):
     python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_surrogate_chi \

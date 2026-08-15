@@ -15,7 +15,7 @@ with all edges taken from ``production_box``,
 
 at fixed quasi-circular tangential momentum (``qc=1.0``), on the production 3-D
 spatial grid (Na=44, Nb=32, Nphi=8), against the shipped 4-D χ Smolyak model
-(isotropic level L=5, 1105 solves; manifest row S3):
+(isotropic level L=5, 1105 solves):
 
     reports/3D_parametric/models_chi/surrogate_smolyak_d4_qc_chi_prod_L5.npz
 
@@ -27,7 +27,7 @@ residual history of a SINGLE certified solve per point.
 Writes ``reports/P3/polish_table_qc_chi_prod_<n>.json`` and prints a LaTeX-ready
 summary.
 
-Run:  ~/micromamba/envs/BBHFM/bin/python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_table_qc_chi
+Run:  python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_table_qc_chi
       [--n-points 1000] [--seed 0] [--level 5]
 """
 from __future__ import annotations
@@ -74,7 +74,7 @@ def build_or_load(prob, level):
         from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd import attach_solve_fn_3d
         attach_solve_fn_3d(model, prob, NAMES, M_tot=M_TOT, fixed=FIXED, solver="nk")
         return model
-    # The shipped chi prod L5 model (manifest S3) is expected on disk; only build
+    # The shipped chi prod L5 model is expected on disk; only build
     # as a fallback.
     print(f"[qc-chi] building Smolyak L={level} model (this is the ~hour-long step) ...",
           flush=True)

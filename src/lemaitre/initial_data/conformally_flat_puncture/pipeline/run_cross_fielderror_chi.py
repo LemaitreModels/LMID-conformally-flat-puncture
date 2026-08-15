@@ -1,7 +1,7 @@
 """LM-initial-data — M4 verification: JOINT bare-guess field error of the value-only,
 value+gradient (shipped), and value+gradient+cross (full bilinear) 4-D χ models.
 
-Add-only.  At the SAME 1000 seed-0 off-node points (``run_polish_table``'s
+At the SAME 1000 seed-0 off-node points (``run_polish_table``'s
 ``random_offnode_points``), computes the raw-interpolant field error
 ``‖interp − u_true‖₂ / ‖u_true‖₂`` for each model, where ``u_true`` is the
 certified solve (``evaluate_polished`` to ``tol=1e-11``, one per point, reused
@@ -156,7 +156,7 @@ def main(cross_path, n_points=1000, seed=0, n_peraxis=60,
     # -------- JOINT field error AND bare-guess EQUILIBRATED residual --------
     # field error = ‖interp − u_true‖₂/‖u_true‖₂ (vs the certified solve);
     # constraint residual = the EQUILIBRATED ‖R‖_equil (solver_3d_nk, row-scaled —
-    # the paper convention, notes/conventions.md; NOT the raw nodal residual, which
+    # the paper convention; see parametric/certification.py; NOT the raw nodal residual, which
     # is roundoff-dominated near the inner axis). Needs NO reference solve — one
     # shared assembly + scales per point.
     pts = offnode_points(box, n_points, seed)

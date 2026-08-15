@@ -22,8 +22,6 @@ FAITHFUL + CHEAP:
     cross sub-model is ~85 GB; holding all five like the 4-D template would OOM the
     256 GB node) — build, evaluate at all points, free, next level.
 
-Add-only.  Imports committed ``lemaitre.initial_data.conformally_flat_puncture`` modules read-only; edits nothing.
-
 Run (a compute node with ~256 GB — see the memory note above; submit it as a batch
 job with whatever submit script your cluster uses):
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_qc_joint_dist_hermite_8d

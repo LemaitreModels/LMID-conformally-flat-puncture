@@ -6,7 +6,7 @@ single callable it needs — ``solve_fn(theta_vec, guess, tol, max_iter)`` — t
 maps a 4-D parameter point ``θ = (q, b, χ_A, χ_B)`` onto a head-on(+aligned-spin)
 ``Slice`` and runs the validated ABT Newton solve.
 
-Conventions (reports/P3/analysis.md §0):
+Conventions (defined here; used as shorthand across the package):
   D1  χ_X = S_X/m_X²  (bare puncture mass m_X)  ⇒  S_X = χ_X m_X².
   D2  fixed total mass M:  m_A = M q/(1+q),  m_B = M/(1+q);  P fixed in Problem.
   D7  per-b Laplacian cache: M0 depends only on b (Lap∝1/b², BC rows b-indep), so

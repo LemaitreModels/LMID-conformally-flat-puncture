@@ -1,4 +1,4 @@
-"""External oracle wrapper: the standalone TwoPunctures solver  (B1, Step 4).
+"""External oracle wrapper: the standalone TwoPunctures solver.
 
 This is the **only** place the LM-initial-data package reaches outside itself.  It does
 NOT import the oracle's build-time deps (nrpy etc.); it merely shells out (via

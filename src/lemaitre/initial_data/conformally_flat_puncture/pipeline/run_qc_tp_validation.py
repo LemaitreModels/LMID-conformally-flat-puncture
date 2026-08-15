@@ -14,7 +14,7 @@ Blocks (→ reports/3D_parametric/qc/tp_validation_qc.json + fig_qc_tp.png):
   C.  ψ spectral convergence to TP on a QC slice as the LM-initial-data grid refines +
       ADM-mass relative agreement (3-D φ-averaged spectral M_ADM vs TP.E).
 
-    caffeinate -i ~/micromamba/envs/BBHFM/bin/python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_qc_tp_validation
+    caffeinate -i python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_qc_tp_validation
 """
 from __future__ import annotations
 import json, math, os, sys, time

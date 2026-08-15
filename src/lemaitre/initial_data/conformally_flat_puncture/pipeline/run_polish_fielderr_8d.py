@@ -39,8 +39,6 @@ with, per family, the per-step field-error stats (min/median/mean/p95/max) AND t
 raw per-point arrays (for honest min--max whiskers), plus the reproduced per-step
 residual stats for the shared-step cross-check.
 
-Add-only.  Imports committed ``lemaitre.initial_data.conformally_flat_puncture`` modules read-only; edits nothing.
-
 Run:
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_fielderr_8d                    # full 1000 pt
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_fielderr_8d --n-points 5       # smoke test

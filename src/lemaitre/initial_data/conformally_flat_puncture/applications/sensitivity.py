@@ -1,10 +1,10 @@
-"""LM-initial-data — differentiable initial data ``∂ID/∂θ`` (Milestone B3).
+"""LM-initial-data — differentiable initial data ``∂ID/∂θ``.
 
-The capability the whole paper-track is named for (PAPER_PLAN §1 claim 3): a
-**differentiable** certified ID generator.  P3 left the hook in place — the
-branchless ``ParametricSolutionND.evaluate_jax(θ)`` is a ``jnp`` interpolant, so
-``jax.jacfwd``/``grad`` of it is ``∂U/∂θ`` of the surrogate.  B3 turns that hook
-into two concrete deliverables:
+One of the paper's three central claims: a **differentiable** certified ID
+generator.  The parametric layer left the hook in place — the branchless
+``ParametricSolutionND.evaluate_jax(θ)`` is a ``jnp`` interpolant, so
+``jax.jacfwd``/``grad`` of it is ``∂U/∂θ`` of the surrogate.  This module turns
+that hook into two concrete deliverables:
 
   (a) a **gradient-based parameter solve** — hit a target ADM mass + spin by
       **Gauss–Newton on θ** using the *analytic* ``∂F/∂θ`` (``jax.jacfwd`` of the
@@ -33,11 +33,10 @@ Cross-checks (the B3 gate, three independent routes):
     and the new :func:`tangent_chi` here for the spin axes).  This confirms the
     surrogate gradient *is* the certified-ID sensitivity, not merely FD of itself.
 
-Add-only / standalone: imports the frozen ``solver_abt`` / ``operators_abt`` /
-``source`` / ``validation.adm`` / ``parametric_nd*`` **verbatim** and defines no
-new physics; :func:`tangent_chi` is a *new* function here (it does not alter any
-existing signature — ``solver_abt`` ships ``tangent_b``/``tangent_q`` but no
-``tangent_chi``).  numpy + jax only.
+Standalone: imports ``solver_abt`` / ``operators_abt`` / ``source`` /
+``validation.adm`` / ``parametric_nd*`` and defines no new physics;
+:func:`tangent_chi` is the one new function here (``solver_abt`` ships
+``tangent_b``/``tangent_q`` but no ``tangent_chi``).  numpy + jax only.
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 """LM-initial-data-3D Newton–Krylov — the *certified* non-axisymmetric two-centre solve.
 
-Add-only sibling of ``solver_3d``.  The modified-Newton solver
+Sibling of ``solver_3d``.  The modified-Newton solver
 (``solver_3d.newton_solve``) drops the φ-varying part of the source Jacobian: it
 adds only the φ-AVERAGED diagonal ``d̄(A,B) = ⟨−⅞(ψ+u)⁻⁸Â²⟩_φ`` to each per-m
 block.  The converged residual is therefore solver-limited — ``‖R‖∞`` RISES with
@@ -223,15 +223,19 @@ def newton_step_nk(asm: Assembly3D, U: np.ndarray,
 
     # The preconditioner.  Two routes, and the difference is what they include:
     #
-    #  * dense (default) — M̂_m = M0_m + diag(interior·d̄·w_m), i.e. exactly what
+    #  * separable (the DEFAULT — see choose_separable) — the LINEAR block alone,
+    #    inverted exactly by fast diagonalization (solver/separable.py).  Dropping
+    #    the nonlinear diagonal is what makes it b- and θ-independent, so there is
+    #    nothing left to factor per step or per parameter point; it costs a GMRES
+    #    iteration or two, and at Nφ=1 it is no longer the exact Jacobian.
+    #  * dense — M̂_m = M0_m + diag(interior·d̄·w_m), i.e. exactly what
     #    solver_3d.newton_step solves, LU-factored once per Newton step.  It is J
     #    minus only the azimuthal mode-coupling, so at Nφ=1 it IS J and GMRES
     #    converges in one iteration.  The factorizations are ~80% of the step.
-    #  * separable — the LINEAR block alone, inverted exactly by fast
-    #    diagonalization (solver/separable.py).  Dropping the nonlinear diagonal
-    #    is what makes it b- and θ-independent, so there is nothing left to
-    #    factor per step or per parameter point; it costs a GMRES iteration or
-    #    two, and at Nφ=1 it is no longer the exact Jacobian.
+    #    choose_separable opts back into it at Nφ=1 and during warm-up.
+    #
+    # Which one this call gets was already decided by the caller: it is whichever
+    # representation ``asm`` holds (``asm.sep is None`` => dense).
     sep = asm.sep
     facs = None
     if sep is None:

@@ -1,7 +1,8 @@
-"""LM-initial-data — gradient-enhanced (Hermite) collocation in parameter space (H1).
+"""LM-initial-data — gradient-enhanced (Hermite) collocation in parameter space.
 
-The 1-D **foundation** of the gradient-enhanced surrogate
-(``GRADIENT_ENHANCED_PLAN.md`` §2/§4).  The committed value-only interpolant
+The 1-D **foundation** of the gradient-enhanced surrogate; :mod:`hermite_nd` is
+its N-D lift and :mod:`hermite_smolyak` the sparse-grid one.
+The committed value-only interpolant
 (:class:`parametric.ParametricSolution` / :class:`parametric_nd.ParametricSolutionND`)
 stores only the solved field ``U_i`` at each parameter node and combines nodes
 with Lagrange weights.  This module adds the **gradient-enhanced (Hermite)**
@@ -22,9 +23,9 @@ matches the certified tangent to ~1e-10, at fixed node count.
 parameter; the hard-axis-only *selection* and the N-D tensor layer are H2).  This
 is the degenerate ``d=1`` object that ``HermiteSolutionND`` (H2) will build on.
 
-**Add-only.**  Reuses ``parametric.cheb_param_nodes`` and the ``parametric_nd``
+**Reuses** ``parametric.cheb_param_nodes`` and the ``parametric_nd``
 persistence helpers (``_pack_meta``/``_unpack_meta``/``_git_commit``/``_load_npz``/
-``_check_meta``/``FORMAT_VERSION``) **verbatim**; never edits a committed module.
+``_check_meta``/``FORMAT_VERSION``) **verbatim**.
 Certification is unchanged — the Hermite object is still only a *guess*;
 ``evaluate_polished`` (Newton) remains the certificate (reused, not reimplemented).
 

@@ -27,7 +27,7 @@ the flat unit list across ``--ntasks`` tasks (``units[taskid::ntasks]``); each t
 writes ``peraxis_dist_chi_parts/part_<taskid>.json``; ``--assemble`` merges them to
 ``reports/3D_parametric/qc_chi/peraxis_dist_chi.json`` (order stats + raw samples).
 
-Add-only: no existing module or driver is modified.  Output ->
+Output ->
   reports/3D_parametric/qc_chi/peraxis_dist_chi.json
   reports/3D_parametric/qc_chi/peraxis_dist_chi_parts/part_<taskid>.json
   reports/3D_parametric/qc_chi/fig_qc_per_axis_dist_chi.png   (2x4 best/median/worst)

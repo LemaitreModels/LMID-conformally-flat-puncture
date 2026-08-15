@@ -64,8 +64,6 @@ Writes the two JSONs with schema mirroring ``guess_vs_memory_4d_cross_field_*.js
 (pod_curve of {r, mem_bytes, min/median/mean/p95/max}; metric ``field_error_relL2``;
 dim=8; npair dropped).
 
-Add-only.  Imports committed ``lemaitre.initial_data.conformally_flat_puncture`` modules read-only; edits nothing.
-
 Run:
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_hermite_fielderr_sweep_8d                # full 1000 pt
   python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_hermite_fielderr_sweep_8d --n-points 5   # smoke test

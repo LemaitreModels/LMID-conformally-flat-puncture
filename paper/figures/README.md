@@ -8,12 +8,21 @@ now comes as a **data/plot split** so it rebuilds from the repo alone — no sol
 |---|---|
 | `figNN_<name>_plot.py`  | **plotter** — reads **only** `figdata/figNN_<name>.json` and draws the `.pdf`. |
 | `figNN_<name>_data.py`  | **data script** — distills the arrays the figure plots out of the raw run artifacts under `../../reports/` into that committed json. This is the only step that ever touches `reports/`, heavy models, or `jax`. |
-| `figdata/figNN_<name>.json` | the committed, plot-ready data (≈46 kB total for all figures). |
+| `figdata/figNN_<name>.json` | the committed, plot-ready data (105 kB total for all ten figures). |
 
-One exception to "distills": `fig10_constraints_data.py` **recomputes** — it runs the
-two-centre solve and the finite-difference constraint monitor itself (both cheap) and queries
-the TwoPunctures binary directly, so it has no `reports/` source and is registered
-`inline=True`. Its oracle leg takes ~40 min (1.3M query points); `--no-tp` skips it.
+Two departures from that pattern:
+
+- `fig10_constraints_data.py` distils an **external** run tree instead of one under
+  `reports/`: the constraint norms are measured by GRTeclyn, not by this package, so it
+  reads that code's `ladder.json` output (point `--runs` at it, or set
+  `$LM_GRTECLYN_RUNS`) and is registered `inline=True` — there is no `reports/` source key
+  to declare. It runs no solver and needs no oracle. *(It used to run the two-centre solve
+  and the in-house finite-difference monitor itself, and to query TwoPunctures over 1.3M
+  points; that arrangement is retired — see the module docstring for why the measurement
+  moved.)*
+- `fig07_eccentricity_data.py` is the only data script that touches `jax` and the ROM: it
+  evaluates the shipped `surrogate_bpt_ecc.npz` once to precompute the smooth `E_b(b;J)`
+  curves. Every other script is a pure reshape of json already on disk.
 
 Supporting the split:
 
@@ -127,9 +136,8 @@ little smaller than the 9 pt caption, which is the usual, natural look.
 ## Regenerating the figures (from committed data — no solves)
 
 ```bash
-PY=~/micromamba/envs/BBHFM/bin/python          # the BBHFM env interpreter
 cd paper/figures
-for f in fig??_*_plot.py; do "$PY" "$f"; done
+for f in fig??_*_plot.py; do python "$f"; done
 ```
 
 The plotters read `figdata/` only, so this needs nothing under `reports/` and no `jax`.
@@ -137,36 +145,43 @@ The plotters read `figdata/` only, so this needs nothing under `reports/` and no
 ## Rebuilding the data (`figdata/`)
 
 ```bash
-$PY make_figdata.py --check          # present/MISSING matrix for every figure + source (dedup); runs nothing
-$PY make_figdata.py --all            # (re)build every figdata json whose raw sources are present
-$PY make_figdata.py --fig fig03      # one figure (stem, number, or prefix); --force to overwrite
+python make_figdata.py --check          # present/MISSING matrix for every figure + source (dedup); runs nothing
+python make_figdata.py --all            # build every MISSING figdata json whose raw sources are present
+python make_figdata.py --fig fig03      # one figure (stem, number, or prefix); --force to overwrite
 ```
+
+`--all` **skips a figdata that already exists** — and all ten are committed, so on a
+fresh clone it rebuilds nothing. Pass `--force` to actually re-distill.
 
 `--check` reports, per figure, whether its `figdata/*.json` exists and whether its raw sources are
 present under `reports/`; blocked figures list the exact producer command and whether it runs on the
-laptop or the cluster. Most raw sources are produced by heavy CPU runs on the IVS cluster (see the
-paper cluster prompt); once produced under `reports/`, the matching `*_data.py` distills them.
-`fig07`'s data script (eccentricity) is the one that needs `jax` + the `lemaitre.initial_data.conformally_flat_puncture` package (it evaluates the
-surrogate once to precompute the smooth curves).
+laptop or the cluster. Almost every raw source is produced by a heavy CPU run on a cluster
+(`where="cluster"` in `registry.SOURCES`); once produced under `reports/`, the matching
+`*_data.py` distills it.
 
 ## Figure → data script → raw source(s)
 
-Sources marked **(cluster)** are produced by a run on IVS; **shared** sources are built once and
-consumed by both listed figures.
+Generated from `registry.py` — keep it in step with that file, which is the single source of
+truth. Sources appearing under more than one figure (`tp_band_sweep`, `polish_table_4d`,
+`polish_table_8d_value`) are built once and shared.
 
 | Fig | data script | raw source key(s) (`registry.SOURCES`) |
 |----:|-------------|------------------------------------------|
-| 1  | `fig01_peraxis_hermite_data.py`    | `peraxis_dist_chi` *(distribution over random base points)* |
-| 2  | `fig02_walls_data.py`              | `walls_dense` *(both walls — separation + spin — merged into one figure)* |
-| 3  | `fig03_joint_dist_data.py`         | `joint_dist_4d`, `joint_dist_cross_4d`, `joint_dist_8d` *(pending)*, `joint_dist_hermite_8d` *(pending)* |
-| 4  | `fig04_polish_staircase_data.py`   | `polish_cold_{4,8}d`, `polish_pod_{4,8}d`, `polish_fielderr_4d`, `polish_fielderr_8d` *(pending)* |
-| 5  | `fig05_guess_vs_memory_data.py`    | `gvm_all`, `gvm_4d_{value,cross,field,cross_field}`, `polish_table_{4d,4d_cross,8d_hermite}`, `gvm_8d_{value,field,hermite_field}` *(pending)* |
-| 6  | `fig06_targeting_data.py`          | `qc_targeting` |
-| 7  | `fig07_eccentricity_data.py`       | `qc_effpot` + `effpot_model` (surrogate `.npz`; distilled to json) |
-| 8  | `fig08_tp_validation_data.py`      | `tp_band_sweep` *(shared with fig 9)* — the resolution ladder |
-| 9  | `fig09_tp_spectrum_data.py`        | `tp_band_sweep` *(shared with fig 8)* — the azimuthal spectrum |
+|  1 | `fig01_peraxis_hermite_data.py` | `peraxis_dist_chi` |
+|  2 | `fig02_walls_data.py` | `walls_dense` |
+|  3 | `fig03_joint_dist_data.py` | `joint_dist_4d`, `joint_dist_cross_4d`, `joint_dist_8d`, `joint_dist_hermite_8d` |
+|  4 | `fig04_polish_staircase_data.py` | `polish_cold_4d`, `polish_cold_8d`, `polish_pod_4d`, `polish_pod_8d`, `polish_fielderr_4d`, `polish_fielderr_8d`, `polish_table_4d`, `polish_table_8d_value`, `polish_fielderr_value_4d`, `polish_fielderr_value_8d`, `polish_value_pod_4d`, `polish_value_pod_8d` |
+|  5 | `fig05_guess_vs_memory_data.py` | `gvm_4d_value`, `gvm_4d_cross`, `gvm_4d_field`, `gvm_4d_cross_field`, `polish_table_4d`, `polish_table_4d_cross`, `polish_table_8d_value`, `gvm_8d_value`, `gvm_8d_field`, `gvm_8d_hermite_field`, `gvm_8d_cross_field`, `gvm_8d_cross` |
+|  6 | `fig06_targeting_data.py` | `qc_targeting` |
+|  7 | `fig07_eccentricity_data.py` | `qc_effpot`, `effpot_model` (the surrogate `.npz`) |
+|  8 | `fig08_tp_validation_data.py` | `tp_band_sweep` — the resolution ladder |
+|  9 | `fig09_tp_spectrum_data.py` | `tp_band_sweep` — the azimuthal spectrum |
+| 10 | `fig10_constraints_data.py` | none under `reports/` — an external GRTeclyn run tree |
 
-**Status.** Figures 2, 3, 6, 7, 8, 9 are fully data-split and their `figdata/` json is
-committed; each regenerates pixel-identical to the shipped figure. Figures **1, 4, 5** still read
-`reports/` directly and are pending the 8D cluster runs (see `registry.py`; the `_data.py`/plotter
-split lands for them once the 8D bundle returns).
+Two further keys, `sweep_3d` and `tp_validation`, feed no figure: they are retained because the
+appendix still quotes numbers they produced. See the comment on them in `registry.py`.
+
+**Status.** All ten figures are data-split, every source reads `status="ready"`, and all ten
+`figdata/*.json` are committed — so the plot tier rebuilds from a bare clone with only
+matplotlib. What a clone *cannot* do is re-distill: that needs the raw artifacts under
+`$LM_REPORTS` (and, for fig10, the GRTeclyn run tree). See `../../docs/DATA.md`.

@@ -1,5 +1,5 @@
 """LM-initial-data-2C — two-centre Bowen–York source, two-puncture Brill–Lindquist
-background (Phase A, plan.md §12.7).
+background.
 
 Two punctures on the z-axis at ``z = +b`` (puncture A) and ``z = -b`` (puncture B),
 masses ``m_A, m_B``, carrying *anti-parallel infall* linear momenta

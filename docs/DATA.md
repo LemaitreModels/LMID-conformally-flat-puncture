@@ -1,37 +1,53 @@
 # Regenerating the paper's data & figures
 
-The design goal: figure scripts **recompute** their numbers from the solver / ROM,
-not read a pre-baked cache. There are two tiers.
+The design *goal* is that figure scripts recompute their numbers from the solver /
+ROM rather than reading a pre-baked cache. **That is Stage 2, and it is not done
+— see the status note at the end of this file.** What the scripts do today is
+*distil*: each reads a raw run artifact a heavy-tier job already produced and
+reshapes it into the committed `figdata/*.json`. State it that way in any doc you
+write; `README.md` and `CLAUDE.md` claimed the recompute for a while and a referee
+checking it would have found the opposite.
+
+There are two tiers.
 
 ## Entry points
 
 ```bash
-make figdata     # (re)compute paper/figures/figdata/*.json from the solver/ROM
+make figdata     # distil any MISSING paper/figures/figdata/*.json (--force to redo present ones)
 make figures     # figdata, then plot every fig??_*_plot.py -> PDF
-make tabdata     # (re)compute paper/tables/tabdata/*.json from the solver
+make tabdata     # recompute paper/tables/tabdata/*.json (instant; no solve)
 make tables      # tabdata, then render every tab??_*_tex.py -> .tex
-make test        # acceptance suite (fast tier)
+make test        # the FULL acceptance suite: ~40 min, not a fast tier
 make models      # heavy: (re)build the chi surrogate corpora  [cluster]
 make oracle      # build the external TwoPunctures validation binary
 ```
 
 ## Tables
 
-The two appendix tables (the parameter-sensitivity verification) use the same
-two-tier pattern as the figures, but sit entirely in the laptop tier: both
-recompute from the solver in seconds with no corpus and no oracle. The canonical
-producer is `pipeline/run_tangent_verification.py`; `tabdata/*.json` is a
-gitignored build output while the rendered `paper/tables/tab??_*.tex` is committed
-(as the figure PDFs are), and `paper.tex` `\input`s it. See
-`paper/tables/README.md`.
+There is **one** table, `tab01_production_box`, and it uses the same two-tier
+pattern as the figures but sits entirely in the laptop tier — and unlike the
+figures it genuinely recomputes: it derives every box edge, the Smolyak level, the
+spatial grid and the enhanced axis set from `pipeline/production_box.py`, and the
+sparse-grid node count from `parametric_nd_2c.smolyak_points`. No corpus, no
+oracle, no solve; retargeting an edge in `production_box` moves the paper's number
+with it. `tabdata/*.json` is a gitignored build output while the rendered
+`paper/tables/tab??_*.tex` is committed (as the figure PDFs are), and `paper.tex`
+`\input`s it. See `paper/tables/README.md`.
+
+`pipeline/run_tangent_verification.py` is **not** the table producer — it fed a
+paper appendix that was withdrawn, and its own docstring says so. It stays as the
+runnable end-to-end cross-check behind the sensitivity claims of Sec. IV.
 
 ## Two tiers
 
-**Laptop tier (fast).** Most figures recompute in seconds–minutes from a *shipped
-surrogate model artifact* (the χ Smolyak/Hermite/POD models) via the ROM. The
-per-figure producers live in `src/lemaitre/initial_data/conformally_flat_puncture/pipeline/` and are mapped
-to figures by `paper/figures/registry.py` (the single source of truth for
-the figure→producer→artifact graph).
+**Laptop tier (fast).** The *distil* step — turning a raw run artifact into
+`figdata/*.json` — is seconds per figure and needs only that artifact. Only fig07
+touches the ROM at this tier, evaluating a *shipped surrogate model artifact* (the
+χ Smolyak/Hermite/POD models) to precompute its smooth curves. The per-figure
+producers of the raw artifacts live in
+`src/lemaitre/initial_data/conformally_flat_puncture/pipeline/` and are mapped to
+figures by `paper/figures/registry.py` (the single source of truth for the
+figure→producer→artifact graph). Those producers are the heavy tier below.
 
 **Heavy tier (cluster / oracle).**
 - **χ surrogate corpora** — built by `pipeline/{build_surrogate_chi, run_8d_chi_array,
@@ -74,10 +90,17 @@ the figure→producer→artifact graph).
      and `Ahat` values that the C++ evaluator is validated against. With `--tp` it also
      writes the TwoPunctures conformal factor **on the identical spectral grid**, so the
      cross-code comparison shares the interpolation operator too.
-  2. the GRTeclyn runs: `runs/lm_constraints/submit_step4.slurm` in the GRTeclyn checkout
-     (~30 min for the six-series ladder; `submit_amr.slurm` for the refined-hierarchy
-     numbers). Leaves one `constraint_norms.json` per rung, collected into
-     `<tag>/ladder.json`.
+  2. the GRTeclyn runs (~30 min for the six-series ladder, plus the
+     refined-hierarchy AMR runs). Each rung leaves one `constraint_norms.json`;
+     the rungs of one series are collected into `<tag>/ladder.json`.
+
+     > **Not reproducible from a checkout today.** The batch scripts that submit
+     > this ladder and collect the per-rung output exist in neither this repo nor
+     > the GRTeclyn branch the paper cites (`lm-initial-data-constraints`, checked
+     > 2026-08-15: no `runs/` directory in the tree or anywhere in its history).
+     > What *is* pinned is the schema step 3 consumes — see the docstring of
+     > `paper/figures/fig10_constraints_data.py`, which lists every field it
+     > reads. Shipping the submit/collect scripts is an open publication item.
   3. `python paper/figures/fig10_constraints_data.py --runs <that tree>` (seconds, reads
      files only) then the plotter. Set `$LM_GRTECLYN_RUNS` instead of `--runs` if you
      prefer.
@@ -100,9 +123,11 @@ the figure→producer→artifact graph).
   cd paper/figures && for f in fig??_*_plot.py; do python "$f"; done
   ```
 
-- **Regenerated:** `make figdata` **recomputes** that json from the raw sources,
-  and needs the heavy tier (`$LM_REPORTS`, the multi-GB corpora, the cluster).
-  That is the only step a clone cannot do.
+- **Regenerated:** `make figdata` re-distils that json from the raw sources, and
+  needs the heavy tier (`$LM_REPORTS`, the multi-GB corpora, the cluster). That is
+  the only step a clone cannot do — and note it **skips every figdata already on
+  disk**, so on a clone (where all ten are committed) it does nothing at all.
+  `python paper/figures/make_figdata.py --all --force` is what actually rebuilds.
 
 ## Model-artifact location convention
 

@@ -1,13 +1,13 @@
 """LM-initial-data — build & persist the SHIPPED gradient-enhanced (Hermite) 8-D model in
-the DIMENSIONLESS-SPIN (chi) parameterization (chi-rebuild S7).
+the DIMENSIONLESS-SPIN (chi) parameterization.
 
-Add-only 8-D twin of ``build_pod_hermite_model_chi.py`` (the 4-D S4 driver).  Like
+The 8-D twin of ``build_pod_hermite_model_chi.py`` (the 4-D driver).  Like
 that driver it does NOT copy the committed builder's body; it imports
 ``build_pod_hermite_model``, swaps the module-level box to the full 8-D chi spin box
 ``spin8_qc_chi_prod`` = the production 8-D box of ``production_box`` (matching
-the S6 value corpus box), and dispatches to ``build_pod_hermite_model.main()``
+the 8-D value corpus box), and dispatches to ``build_pod_hermite_model.main()``
 verbatim — so the Newton–Krylov solve, the QC chain-rule certified tangent, the
-H5d POD compression, the save, and the certified spot-check are reused byte-for-byte
+POD compression, the save, and the certified spot-check are reused byte-for-byte
 and the committed builder is untouched.
 
 The enhanced (gradient) axes default to the SIX dimensionless-spin components
@@ -22,7 +22,7 @@ for the in-plane components and the in-plane tangent reduces (correctly, at this
 order) to the direct Bowen–York spin-source tangent — this falls out of the
 autodiff chain rule automatically.
 
-Usage — fastest: reuse the S6 8-D value corpus (compute only tangents; no re-solve):
+Usage — fastest: reuse the 8-D value corpus (compute only tangents; no re-solve):
     python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_pod_hermite_model_chi_8d \
         --Na 44 --Nb 32 --Nphi 8 --level 5 \
         --enhanced chi_Ax,chi_Ay,chi_Az,chi_Bx,chi_By,chi_Bz \
@@ -36,8 +36,8 @@ spot-check):
 
 Cost note: the reuse-value path is one process that loads the whole 8-D value
 corpus and computes 6 tangent back-solves per dedup node (one shared ``s3.assemble``
-per node).  Budget from the S4 4-D reuse (~2.6 s/node for 2 axes): ~4-7 s/node × the
-8-D dedup pool.  The H5d POD then compresses a 7-field-per-node corpus (value + 6
+per node).  Budget from the 4-D reuse (~2.6 s/node for 2 axes): ~4-7 s/node × the
+8-D dedup pool.  The POD then compresses a 7-field-per-node corpus (value + 6
 tangents), so give the job generous ``--time`` and ``--mem`` (see SESSION_STATE §2).
 """
 from __future__ import annotations
