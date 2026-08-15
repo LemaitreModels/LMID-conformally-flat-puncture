@@ -319,7 +319,19 @@ def circular_scan(model, prob, J, box_b, *, n_scan=13, tol=1e-10):
         Ebs.append(E); worst_R = max(worst_R, r)
     Ebs = np.array(Ebs)
     k = int(np.argmin(Ebs))
-    k = min(max(k, 1), n_scan - 2)
+    if k in (0, n_scan - 1):
+        # The discrete minimum is ON an edge of the scan, so E_b is still falling
+        # as it leaves the box and there is no interior minimum to fit.  Clamping k
+        # into [1, n_scan-2] (what this did) parabola-fits an interior triple that
+        # is not the minimum and reports its vertex as "the circular orbit" — an
+        # edge artifact, and one that reaches the sweep JSON and the figure
+        # unmarked.  `circular_gradient` raises on exactly this condition, and
+        # `run_qc_effpot`'s module docstring states it as the study's GATE.
+        raise ValueError(
+            f"circular_scan: E_b(b)|_J is minimal at the {'lower' if k == 0 else 'upper'} "
+            f"edge b={bs[k]:.4f} of b∈{tuple(box_b)} at J={J} — no circular orbit inside "
+            "the box.  Any minimum reported here would be an edge artifact; widen the "
+            "b box or raise J.")
     # local parabola fit around the discrete minimum
     c = np.polyfit(bs[k - 1:k + 2], Ebs[k - 1:k + 2], 2)
     b_circ = float(-c[1] / (2 * c[0])) if c[0] > 0 else float(bs[k])
@@ -335,7 +347,16 @@ def circular_scan(model, prob, J, box_b, *, n_scan=13, tol=1e-10):
 # ==========================================================================
 def eccentricity(model, prob, b0, J, b_circ, box_b):
     """``e = |b0 − b'|/(b0 + b')`` with ``b'`` the second turning point of the
-    effective potential across the circular minimum (surrogate, no solve)."""
+    effective potential across the circular minimum (surrogate, no solve).
+
+    Returns ``(e, b')``, or ``(nan, nan)`` when ``b'`` lies outside ``box_b`` — the
+    eccentricity is then not measurable on this model and NaN says so.  It used to
+    fall back to ``b' = b0``, which yields ``e = 0`` exactly: an *unmarked*
+    perfectly-circular orbit reported for a point whose second turning point was
+    merely off the box.  Unlike the sibling routines here this cannot raise: the
+    callers sweep a b0 ladder of which the first rung is ``b0 = b_circ``, a
+    genuinely circular point, so one unmeasurable rung must not kill the sweep.
+    """
     V, _ = build_effpot_jax(model, prob)
     Vf = lambda b: float(V(b, J))
     E0 = Vf(b0)
@@ -346,6 +367,6 @@ def eccentricity(model, prob, b0, J, b_circ, box_b):
         lo, hi = box_b[0], b_circ
     try:
         bp = brentq(lambda b: Vf(b) - E0, lo, hi)
-    except ValueError:
-        bp = b0                                    # E0 below range on that side
+    except ValueError:                             # E0 not bracketed on that side
+        return np.nan, np.nan
     return abs(b0 - bp) / (b0 + bp), bp
