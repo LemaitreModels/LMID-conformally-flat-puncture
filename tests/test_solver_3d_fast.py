@@ -645,3 +645,139 @@ def test_curved_leaf_can_build_its_chart():
         reason="LMID-curved-puncture not installed in this environment")
     chart = co.make_chart(Na=12, Nb=10, Nphi=4, b=2.0)
     assert chart is not None
+
+
+# ==========================================================================
+# Stage 5.  Off-grid evaluation IS the truncated expansion
+# ==========================================================================
+# The discrete approximation space is
+#
+#     u = Σ_m Σ_{n,l} c^m_{nl} T_n(2A−1) P_l(B) (1−B²)^{|m|/2} e^{imφ},
+#
+# so the physical mode u_m carries the associated-Legendre factor and is NOT a
+# polynomial in B — for odd m not even smooth at B=±1.  ``evaluate_field``
+# therefore interpolates u_m/w_m and restores w_m at the query point.  These
+# gates pin that it reproduces the expansion EXACTLY, which is the claim the
+# paper makes for it; the pre-factoring evaluator interpolated the physical
+# nodal values directly and satisfied it only at m=0.
+def _basis_field(A, B, phi, coeffs):
+    """The expansion above, evaluated in closed form at arbitrary ``(A,B,φ)``.
+
+    ``coeffs`` is ``(cos_c, sin_c)``: ``cos_c[k][n][l]`` multiplies
+    ``T_n(2A−1) P_l(B) (1−B²)^{k/2} cos(kφ)``, ``sin_c`` likewise with ``sin``.
+    Real by construction, and exactly the real form of the complex expansion.
+    """
+    A = np.asarray(A, dtype=float)
+    B = np.asarray(B, dtype=float)
+    phi = np.asarray(phi, dtype=float)
+    cos_c, sin_c = coeffs
+    out = np.zeros(np.broadcast(A, B, phi).shape)
+    for trig, table in ((np.cos, cos_c), (np.sin, sin_c)):
+        for k, c_k in table.items():
+            w = (1.0 - B ** 2) ** (abs(k) / 2.0) if k else np.ones_like(B)
+            radial = np.zeros_like(out)
+            for n in range(c_k.shape[0]):
+                Tn = np.cos(n * np.arccos(np.clip(2.0 * A - 1.0, -1.0, 1.0)))
+                for l in range(c_k.shape[1]):
+                    Pl = np.polynomial.legendre.legval(
+                        B, np.eye(c_k.shape[1])[l])
+                    radial = radial + c_k[n, l] * Tn * Pl
+            out = out + w * radial * trig(k * phi)
+    return out
+
+
+def _random_basis_coeffs(Na, Nb, Nphi, seed=17):
+    """Random coefficients spanning the whole retained space, cos and sin."""
+    rng = np.random.default_rng(seed)
+    K = Nphi // 2                       # highest cosine wavenumber (Nyquist)
+    Kp = (Nphi - 1) // 2                # highest sine wavenumber (no Nyquist sine)
+    cos_c = {k: rng.normal(size=(Na + 1, Nb)) * 0.1 for k in range(K + 1)}
+    sin_c = {k: rng.normal(size=(Na + 1, Nb)) * 0.1 for k in range(1, Kp + 1)}
+    return cos_c, sin_c
+
+
+def test_w_factor_matches_the_operator_assembly():
+    """``solver_3d._w_factor`` is ``operators_3d.bc_factor``'s factor.
+
+    The evaluator needs the factor at query points, where ``bc_factor``'s
+    B-derivatives diverge for odd m, so it carries its own expression.  Two
+    expressions for one quantity is exactly how a factor drifts, so pin them.
+    """
+    _, B, _, _ = ops.build_grid(GRID["Na"], GRID["Nb"])
+    for m in range(0, 5):
+        assert np.array_equal(s3._w_factor(B, m), ops3.bc_factor(B, m)[0]), \
+            f"_w_factor disagrees with bc_factor at m={m}"
+
+
+@pytest.mark.parametrize("Nphi", [1, 4, 6, 8])
+def test_evaluate_field_reproduces_the_truncated_expansion(Nphi):
+    """Off-grid evaluation == Eq. (expansion) in closed form, to machine precision.
+
+    Decisive for odd m: with the physical nodal values interpolated directly,
+    the (1−B²)^{1/2} branch point of m=1 is resolved only algebraically and this
+    gate fails by orders of magnitude near the outer axis.
+    """
+    Na, Nb, b = GRID["Na"], GRID["Nb"], 2.5
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    coeffs = _random_basis_coeffs(Na, Nb, Nphi)
+
+    AA, BB, PP = np.meshgrid(prob.A, prob.B, prob.phi, indexing="ij")
+    U = _basis_field(AA, BB, PP, coeffs)
+
+    # query points, including some pushed hard against the outer axis B→±1
+    rng = np.random.default_rng(5)
+    A_q = rng.uniform(0.08, 0.92, size=60)
+    B_q = np.concatenate([rng.uniform(-0.9, 0.9, size=40),
+                          np.array([0.97, -0.97, 0.995, -0.995,
+                                    0.999, -0.999, 0.9999, -0.9999,
+                                    0.99999, -0.99999, 1.0 - 1e-9,
+                                    -(1.0 - 1e-9), 0.5, -0.5,
+                                    0.999999, -0.999999, 0.9, -0.9,
+                                    0.98, -0.98])])
+    phi_q = rng.uniform(0.0, 2.0 * np.pi, size=60)
+    rho_q, z_q = ops.abt_map(A_q, B_q, b)
+
+    got = s3.evaluate_field(prob, U, rho_q, z_q, phi_q, b)
+    want = _basis_field(A_q, B_q, phi_q, coeffs)
+    err = np.max(np.abs(got - want)) / max(1.0, np.max(np.abs(want)))
+    print(f"[5] Nphi={Nphi} expansion reproduction err = {err:.3e}")
+    assert err < 1e-11, f"evaluate_field is not the expansion: {err:.3e}"
+
+
+def test_evaluate_field_recovers_the_nodal_values():
+    """At a collocation point the evaluator returns the stored value.
+
+    The cardinal property, and the one an exact-node branch is easiest to break:
+    the factored route divides by w_m and multiplies it back, so a node hit must
+    still round-trip.
+    """
+    Na, Nb, Nphi, b = GRID["Na"], GRID["Nb"], GRID["Nphi"], 2.5
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    rng = np.random.default_rng(9)
+    U = rng.normal(size=prob.shape) * 1e-2
+
+    idx = [(3, 5, 2), (1, 0, 0), (Na - 1, Nb - 1, Nphi - 1), (7, 9, 4)]
+    A_q = np.array([prob.A[i] for i, _, _ in idx])
+    B_q = np.array([prob.B[j] for _, j, _ in idx])
+    phi_q = np.array([prob.phi[k] for _, _, k in idx])
+    rho_q, z_q = ops.abt_map(A_q, B_q, b)
+
+    got = s3.evaluate_field(prob, U, rho_q, z_q, phi_q, b)
+    want = np.array([U[i, j, k] for i, j, k in idx])
+    assert np.max(np.abs(got - want)) < 1e-12, f"node values not recovered: {got - want}"
+
+
+def test_evaluate_field_axisymmetric_matches_the_2d_solver():
+    """At Nφ=1 the evaluator is the frozen axisymmetric one (w≡1, m=0 only)."""
+    Na, Nb, b = GRID["Na"], GRID["Nb"], 2.5
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=1)
+    rng = np.random.default_rng(4)
+    U = rng.normal(size=prob.shape) * 1e-2
+
+    rho_q = np.array([0.7, 1.9, 3.4, 0.2])
+    z_q = np.array([0.3, -1.1, 2.0, -0.4])
+    got = s3.evaluate_field(prob, U, rho_q, z_q, np.zeros(4), b)
+
+    prob2 = sa.make_problem(Na=Na, Nb=Nb)
+    want = np.asarray(sa.evaluate_field_phys(prob2, U[:, :, 0], rho_q, z_q, b))
+    assert np.max(np.abs(got - want)) < 1e-13, f"Nφ=1 drifted from 2-D: {got - want}"

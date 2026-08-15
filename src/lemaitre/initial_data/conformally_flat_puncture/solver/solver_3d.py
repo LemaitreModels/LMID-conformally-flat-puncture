@@ -314,6 +314,24 @@ def newton_solve(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = None,
 # --------------------------------------------------------------------------
 # Field evaluation (2-D barycentric in (A,B) + trig interpolation in φ)
 # --------------------------------------------------------------------------
+# The evaluator is **factor-aware**, and that is what makes it the truncated
+# spectral expansion itself rather than an approximation to it.  The discrete
+# approximation space is
+#
+#     u = Σ_m Σ_{n,l} c^m_{nl} T_n(2A−1) P_l(B) (1−B²)^{|m|/2} e^{imφ},
+#
+# i.e. per mode a polynomial of degree ≤ Na in A and ≤ Nb−1 in B *times* the
+# associated-Legendre factor w_m = (1−B²)^{|m|/2}.  For m≠0 the physical mode
+# u_m is therefore NOT a polynomial in B — for odd m not even smooth at B=±1 —
+# so interpolating the stored nodal values by a plain degree-(Nb−1) polynomial
+# reproduces the expansion only at m=0, and near the outer axis it reintroduces
+# exactly the algebraic convergence the factored basis exists to remove.
+#
+# So: rfft in φ, divide each mode by w_m at the nodes, interpolate the smooth
+# factor v_m = û_m/w_m (a genuine polynomial of the retained degrees, hence
+# recovered exactly by barycentric interpolation), restore w_m at the query
+# point, and sum the Fourier series.  The result is Eq. (expansion) evaluated in
+# coefficient-free form.
 def _bary_weights(x):
     x = np.asarray(x, dtype=float)
     n = x.size
@@ -335,7 +353,14 @@ def _interp1(xq, x, w, vals):
 
 
 def _fourier_interp(vals, phi_q):
-    """Trig interpolation of equispaced periodic samples ``vals`` at ``phi_q``."""
+    """Trig interpolation of equispaced periodic samples ``vals`` at ``phi_q``.
+
+    The scalar reference form of the azimuthal interpolant.  ``evaluate_field``
+    below sums the same series mode by mode instead (:func:`_mode_weights`), and
+    ``validation.export_grteclyn`` rewrites it as real cos/sin coefficients; both
+    are gated against this definition, so it stays the one statement of the
+    convention even though the evaluator no longer calls it.
+    """
     vals = np.asarray(vals, dtype=float)
     N = vals.size
     if N == 1:
@@ -345,23 +370,87 @@ def _fourier_interp(vals, phi_q):
     return float(np.real(np.sum(c * np.exp(1j * m * phi_q)) / N))
 
 
+def _bary_matrix(xq, x, w):
+    """Interpolation matrix ``(M, n)`` with exact-node rows handled.
+
+    Row ``q`` is the barycentric cardinal vector at ``xq[q]``, so ``M @ vals``
+    is the degree-``n−1`` interpolant of ``vals`` at the query points.  A query
+    landing on a node gets that node's unit row rather than a 0/0.
+    """
+    xq = np.atleast_1d(np.asarray(xq, dtype=float))
+    d = xq[:, None] - np.asarray(x, dtype=float)[None, :]
+    hit = np.isclose(d, 0.0, atol=1e-13)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        t = np.where(hit, 0.0, np.asarray(w)[None, :] / d)
+    t[hit.any(axis=1)] = 0.0
+    t[hit] = 1.0
+    return t / t.sum(axis=1, keepdims=True)
+
+
+def _w_factor(Bvals, m: int) -> np.ndarray:
+    """``w_m = (1−B²)^{|m|/2}`` at arbitrary ``B``, including the axis ``B=±1``.
+
+    The factor of ``operators_3d.bc_factor`` without its two B-derivatives: the
+    derivatives are what the operator assembly needs and they diverge at the
+    axis for odd m, which a query point is allowed to hit.  Pinned equal to
+    ``bc_factor``'s ``w`` on the interior nodes by
+    ``tests/test_solver_3d_fast.py``.
+    """
+    B = np.asarray(Bvals, dtype=float)
+    if int(m) == 0:
+        return np.ones_like(B)
+    return (1.0 - B ** 2) ** (abs(int(m)) / 2.0)
+
+
+def _mode_weights(Nphi: int, m_vals) -> np.ndarray:
+    """Half-spectrum weights that reproduce :func:`_fourier_interp`.
+
+    ``_fourier_interp`` sums the *full* fft spectrum, ``Re Σ_k c_k e^{i m_k φ}/N``
+    with ``m_k = fftfreq(N)·N``.  For real samples ``c_{N−k} = conj(c_k)``, so the
+    conjugate pair ``(k, N−k)`` contributes ``2 Re(c_k e^{ikφ})/N``.  The
+    unpaired modes are ``m=0`` and — for even ``N`` — the Nyquist ``m=N/2``, whose
+    ``c`` is real and whose fftfreq wavenumber is ``−N/2``: since
+    ``Re(c e^{−i(N/2)φ}) = c cos(N/2 φ) = Re(c e^{+i(N/2)φ})``, it may be summed
+    with the positive wavenumber at weight one, and it carries only a cosine.
+    """
+    m_vals = np.asarray(m_vals)
+    wt = np.where((m_vals == 0) | (2 * m_vals == Nphi), 1.0, 2.0)
+    return wt / Nphi
+
+
 def evaluate_field(prob: Problem3D, U, rho, z, phi, b):
-    """Interpolate nodal U to physical (rho, z, phi) points (arrays, matched)."""
+    """Interpolate nodal U to physical (rho, z, phi) points (arrays, matched).
+
+    Evaluates the truncated expansion of the module comment above: the nodal
+    field is transformed to azimuthal modes, each mode is divided by its
+    associated-Legendre factor ``w_m = (1−B²)^{|m|/2}``, the resulting smooth
+    factor is interpolated in ``(A, B)`` by a tensor-product barycentric rule,
+    ``w_m`` is restored analytically at the query point, and the Fourier series
+    is summed there.  Exact — not an approximation — for any field in the
+    discrete approximation space.
+    """
     U = np.asarray(U).reshape(prob.shape)
     rho = np.atleast_1d(np.asarray(rho, dtype=float))
     z = np.atleast_1d(np.asarray(z, dtype=float))
     phi = np.atleast_1d(np.asarray(phi, dtype=float))
     A_q, B_q = ops.inverse_map(rho, z, b)
-    wA, wB = _bary_weights(prob.A), _bary_weights(prob.B)
-    out = np.empty(A_q.shape[0])
-    for k in range(A_q.shape[0]):
-        # interpolate (A,B) on each φ-plane -> values at the φ nodes
-        vals_phi = np.empty(prob.Nphi)
-        for p in range(prob.Nphi):
-            col = np.array([_interp1(B_q[k], prob.B, wB, U[i, :, p])
-                            for i in range(prob.A.size)])
-            vals_phi[p] = _interp1(A_q[k], prob.A, wA, col)
-        out[k] = _fourier_interp(vals_phi, phi[k])
+
+    MA = _bary_matrix(A_q, prob.A, _bary_weights(prob.A))     # (M, Na+1)
+    MB = _bary_matrix(B_q, prob.B, _bary_weights(prob.B))     # (M, Nb)
+    Uhat = np.fft.rfft(U, axis=2)                             # (Na+1, Nb, Nm)
+    wt = _mode_weights(prob.Nphi, prob.m_vals)
+
+    out = np.zeros(A_q.shape[0])
+    for mi, m in enumerate(prob.m_vals):
+        m = int(m)
+        w_node = _w_factor(prob.B, m)                         # (Nb,)
+        w_query = _w_factor(B_q, m)                           # (M,)
+        # v_m = û_m / w_m at the nodes: smooth in B, and a polynomial of the
+        # retained degrees, so the barycentric rule below is exact on it.
+        Vm = Uhat[:, :, mi] / w_node[None, :]
+        # B first, then A — the order the residual assembly uses.
+        vq = np.einsum("qi,qi->q", MA, np.einsum("qj,ij->qi", MB, Vm))
+        out += wt[mi] * np.real(vq * w_query * np.exp(1j * m * phi))
     return out
 
 

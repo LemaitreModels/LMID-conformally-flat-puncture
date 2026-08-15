@@ -131,7 +131,7 @@ def test_read_rejects_wrong_format(tmp_path):
     prob, sl, U = _manufactured()
     path = str(tmp_path / "bad.lmid")
     eg.from_solution(prob, sl, U).write(path)
-    txt = open(path).read().replace("format 1", "format 99")
+    txt = open(path).read().replace(f"format {eg.FORMAT_VERSION}", "format 99")
     open(path, "w").write(txt)
     with pytest.raises(ValueError):
         eg.Export.read(path)

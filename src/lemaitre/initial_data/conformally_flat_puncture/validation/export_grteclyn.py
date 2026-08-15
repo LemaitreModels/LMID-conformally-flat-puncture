@@ -20,9 +20,8 @@ and ``Ahat`` are closed forms, so only ``u`` is data.
 
 THE PHI REPRESENTATION.  ``solver_3d.evaluate_field`` interpolates ``u`` with a
 tensor-product barycentric rule in ``(A, B)`` followed by *trigonometric*
-interpolation of the equispaced phi samples.  Rather than ship the nodal samples
-and make the consumer redo an FFT, we ship the equivalent real cosine/sine
-coefficients
+interpolation in phi.  Rather than ship the nodal samples and make the consumer
+redo an FFT, we ship the equivalent real cosine/sine coefficients
 
     u(A, B, phi) = a_0(A,B) + sum_k [ a_k(A,B) cos(k phi) + b_k(A,B) sin(k phi) ]
 
@@ -31,10 +30,22 @@ transform in :func:`phi_modes` is the algebraic rewrite of
 ``solver_3d._fourier_interp`` for real samples, and the round-trip is gated to
 machine precision in ``tests/test_export_grteclyn.py``.  Because the ``(A, B)``
 interpolation is linear, interpolating the coefficients and then summing the
-series gives the same number as interpolating per phi-plane and then
-interpolating in phi.
+series gives the same number as interpolating per mode and then summing.
 
-FILE FORMAT (``format 1``).  A plain ASCII token stream: ``#`` comments, then
+THE AXIS FACTOR (``format 2``).  What is shipped is the **smooth factor**, not
+the physical field: the wavenumber-``k`` coefficients are divided by
+``w_k(B) = (1-B^2)^{k/2}`` at the nodes, and the consumer multiplies them back
+after interpolating.  This mirrors ``solver_3d.evaluate_field`` and is what makes
+both evaluators the truncated spectral expansion rather than an approximation to
+it: the solver's approximation space carries that factor analytically (see
+``operators_3d``), so ``u_k`` itself is not a polynomial in B — for odd ``k`` not
+even smooth at ``B=+-1`` — while ``u_k / w_k`` is, and only the latter is
+recovered exactly by polynomial interpolation.  Format 1 shipped the physical
+coefficients and interpolated them directly, which was exact only for ``k=0``;
+a format-1 consumer must not read a format-2 file, and :meth:`Export.read`
+refuses the mismatch.
+
+FILE FORMAT (``format 2``).  A plain ASCII token stream: ``#`` comments, then
 ``<key> <values...>`` records.  Chosen over JSON/HDF5 so that the consumer needs
 no parser library — ``ifstream >> token`` is enough — and so the format is
 readable in a diff.  Keys:
@@ -56,7 +67,7 @@ from typing import Optional, Sequence, Tuple
 
 import numpy as np
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 
 
 # --------------------------------------------------------------------------
@@ -113,6 +124,27 @@ def phi_modes(vals: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     return cos_c, sin_c
 
 
+def axis_factor(B, k) -> np.ndarray:
+    """``w_k(B) = (1-B^2)^{k/2}`` — the associated-Legendre factor of the basis.
+
+    Numpy-only transcription of ``solver_3d._w_factor`` (itself the factor of
+    ``operators_3d.bc_factor``).  Finite at ``B=+-1``, where it vanishes for
+    every ``k>0``: a regular wavenumber-``k`` mode has no amplitude on the axis.
+    """
+    B = np.asarray(B, dtype=float)
+    if int(k) == 0:
+        return np.ones_like(B)
+    return (1.0 - B ** 2) ** (abs(int(k)) / 2.0)
+
+
+def _factor_columns(B, modes) -> np.ndarray:
+    """``(len(B), len(modes))`` stack of :func:`axis_factor`, one column per mode."""
+    B = np.asarray(B, dtype=float)
+    if len(modes) == 0:
+        return np.zeros(B.shape + (0,))
+    return np.stack([axis_factor(B, int(k)) for k in modes], axis=-1)
+
+
 def phi_eval(cos_c: np.ndarray, sin_c: np.ndarray, cos_m: np.ndarray,
              sin_m: np.ndarray, phi) -> np.ndarray:
     """Evaluate the cos/sin series at ``phi`` (broadcast over the leading axes)."""
@@ -145,8 +177,8 @@ class Export:
     B: np.ndarray                     # (Nb,)
     cos_m: np.ndarray
     sin_m: np.ndarray
-    C: np.ndarray                     # (Na+1, Nb, ncos)
-    S: np.ndarray                     # (Na+1, Nb, nsin)
+    C: np.ndarray                     # (Na+1, Nb, ncos), smooth factor
+    S: np.ndarray                     # (Na+1, Nb, nsin), smooth factor
     provenance: Sequence[str] = field(default_factory=tuple)
 
     # -- writing ------------------------------------------------------------
@@ -160,9 +192,10 @@ class Export:
         lines += [
             "# psi = psi_BL + u ;  psi_BL = 1 + m_A/(2 r_A) + m_B/(2 r_B),",
             "# punctures A at (0,0,+b) and B at (0,0,-b).",
-            "# u(A,B,phi) = sum_t C[i][j][t] cos(cos_m[t] phi)",
-            "#            + sum_t S[i][j][t] sin(sin_m[t] phi)",
-            "# with (A,B) by tensor-product barycentric interpolation, and",
+            "# u(A,B,phi) = sum_t w(cos_m[t],B) C[i][j][t] cos(cos_m[t] phi)",
+            "#            + sum_t w(sin_m[t],B) S[i][j][t] sin(sin_m[t] phi)",
+            "# with w(k,B) = (1-B^2)^(k/2) applied AFTER interpolating C,S",
+            "# in (A,B) by tensor-product barycentric interpolation, and",
             "# (A,B) <- (rho,z) by the closed-form inverse ABT map.",
             f"format {FORMAT_VERSION}",
             f"b {self.b:.17e}",
@@ -304,7 +337,10 @@ def eval_u(exp: Export, x, y, z) -> np.ndarray:
         tmp = np.einsum("mj,ijt->mit", MB, coef)
         return np.einsum("mi,mit->mt", MA, tmp)
 
-    return phi_eval(interp(exp.C), interp(exp.S), exp.cos_m, exp.sin_m, phi)
+    # ...then restore w_k analytically at the query point (format 2).
+    C_q = interp(exp.C) * _factor_columns(B_q, exp.cos_m)
+    S_q = interp(exp.S) * _factor_columns(B_q, exp.sin_m)
+    return phi_eval(C_q, S_q, exp.cos_m, exp.sin_m, phi)
 
 
 def eval_psi_BL(exp: Export, x, y, z) -> np.ndarray:
@@ -386,6 +422,12 @@ def from_solution(prob, sl, U, *, residual: Optional[float] = None,
     U = np.asarray(U, dtype=float).reshape(prob.shape)
     C, S = phi_modes(U)
     cos_m, sin_m = phi_mode_layout(prob.Nphi)
+    # Ship the SMOOTH factor: divide out w_k(B) at the nodes so the consumer
+    # interpolates a polynomial and restores the factor analytically (format 2).
+    # The B nodes are Gauss-Legendre interior points, so w_k > 0 on all of them.
+    C = C / _factor_columns(prob.B, cos_m)[None, :, :]
+    if sin_m.size:
+        S = S / _factor_columns(prob.B, sin_m)[None, :, :]
     prov = [f"git {_git_sha()}",
             f"grid Na={prob.Na} Nb={prob.Nb} Nphi={prob.Nphi}"]
     if residual is not None:

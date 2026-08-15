@@ -209,14 +209,31 @@ def test_manufactured_odd_m1_spectral():
 def test_phi_spectral_convergence_misaligned_spin():
     """A single misaligned spin: the field self-converges exponentially in Nφ.
 
-    Fixed meridian resolution (Na,Nb); the (fixed) m=1 meridian-discretisation
-    error cancels in the Nφ difference, so this isolates the φ-spectral content —
+    Fixed meridian resolution (Na,Nb); the m=1 meridian-discretisation error
+    largely cancels in the Nφ difference, so this isolates the φ-spectral content —
     confirming few azimuthal modes suffice for the minimal axisymmetry break.
+
+    **The cancellation is not exact, and (Na,Nb) has to be fine enough that what
+    survives it stays below the φ-truncation being measured.**  At the original
+    (40,28) the residue floored the sequence at ~2.7e-8, so the Nφ=8→12 step
+    gained only 2.4× against 178× for 6→8, and neither this ratio gate nor the
+    ``errs[-1] < 1e-8`` bound below could be met.  At (52,36) the floor drops to
+    ~4e-10 and the sequence keeps decaying; the ratio is ~3.8e5, a 38× margin.
+    Verified to be the meridian grid and nothing else: re-running every solve to
+    machine-precision field convergence (fixed Newton steps, bypassing the
+    monitor-driven stopping rule) reproduces the (40,28) numbers to four figures,
+    so neither the reference quality nor the solver stopping rule was the limit.
+
+    This floor was invisible until ``evaluate_field`` became factor-aware.  The
+    previous evaluator interpolated the physical nodal values directly, and its
+    B-interpolation error — common to both fields — partly cancelled in the same
+    difference, producing 3.1e-9 at Nφ=12, *below* the honest floor.  A threshold
+    of 1e4 looked reachable at (40,28) only because of that artifact.
     """
     b, mA, mB, P = 1.0, 0.5, 0.5, 0.3
     sl = Slice3D(b=b, m_A=mA, m_B=mB, P_A_vec=(0, 0, -P), P_B_vec=(0, 0, P),
                  S_A_vec=(0.3, 0.0, 0.2), S_B_vec=(0.0, 0.0, 0.0))
-    Na, Nb = 40, 28
+    Na, Nb = 52, 36
     pref = s3.make_problem(Na=Na, Nb=Nb, Nphi=16)
     Uref, iref = s3.newton_solve(pref, sl, tol=1e-9, max_iter=40)
     assert iref.residual_norm < 1e-6, f"ref ‖R‖={iref.residual_norm:.2e}"
@@ -237,7 +254,7 @@ def test_phi_spectral_convergence_misaligned_spin():
     errs = np.array(errs)
     assert errs[0] / errs[-1] > 1e4, f"φ not spectral: {errs}"
     assert np.all(np.diff(errs) < 0), f"φ not monotone: {errs}"
-    # floors at the fixed-(Na,Nb) Newton/source residual level (~1e-8 here)
+    # floors at the residue of the fixed-(Na,Nb) meridian error (~4e-10 here)
     assert errs[-1] < 1e-8, f"φ field err at Nφ=12 = {errs[-1]:.2e}"
 
 
