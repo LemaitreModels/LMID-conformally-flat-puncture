@@ -377,7 +377,7 @@ FIGURES = {
                                               "polish_table_8d_value", "polish_fielderr_value_4d",
                                               "polish_fielderr_value_8d",
                                               "polish_value_pod_4d", "polish_value_pod_8d"],
-                                     keys=["cols"]),
+                                     keys=["cols", "meta"]),
     # Both 8-D enhanced field flavours are listed: the panel plots one of them
     # (fig05_guess_vs_memory_data.BR_8D_ENHANCED) and the guard there compares it
     # against the residual panel's model, so the graph must know about both.

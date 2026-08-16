@@ -105,26 +105,108 @@ def _check_rank(dim, r):
             f"shipped rank, or change SHIPPED_RANK if the model really moved.")
 
 
+# --------------------------------------------------------------------- provenance -----
+# The leaf CLAUDE.md rule: a figure whose caption states the box writes a meta block, so
+# a staircase measured on a superseded route or model cannot go unnoticed (fig06 did).
+# Here it carries more than the box, because this figure's caption states a *step count*
+# and the numbers moved once already: the campaign below re-ran all eight producers.
+CODE_TAG = "0fcaafe"        # leaf commit the producers ran at (the fig04 campaign pin)
+CAMPAIGN = "fys-kuleuven job 98068, array 0-7, 2026-08-16"
+STOPPING = ("newton_loop (ca1d9e7): breaks on an internal target of tol/10 while "
+            "certification is judged at the caller's tol; stagnation needs two strikes")
+# Which lane each moved numeral is attributable to.  Measured, not assumed -- see the
+# campaign report in context/LM-initial-data/FINDINGS.md (2026-08-16).
+SUSPECTS = {
+    "T3 (ca1d9e7)": "intended mover; changes only WHEN the loop stops, never how a "
+                    "Newton step is computed, so it cannot move a step-1 residual",
+    "lane P (ea6c600)": "inert on this path -- every curve's step-0 guess is bit-identical",
+    "lane S (a382a78)": "dominant mover of the mid-convergence entries: the separable "
+                        "eigen-factors' real cast shifts GMRES trajectories by ulps "
+                        "(its own commit message says so), which a quadratically "
+                        "converging Newton amplifies to ~8x where the residual is "
+                        "1e-5..1e-9.  NOT floor-level on this path",
+}
+
+
+def _meta(cfgs):
+    """Provenance for the staircase: the box the caption states, the route the producers
+    actually ran, and the stopping rule the step counts are counted under.
+
+    ``cfgs`` maps dim -> the ``config`` block of that column's cold source, so the box and
+    grid are read back from the artifacts rather than restated here.
+    """
+    c4, c8 = cfgs[4], cfgs[8]
+    return dict(
+        code_tag=CODE_TAG, campaign=CAMPAIGN, stopping_rule=STOPPING, suspects=SUSPECTS,
+        # The route the residual staircases ran.  fig04's field-error producers used to
+        # assemble dense while the residuals they reproduce ran separable (review 5.4).
+        route={str(d): cfgs[d].get("route") for d in (4, 8)},
+        certify_tol=1e-10,                       # the dotted line; CERT_TOL is certification.py's
+        n_points=c4.get("n_points"), seed=c4.get("seed"),
+        smolyak_level=c4.get("level"),
+        grid={str(d): [cfgs[d].get("Na"), cfgs[d].get("Nb"), cfgs[d].get("Nphi")]
+              for d in (4, 8)},
+        box={"4": c4.get("box"), "8": c8.get("box")},
+        shipped_rank={str(d): pm.SHIPPED_RANK[d] for d in (4, 8)},
+    )
+
+
+def _steps_to_certify(srcs):
+    """The statistic the caption's claim IS: per curve, the first step at which every one
+    of the 1000 points has crossed 1e-10, plus the producers' own median/max where they
+    report it.  Committed so the figure's data can be checked against its own caption.
+
+    The value-only POD producer reports ``residual_rows`` but no steps-to-certify
+    histogram, so its entry carries ``worst_step`` only -- absent, not zero.
+    """
+    out = {}
+    for name, d in srcs.items():
+        rows = d.get("worst_per_step")
+        if rows is None:
+            rr = d.get("residual_rows") or {}
+            rows = {k: v["max"] for k, v in rr.items()}
+        keys = ["guess"] + [f"after{k}" for k in range(1, 9)]
+        vals = [rows[k] for k in keys if k in rows]
+        worst = next((i for i, v in enumerate(vals) if v <= 1e-10), None)
+        out[name] = dict(worst_step=worst,
+                         median=d.get("median_steps_to_certify"),
+                         max=d.get("max_steps_to_certify"),
+                         never=d.get("n_never_certified"))
+    return out
+
+
 def build():
     cols = []
+    cfgs, stc_srcs = {}, {}
     for dim in (4, 8):
         pod = load_source(f"polish_pod_{dim}d")
         fe = load_source(f"polish_fielderr_{dim}d")
+        cold = load_source(f"polish_cold_{dim}d")
         res_pod = _stair(pod)
         res_pod["r"] = pod["config"].get("r")
         _check_rank(dim, res_pod["r"])
         res_value, fld_value = _value_curves(dim)
+        cfgs[dim] = cold["config"]
+        stc_srcs[f"cold_{dim}d"] = cold
+        stc_srcs[f"pod_{dim}d"] = pod
+        if have_source(VALUE_POD[dim]):
+            stc_srcs[f"value_{dim}d"] = load_source(VALUE_POD[dim])["value_pod"]
         cols.append(dict(
             dim=dim,   # panel title lives in the plot script (presentation, not data)
-            res_cold=_stair(load_source(f"polish_cold_{dim}d")),
+            res_cold=_stair(cold),
             res_value=res_value,
             res_pod=res_pod,
             fld_cold=_field(fe["cold"]),
             fld_value=fld_value,
             fld_pod=_field(fe["pod"]),
         ))
-    p = dump("fig04_polish_staircase", dict(cols=cols))
+    meta = _meta(cfgs)
+    meta["steps_to_certify"] = _steps_to_certify(stc_srcs)
+    p = dump("fig04_polish_staircase", dict(cols=cols, meta=meta))
     print(f"wrote {os.path.relpath(p)}  (4D + 8D, residual + field rows, cold|value|value+grad)")
+    for name, s in meta["steps_to_certify"].items():
+        print(f"   steps-to-certify {name:10s} worst={s['worst_step']}  "
+              f"median={s['median']}  max={s['max']}  never={s['never']}")
 
 
 if __name__ == "__main__":
