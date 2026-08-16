@@ -27,6 +27,8 @@ Standalone: numpy + jax + the frozen sibling ``source``.
 
 from __future__ import annotations
 
+import collections
+
 import jax
 
 jax.config.update("jax_enable_x64", True)
@@ -111,6 +113,101 @@ def A2_at_nodes_3d(rho, z, phi, b, P_A_vec, P_B_vec, S_A_vec, S_B_vec):
         a2 = np.sum(T * T, axis=(1, 2))
         out[:, k] = np.where(finite & np.isfinite(a2), a2, 0.0)
     return out
+
+
+# --------------------------------------------------------------------------
+# Â² as an exact quadratic form — the cached per-(grid, b) Gram tensor (OPT-IN)
+# --------------------------------------------------------------------------
+# ``_mom_tensor_vec`` is exactly linear in its momentum argument (every term
+# carries one factor of P: P^i n^j + n^i P^j and (P·n)), and ``_spin_tensor_vec``
+# exactly linear in its spin (v = S × n).  The summed tensor is therefore
+#
+#     T(x; θ) = Σ_{c=1}^{12} q_c T_c(x),      q = (P_A, P_B, S_A, S_B) ∈ R¹²,
+#
+# with T_c the tensor of the c-th UNIT loading, and
+#
+#     Â²(x; θ) = Σ_ij T_ij² = Σ_{c,d} q_c q_d G_cd(x),   G_cd = Σ_ij T_c,ij T_d,ij.
+#
+# That is an identity — the same float64 products regrouped — but a DIFFERENT
+# summation order from :func:`A2_at_nodes_3d`, so the two routes agree only to
+# the last ulps (measured ≤ ~2e-15 relative on the production grid), not
+# bit-for-bit.  G depends on the node cloud and the separation alone — not on
+# the momenta, the spins or the iterate — so it is built once per (grid, b) and
+# every θ afterwards costs two small matvecs instead of Nφ tensor contractions.
+#
+# OPT-IN on purpose: every default route stays bit-for-bit (the curved sibling's
+# gates pin this package's solver arithmetic at the bit level — the 54f6807
+# precedent), so the switch is ``solver_3d.assemble(..., a2_gram=True)`` and
+# flipping the default is a cross-leaf decision.
+_A2_GRAM_CACHE: collections.OrderedDict = collections.OrderedDict()
+_A2_GRAM_CACHE_MAX = 4       # ~13 MiB each at the production grid (44, 32, 8)
+
+
+def a2_gram_tensor(rho, z, phi, b: float) -> np.ndarray:
+    """The Gram tensor ``G`` with ``Â² = qᵀ G q``, cached per (node cloud, b).
+
+    ``rho, z`` are the flattened meridian node coordinates (Ntot2d,), ``phi``
+    the φ-collocation nodes (Nφ,) — the same contract as
+    :func:`A2_at_nodes_3d`, whose non-finite-node masking is reproduced by
+    zeroing the corresponding rows of ``G``.  Returns a shared, READ-ONLY array
+    of shape (Ntot2d, Nφ, 12, 12), symmetric in its last two axes; the loading
+    order is ``q = (P_A, P_B, S_A, S_B)``.  Being symmetric, it also gives the
+    exact tangent ``dÂ²/dθ = 2 (G q) · (dq/dθ)`` — no per-direction tensor
+    rebuild.
+    """
+    rho = np.asarray(rho, dtype=float).ravel()
+    z = np.asarray(z, dtype=float).ravel()
+    phi = np.asarray(phi, dtype=float).ravel()
+    key = (rho.tobytes(), z.tobytes(), phi.tobytes(), float(b))
+    hit = _A2_GRAM_CACHE.get(key)
+    if hit is not None:
+        _A2_GRAM_CACHE.move_to_end(key)
+        return hit
+
+    finite = np.isfinite(rho) & np.isfinite(z)
+    rho_s = np.where(finite, rho, 1.0)
+    z_s = np.where(finite, z, 0.0)
+    Ntot, Nphi = rho.size, phi.size
+    xA = np.array([0.0, 0.0, b])
+    xB = np.array([0.0, 0.0, -b])
+    eye = np.eye(3)
+    G = np.empty((Ntot, Nphi, 12, 12))
+    T = np.empty((12, Ntot, 3, 3))
+    for k in range(Nphi):
+        X = np.stack([rho_s * np.cos(phi[k]), rho_s * np.sin(phi[k]), z_s], axis=1)
+        for c in range(3):
+            T[c] = _mom_tensor_vec(X, xA, eye[c])
+            T[3 + c] = _mom_tensor_vec(X, xB, eye[c])
+            T[6 + c] = _spin_tensor_vec(X, xA, eye[c])
+            T[9 + c] = _spin_tensor_vec(X, xB, eye[c])
+        G[:, k] = np.einsum("cnij,dnij->ncd", T, T)
+    # the same guard as A2_at_nodes_3d: BC rows (and any node where a unit
+    # loading is non-finite) contribute Â² = 0 for every θ
+    good = finite[:, None] & np.isfinite(G).all(axis=(2, 3))
+    G = np.where(good[:, :, None, None], G, 0.0)
+    G.setflags(write=False)
+
+    _A2_GRAM_CACHE[key] = G
+    while len(_A2_GRAM_CACHE) > _A2_GRAM_CACHE_MAX:
+        _A2_GRAM_CACHE.popitem(last=False)
+    return G
+
+
+def A2_gram_at_nodes_3d(rho, z, phi, b, P_A_vec, P_B_vec, S_A_vec, S_B_vec):
+    """Â² over the (A,B,φ) node cloud through the Gram tensor — the OPT-IN twin
+    of :func:`A2_at_nodes_3d` (same arguments, same (Ntot2d, Nφ) shape, same
+    masked-node zeros).  Agrees with it to the last ulps, not bit-for-bit — see
+    the block comment above — which is why no default route calls this.
+    """
+    G = a2_gram_tensor(rho, z, phi, b)
+    q = np.concatenate([np.asarray(v, dtype=float).ravel()
+                        for v in (P_A_vec, P_B_vec, S_A_vec, S_B_vec)])
+    return (G @ q) @ q
+
+
+def clear_a2_gram_cache():
+    """Drop every cached Gram tensor (frees ~13 MiB per held (grid, b))."""
+    _A2_GRAM_CACHE.clear()
 
 
 # --------------------------------------------------------------------------

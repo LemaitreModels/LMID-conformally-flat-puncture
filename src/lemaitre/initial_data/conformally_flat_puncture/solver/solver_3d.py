@@ -140,7 +140,8 @@ class Assembly3D:
     sep: Optional[object] = None
 
 
-def assemble(prob: Problem3D, sl: Slice3D, separable: bool = False) -> Assembly3D:
+def assemble(prob: Problem3D, sl: Slice3D, separable: bool = False,
+             a2_gram: bool = False) -> Assembly3D:
     """Per-slice assembly: the linear operator plus ψ_BL and Â² on the grid.
 
     ``separable=True`` skips the dense per-m blocks entirely and attaches a
@@ -150,6 +151,14 @@ def assemble(prob: Problem3D, sl: Slice3D, separable: bool = False) -> Assembly3
     separation.  The nonlinear source is unaffected; only the linear algebra
     changes.  ``solver_3d.newton_step`` (modified Newton) needs the dense blocks
     and is not available on a separable assembly.
+
+    ``a2_gram=True`` computes Â² as the exact quadratic form ``qᵀ G q`` against
+    the cached per-(grid, b) Gram tensor (``source_3d.a2_gram_tensor``) instead
+    of the per-φ tensor contraction — the identical sum regrouped, so the values
+    shift at the last ulps (≤ ~2e-15 relative measured) and the route is OPT-IN:
+    the default stays bit-for-bit, and flipping it is a cross-leaf decision with
+    the curved sibling's bitwise gates.  Worth taking on b-holding sweeps, where
+    a new θ then costs two small matvecs instead of the full tensor rebuild.
     """
     rho, z, Af, Bf, inv_rho2 = ops3.meridian_geometry(prob.A, prob.B, sl.b)
     if separable:
@@ -177,8 +186,9 @@ def assemble(prob: Problem3D, sl: Slice3D, separable: bool = False) -> Assembly3
     z_s = np.where(finite, z, 0.0)
     psi = np.array(source.psi_BL_2c(rho_s, z_s, sl.b, sl.m_A, sl.m_B))
     psi = np.where(finite, psi, 1.0)
-    A2 = source_3d.A2_at_nodes_3d(rho, z, prob.phi, sl.b,
-                                  sl.P_A_vec, sl.P_B_vec, sl.S_A_vec, sl.S_B_vec)
+    A2_fn = source_3d.A2_gram_at_nodes_3d if a2_gram else source_3d.A2_at_nodes_3d
+    A2 = A2_fn(rho, z, prob.phi, sl.b,
+               sl.P_A_vec, sl.P_B_vec, sl.S_A_vec, sl.S_B_vec)
     return Assembly3D(M0=M0_list, w=w_list, interior=interior, rho=rho, z=z,
                       psi=psi, A2=A2, m_vals=prob.m_vals, scales=scales,
                       b=float(sl.b), sep=sep)
