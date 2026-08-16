@@ -13,7 +13,7 @@ install:
 	pip install -e ".[dev]" --config-settings editable_mode=compat
 
 # Three tiers, and the middle one is the point.  Measured 2026-08-16 on leaf
-# 0fcaafe, 8-core M-series laptop at `uptime` load 2.4-5.4:
+# 1a3d90d, 8-core M-series laptop at `uptime` load 2.4-5.4:
 #
 #     make fast        241 tests      ~1 s      structural invariants only
 #     make test-quick  631 tests     329 s      95 % of the tests, 22 % of the clock

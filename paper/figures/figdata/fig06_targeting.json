@@ -119,7 +119,7 @@
       8
     ],
     "model": "surrogate_smolyak_d4_qc_chi_prod_L5.npz",
-    "model_git_commit": "bc94b2c",
+    "model_git_commit": "59b6802",
     "spin_parameterization": "chi",
     "targets": [
       "M_ADM",

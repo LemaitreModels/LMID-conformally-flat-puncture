@@ -348,13 +348,13 @@
     }
   ],
   "meta": {
-    "code_tag": "0fcaafe",
+    "code_tag": "1a3d90d",
     "campaign": "fys-kuleuven job 98068, array 0-7, 2026-08-16",
-    "stopping_rule": "newton_loop (ca1d9e7): breaks on an internal target of tol/10 while certification is judged at the caller's tol; stagnation needs two strikes",
+    "stopping_rule": "newton_loop (e6ff7ec): breaks on an internal target of tol/10 while certification is judged at the caller's tol; stagnation needs two strikes",
     "suspects": {
-      "T3 (ca1d9e7)": "intended mover; changes only WHEN the loop stops, never how a Newton step is computed, so it cannot move a step-1 residual",
-      "lane P (ea6c600)": "inert on this path -- every curve's step-0 guess is bit-identical",
-      "lane S (a382a78)": "dominant mover of the mid-convergence entries: the separable eigen-factors' real cast shifts GMRES trajectories by ulps (its own commit message says so), which a quadratically converging Newton amplifies to ~8x where the residual is 1e-5..1e-9.  NOT floor-level on this path"
+      "T3 (e6ff7ec)": "intended mover; changes only WHEN the loop stops, never how a Newton step is computed, so it cannot move a step-1 residual",
+      "lane P (6d0eef9)": "inert on this path -- every curve's step-0 guess is bit-identical",
+      "lane S (719f334)": "dominant mover of the mid-convergence entries: the separable eigen-factors' real cast shifts GMRES trajectories by ulps (its own commit message says so), which a quadratically converging Newton amplifies to ~8x where the residual is 1e-5..1e-9.  NOT floor-level on this path"
     },
     "route": {
       "4": "separable",

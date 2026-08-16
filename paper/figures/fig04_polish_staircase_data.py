@@ -110,17 +110,17 @@ def _check_rank(dim, r):
 # a staircase measured on a superseded route or model cannot go unnoticed (fig06 did).
 # Here it carries more than the box, because this figure's caption states a *step count*
 # and the numbers moved once already: the campaign below re-ran all eight producers.
-CODE_TAG = "0fcaafe"        # leaf commit the producers ran at (the fig04 campaign pin)
+CODE_TAG = "1a3d90d"        # leaf commit the producers ran at (the fig04 campaign pin)
 CAMPAIGN = "fys-kuleuven job 98068, array 0-7, 2026-08-16"
-STOPPING = ("newton_loop (ca1d9e7): breaks on an internal target of tol/10 while "
+STOPPING = ("newton_loop (e6ff7ec): breaks on an internal target of tol/10 while "
             "certification is judged at the caller's tol; stagnation needs two strikes")
 # Which lane each moved numeral is attributable to.  Measured, not assumed -- see the
 # campaign report in context/LM-initial-data/FINDINGS.md (2026-08-16).
 SUSPECTS = {
-    "T3 (ca1d9e7)": "intended mover; changes only WHEN the loop stops, never how a "
+    "T3 (e6ff7ec)": "intended mover; changes only WHEN the loop stops, never how a "
                     "Newton step is computed, so it cannot move a step-1 residual",
-    "lane P (ea6c600)": "inert on this path -- every curve's step-0 guess is bit-identical",
-    "lane S (a382a78)": "dominant mover of the mid-convergence entries: the separable "
+    "lane P (6d0eef9)": "inert on this path -- every curve's step-0 guess is bit-identical",
+    "lane S (719f334)": "dominant mover of the mid-convergence entries: the separable "
                         "eigen-factors' real cast shifts GMRES trajectories by ulps "
                         "(its own commit message says so), which a quadratically "
                         "converging Newton amplifies to ~8x where the residual is "
