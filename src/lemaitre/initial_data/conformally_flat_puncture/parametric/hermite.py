@@ -46,14 +46,11 @@ import numpy as np
 import jax.numpy as jnp
 
 from .parametric import cheb_param_nodes            # reused verbatim (the 1-D CGL layer)
-from .certification import CERT_TOL, certified_return   # the residual gate (one place)
+from .certification import CertifiedEvaluateMixin   # the residual gate (one place)
 from .parametric_nd import (                        # persistence helpers, reused verbatim
-    FORMAT_VERSION,
-    _pack_meta,
-    _unpack_meta,
     _git_commit,
-    _load_npz,
-    _check_meta,
+    _load_model_npz,
+    _save_npz,
 )
 
 
@@ -246,7 +243,7 @@ def taylor_predict(node, U, dU, dtheta, order: int = 1):
 # 1-D gradient-enhanced (Hermite) parametric solution container
 # --------------------------------------------------------------------------
 @dataclass
-class HermiteSolution1D:
+class HermiteSolution1D(CertifiedEvaluateMixin):
     """Gradient-enhanced 1-D Hermite interpolant, mirroring the
     :class:`parametric.ParametricSolution` API but carrying per-node **values**
     ``U_i`` *and* **tangents** ``U_i'``.
@@ -344,32 +341,29 @@ class HermiteSolution1D:
         return out[0] if np.ndim(theta) == 0 else out
 
     # ---- JAX-differentiable interpolant (the exposed-gradient hook) ----
+    def _jax_consts(self):
+        """Device copies of the node tensors, uploaded once per container (the
+        per-call ``jnp.asarray`` conversion is pure overhead on read-only data)."""
+        c = self.__dict__.get("_jax_consts_cache")
+        if c is None:
+            c = (jnp.asarray(self.U_nodes), jnp.asarray(self.dU_nodes),
+                 jnp.asarray(self.nodes), jnp.asarray(self.weights),
+                 jnp.asarray(self.cvec))
+            self.__dict__["_jax_consts_cache"] = c
+        return c
+
     def evaluate_jax(self, theta):
         """``jnp`` twin of :meth:`evaluate` — branchless and differentiable in the
         scalar ``θ`` (the exposed-gradient hook for the applications).  Must NOT
         be queried exactly at a node (the barycentric quotient is removable there
         but not finite for jax; use :meth:`evaluate_grad` at nodes)."""
-        h, hh = _hermite_bases_jax(theta, self.nodes, self.weights, self.cvec)
-        U = jnp.asarray(self.U_nodes)
-        dU = jnp.asarray(self.dU_nodes)
+        U, dU, nodes, weights, cvec = self._jax_consts()
+        h, hh = _hermite_bases_jax(theta, nodes, weights, cvec)
         return jnp.tensordot(h, U, axes=(0, 0)) + jnp.tensordot(hh, dU, axes=(0, 0))
 
-    # ---- certified evaluation (unchanged; reuses the attached solve_fn) ----
-    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
-                          strict: bool = False):
-        """Hermite prediction + 1–2 Newton steps → certified ``‖R‖≤tol`` at ``θ``.
-
-        The Hermite object is only a *guess*; certification is unchanged from the
-        committed path (the attached ``solve_fn`` → ``newton_solve``).  Returns
-        ``(U, info)`` with ``info.residual_norm`` the certified constraint
-        residual, independent of any interpolation error.  ``strict=True`` closes
-        the gate: a datum that misses ``tol`` raises
-        :class:`~.certification.CertificationError` instead of being returned."""
-        if self._solve_fn is None:
-            raise RuntimeError("no solve_fn attached; pass solve_fn= to from_nodes / the builder")
-        guess = jnp.asarray(self.evaluate(theta))
-        U, info = self._solve_fn(float(theta), guess, tol, newton_steps)
-        return certified_return(U, info, theta, tol, strict)
+    # ---- certified evaluation: evaluate_polished from CertifiedEvaluateMixin ----
+    _solve_fn_hint = "pass solve_fn= to from_nodes / the builder"
+    _solve_theta = staticmethod(float)      # the 1-D solve_fn takes a scalar θ
 
     # ---- persistence (numpy-only .npz; reuses the parametric_nd helpers) ----
     def save(self, path, *, meta=None):
@@ -377,9 +371,6 @@ class HermiteSolution1D:
         bit-for-bit via :func:`load_hermite`.  The reloaded object is a standalone
         predictor: ``evaluate``/``evaluate_grad`` need only numpy + the parametric
         modules (``evaluate_polished`` needs a reattached ``solve_fn``)."""
-        path = str(path)
-        if not path.endswith(".npz"):
-            path += ".npz"
         arrays = {
             "nodes": np.asarray(self.nodes, dtype=float),
             "weights": np.asarray(self.weights, dtype=float),
@@ -393,14 +384,8 @@ class HermiteSolution1D:
             arrays["iters"] = np.asarray(self.iters, dtype=np.int64)
         if self.residuals is not None:
             arrays["residuals"] = np.asarray(self.residuals, dtype=float)
-        full_meta = {"git_commit": _git_commit()}
-        if meta:
-            full_meta.update(meta)
-        full_meta["format_version"] = FORMAT_VERSION        # authoritative
-        full_meta["kind"] = "hermite1d"
-        arrays["meta_json"] = _pack_meta(full_meta)
-        np.savez(path, **arrays)
-        return path
+        return _save_npz(path, arrays, {"git_commit": _git_commit()},
+                         meta, kind="hermite1d")
 
 
 def load_hermite(path) -> "HermiteSolution1D":
@@ -410,25 +395,19 @@ def load_hermite(path) -> "HermiteSolution1D":
     immediately; ``evaluate_polished`` raises until a solver is attached).  The
     parsed metadata is stored on the returned object as ``.meta``.
     """
-    data = _load_npz(path)
-    meta = _unpack_meta(data)
-    _check_meta(meta, "hermite1d")
-    try:
+    def build(data, meta):
         lo, hi, Q = (float(data["box"][0]), float(data["box"][1]),
                      int(round(float(data["box"][2]))))
-        nodes = np.asarray(data["nodes"], dtype=float)
-        weights = np.asarray(data["weights"], dtype=float)
-        U_nodes = np.asarray(data["U_nodes"], dtype=float)
-        dU_nodes = np.asarray(data["dU_nodes"], dtype=float)
-        cvec = np.asarray(data["cvec"], dtype=float)
         iters = np.asarray(data["iters"]) if "iters" in data else None
-        residuals = np.asarray(data["residuals"], dtype=float) if "residuals" in data else None
-        sol = HermiteSolution1D(lo=lo, hi=hi, Q=Q, nodes=nodes, weights=weights,
-                                U_nodes=U_nodes, dU_nodes=dU_nodes, cvec=cvec,
-                                iters=iters, residuals=residuals, _solve_fn=None)
-    except ValueError:
-        raise
-    except Exception as e:
-        raise ValueError(f"corrupt LM-initial-data hermite surrogate '{path}': {e}")
-    sol.meta = meta
-    return sol
+        residuals = (np.asarray(data["residuals"], dtype=float)
+                     if "residuals" in data else None)
+        return HermiteSolution1D(
+            lo=lo, hi=hi, Q=Q,
+            nodes=np.asarray(data["nodes"], dtype=float),
+            weights=np.asarray(data["weights"], dtype=float),
+            U_nodes=np.asarray(data["U_nodes"], dtype=float),
+            dU_nodes=np.asarray(data["dU_nodes"], dtype=float),
+            cvec=np.asarray(data["cvec"], dtype=float),
+            iters=iters, residuals=residuals, _solve_fn=None)
+
+    return _load_model_npz(path, "hermite1d", build, label="hermite")

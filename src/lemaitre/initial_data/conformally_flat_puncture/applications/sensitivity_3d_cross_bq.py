@@ -141,7 +141,17 @@ def dP2_dtheta_qc_general(sl: s3.Slice3D, name_i: str, name_j: str,
 # ==========================================================================
 # 2.  First/second-derivative BY tensors over the node cloud (with b geometry)
 # ==========================================================================
-def _dA_tensor_bq(X: np.ndarray, sl: s3.Slice3D, name: str, M_tot: float) -> np.ndarray:
+def _dA_vecs_bq(sl: s3.Slice3D, name: str, M_tot: float):
+    """The φ-independent derivative vectors behind :func:`_dA_tensor_bq` —
+    ``(dP_A, dP_B, dS_A, dS_B)``.  The PN-momenta Jacobian behind ``dP`` costs
+    ~7 ms per derivation, so the φ-loops hoist this once per (slice, axis)."""
+    dP_A, dP_B = s3dqc.dP_dtheta_qc(sl, name, M_tot)
+    darg = s3dqc._dargs_dtheta(sl, name, M_tot)
+    return dP_A, dP_B, darg[3:6], darg[6:9]
+
+
+def _dA_tensor_bq(X: np.ndarray, sl: s3.Slice3D, name: str, M_tot: float,
+                  vecs=None) -> np.ndarray:
     """The full QC first-derivative tensor ``dÂ_{ij}=∂Â_{ij}/∂θ`` at points ``X``
     (Npts,3) — shape (Npts,3,3), general over ``b, q, χ``.
 
@@ -154,9 +164,9 @@ def _dA_tensor_bq(X: np.ndarray, sl: s3.Slice3D, name: str, M_tot: float) -> np.
     :func:`sensitivity_3d._dA2_dtheta`'s ``b`` contraction."""
     xA = np.array([0.0, 0.0, sl.b])
     xB = np.array([0.0, 0.0, -sl.b])
-    dP_A, dP_B = s3dqc.dP_dtheta_qc(sl, name, M_tot)
-    darg = s3dqc._dargs_dtheta(sl, name, M_tot)
-    dS_A, dS_B = darg[3:6], darg[6:9]
+    if vecs is None:
+        vecs = _dA_vecs_bq(sl, name, M_tot)
+    dP_A, dP_B, dS_A, dS_B = vecs
     dT = np.zeros((X.shape[0], 3, 3))
     if name == "b":
         TP = (source_3d._mom_tensor_vec(X, xA, sl.P_A_vec)
@@ -175,8 +185,23 @@ def _dA_tensor_bq(X: np.ndarray, sl: s3.Slice3D, name: str, M_tot: float) -> np.
     return dT
 
 
+def _d2A_vecs_bq(sl: s3.Slice3D, name_i: str, name_j: str, M_tot: float):
+    """The φ-independent vectors behind :func:`_d2A_tensor_bq`: the second
+    derivatives ``(d²P_A, d²P_B, d²S_A, d²S_B)`` plus, per ``b`` axis in the
+    pair, the OTHER axis's first-derivative vectors for the geometric cross
+    term.  The Hessian behind ``d²P`` costs ~15 ms per derivation, so the
+    φ-loops hoist this once per (slice, pair)."""
+    dP2_A, dP2_B = dP2_dtheta_qc_general(sl, name_i, name_j, M_tot)
+    d2args = _d2args_dtheta2(sl, name_i, name_j, M_tot)
+    geo = []
+    for a_name, other in ((name_i, name_j), (name_j, name_i)):
+        if a_name == "b":
+            geo.append(_dA_vecs_bq(sl, other, M_tot))
+    return dP2_A, dP2_B, d2args[3:6], d2args[6:9], geo
+
+
 def _d2A_tensor_bq(X: np.ndarray, sl: s3.Slice3D, name_i: str, name_j: str,
-                   M_tot: float) -> np.ndarray:
+                   M_tot: float, vecs=None) -> np.ndarray:
     """The QC second-derivative tensor ``d²Â_{ij}=∂²Â_{ij}/∂θ_i∂θ_j`` at points
     ``X`` (Npts,3) — shape (Npts,3,3), general over ``b, q, χ``.
 
@@ -189,9 +214,9 @@ def _d2A_tensor_bq(X: np.ndarray, sl: s3.Slice3D, name_i: str, name_j: str,
     reduces to the committed :func:`sensitivity_3d_cross._d2A_tensor_qc`."""
     xA = np.array([0.0, 0.0, sl.b])
     xB = np.array([0.0, 0.0, -sl.b])
-    dP2_A, dP2_B = dP2_dtheta_qc_general(sl, name_i, name_j, M_tot)
-    d2args = _d2args_dtheta2(sl, name_i, name_j, M_tot)
-    dS2_A, dS2_B = d2args[3:6], d2args[6:9]
+    if vecs is None:
+        vecs = _d2A_vecs_bq(sl, name_i, name_j, M_tot)
+    dP2_A, dP2_B, dS2_A, dS2_B, geo = vecs
     d2T = np.zeros((X.shape[0], 3, 3))
     if np.any(dP2_A):
         d2T = d2T + source_3d._mom_tensor_vec(X, xA, dP2_A)
@@ -202,19 +227,15 @@ def _d2A_tensor_bq(X: np.ndarray, sl: s3.Slice3D, name_i: str, name_j: str,
     if np.any(dS2_B):
         d2T = d2T + source_3d._spin_tensor_vec(X, xB, dS2_B)
     # b geometric cross terms: −p/b · Â_c(dv_other) for the axis that IS b
-    for a_name, other in ((name_i, name_j), (name_j, name_i)):
-        if a_name == "b":
-            dP_o_A, dP_o_B = s3dqc.dP_dtheta_qc(sl, other, M_tot)
-            darg_o = s3dqc._dargs_dtheta(sl, other, M_tot)
-            dS_o_A, dS_o_B = darg_o[3:6], darg_o[6:9]
-            if np.any(dP_o_A):
-                d2T = d2T - (2.0 / sl.b) * source_3d._mom_tensor_vec(X, xA, dP_o_A)
-            if np.any(dP_o_B):
-                d2T = d2T - (2.0 / sl.b) * source_3d._mom_tensor_vec(X, xB, dP_o_B)
-            if np.any(dS_o_A):
-                d2T = d2T - (3.0 / sl.b) * source_3d._spin_tensor_vec(X, xA, dS_o_A)
-            if np.any(dS_o_B):
-                d2T = d2T - (3.0 / sl.b) * source_3d._spin_tensor_vec(X, xB, dS_o_B)
+    for dP_o_A, dP_o_B, dS_o_A, dS_o_B in geo:
+        if np.any(dP_o_A):
+            d2T = d2T - (2.0 / sl.b) * source_3d._mom_tensor_vec(X, xA, dP_o_A)
+        if np.any(dP_o_B):
+            d2T = d2T - (2.0 / sl.b) * source_3d._mom_tensor_vec(X, xB, dP_o_B)
+        if np.any(dS_o_A):
+            d2T = d2T - (3.0 / sl.b) * source_3d._spin_tensor_vec(X, xA, dS_o_A)
+        if np.any(dS_o_B):
+            d2T = d2T - (3.0 / sl.b) * source_3d._spin_tensor_vec(X, xB, dS_o_B)
     return d2T
 
 
@@ -238,13 +259,18 @@ def _source_second_derivs_bq(asm: s3.Assembly3D, phi: np.ndarray, sl: s3.Slice3D
     A2_i = np.empty((Ntot, Nphi))
     A2_j = np.empty((Ntot, Nphi))
     A2_ij = np.empty((Ntot, Nphi))
+    # the derivative VECTORS are φ-independent (only the node cloud rotates):
+    # hoisting them keeps the per-φ work to the tensor builds and contractions
+    vecs_i = _dA_vecs_bq(sl, name_i, M_tot)
+    vecs_j = _dA_vecs_bq(sl, name_j, M_tot)
+    vecs2 = _d2A_vecs_bq(sl, name_i, name_j, M_tot)
     for k in range(Nphi):
         X = np.stack([rho_s * np.cos(phi[k]), rho_s * np.sin(phi[k]), z_s], axis=1)
         T = source_3d.A_full_tensor_vec(X, sl.b, sl.P_A_vec, sl.P_B_vec,
                                         sl.S_A_vec, sl.S_B_vec)
-        dTi = _dA_tensor_bq(X, sl, name_i, M_tot)
-        dTj = _dA_tensor_bq(X, sl, name_j, M_tot)
-        d2Tij = _d2A_tensor_bq(X, sl, name_i, name_j, M_tot)
+        dTi = _dA_tensor_bq(X, sl, name_i, M_tot, vecs=vecs_i)
+        dTj = _dA_tensor_bq(X, sl, name_j, M_tot, vecs=vecs_j)
+        d2Tij = _d2A_tensor_bq(X, sl, name_i, name_j, M_tot, vecs=vecs2)
         a2i = 2.0 * np.sum(T * dTi, axis=(1, 2))
         a2j = 2.0 * np.sum(T * dTj, axis=(1, 2))
         a2ij = 2.0 * np.sum(dTi * dTj, axis=(1, 2)) + 2.0 * np.sum(T * d2Tij, axis=(1, 2))

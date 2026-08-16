@@ -26,9 +26,8 @@ interpolant (no solve per step), certifying only at the end — versus the class
 certified-solve scan.  The honest metric is the number of certified elliptic
 solves; every emitted configuration is certified ``‖R‖∞ ≤ 1e-10``.
 
-Standalone: imports ``solver_3d`` / ``parametric_nd`` / ``parametric_nd_3d`` /
-``validation.adm`` and reuses ``qc_targeting.M_ADM``; defines no new physics.
-numpy + jax only.
+Standalone: imports ``parametric_nd`` / ``certification`` and reuses
+``qc_targeting.M_ADM``; defines no new physics.  numpy + jax + scipy only.
 """
 
 from __future__ import annotations
@@ -45,7 +44,6 @@ import numpy as np
 import jax.numpy as jnp
 from scipy.optimize import brentq
 
-from ..solver import solver_3d as s3
 from ..parametric.parametric_nd import load_parametric, attach_solve_fn_3d
 from ..parametric.certification import CERT_TOL
 from . import qc_targeting as qt
@@ -142,6 +140,28 @@ def build_effpot_jax(model, prob):
 
     dV = jax.grad(V, argnums=0)
     return V, dV
+
+
+def _effpot_jit(model, prob):
+    """Cached jitted ``(V, dV, d2V)`` per ``(model, prob)``.
+
+    The eager potential re-traces the surrogate evaluation on every call, and one
+    :func:`circular_gradient` evaluates ``dV`` 33 times for the bracket plus
+    ``dV``+``d2V`` per Newton iteration, then :func:`eccentricity` runs ``V``
+    through a root-find — all on fixed shapes, so one compile per model serves
+    the whole J-sweep.  XLA fusion may move values by ulps relative to the eager
+    trace.  Cached on the model object; the ``prob`` identity is re-checked so a
+    stale grid can never serve a hit.
+    """
+    cache = model.__dict__.setdefault("_effpot_jit_cache", {})
+    key = id(prob)
+    hit = cache.get(key)
+    if hit is not None and hit[0] is prob:
+        return hit[1]
+    V, dV = build_effpot_jax(model, prob)
+    fns = (jax.jit(V), jax.jit(dV), jax.jit(jax.grad(dV, argnums=0)))
+    cache[key] = (prob, fns)
+    return fns
 
 
 # ==========================================================================
@@ -265,8 +285,7 @@ def circular_gradient(model, prob, J, b0, box_b, *, tol=1e-10, max_newton=30,
     number on the edge.
     """
     t0 = time.perf_counter()
-    V, dV = build_effpot_jax(model, prob)
-    d2V = jax.grad(dV, argnums=0)
+    _, dV, d2V = _effpot_jit(model, prob)
 
     br = _bracket_dV(dV, model, J, box_b)
     if br is None:
@@ -357,7 +376,7 @@ def eccentricity(model, prob, b0, J, b_circ, box_b):
     callers sweep a b0 ladder of which the first rung is ``b0 = b_circ``, a
     genuinely circular point, so one unmeasurable rung must not kill the sweep.
     """
-    V, _ = build_effpot_jax(model, prob)
+    V, _, _ = _effpot_jit(model, prob)
     Vf = lambda b: float(V(b, J))
     E0 = Vf(b0)
     # the other root of V(b;J)=E0 lies on the opposite side of b_circ

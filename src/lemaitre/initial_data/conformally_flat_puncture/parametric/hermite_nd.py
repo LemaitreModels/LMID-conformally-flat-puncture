@@ -61,16 +61,13 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import jax.numpy as jnp
 
-from .certification import CERT_TOL, certified_return   # the residual gate (one place)
+from .certification import CertifiedEvaluateMixin   # the residual gate (one place)
 from .parametric_nd import (              # reused verbatim (the N-D primitives + IO)
     tensor_param_nodes,
     snake_order,
-    FORMAT_VERSION,
-    _pack_meta,
-    _unpack_meta,
     _git_commit,
-    _load_npz,
-    _check_meta,
+    _load_model_npz,
+    _save_npz,
 )
 from .hermite import (                    # reused verbatim (the H1 1-D primitives)
     cardinal_deriv_at_nodes,
@@ -83,7 +80,7 @@ from .hermite import (                    # reused verbatim (the H1 1-D primitiv
 # N-D gradient-enhanced (Hermite) parametric solution container
 # --------------------------------------------------------------------------
 @dataclass
-class HermiteSolutionND:
+class HermiteSolutionND(CertifiedEvaluateMixin):
     """Value-only axes ⊗ Hermite-enhanced axes (§2/§4 H2).
 
     Mirrors :class:`parametric_nd.ParametricSolutionND` (``evaluate``,
@@ -170,6 +167,19 @@ class HermiteSolutionND:
         return accV
 
     # ----- JAX-differentiable interpolant (branchless, off-node; grad hook) -----
+    def _jax_consts(self):
+        """Device copies of the node tensors, uploaded once per container (the
+        per-call ``jnp.asarray`` conversion used to dominate the eager cost;
+        the arrays are read-only after construction)."""
+        c = self.__dict__.get("_jax_consts_cache")
+        if c is None:
+            c = (jnp.asarray(self.U_nodes), jnp.asarray(self.dU_nodes),
+                 [jnp.asarray(n) for n in self.nodes],
+                 [jnp.asarray(w) for w in self.weights],
+                 [jnp.asarray(cv) for cv in self.cvec])
+            self.__dict__["_jax_consts_cache"] = c
+        return c
+
     def evaluate_jax(self, theta):
         """``jnp`` twin of :meth:`evaluate` — branchless and differentiable in the
         parameter vector ``θ`` (the exposed-gradient hook for the applications:
@@ -181,45 +191,28 @@ class HermiteSolutionND:
         enhanced)."""
         theta = jnp.asarray(theta)
         enh = set(int(e) for e in self.enhanced)
-        accV = jnp.asarray(self.U_nodes)
-        dU = jnp.asarray(self.dU_nodes)
+        accV, dU, nodes, weights, cvec = self._jax_consts()
         accD = {e: jnp.take(dU, e, axis=self.d) for e in enh}
         for k in range(self.d):
-            nodes_k = jnp.asarray(self.nodes[k])
+            nodes_k = nodes[k]
             diff = theta[k] - nodes_k
             if k in enh:
                 h, hh = _hermite_bases_jax(theta[k], nodes_k,
-                                           jnp.asarray(self.weights[k]),
-                                           jnp.asarray(self.cvec[k]))
+                                           weights[k], cvec[k])
                 newV = (jnp.tensordot(h, accV, axes=(0, 0))
                         + jnp.tensordot(hh, accD[k], axes=(0, 0)))
                 accD = {e: jnp.tensordot(h, accD[e], axes=(0, 0))
                         for e in accD if e != k}
                 accV = newV
             else:
-                t = jnp.asarray(self.weights[k]) / diff
+                t = weights[k] / diff
                 s = jnp.sum(t)
                 accV = jnp.tensordot(t, accV, axes=(0, 0)) / s
                 accD = {e: jnp.tensordot(t, accD[e], axes=(0, 0)) / s for e in accD}
         return accV
 
-    # ----- certified evaluation (unchanged; reuses the attached solve_fn) -----
-    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
-                          strict: bool = False):
-        """Hermite prediction + 1–2 Newton steps → certified ``‖R‖≤tol`` at ``θ``.
-
-        The Hermite object is only a *guess*; certification is unchanged from the
-        committed path (the attached ``solve_fn`` → ``newton_solve``).  Returns
-        ``(U, info)`` with ``info.residual_norm`` the certified constraint
-        residual, independent of any interpolation error.  ``strict=True`` closes
-        the gate: a datum that misses ``tol`` raises
-        :class:`~.certification.CertificationError` instead of being returned."""
-        if self._solve_fn is None:
-            raise RuntimeError(
-                "no solve_fn attached; build via HermiteSolverND / from_problem_nd_hermite")
-        guess = jnp.asarray(self.evaluate(theta))
-        U, info = self._solve_fn(np.asarray(theta, dtype=float), guess, tol, newton_steps)
-        return certified_return(U, info, theta, tol, strict)
+    # ----- certified evaluation: evaluate_polished from CertifiedEvaluateMixin -----
+    _solve_fn_hint = "build via HermiteSolverND / from_problem_nd_hermite"
 
     # ----- persistence (numpy-only .npz; reuses the parametric_nd helpers) -----
     def save(self, path, *, meta=None):
@@ -228,9 +221,6 @@ class HermiteSolutionND:
         standalone predictor: ``evaluate``/``evaluate_jax`` need only numpy/jax +
         the parametric modules (``evaluate_polished`` needs a reattached
         ``solve_fn``)."""
-        path = str(path)
-        if not path.endswith(".npz"):
-            path += ".npz"
         d = self.d
         arrays = {}
         for k in range(d):
@@ -246,14 +236,8 @@ class HermiteSolutionND:
         arrays["enhanced"] = np.asarray(sorted(int(e) for e in self.enhanced),
                                         dtype=np.int64)
         arrays["field_shape"] = np.asarray(self.field_shape, dtype=np.int64)
-        full_meta = {"d": int(d), "git_commit": _git_commit()}
-        if meta:
-            full_meta.update(meta)
-        full_meta["format_version"] = FORMAT_VERSION      # authoritative
-        full_meta["kind"] = "hermite_nd"
-        arrays["meta_json"] = _pack_meta(full_meta)
-        np.savez(path, **arrays)
-        return path
+        return _save_npz(path, arrays, {"d": int(d), "git_commit": _git_commit()},
+                         meta, kind="hermite_nd")
 
 
 def load_hermite_nd(path) -> "HermiteSolutionND":
@@ -263,10 +247,7 @@ def load_hermite_nd(path) -> "HermiteSolutionND":
     immediately; ``evaluate_polished`` raises until a solver is attached).  The
     parsed metadata is stored on the returned object as ``.meta``.
     """
-    data = _load_npz(path)
-    meta = _unpack_meta(data)
-    _check_meta(meta, "hermite_nd")
-    try:
+    def build(data, meta):
         d = int(meta["d"])
         nodes = [np.asarray(data[f"nodes_{k}"], dtype=float) for k in range(d)]
         weights = [np.asarray(data[f"weights_{k}"], dtype=float) for k in range(d)]
@@ -274,20 +255,16 @@ def load_hermite_nd(path) -> "HermiteSolutionND":
         axes = [(float(a[0]), float(a[1]), int(round(float(a[2]))))
                 for a in np.asarray(data["axes"], dtype=float)]
         enhanced = tuple(int(e) for e in np.asarray(data["enhanced"], dtype=np.int64))
-        U_nodes = np.asarray(data["U_nodes"], dtype=float)
-        dU_nodes = np.asarray(data["dU_nodes"], dtype=float)
-        iters = np.asarray(data["iters"])
-        residuals = np.asarray(data["residuals"], dtype=float)
-        sol = HermiteSolutionND(axes=axes, nodes=nodes, weights=weights,
-                                U_nodes=U_nodes, dU_nodes=dU_nodes, cvec=cvec,
-                                enhanced=enhanced, iters=iters, residuals=residuals,
-                                _solve_fn=None)
-    except ValueError:
-        raise
-    except Exception as e:
-        raise ValueError(f"corrupt LM-initial-data hermite_nd surrogate '{path}': {e}")
-    sol.meta = meta
-    return sol
+        return HermiteSolutionND(
+            axes=axes, nodes=nodes, weights=weights,
+            U_nodes=np.asarray(data["U_nodes"], dtype=float),
+            dU_nodes=np.asarray(data["dU_nodes"], dtype=float),
+            cvec=cvec, enhanced=enhanced,
+            iters=np.asarray(data["iters"]),
+            residuals=np.asarray(data["residuals"], dtype=float),
+            _solve_fn=None)
+
+    return _load_model_npz(path, "hermite_nd", build)
 
 
 # --------------------------------------------------------------------------

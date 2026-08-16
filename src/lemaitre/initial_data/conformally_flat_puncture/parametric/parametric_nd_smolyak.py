@@ -54,8 +54,13 @@ import numpy as np
 import jax.numpy as jnp
 
 from .parametric import cheb_param_nodes          # the 1-D CGL layer (verbatim)
-from .certification import CERT_TOL, certified_return   # the residual gate (one place)
-from .parametric_nd import ParametricSolutionND, snake_order   # the dense layer (verbatim)
+from .certification import CertifiedEvaluateMixin   # the residual gate (one place)
+from .parametric_nd import (                       # the dense layer + IO (verbatim)
+    ParametricSolutionND,
+    snake_order,
+    _load_model_npz,
+    _save_npz,
+)
 
 
 # --------------------------------------------------------------------------
@@ -150,13 +155,20 @@ def combination_coeffs(index_set: Sequence[tuple]) -> Dict[tuple, int]:
 # Sparse-grid solution container (combination of full-tensor interpolants)
 # --------------------------------------------------------------------------
 @dataclass
-class SmolyakSolutionND:
+class SmolyakSolutionND(CertifiedEvaluateMixin):
     """Combination-technique sparse interpolant: ``Σ_i c_i · subgrid_i.evaluate(θ)``.
 
     Each ``subgrid`` is a full-tensor :class:`parametric_nd.ParametricSolutionND`
     on nested CC levels; they share one solved-node pool (so the solver-call cost
     is the *unique*-node count, :attr:`n_solver_nodes`, not the sum of subgrid
     sizes).
+
+    This is the BASE of the combination-technique family: the gradient-enhanced
+    :class:`hermite_smolyak.HermiteSmolyakSolutionND` and the full-bilinear
+    :class:`hermite_smolyak_cross.HermiteSmolyakCrossSolutionND` subclass it,
+    inheriting ``evaluate``/``evaluate_jax``/``evaluate_polished`` and the pool
+    machinery verbatim and overriding only the per-node record layout
+    (:meth:`_pool_record`) and persistence.
     """
     axes: List[Tuple[float, float]]        # [(p_min, p_max), ...] (no Q — Smolyak uses levels)
     index_set: List[tuple]                 # the admissible multi-index set (downward-closed)
@@ -196,27 +208,34 @@ class SmolyakSolutionND:
             out = c * v if out is None else out + c * v
         return out
 
-    # ----- certified evaluation (the "cannot be silently wrong" gate) -----
-    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
-                          strict: bool = False):
-        """Sparse prediction + 1–2 Newton steps → certified ‖R‖≤tol at θ.
+    # ----- pool-weight path (opt-in; the subgrid sum above stays the oracle) -----
+    def evaluate_pooled(self, theta):
+        """``U(θ)`` via the pool-weight path (:mod:`.pooled`): the same
+        interpolant contracted as GEMVs against the deduplicated node pool
+        instead of the 6.5×-redundant subgrid sum.  Agrees with
+        :meth:`evaluate` to roundoff (different summation order — the subgrid
+        sum stays the oracle); node-safe.  The evaluator is built on first use
+        and cached on the model; batch/jax variants live on
+        ``pooled.pooled_evaluator(self)``."""
+        from .pooled import pooled_evaluator
+        return pooled_evaluator(self).evaluate(theta)
 
-        Returns ``(U, info)``; ``info.residual_norm`` is the certified constraint
-        residual at θ, independent of the (sparse) interpolation error — exactly
-        as for the dense :class:`ParametricSolutionND`.  ``strict=True`` closes the
-        gate: a datum that misses ``tol`` raises
-        :class:`~.certification.CertificationError` instead of being returned.
-        """
-        if self._solve_fn is None:
-            raise RuntimeError("no solve_fn attached; build via SmolyakSolverND/from_problem_smolyak_*")
-        guess = jnp.asarray(self.evaluate(theta))
-        U, info = self._solve_fn(np.asarray(theta, dtype=float), guess, tol, newton_steps)
-        return certified_return(U, info, theta, tol, strict)
+    # ----- certified evaluation: evaluate_polished from CertifiedEvaluateMixin -----
+    _solve_fn_hint = "build via SmolyakSolverND/from_problem_smolyak_*"
 
     # ----- persistence: store the DEDUPLICATED node pool (numpy-only .npz) -----
+    def _pool_record(self, theta, sub, idx) -> tuple:
+        """The per-node record :meth:`_dedup_pool` stores — the ONE place the
+        family's pool layouts differ.  Every layout ends with ``(…, iters,
+        resid)`` (the machinery reads them as ``v[-2]``/``v[-1]``); the value-only
+        record is ``(theta, U, iters, resid)``, the gradient-enhanced subclass
+        inserts ``dU``, the cross one additionally ``cross``."""
+        return (theta, np.asarray(sub.U_nodes[idx], dtype=float),
+                int(sub.iters[idx]), float(sub.residuals[idx]))
+
     def _dedup_pool(self) -> Dict[tuple, tuple]:
-        """Reconstruct the deduplicated node pool ``key -> (theta, U, iters, resid)``
-        from the kept subgrids.
+        """Reconstruct the deduplicated node pool ``key -> (theta, U, …, iters,
+        resid)`` (per-class layout: :meth:`_pool_record`) from the kept subgrids.
 
         The kept (nonzero-coefficient) subgrids always include every *maximal*
         multi-index, and — because the CC levels are nested — every lower
@@ -236,8 +255,7 @@ class SmolyakSolutionND:
                 key = _node_key(theta)
                 if key in pool:
                     continue
-                pool[key] = (theta, np.asarray(sub.U_nodes[idx], dtype=float),
-                             int(sub.iters[idx]), float(sub.residuals[idx]))
+                pool[key] = self._pool_record(theta, sub, idx)
         return pool
 
     def save(self, path, *, meta=None):
@@ -258,31 +276,23 @@ class SmolyakSolutionND:
         (axis_names, box, level, Na/Nb/Nφ, solver, tol, note, …);
         ``format_version``/``kind`` are set authoritatively.
         """
-        from .parametric_nd import FORMAT_VERSION, _git_commit, _pack_meta
-        path = str(path)
-        if not path.endswith(".npz"):
-            path += ".npz"
+        from .parametric_nd import _git_commit
         pool = self._dedup_pool()
         keys = list(pool)
-        node_thetas = np.array([pool[k][0] for k in keys], dtype=float)     # N×d
-        node_U = np.array([pool[k][1] for k in keys], dtype=float)          # N×*fs
-        node_iters = np.array([pool[k][2] for k in keys], dtype=np.int64)   # N
-        node_resids = np.array([pool[k][3] for k in keys], dtype=float)     # N
-        index_set = np.array([[int(x) for x in l] for l in self.index_set],
-                             dtype=np.int64)                                 # M×d
-        axes = np.array([[float(lo), float(hi)] for (lo, hi) in self.axes], dtype=float)
-        full_meta = {"d": int(self.d), "n_solver_nodes": int(self.n_solver_nodes),
-                     "git_commit": _git_commit()}
-        if meta:
-            full_meta.update(meta)
-        full_meta["format_version"] = FORMAT_VERSION      # authoritative
-        full_meta["kind"] = "smolyak"
-        np.savez(path,
-                 node_thetas=node_thetas, node_U=node_U, node_iters=node_iters,
-                 node_resids=node_resids, index_set=index_set, axes=axes,
-                 field_shape=np.asarray(self.field_shape, dtype=np.int64),
-                 meta_json=_pack_meta(full_meta))
-        return path
+        arrays = dict(
+            node_thetas=np.array([pool[k][0] for k in keys], dtype=float),     # N×d
+            node_U=np.array([pool[k][1] for k in keys], dtype=float),          # N×*fs
+            node_iters=np.array([pool[k][2] for k in keys], dtype=np.int64),   # N
+            node_resids=np.array([pool[k][3] for k in keys], dtype=float),     # N
+            index_set=np.array([[int(x) for x in l] for l in self.index_set],
+                               dtype=np.int64),                                 # M×d
+            axes=np.array([[float(lo), float(hi)] for (lo, hi) in self.axes],
+                          dtype=float),
+            field_shape=np.asarray(self.field_shape, dtype=np.int64))
+        return _save_npz(path, arrays,
+                         {"d": int(self.d), "n_solver_nodes": int(self.n_solver_nodes),
+                          "git_commit": _git_commit()},
+                         meta, kind="smolyak")
 
 
 # --------------------------------------------------------------------------
@@ -316,6 +326,17 @@ class SmolyakSolverND:
             weights.append(w)
         return nodes, weights
 
+    #: tag for the verbose pool report (subclasses re-tag their own march)
+    _log_tag = "smolyak"
+
+    # ----- the per-node record _solve_pool stores (subclasses add fields) -----
+    def _node_record(self, theta, Ua, info) -> tuple:
+        """``(U, iters, resid)`` — the value-only pool record.  Every layout in
+        the family keeps ``U`` first (the warm-start read) and ``(iters, resid)``
+        last (read as ``v[-2]``/``v[-1]``); the gradient-enhanced subclass
+        inserts the tangent stack between them."""
+        return (Ua, int(info.iters), float(info.residual_norm))
+
     # ----- solve every UNIQUE node of a set of subgrids, warm-started -----
     def _solve_pool(self, index_set, tol, max_iter, pool=None, guess0=None, verbose=False):
         """Solve each unique node across the subgrids in ``index_set`` exactly once.
@@ -323,7 +344,7 @@ class SmolyakSolverND:
         Coarse→fine traversal (by ``|l|₁``), snake-march within each subgrid, so
         each fresh node warm-starts from a genuine neighbour; already-solved nodes
         (shared between subgrids — the nesting payoff) are skipped.  Mutates and
-        returns ``pool`` (dict ``key -> (U, iters, resid)``).
+        returns ``pool`` (dict ``key -> record``, per-class :meth:`_node_record`).
         """
         pool = {} if pool is None else pool
         guess = guess0
@@ -338,10 +359,10 @@ class SmolyakSolverND:
                     continue
                 U, info = self.solve_fn(theta, guess, tol, max_iter)
                 Ua = np.asarray(U)
-                pool[key] = (Ua, int(info.iters), float(info.residual_norm))
+                pool[key] = self._node_record(theta, Ua, info)
                 guess = jnp.asarray(Ua)
         if verbose:
-            print(f"[smolyak] pool: {len(pool)} unique nodes")
+            print(f"[{self._log_tag}] pool: {len(pool)} unique nodes")
         return pool
 
     # ----- assemble one subgrid's ParametricSolutionND from the solved pool -----
@@ -364,17 +385,26 @@ class SmolyakSolverND:
                                     _solve_fn=None)
 
     # ----- assemble the combination interpolant from a set + a solved pool -----
+    def _make_solution(self, index_set, coeffs, subgrids, pool,
+                       total_iters) -> SmolyakSolutionND:
+        """Construct the solution container — the ONE place the family's
+        ``_finalize`` implementations used to differ (container class + extra
+        fields); subclasses override this, not the assembly."""
+        return SmolyakSolutionND(
+            axes=self.axes, index_set=index_set, coeffs=coeffs, subgrids=subgrids,
+            n_solver_nodes=len(pool), total_iters=total_iters,
+            _solve_fn=self.solve_fn,
+        )
+
     def _finalize(self, index_set, pool) -> SmolyakSolutionND:
         coeffs = combination_coeffs(index_set)
         kept = sorted(coeffs)                          # deterministic order
         subgrids = [self._assemble_subgrid(l, pool) for l in kept]
-        total_iters = int(sum(v[1] for v in pool.values()))
-        return SmolyakSolutionND(
-            axes=self.axes, index_set=[tuple(l) for l in index_set],
-            coeffs=[coeffs[l] for l in kept], subgrids=subgrids,
-            n_solver_nodes=len(pool), total_iters=total_iters,
-            _solve_fn=self.solve_fn,
-        )
+        total_iters = int(sum(v[-2] for v in pool.values()))
+        return self._make_solution(
+            index_set=[tuple(l) for l in index_set],
+            coeffs=[coeffs[l] for l in kept],
+            subgrids=subgrids, pool=pool, total_iters=total_iters)
 
     # ----- public builders -----------------------------------------------
     def build_isotropic(self, level: int, tol: float = 1e-12, max_iter: int = 20,
@@ -661,7 +691,7 @@ class SmolyakSolverND:
             else:
                 U, info = self.solve_fn(theta, guess, tol, max_iter)
                 Ua = np.asarray(U)
-                pool[key] = (Ua, int(info.iters), float(info.residual_norm))
+                pool[key] = self._node_record(theta, Ua, info)
             guess = jnp.asarray(Ua)
             if key in old_keys:
                 continue                                   # not a NEW node
@@ -736,11 +766,7 @@ def load_smolyak(path) -> SmolyakSolutionND:
     attached (``parametric_nd.attach_solve_fn_3d``).  Parsed metadata is stored
     on the returned object as ``.meta``.
     """
-    from .parametric_nd import _load_npz, _unpack_meta, _check_meta
-    data = _load_npz(path)
-    meta = _unpack_meta(data)
-    _check_meta(meta, "smolyak")
-    try:
+    def build(data, meta):
         node_thetas = np.asarray(data["node_thetas"], dtype=float)     # N×d
         node_U = np.asarray(data["node_U"], dtype=float)               # N×*fs
         node_iters = np.asarray(data["node_iters"])
@@ -755,10 +781,6 @@ def load_smolyak(path) -> SmolyakSolutionND:
             pool[key] = (np.asarray(node_U[i], dtype=float),
                          int(node_iters[i]), float(node_resids[i]))
         solver = SmolyakSolverND(solve_fn=None, axes=axes)
-        sol = solver._finalize(index_set, pool)      # combination coeffs recomputed
-    except ValueError:
-        raise
-    except Exception as e:
-        raise ValueError(f"corrupt LM-initial-data smolyak surrogate '{path}': {e}")
-    sol.meta = meta
-    return sol
+        return solver._finalize(index_set, pool)     # combination coeffs recomputed
+
+    return _load_model_npz(path, "smolyak", build)

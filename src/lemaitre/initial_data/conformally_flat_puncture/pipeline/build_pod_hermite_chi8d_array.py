@@ -193,11 +193,15 @@ def run_merge(args):
     # ----- POD compression -----
     _t(f"[S7-merge] POD compression (tail={args.pod_tail:.0e}) ...")
     t0 = time.time()
+    # value_diagnostics=False: the second (value-only) SVD is pure diagnostics
+    # and doubles the SVD footprint of a build that has already OOM'd a 128 G
+    # node; the 4-D builder (build_pod_hermite_model) keeps it on and prints it.
     pod, diag = hpod.build_pod_hermite_smolyak(model, tail=args.pod_tail,
-                                               solve_fn=model._solve_fn)
+                                               solve_fn=model._solve_fn,
+                                               value_diagnostics=False)
     nfeat = int(np.prod(model.field_shape))
     r = pod.r
-    _t(f"   rank_value={diag['rank_value']}  rank_stacked={diag['rank_stacked']}  "
+    _t(f"   rank_stacked={diag['rank_stacked']}  "
        f"shipped r={r}  nfeat/r={nfeat}/{r}={nfeat/r:.1f}x  ({time.time()-t0:.1f}s)")
     p_path = os.path.join(args.outdir, f"pod_hermite_smolyak_{tag}.npz")
     pod.save(p_path, meta=base_meta)
@@ -245,10 +249,11 @@ def run_pod(args):
     t0 = time.time()
     pod, diag = hpod.build_pod_hermite_smolyak(model, tail=args.pod_tail,
                                                solve_fn=model._solve_fn,
-                                               randomized=args.randomized)
+                                               randomized=args.randomized,
+                                               value_diagnostics=False)
     nfeat = int(np.prod(model.field_shape))
     r = pod.r
-    _t(f"   rank_value={diag['rank_value']}  rank_stacked={diag['rank_stacked']}  "
+    _t(f"   rank_stacked={diag['rank_stacked']}  "
        f"shipped r={r}  nfeat/r={nfeat}/{r}={nfeat/r:.1f}x  ({time.time()-t0:.1f}s)")
     p_path = os.path.join(args.outdir, f"pod_hermite_smolyak_{tag}.npz")
     pod.save(p_path, meta=base_meta)

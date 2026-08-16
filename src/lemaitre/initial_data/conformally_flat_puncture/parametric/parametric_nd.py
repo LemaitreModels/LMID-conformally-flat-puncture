@@ -42,7 +42,10 @@ import numpy as np
 import jax.numpy as jnp
 
 from .parametric import cheb_param_nodes   # reused verbatim (the 1-D CGL layer)
-from .certification import CERT_TOL, certified_return   # the residual gate (one place)
+from .certification import (                # the residual gate + shared polish (one place)
+    CERT_TOL,
+    CertifiedEvaluateMixin,
+)
 
 
 # --------------------------------------------------------------------------
@@ -97,7 +100,7 @@ def snake_order(shape: Sequence[int]) -> List[tuple]:
 # N-D parametric solution container + tensor-product barycentric interpolant
 # --------------------------------------------------------------------------
 @dataclass
-class ParametricSolutionND:
+class ParametricSolutionND(CertifiedEvaluateMixin):
     axes: List[Tuple[float, float, int]]   # [(p_min, p_max, Q), ...]
     nodes: List[np.ndarray]                # per-axis CGL nodes (descending value)
     weights: List[np.ndarray]              # per-axis barycentric weights, aligned
@@ -139,32 +142,34 @@ class ParametricSolutionND:
         return V
 
     # ----- JAX-differentiable interpolant (B3 hook) -----
+    def _jax_consts(self):
+        """Device copies of the node tensors, uploaded once per container.
+
+        ``jnp.asarray`` in the evaluation loop used to convert+upload every
+        tensor on every call, which dominated the eager ``evaluate_jax`` cost;
+        the arrays are read-only after construction, so one persistent device
+        copy replaces the per-call transient one."""
+        c = self.__dict__.get("_jax_consts_cache")
+        if c is None:
+            c = (jnp.asarray(self.U_nodes),
+                 [jnp.asarray(n) for n in self.nodes],
+                 [jnp.asarray(w) for w in self.weights])
+            self.__dict__["_jax_consts_cache"] = c
+        return c
+
     def evaluate_jax(self, theta):
         """``jnp`` twin of :meth:`evaluate` — branchless and differentiable in θ
         (the ``∂ID/∂θ`` hook for B3).  Must NOT be queried exactly at a node
         (the barycentric quotient is removable there but not finite for jax)."""
         theta = jnp.asarray(theta)
-        V = jnp.asarray(self.U_nodes)
+        V, nodes, weights = self._jax_consts()
         for k in range(self.d):
-            nodes_k = jnp.asarray(self.nodes[k])
-            t = jnp.asarray(self.weights[k]) / (theta[k] - nodes_k)
+            t = weights[k] / (theta[k] - nodes[k])
             V = jnp.tensordot(t, V, axes=(0, 0)) / jnp.sum(t)
         return V
 
-    # ----- certified evaluation (§5.5) -----
-    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
-                          strict: bool = False):
-        """Barycentric prediction + 1–2 Newton steps → certified ‖R‖≤tol at θ.
-
-        Returns ``(U, info)``; ``info.residual_norm`` is the certified constraint
-        residual at θ, independent of any interpolation error (R7).  ``strict=True``
-        closes the gate: a datum that misses ``tol`` raises
-        :class:`~.certification.CertificationError` instead of being returned."""
-        if self._solve_fn is None:
-            raise RuntimeError("no solve_fn attached; build via ParametricSolverND/from_problem_nd")
-        guess = jnp.asarray(self.evaluate(theta))
-        U, info = self._solve_fn(np.asarray(theta, dtype=float), guess, tol, newton_steps)
-        return certified_return(U, info, theta, tol, strict)
+    # ----- certified evaluation: evaluate_polished from CertifiedEvaluateMixin -----
+    _solve_fn_hint = "build via ParametricSolverND/from_problem_nd"
 
     # ----- persistence (numpy-only .npz; no pickle, no new deps) -----
     def save(self, path, *, meta=None):
@@ -184,9 +189,6 @@ class ParametricSolutionND:
         Na/Nb/Nφ, solver, tol, note, …); ``format_version``/``kind`` are set
         authoritatively.
         """
-        path = str(path)
-        if not path.endswith(".npz"):
-            path += ".npz"
         d = self.d
         arrays = {}
         for k in range(d):
@@ -198,14 +200,8 @@ class ParametricSolutionND:
         arrays["axes"] = np.array([[float(lo), float(hi), float(Q)]
                                    for (lo, hi, Q) in self.axes], dtype=float)
         arrays["field_shape"] = np.asarray(self.field_shape, dtype=np.int64)
-        full_meta = {"d": int(d), "git_commit": _git_commit()}
-        if meta:
-            full_meta.update(meta)
-        full_meta["format_version"] = FORMAT_VERSION      # authoritative
-        full_meta["kind"] = "dense"
-        arrays["meta_json"] = _pack_meta(full_meta)
-        np.savez(path, **arrays)
-        return path
+        return _save_npz(path, arrays, {"d": int(d), "git_commit": _git_commit()},
+                         meta, kind="dense")
 
 
 # --------------------------------------------------------------------------
@@ -319,6 +315,54 @@ def _check_meta(meta: dict, expected_kind: str):
             f"kind mismatch: file is {kind!r} but this loader expects {expected_kind!r}")
 
 
+def _save_npz(path, arrays: dict, base_meta: dict, meta, *, kind: str,
+              late_meta: Optional[dict] = None) -> str:
+    """The one save skeleton behind every ``.save`` in the parametric family.
+
+    Writes ``arrays`` plus a trailing ``meta_json`` blob with ``np.savez`` (no
+    pickle).  The zip entry order follows ``arrays``' insertion order and the
+    JSON key order is ``base_meta`` → caller ``meta`` → ``format_version`` /
+    ``kind`` → ``late_meta`` — the orders are part of the byte-identical
+    round-trip contract, so callers must build ``arrays`` in their historical
+    order (and ``late_meta`` exists only for keys that were historically set
+    after ``kind``).
+    """
+    path = str(path)
+    if not path.endswith(".npz"):
+        path += ".npz"
+    full_meta = dict(base_meta)
+    if meta:
+        full_meta.update(meta)
+    full_meta["format_version"] = FORMAT_VERSION      # authoritative
+    full_meta["kind"] = kind
+    if late_meta:
+        full_meta.update(late_meta)
+    np.savez(path, **arrays, meta_json=_pack_meta(full_meta))
+    return path
+
+
+def _load_model_npz(path, kind: str, build, *, label: Optional[str] = None):
+    """The one load skeleton behind every loader in the parametric family.
+
+    Reads the artifact, checks ``kind``, calls ``build(data, meta)`` to
+    construct the object, and attaches the parsed metadata as ``.meta``.  Any
+    failure inside ``build`` other than an explicit ``ValueError`` is reported
+    as a corrupt-artifact ``ValueError`` naming ``label`` (default: ``kind``).
+    """
+    data = _load_npz(path)
+    meta = _unpack_meta(data)
+    _check_meta(meta, kind)
+    try:
+        obj = build(data, meta)
+    except ValueError:
+        raise
+    except Exception as e:
+        raise ValueError(
+            f"corrupt LM-initial-data {label or kind} surrogate '{path}': {e}")
+    obj.meta = meta
+    return obj
+
+
 def load_parametric(path) -> "ParametricSolutionND":
     """Load a dense :class:`ParametricSolutionND` saved by :meth:`ParametricSolutionND.save`.
 
@@ -327,27 +371,20 @@ def load_parametric(path) -> "ParametricSolutionND":
     attached with :func:`attach_solve_fn_3d`.  The parsed metadata is stored on
     the returned object as ``.meta``.
     """
-    data = _load_npz(path)
-    meta = _unpack_meta(data)
-    _check_meta(meta, "dense")
-    try:
+    def build(data, meta):
         d = int(meta["d"])
         nodes = [np.asarray(data[f"nodes_{k}"], dtype=float) for k in range(d)]
         weights = [np.asarray(data[f"weights_{k}"], dtype=float) for k in range(d)]
         axes = [(float(a[0]), float(a[1]), int(round(float(a[2]))))
                 for a in np.asarray(data["axes"], dtype=float)]
-        U_nodes = np.asarray(data["U_nodes"], dtype=float)
-        iters = np.asarray(data["iters"])
-        residuals = np.asarray(data["residuals"], dtype=float)
-        sol = ParametricSolutionND(axes=axes, nodes=nodes, weights=weights,
-                                   U_nodes=U_nodes, iters=iters, residuals=residuals,
-                                   _solve_fn=None)
-    except ValueError:
-        raise
-    except Exception as e:
-        raise ValueError(f"corrupt LM-initial-data dense surrogate '{path}': {e}")
-    sol.meta = meta
-    return sol
+        return ParametricSolutionND(
+            axes=axes, nodes=nodes, weights=weights,
+            U_nodes=np.asarray(data["U_nodes"], dtype=float),
+            iters=np.asarray(data["iters"]),
+            residuals=np.asarray(data["residuals"], dtype=float),
+            _solve_fn=None)
+
+    return _load_model_npz(path, "dense", build)
 
 
 def attach_solve_fn_3d(sol, prob, axis_names, *, M_tot: float = 1.0, fixed=None,
@@ -384,3 +421,24 @@ def attach_solve_fn_3d(sol, prob, axis_names, *, M_tot: float = 1.0, fixed=None,
                                 retry_tol=retry_tol)
     sol._solve_fn = solve_fn
     return sol
+
+
+def jax_evaluator(model):
+    """The jitted ``θ → field`` evaluator of ``model``, compiled once and cached
+    on the model object.
+
+    Works for every solution container in this package that exposes
+    ``evaluate_jax`` (the dense, Hermite, Smolyak and POD families all have
+    static shapes per model, so one compile serves every subsequent query).  The
+    eager ``evaluate_jax`` dispatches hundreds of small ops per call — on the
+    shipped 4-D POD models that is ~160-200 ms/call where the compiled version is
+    ~0.6-0.7 ms (measured 2026-08-16, one-time compile ~3 s).  XLA fusion may
+    move the result by ulps relative to the eager path (observed ≤6e-16
+    relative); callers that pin bit-for-bit against ``evaluate`` must keep using
+    ``evaluate_jax``.  Same off-node contract as ``evaluate_jax``.
+    """
+    fn = model.__dict__.get("_jax_evaluator")
+    if fn is None:
+        fn = jax.jit(model.evaluate_jax)
+        model.__dict__["_jax_evaluator"] = fn
+    return fn

@@ -125,7 +125,18 @@ def dP2_dtheta_qc(sl: s3.Slice3D, name_i: str, name_j: str,
 # ==========================================================================
 # 2.  First-derivative Bowen–York tensor dÂ over the (A,B,φ) node cloud
 # ==========================================================================
-def _dA_tensor_qc(X: np.ndarray, sl: s3.Slice3D, name: str, M_tot: float) -> np.ndarray:
+def _dA_vecs_qc(sl: s3.Slice3D, name: str, M_tot: float):
+    """The φ-independent derivative vectors behind :func:`_dA_tensor_qc` —
+    ``(dS_A, dS_B, dP_A, dP_B)``.  The PN-momenta Jacobian behind ``dP`` costs
+    ~7 ms per derivation, so the φ-loops hoist this once per (slice, axis)
+    instead of re-deriving it at every φ."""
+    _dPA_dir, _dPB_dir, dSA, dSB = s3d._dvec_dtheta(sl, name)   # spin-vector chain
+    dP_A, dP_B = s3dqc.dP_dtheta_qc(sl, name, M_tot)            # QC momenta chain
+    return dSA, dSB, dP_A, dP_B
+
+
+def _dA_tensor_qc(X: np.ndarray, sl: s3.Slice3D, name: str, M_tot: float,
+                  vecs=None) -> np.ndarray:
     """The full QC first-derivative tensor ``dÂ_{ij} = ∂Â_{ij}/∂θ`` at Cartesian
     points ``X`` (Npts,3) — shape (Npts, 3, 3).
 
@@ -138,8 +149,9 @@ def _dA_tensor_qc(X: np.ndarray, sl: s3.Slice3D, name: str, M_tot: float) -> np.
     """
     xA = np.array([0.0, 0.0, sl.b])
     xB = np.array([0.0, 0.0, -sl.b])
-    _dPA_dir, _dPB_dir, dSA, dSB = s3d._dvec_dtheta(sl, name)   # spin-vector chain
-    dP_A, dP_B = s3dqc.dP_dtheta_qc(sl, name, M_tot)            # QC momenta chain
+    if vecs is None:
+        vecs = _dA_vecs_qc(sl, name, M_tot)
+    dSA, dSB, dP_A, dP_B = vecs
     dT = np.zeros((X.shape[0], 3, 3))
     if np.any(dSA):
         dT = dT + source_3d._spin_tensor_vec(X, xA, dSA)
@@ -153,17 +165,18 @@ def _dA_tensor_qc(X: np.ndarray, sl: s3.Slice3D, name: str, M_tot: float) -> np.
 
 
 def _d2A_tensor_qc(X: np.ndarray, sl: s3.Slice3D, name_i: str, name_j: str,
-                   M_tot: float) -> np.ndarray:
+                   M_tot: float, dP2=None) -> np.ndarray:
     """The QC second-derivative tensor ``d²Â_{ij} = ∂²Â_{ij}/∂θ_i∂θ_j`` at points
     ``X`` (Npts,3) — shape (Npts, 3, 3).
 
     For a pair of spin axes the spin second-derivative vanishes (``S`` is linear
     in its own axis, and ``χ_Ay``/``χ_By`` act on different punctures), so the
     only piece is the momenta ``d²P`` from :func:`dP2_dtheta_qc`; each Bowen–York
-    momentum tensor is linear in ``P`` so ``d²Â`` is the builder on ``d²P``."""
+    momentum tensor is linear in ``P`` so ``d²Â`` is the builder on ``d²P``.
+    ``dP2`` is φ-independent — the φ-loops precompute it once per pair."""
     xA = np.array([0.0, 0.0, sl.b])
     xB = np.array([0.0, 0.0, -sl.b])
-    dP2_A, dP2_B = dP2_dtheta_qc(sl, name_i, name_j, M_tot)
+    dP2_A, dP2_B = dP2_dtheta_qc(sl, name_i, name_j, M_tot) if dP2 is None else dP2
     d2T = np.zeros((X.shape[0], 3, 3))
     if np.any(dP2_A):
         d2T = d2T + source_3d._mom_tensor_vec(X, xA, dP2_A)
@@ -192,13 +205,18 @@ def _source_second_derivs(asm: s3.Assembly3D, phi: np.ndarray, sl: s3.Slice3D,
     A2_i = np.empty((Ntot, Nphi))
     A2_j = np.empty((Ntot, Nphi))
     A2_ij = np.empty((Ntot, Nphi))
+    # the derivative VECTORS are φ-independent (only the node cloud rotates):
+    # hoisting them keeps the per-φ work to the tensor builds and contractions
+    vecs_i = _dA_vecs_qc(sl, name_i, M_tot)
+    vecs_j = _dA_vecs_qc(sl, name_j, M_tot)
+    dP2 = dP2_dtheta_qc(sl, name_i, name_j, M_tot)
     for k in range(Nphi):
         X = np.stack([rho_s * np.cos(phi[k]), rho_s * np.sin(phi[k]), z_s], axis=1)
         T = source_3d.A_full_tensor_vec(X, sl.b, sl.P_A_vec, sl.P_B_vec,
                                         sl.S_A_vec, sl.S_B_vec)
-        dTi = _dA_tensor_qc(X, sl, name_i, M_tot)
-        dTj = _dA_tensor_qc(X, sl, name_j, M_tot)
-        d2Tij = _d2A_tensor_qc(X, sl, name_i, name_j, M_tot)
+        dTi = _dA_tensor_qc(X, sl, name_i, M_tot, vecs=vecs_i)
+        dTj = _dA_tensor_qc(X, sl, name_j, M_tot, vecs=vecs_j)
+        d2Tij = _d2A_tensor_qc(X, sl, name_i, name_j, M_tot, dP2=dP2)
         a2i = 2.0 * np.sum(T * dTi, axis=(1, 2))
         a2j = 2.0 * np.sum(T * dTj, axis=(1, 2))
         a2ij = 2.0 * np.sum(dTi * dTj, axis=(1, 2)) + 2.0 * np.sum(T * d2Tij, axis=(1, 2))

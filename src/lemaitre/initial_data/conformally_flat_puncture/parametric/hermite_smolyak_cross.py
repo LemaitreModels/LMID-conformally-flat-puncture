@@ -55,8 +55,8 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import jax.numpy as jnp
 
-from .parametric_nd import FORMAT_VERSION, _pack_meta, _git_commit
-from .parametric_nd_smolyak import combination_coeffs, _node_key
+from .parametric_nd import _git_commit, _load_model_npz, _save_npz
+from .parametric_nd_smolyak import combination_coeffs, _node_key   # _node_key is sibling API
 from .hermite_nd import HermiteSolutionND
 from .hermite_smolyak import HermiteSmolyakSolutionND, HermiteSmolyakSolverND
 from .hermite import cardinal_deriv_at_nodes, _hermite_bases_np, _hermite_bases_jax
@@ -130,22 +130,29 @@ class HermiteCrossSolutionND(HermiteSolutionND):
         return accV
 
     # ----- JAX-differentiable twin (branchless, off-node) -----
+    def _jax_consts(self):
+        """Parent device cache + the cross tensor (uploaded once per container)."""
+        c = self.__dict__.get("_jax_consts_cross_cache")
+        if c is None:
+            base = super()._jax_consts()
+            cross = jnp.asarray(self.cross_nodes) if len(self.cross_pairs) else None
+            c = base + (cross,)
+            self.__dict__["_jax_consts_cross_cache"] = c
+        return c
+
     def evaluate_jax(self, theta):
         theta = jnp.asarray(theta)
         enh = set(int(e) for e in self.enhanced)
-        accV = jnp.asarray(self.U_nodes)
-        dU = jnp.asarray(self.dU_nodes)
+        accV, dU, nodes, weights, cvec, cross = self._jax_consts()
         accD = {e: jnp.take(dU, e, axis=self.d) for e in enh}
-        cross = jnp.asarray(self.cross_nodes) if len(self.cross_pairs) else None
         accD2 = {tuple(pr): jnp.take(cross, pi, axis=self.d)
                  for pi, pr in enumerate(self.cross_pairs)}
         for k in range(self.d):
-            nodes_k = jnp.asarray(self.nodes[k])
+            nodes_k = nodes[k]
             diff = theta[k] - nodes_k
             if k in enh:
                 h, hh = _hermite_bases_jax(theta[k], nodes_k,
-                                           jnp.asarray(self.weights[k]),
-                                           jnp.asarray(self.cvec[k]))
+                                           weights[k], cvec[k])
                 newV = (jnp.tensordot(h, accV, axes=(0, 0))
                         + jnp.tensordot(hh, accD[k], axes=(0, 0)))
                 newD = {}
@@ -161,7 +168,7 @@ class HermiteCrossSolutionND(HermiteSolutionND):
                          for pr, v in accD2.items() if k not in pr}
                 accV, accD, accD2 = newV, newD, newD2
             else:
-                t = jnp.asarray(self.weights[k]) / diff
+                t = weights[k] / diff
                 s = jnp.sum(t)
                 accV = jnp.tensordot(t, accV, axes=(0, 0)) / s
                 accD = {e: jnp.tensordot(t, accD[e], axes=(0, 0)) / s for e in accD}
@@ -198,35 +205,26 @@ class HermiteSmolyakCrossSolutionND(HermiteSmolyakSolutionND):
         :func:`load_hermite_smolyak_cross`."""
         if self.pool is None:
             raise RuntimeError("no node pool attached; build via the cross builder")
-        path = str(path)
-        if not path.endswith(".npz"):
-            path += ".npz"
         keys = list(self.pool)
-        node_thetas = np.array([self.pool[k][0] for k in keys], dtype=float)
-        node_U = np.array([self.pool[k][1] for k in keys], dtype=float)
-        node_dU = np.array([self.pool[k][2] for k in keys], dtype=float)
-        node_cross = np.array([self.pool[k][3] for k in keys], dtype=float)
-        node_iters = np.array([self.pool[k][4] for k in keys], dtype=np.int64)
-        node_resids = np.array([self.pool[k][5] for k in keys], dtype=float)
-        index_set = np.array([[int(x) for x in l] for l in self.index_set], dtype=np.int64)
-        axes = np.array([[float(lo), float(hi)] for (lo, hi) in self.axes], dtype=float)
-        cross_pairs = np.array([[int(a), int(b)] for (a, b) in self.cross_pairs_global],
-                               dtype=np.int64).reshape(-1, 2)
-        full_meta = {"d": int(self.d), "n_solver_nodes": int(self.n_solver_nodes),
-                     "git_commit": _git_commit()}
-        if meta:
-            full_meta.update(meta)
-        full_meta["format_version"] = FORMAT_VERSION
-        full_meta["kind"] = "hermite_smolyak_cross"
-        np.savez(path,
-                 node_thetas=node_thetas, node_U=node_U, node_dU=node_dU,
-                 node_cross=node_cross, node_iters=node_iters, node_resids=node_resids,
-                 index_set=index_set, axes=axes,
-                 enhanced=np.asarray(sorted(int(e) for e in self.enhanced), dtype=np.int64),
-                 cross_pairs=cross_pairs,
-                 field_shape=np.asarray(self.field_shape, dtype=np.int64),
-                 meta_json=_pack_meta(full_meta))
-        return path
+        arrays = dict(
+            node_thetas=np.array([self.pool[k][0] for k in keys], dtype=float),
+            node_U=np.array([self.pool[k][1] for k in keys], dtype=float),
+            node_dU=np.array([self.pool[k][2] for k in keys], dtype=float),
+            node_cross=np.array([self.pool[k][3] for k in keys], dtype=float),
+            node_iters=np.array([self.pool[k][4] for k in keys], dtype=np.int64),
+            node_resids=np.array([self.pool[k][5] for k in keys], dtype=float),
+            index_set=np.array([[int(x) for x in l] for l in self.index_set],
+                               dtype=np.int64),
+            axes=np.array([[float(lo), float(hi)] for (lo, hi) in self.axes],
+                          dtype=float),
+            enhanced=np.asarray(sorted(int(e) for e in self.enhanced), dtype=np.int64),
+            cross_pairs=np.array([[int(a), int(b)] for (a, b) in self.cross_pairs_global],
+                                 dtype=np.int64).reshape(-1, 2),
+            field_shape=np.asarray(self.field_shape, dtype=np.int64))
+        return _save_npz(path, arrays,
+                         {"d": int(self.d), "n_solver_nodes": int(self.n_solver_nodes),
+                          "git_commit": _git_commit()},
+                         meta, kind="hermite_smolyak_cross")
 
 
 # ==========================================================================
@@ -279,14 +277,12 @@ class HermiteSmolyakCrossSolverND(HermiteSmolyakSolverND):
             iters=iters, residuals=resids, _solve_fn=None,
             cross_nodes=cross_nodes, cross_pairs=tuple(active))
 
-    def _finalize(self, index_set, pool) -> HermiteSmolyakCrossSolutionND:
-        coeffs = combination_coeffs(index_set)
-        kept = sorted(coeffs)
-        subgrids = [self._assemble_subgrid(l, pool) for l in kept]
-        total_iters = int(sum(v[4] for v in pool.values()))    # v = (theta,U,dU,cross,iters,resid)
+    def _make_solution(self, index_set, coeffs, subgrids, pool,
+                       total_iters) -> HermiteSmolyakCrossSolutionND:
+        # pool records here are (theta, U, dU, cross, iters, resid) — iters/resid
+        # still sit last, which is what lets the inherited _finalize sum v[-2].
         return HermiteSmolyakCrossSolutionND(
-            axes=self.axes, index_set=[tuple(l) for l in index_set],
-            coeffs=[coeffs[l] for l in kept], subgrids=subgrids,
+            axes=self.axes, index_set=index_set, coeffs=coeffs, subgrids=subgrids,
             enhanced=self.enhanced, n_solver_nodes=len(pool),
             total_iters=total_iters, _solve_fn=self.solve_fn,
             cross_pairs_global=tuple(_global_pairs(self.enhanced)),
@@ -322,11 +318,7 @@ def load_hermite_smolyak_cross(path) -> HermiteSmolyakCrossSolutionND:
     combination interpolant with **zero solves** (``evaluate``/``evaluate_jax``
     work immediately; ``evaluate_polished`` raises until a solver is attached).
     Parsed metadata is stored on the returned object as ``.meta``."""
-    from .parametric_nd import _load_npz, _unpack_meta, _check_meta
-    data = _load_npz(path)
-    meta = _unpack_meta(data)
-    _check_meta(meta, "hermite_smolyak_cross")
-    try:
+    def build(data, meta):
         node_thetas = np.asarray(data["node_thetas"], dtype=float)
         node_U = np.asarray(data["node_U"], dtype=float)
         node_dU = np.asarray(data["node_dU"], dtype=float)
@@ -343,10 +335,6 @@ def load_hermite_smolyak_cross(path) -> HermiteSmolyakCrossSolutionND:
                          np.asarray(node_dU[i], dtype=float),
                          np.asarray(node_cross[i], dtype=float),
                          int(node_iters[i]), float(node_resids[i]))
-        sol = build_cross_from_pool(axes, index_set, enhanced, pool, solve_fn=None)
-    except ValueError:
-        raise
-    except Exception as e:
-        raise ValueError(f"corrupt LM-initial-data hermite_smolyak_cross surrogate '{path}': {e}")
-    sol.meta = meta
-    return sol
+        return build_cross_from_pool(axes, index_set, enhanced, pool, solve_fn=None)
+
+    return _load_model_npz(path, "hermite_smolyak_cross", build)

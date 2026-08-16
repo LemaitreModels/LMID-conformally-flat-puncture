@@ -34,6 +34,13 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+import jax
+
+jax.config.update("jax_enable_x64", True)
+
+import numpy as np
+import jax.numpy as jnp
+
 # The paper's certification threshold on the *equilibrated* discrete constraint
 # residual.  Chosen as the default `tol` of every `evaluate_polished`, so that
 # `info.converged` means what the paper says it means.  It sits ~1.5 decades
@@ -81,3 +88,40 @@ def certified_return(U, info, theta, tol: float, strict: bool):
         raise CertificationError(theta, info.residual_norm, tol,
                                  getattr(info, "iters", None))
     return U, info
+
+
+class CertifiedEvaluateMixin:
+    """The one ``evaluate_polished`` body every solution container shares.
+
+    A container contributes ``evaluate`` (the guess) and ``_solve_fn`` (the
+    certified Newton solve); this mixin supplies the polish step itself, so the
+    tolerance default, the guess→solve→gate wiring and the NaN-safe comparison
+    exist once rather than nine times.  Two per-class knobs:
+
+    * ``_solve_fn_hint`` — appended to the no-solver error, so the message still
+      names the class's own builder;
+    * ``_solve_theta`` — how θ is passed to ``solve_fn`` (the 1-D containers'
+      solvers take a scalar, the N-D ones a vector).
+    """
+
+    _solve_fn_hint = "attach one via the builder or parametric_nd.attach_solve_fn_3d"
+
+    @staticmethod
+    def _solve_theta(theta):
+        return np.asarray(theta, dtype=float)
+
+    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
+                          strict: bool = False):
+        """Interpolated prediction + 1–2 Newton steps → certified ``‖R‖≤tol`` at θ.
+
+        The interpolant is only a *guess*; the attached ``solve_fn`` →
+        ``newton_solve`` is the certificate.  Returns ``(U, info)`` with
+        ``info.residual_norm`` the certified constraint residual at θ,
+        independent of any interpolation error.  ``strict=True`` closes the
+        gate: a datum that misses ``tol`` raises :class:`CertificationError`
+        instead of being returned."""
+        if self._solve_fn is None:
+            raise RuntimeError(f"no solve_fn attached; {self._solve_fn_hint}")
+        guess = jnp.asarray(self.evaluate(theta))
+        U, info = self._solve_fn(self._solve_theta(theta), guess, tol, newton_steps)
+        return certified_return(U, info, theta, tol, strict)

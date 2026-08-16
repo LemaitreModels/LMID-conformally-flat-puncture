@@ -31,14 +31,16 @@ nfeat) = 11520 = nfeat, i.e. no compression) allocates the same again.
 
     peak RSS ~ 205 GB      runtime ~ 1-2 h      output ~ 340 MB
 
-Request the memory accordingly (``--mem=240G`` on a 256 GB node).
-``--project-rank`` is the escape hatch if that much is unavailable: it projects
-onto the leading ``r`` POD modes instead of all ``r_full`` of them, which drops
-the peak to ~125 GB.  ``pod_basis`` always computes the *same* full SVD and then
-slices ``Phi[:, :r]``, and ``truncate_pod_cross(pod, 250)`` is exactly that same
-slice, so the shipped artifact is numerically the same model (to round-off in the
-projection GEMMs); only the peak allocation differs.  ``r_shipped`` is still
-recorded as the true full rank either way.
+``--project-rank`` bounds that peak and now DEFAULTS to ``--rank`` (halving the
+RSS relative to the historical full-rank projection): it projects onto the
+leading ``r`` POD modes instead of all ``r_full`` of them.  ``pod_basis``
+always computes the *same* full SVD and then slices ``Phi[:, :r]``, and
+``truncate_pod_cross(pod, 250)`` is exactly that same slice, so the shipped
+artifact is numerically the same model (to round-off in the projection GEMMs);
+only the peak allocation differs.  ``r_shipped`` is still recorded as the true
+full rank either way.  Pass an explicit larger ``--project-rank`` to keep more
+modes in the intermediate (the historical behaviour is
+``--project-rank <r_full>``).
 
 One-shot; NO solver, NO off-node sweep (that is a separate figure artifact).
 Reloads the written .npz via ``load_pod_hermite_smolyak_cross`` and asserts
@@ -106,14 +108,13 @@ def main(rank=pm.SHIPPED_RANK[8], project_rank=None):
     nfeat = int(np.prod(mc.field_shape))
     d = mc.d
     npair = len(mc.cross_pairs_global)
-    r_full = (1 + d + npair) * N                          # requested; capped at nfeat by pod_basis
-    r_req = r_full if project_rank is None else int(project_rank)
+    r_req = int(rank) if project_rank is None else int(project_rank)
     print(f"[r250-8d] building cross POD (N={N} nfeat={nfeat} d={d} "
-          f"npair={npair} project_rank={project_rank}) ... ({time.time()-t0:.0f}s)", flush=True)
+          f"npair={npair} project_rank={r_req}) ... ({time.time()-t0:.0f}s)", flush=True)
     pod, diag = build_pod_hermite_smolyak_cross(mc, r=r_req)
     # ``diag['s']`` is the full stacked spectrum, so its length is the true
-    # full rank even when the projection was done at a lower rank.
-    r_full = int(len(diag["s"])) if project_rank is not None else int(pod.r)
+    # full rank even though the projection is done at the shipped rank.
+    r_full = int(len(diag["s"]))
     print(f"[r250-8d] cross POD r={pod.r} r_full={r_full} ({time.time()-t0:.0f}s)", flush=True)
 
     rank = int(min(rank, pod.r))
@@ -141,8 +142,9 @@ if __name__ == "__main__":
     ap.add_argument("--rank", type=int, default=pm.SHIPPED_RANK[8],
                     help="rank of the SHIPPED truncation (the consumer expects 250)")
     ap.add_argument("--project-rank", type=int, default=None,
-                    help="project onto only the leading r POD modes (memory escape "
-                         "hatch; must be >= --rank). Default: the full rank.")
+                    help="project onto only the leading r POD modes (must be >= "
+                         "--rank). Default: --rank, the memory-lean equivalent "
+                         "of the historical full-rank projection.")
     args = ap.parse_args()
     if args.project_rank is not None and args.project_rank < args.rank:
         ap.error("--project-rank must be >= --rank")

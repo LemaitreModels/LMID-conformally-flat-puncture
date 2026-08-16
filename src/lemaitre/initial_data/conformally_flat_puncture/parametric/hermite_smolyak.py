@@ -45,25 +45,27 @@ wiring) ``applications.sensitivity_3d``.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Sequence, Tuple
+from dataclasses import dataclass
+from typing import Callable, Dict, Optional, Sequence, Tuple
 
 import jax
 
 jax.config.update("jax_enable_x64", True)
 
 import numpy as np
-import jax.numpy as jnp
 
-from .parametric_nd import snake_order, FORMAT_VERSION, _pack_meta, _git_commit
-from .certification import CERT_TOL, certified_return   # the residual gate (one place)
-from .parametric_nd_smolyak import (          # committed sparse primitives (verbatim)
-    nested_levels,
-    isotropic_index_set,
-    anisotropic_index_set,
-    combination_coeffs,
+from .parametric_nd import _git_commit, _load_model_npz, _save_npz
+from .parametric_nd_smolyak import (
+    # the two committed sparse bases this module subclasses, plus the sparse
+    # primitives — the primitives are re-exports kept for existing importers
+    SmolyakSolutionND,
+    SmolyakSolverND,
+    nested_levels,                # noqa: F401  (re-export)
+    isotropic_index_set,          # noqa: F401  (re-export)
+    anisotropic_index_set,        # noqa: F401  (re-export)
+    combination_coeffs,           # noqa: F401  (re-export)
     _node_key,
-    _assert_downward_closed,
+    _assert_downward_closed,      # noqa: F401  (re-export)
 )
 from .hermite_nd import HermiteSolutionND     # the H2 gradient-enhanced subgrid
 from .hermite import cardinal_deriv_at_nodes  # node-set cardinal-derivative vector
@@ -73,96 +75,34 @@ from .hermite import cardinal_deriv_at_nodes  # node-set cardinal-derivative vec
 # Sparse gradient-enhanced solution container (combination of Hermite subgrids)
 # --------------------------------------------------------------------------
 @dataclass
-class HermiteSmolyakSolutionND:
+class HermiteSmolyakSolutionND(SmolyakSolutionND):
     """Combination-technique sparse interpolant with Hermite-enhanced subgrids:
     ``Σ_i c_i · subgrid_i.evaluate(θ)`` where each ``subgrid`` is a
     :class:`hermite_nd.HermiteSolutionND` (value-only on the easy axes,
     Hermite-enhanced on the globally-enhanced hard axes that carry ``l_k ≥ 1``).
 
-    Mirrors :class:`parametric_nd_smolyak.SmolyakSolutionND` field-for-field; the
-    only additions are :attr:`enhanced` (the GLOBAL enhanced-axis indices) and the
-    subgrids' stored per-node tangent stacks.
+    Subclasses :class:`parametric_nd_smolyak.SmolyakSolutionND`:
+    ``evaluate``/``evaluate_jax``/``evaluate_polished`` and the pool machinery
+    are inherited **verbatim** (the combination sum is agnostic to what a
+    subgrid stores), so the value-only reduction is bit-for-bit by
+    construction.  The only additions are :attr:`enhanced` (the GLOBAL
+    enhanced-axis indices) and the per-node tangent stack in the pool record.
     """
-    axes: List[Tuple[float, float]]        # [(p_min, p_max), ...] (no Q — levels)
-    index_set: List[tuple]                 # the admissible multi-index set (downward-closed)
-    coeffs: List[int]                      # combination coefficient per kept subgrid
-    subgrids: List[HermiteSolutionND]      # the kept (nonzero-coeff) Hermite subgrids
-    enhanced: Tuple[int, ...]              # GLOBAL Hermite-enhanced axis indices
-    n_solver_nodes: int                    # unique solver calls (sparse-grid node count)
-    total_iters: int                       # total Newton iters over the node pool
-    _solve_fn: Callable = field(repr=False, default=None)
+    #: GLOBAL Hermite-enhanced axis indices.  Dataclass inheritance forces a
+    #: default (the parent's ``_solve_fn`` has one); ``()`` = value-only.
+    enhanced: Tuple[int, ...] = ()
 
-    @property
-    def d(self) -> int:
-        return len(self.axes)
-
-    @property
-    def field_shape(self):
-        return self.subgrids[0].field_shape
-
-    @property
-    def n_nodes(self) -> int:
-        return self.n_solver_nodes
-
-    # ----- combination-technique interpolant (identical signature to Smolyak) -----
-    def evaluate(self, theta):
-        """``U(θ) = Σ_i c_i · subgrid_i.evaluate(θ)``.  ``θ`` is a length-d vector.
-
-        Bit-for-bit :meth:`parametric_nd_smolyak.SmolyakSolutionND.evaluate` when
-        ``enhanced`` is empty (each subgrid then reduces to the barycentric
-        contraction, H3/H2)."""
-        out = None
-        for c, sub in zip(self.coeffs, self.subgrids):
-            v = sub.evaluate(theta)
-            out = c * v if out is None else out + c * v
-        return out
-
-    # ----- JAX-differentiable twin (exposed-gradient hook; not at a node) -----
-    def evaluate_jax(self, theta):
-        out = None
-        for c, sub in zip(self.coeffs, self.subgrids):
-            v = sub.evaluate_jax(theta)
-            out = c * v if out is None else out + c * v
-        return out
-
-    # ----- certified evaluation (the "cannot be silently wrong" gate) -----
-    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
-                          strict: bool = False):
-        """Sparse Hermite prediction + 1–2 Newton steps → certified ‖R‖≤tol at θ.
-
-        Unchanged from the committed path: the sparse Hermite object is only a
-        *guess*; the attached ``solve_fn`` → ``newton_solve`` is the certificate.
-        ``strict=True`` closes the gate: a datum that misses ``tol`` raises
-        :class:`~.certification.CertificationError` instead of being returned."""
-        if self._solve_fn is None:
-            raise RuntimeError("no solve_fn attached; build via HermiteSmolyakSolverND / "
-                               "from_problem_hermite_smolyak_3d")
-        guess = jnp.asarray(self.evaluate(theta))
-        U, info = self._solve_fn(np.asarray(theta, dtype=float), guess, tol, newton_steps)
-        return certified_return(U, info, theta, tol, strict)
+    _solve_fn_hint = ("build via HermiteSmolyakSolverND / "
+                      "from_problem_hermite_smolyak_3d")
 
     # ----- persistence: store the DEDUPLICATED node pool (value + tangent) -----
-    def _dedup_pool(self) -> Dict[tuple, tuple]:
-        """Reconstruct ``key -> (theta, U, dU, iters, resid)`` from the kept subgrids.
-
-        As in the value-only Smolyak, the union of the kept (nonzero-coeff)
-        subgrids' nodes is exactly the solver-node pool (nested CC levels), so the
-        stored artifact is the deduplicated pool (~``n_solver_nodes`` value +
-        ``d`` tangent fields each), not the overlapping per-subgrid tensors."""
-        pool: Dict[tuple, tuple] = {}
-        for sub in self.subgrids:
-            nodes = sub.nodes
-            shape = tuple(len(n) for n in nodes)
-            for idx in np.ndindex(*shape):
-                theta = np.array([nodes[k][idx[k]] for k in range(self.d)], dtype=float)
-                key = _node_key(theta)
-                if key in pool:
-                    continue
-                pool[key] = (theta,
-                             np.asarray(sub.U_nodes[idx], dtype=float),
-                             np.asarray(sub.dU_nodes[idx], dtype=float),   # (d, *field)
-                             int(sub.iters[idx]), float(sub.residuals[idx]))
-        return pool
+    def _pool_record(self, theta, sub, idx) -> tuple:
+        """``(theta, U, dU, iters, resid)`` — the gradient-enhanced pool record
+        (``dU`` is the ``(d, *field)`` certified tangent stack)."""
+        return (theta,
+                np.asarray(sub.U_nodes[idx], dtype=float),
+                np.asarray(sub.dU_nodes[idx], dtype=float),   # (d, *field)
+                int(sub.iters[idx]), float(sub.residuals[idx]))
 
     def save(self, path, *, meta=None):
         """Persist to a single ``.npz`` (numpy-only, no pickle).  Round-trips
@@ -173,44 +113,41 @@ class HermiteSmolyakSolutionND:
         — plus ``index_set`` (M×d), ``axes`` (d×2), ``enhanced`` (global indices),
         ``field_shape``, and ``meta_json``.  The combination coefficients are
         recomputed on load (``combination_coeffs``)."""
-        path = str(path)
-        if not path.endswith(".npz"):
-            path += ".npz"
         pool = self._dedup_pool()
         keys = list(pool)
-        node_thetas = np.array([pool[k][0] for k in keys], dtype=float)     # N×d
-        node_U = np.array([pool[k][1] for k in keys], dtype=float)          # N×*fs
-        node_dU = np.array([pool[k][2] for k in keys], dtype=float)         # N×d×*fs
-        node_iters = np.array([pool[k][3] for k in keys], dtype=np.int64)   # N
-        node_resids = np.array([pool[k][4] for k in keys], dtype=float)     # N
-        index_set = np.array([[int(x) for x in l] for l in self.index_set], dtype=np.int64)
-        axes = np.array([[float(lo), float(hi)] for (lo, hi) in self.axes], dtype=float)
-        full_meta = {"d": int(self.d), "n_solver_nodes": int(self.n_solver_nodes),
-                     "git_commit": _git_commit()}
-        if meta:
-            full_meta.update(meta)
-        full_meta["format_version"] = FORMAT_VERSION      # authoritative
-        full_meta["kind"] = "hermite_smolyak"
-        np.savez(path,
-                 node_thetas=node_thetas, node_U=node_U, node_dU=node_dU,
-                 node_iters=node_iters, node_resids=node_resids,
-                 index_set=index_set, axes=axes,
-                 enhanced=np.asarray(sorted(int(e) for e in self.enhanced), dtype=np.int64),
-                 field_shape=np.asarray(self.field_shape, dtype=np.int64),
-                 meta_json=_pack_meta(full_meta))
-        return path
+        arrays = dict(
+            node_thetas=np.array([pool[k][0] for k in keys], dtype=float),     # N×d
+            node_U=np.array([pool[k][1] for k in keys], dtype=float),          # N×*fs
+            node_dU=np.array([pool[k][2] for k in keys], dtype=float),         # N×d×*fs
+            node_iters=np.array([pool[k][3] for k in keys], dtype=np.int64),   # N
+            node_resids=np.array([pool[k][4] for k in keys], dtype=float),     # N
+            index_set=np.array([[int(x) for x in l] for l in self.index_set],
+                               dtype=np.int64),
+            axes=np.array([[float(lo), float(hi)] for (lo, hi) in self.axes],
+                          dtype=float),
+            enhanced=np.asarray(sorted(int(e) for e in self.enhanced), dtype=np.int64),
+            field_shape=np.asarray(self.field_shape, dtype=np.int64))
+        return _save_npz(path, arrays,
+                         {"d": int(self.d), "n_solver_nodes": int(self.n_solver_nodes),
+                          "git_commit": _git_commit()},
+                         meta, kind="hermite_smolyak")
 
 
 # --------------------------------------------------------------------------
 # Builder: solve the shared node pool once (value + tangent), assemble subgrids
 # --------------------------------------------------------------------------
-class HermiteSmolyakSolverND:
+class HermiteSmolyakSolverND(SmolyakSolverND):
     """Drives the sparse-grid continuation sweep and builds the gradient-enhanced
     combination interpolant.
 
-    Mirrors :class:`parametric_nd_smolyak.SmolyakSolverND`; the differences are the
-    node pool storing the tangent stack (needs a ``tangent_fn``) and the subgrids
-    being :class:`hermite_nd.HermiteSolutionND` (enhanced per the level-0 rule).
+    Subclasses :class:`parametric_nd_smolyak.SmolyakSolverND`: the node march
+    (``_solve_pool``), the nested-level plumbing and the public builders
+    (``build_isotropic``/``build_anisotropic``/``build_from_index_set``) are
+    inherited **verbatim**; the overrides are the pool record (the tangent stack
+    joins the value, :meth:`_node_record`) and the subgrid/solution assembly
+    (:class:`hermite_nd.HermiteSolutionND` subgrids, enhanced per the level-0
+    rule).  The adaptive greedy stays value-only — its surplus indicator scores
+    plain field values, so :meth:`build_adaptive` raises here.
 
     Parameters
     ----------
@@ -224,62 +161,39 @@ class HermiteSmolyakSolverND:
         value-only, reduces bit-for-bit to ``SmolyakSolverND``'s output).
     """
 
+    _log_tag = "hermite-smolyak"
+
     def __init__(self, solve_fn: Callable, axes: Sequence[Tuple[float, float]],
                  tangent_fn: Optional[Callable] = None,
                  enhanced_axes: Sequence[int] = ()):
-        self.solve_fn = solve_fn
-        self.axes = [tuple(a) for a in axes]
-        self.d = len(self.axes)
+        super().__init__(solve_fn, axes)
         self.tangent_fn = tangent_fn
         self.enhanced = tuple(sorted(int(e) for e in enhanced_axes))
-
-    # ----- nested per-axis nodes/weights for one multi-index -----
-    def _subgrid_nodes(self, l: Sequence[int]):
-        nodes, weights = [], []
-        for k, (lo, hi) in enumerate(self.axes):
-            n, w = nested_levels(lo, hi, int(l[k]))
-            nodes.append(n)
-            weights.append(w)
-        return nodes, weights
 
     # ----- the level-0 decision: enhance axis k in subgrid l iff l_k >= 1 -----
     def _subgrid_enhanced(self, l: Sequence[int]) -> Tuple[int, ...]:
         return tuple(k for k in self.enhanced if int(l[k]) >= 1)
 
-    # ----- solve every UNIQUE node of a set of subgrids, warm-started -----
-    def _solve_pool(self, index_set, tol, max_iter, pool=None, guess0=None, verbose=False):
-        """Solve each unique node across the subgrids in ``index_set`` exactly once,
-        storing ``key -> (U, dU, iters, resid)`` (``dU`` = the ``(d,*field)``
-        certified tangent stack from ``tangent_fn``).
+    # ----- pool record: the tangent stack joins the value -----
+    def _node_record(self, theta, Ua, info) -> tuple:
+        """``(U, dU, iters, resid)`` — ``dU`` the ``(d, *field)`` certified
+        tangent stack from ``tangent_fn``, computed once per unique node (shared
+        nodes are the nesting payoff)."""
+        if self.tangent_fn is not None:
+            dU = np.asarray(self.tangent_fn(theta, Ua))          # (d, *field)
+            if dU.shape != (self.d,) + Ua.shape:
+                raise ValueError(
+                    f"tangent_fn returned {dU.shape}; expected "
+                    f"{(self.d,) + Ua.shape}")
+        else:
+            dU = np.zeros((self.d,) + Ua.shape)
+        return (Ua, dU, int(info.iters), float(info.residual_norm))
 
-        Coarse→fine (by ``|l|₁``), snake-march within each subgrid; shared nodes
-        (the nesting payoff) are solved once and their tangent computed once."""
-        pool = {} if pool is None else pool
-        guess = guess0
-        for l in sorted(index_set, key=lambda t: sum(t)):
-            nodes, _ = self._subgrid_nodes(l)
-            shape = tuple(len(n) for n in nodes)
-            for idx in snake_order(shape):
-                theta = np.array([nodes[k][idx[k]] for k in range(self.d)], dtype=float)
-                key = _node_key(theta)
-                if key in pool:
-                    guess = jnp.asarray(pool[key][0])
-                    continue
-                U, info = self.solve_fn(theta, guess, tol, max_iter)
-                Ua = np.asarray(U)
-                if self.tangent_fn is not None:
-                    dU = np.asarray(self.tangent_fn(theta, Ua))          # (d, *field)
-                    if dU.shape != (self.d,) + Ua.shape:
-                        raise ValueError(
-                            f"tangent_fn returned {dU.shape}; expected "
-                            f"{(self.d,) + Ua.shape}")
-                else:
-                    dU = np.zeros((self.d,) + Ua.shape)
-                pool[key] = (Ua, dU, int(info.iters), float(info.residual_norm))
-                guess = jnp.asarray(Ua)
-        if verbose:
-            print(f"[hermite-smolyak] pool: {len(pool)} unique nodes")
-        return pool
+    def build_adaptive(self, *args, **kwargs):
+        raise NotImplementedError(
+            "the dimension-adaptive greedy is value-only (its surplus indicator "
+            "stores value records); build the value model adaptively with "
+            "SmolyakSolverND, then re-solve its index set here with tangents")
 
     # ----- assemble one subgrid's HermiteSolutionND from the solved pool -----
     def _assemble_subgrid(self, l, pool) -> HermiteSolutionND:
@@ -305,42 +219,12 @@ class HermiteSmolyakSolverND:
             iters=iters, residuals=resids, _solve_fn=None)
 
     # ----- assemble the combination interpolant from a set + a solved pool -----
-    def _finalize(self, index_set, pool) -> HermiteSmolyakSolutionND:
-        coeffs = combination_coeffs(index_set)
-        kept = sorted(coeffs)                          # deterministic order
-        subgrids = [self._assemble_subgrid(l, pool) for l in kept]
-        total_iters = int(sum(v[2] for v in pool.values()))
+    def _make_solution(self, index_set, coeffs, subgrids, pool,
+                       total_iters) -> HermiteSmolyakSolutionND:
         return HermiteSmolyakSolutionND(
-            axes=self.axes, index_set=[tuple(l) for l in index_set],
-            coeffs=[coeffs[l] for l in kept], subgrids=subgrids,
+            axes=self.axes, index_set=index_set, coeffs=coeffs, subgrids=subgrids,
             enhanced=self.enhanced, n_solver_nodes=len(pool),
             total_iters=total_iters, _solve_fn=self.solve_fn)
-
-    # ----- public builders -----------------------------------------------
-    def build_isotropic(self, level: int, tol: float = 1e-12, max_iter: int = 20,
-                         verbose: bool = False) -> HermiteSmolyakSolutionND:
-        """Classic isotropic Smolyak at total level ``level`` (``|l|₁ ≤ level``);
-        the unique-node count is ``parametric_nd_2c.smolyak_points(d, level)``."""
-        index_set = isotropic_index_set(self.d, level)
-        pool = self._solve_pool(index_set, tol, max_iter, verbose=verbose)
-        return self._finalize(index_set, pool)
-
-    def build_anisotropic(self, level: float, weights: Optional[Sequence[float]] = None,
-                          caps: Optional[Sequence[int]] = None, tol: float = 1e-12,
-                          max_iter: int = 20, verbose: bool = False) -> HermiteSmolyakSolutionND:
-        """Weighted-simplex sparse grid ``Σ_k w_k l_k ≤ level`` (optional per-axis
-        ``caps``) — the cheap static way to spend levels on the hard axes."""
-        index_set = anisotropic_index_set(self.d, level, weights=weights, caps=caps)
-        pool = self._solve_pool(index_set, tol, max_iter, verbose=verbose)
-        return self._finalize(index_set, pool)
-
-    def build_from_index_set(self, index_set: Sequence[tuple], tol: float = 1e-12,
-                             max_iter: int = 20, verbose: bool = False) -> HermiteSmolyakSolutionND:
-        """Build from an arbitrary **downward-closed** multi-index set (escape hatch)."""
-        index_set = [tuple(int(x) for x in l) for l in index_set]
-        _assert_downward_closed(index_set)
-        pool = self._solve_pool(index_set, tol, max_iter, verbose=verbose)
-        return self._finalize(index_set, pool)
 
 
 # --------------------------------------------------------------------------
@@ -404,10 +288,21 @@ def from_problem_hermite_smolyak_3d(prob, axes: Sequence[dict], enhanced: Sequen
         def tangent_fn(theta_vec, U):
             """Full per-axis certified tangent stack ``(d, *field)`` at ``(θ, U)``.
 
-            One ``s3.assemble`` is shared across the ``d`` axes (the geometry is
-            common at a node); each ``certified_tangent_3d`` back-solves against it."""
+            One assembly is shared across the ``d`` axes (the geometry is common
+            at a node) — and, when the solve at this θ just ran, it is the
+            solve's OWN assembly (``make_solve_fn`` exposes it as
+            ``solve_fn.last_asm``): a bare re-assembly per node used to cost
+            more than the tangent solves themselves over a large corpus.  The
+            tangent solve handles either representation (``_tangent_solve_nk``
+            reads ``asm.sep`` when present)."""
             sl = theta_to_slice3d(theta_vec, active_names, M_tot, fixed)
-            asm = s3.assemble(prob, sl)                    # shared node assembly
+            key = tuple(float(x) for x in np.asarray(theta_vec).ravel())
+            last = getattr(solve_fn, "last_asm", None)
+            asm = last[1] if (last is not None and last[0] == key) else None
+            if asm is not None and tangent_jac != "nk" and asm.M0 is None:
+                asm = None      # the modified route needs the dense per-m blocks
+            if asm is None:
+                asm = s3.assemble(prob, sl)                # cold path (no solve ran)
             stack = [np.asarray(s3d.certified_tangent_3d(prob, U, sl, name, M_tot,
                                                          asm=asm, jac=tangent_jac))
                      for name in active_names]
@@ -430,11 +325,7 @@ def load_hermite_smolyak(path) -> HermiteSmolyakSolutionND:
     ``evaluate_jax`` work immediately; ``evaluate_polished`` raises until a solver
     is attached.  Parsed metadata is stored on the returned object as ``.meta``.
     """
-    from .parametric_nd import _load_npz, _unpack_meta, _check_meta
-    data = _load_npz(path)
-    meta = _unpack_meta(data)
-    _check_meta(meta, "hermite_smolyak")
-    try:
+    def build(data, meta):
         node_thetas = np.asarray(data["node_thetas"], dtype=float)     # N×d
         node_U = np.asarray(data["node_U"], dtype=float)               # N×*fs
         node_dU = np.asarray(data["node_dU"], dtype=float)             # N×d×*fs
@@ -451,10 +342,6 @@ def load_hermite_smolyak(path) -> HermiteSmolyakSolutionND:
                          int(node_iters[i]), float(node_resids[i]))
         solver = HermiteSmolyakSolverND(solve_fn=None, axes=axes, tangent_fn=None,
                                         enhanced_axes=enhanced)
-        sol = solver._finalize(index_set, pool)      # combination coeffs recomputed
-    except ValueError:
-        raise
-    except Exception as e:
-        raise ValueError(f"corrupt LM-initial-data hermite_smolyak surrogate '{path}': {e}")
-    sol.meta = meta
-    return sol
+        return solver._finalize(index_set, pool)     # combination coeffs recomputed
+
+    return _load_model_npz(path, "hermite_smolyak", build)

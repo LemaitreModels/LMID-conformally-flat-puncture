@@ -110,16 +110,13 @@ import numpy as np
 import jax.numpy as jnp
 
 from .parametric_nd import (              # persistence helpers, reused verbatim
-    FORMAT_VERSION,
-    _pack_meta,
-    _unpack_meta,
     _git_commit,
-    _load_npz,
-    _check_meta,
+    _load_model_npz,
+    _save_npz,
 )
 from .hermite import cardinal_deriv_at_nodes           # node-set primitive (verbatim)
 from .hermite_nd import HermiteSolutionND               # the H2 interpolant (verbatim)
-from .certification import CERT_TOL, certified_return   # the residual gate (one place)
+from .certification import CertifiedEvaluateMixin   # the residual gate (one place)
 
 
 # --------------------------------------------------------------------------
@@ -183,7 +180,8 @@ def _flatten_corpus(her: HermiteSolutionND):
 
 def pod_basis(her: HermiteSolutionND, *, r: Optional[int] = None,
               tail: Optional[float] = None, include_derivatives: bool = True,
-              randomized: bool = False, seed: int = 0):
+              randomized: bool = False, seed: int = 0,
+              value_diagnostics: bool = True):
     """POD spatial modes ``Φ`` from the **stacked value+derivative** corpus of a
     :class:`hermite_nd.HermiteSolutionND`.
 
@@ -195,25 +193,28 @@ def pod_basis(her: HermiteSolutionND, *, r: Optional[int] = None,
     rank — the R5 storage mitigation.
 
     Returns ``(Phi, mean, diag)`` where ``Phi`` is ``(nfeat, r)``, ``mean`` is
-    ``(nfeat,)`` and ``diag`` is a dict of diagnostics: the stacked and value-only
-    singular values (``s``, ``s_value``), the ranks at standard tails
-    (``rank_stacked``, ``rank_value``), and the relative projection residual of the
+    ``(nfeat,)`` and ``diag`` is a dict of diagnostics: the stacked singular
+    values (``s``) and rank table (``rank_stacked``), plus — with
+    ``value_diagnostics=True`` (the default) — a SECOND, value-only SVD
+    (``s_value``/``rank_value``) and the relative projection residual of the
     derivative fields onto the value-only rank-``r`` basis
-    (``dU_on_value_basis_resid`` — the "derivatives share the value basis" number).
+    (``dU_on_value_basis_resid`` — the "derivatives share the value basis"
+    number).  That second SVD is pure diagnostics and costs as much as the
+    shipped one; pass ``value_diagnostics=False`` on memory-bound builds (the
+    8-D array builder OOM'd with it on).
+
+    ``randomized=True`` uses the Halko range finder; with an explicit ``r`` it
+    requests only ``r`` (+oversampling) modes — the point of the randomized
+    route.  Rank selection by ``tail`` needs the full spectrum, so with
+    ``r=None`` the randomized route still computes every mode (prefer the exact
+    ``gesdd`` there; the tail rule is how ``run_pod``-style drivers select rank).
 
     Exactly one of ``r`` / ``tail`` selects the kept rank (``tail`` default 1e-6).
     """
     X, D_list, N, nfeat, field_shape = _flatten_corpus(her)
     mean = X.mean(axis=0)
     Xc = X - mean
-
-    # value-only basis (for the "rank barely grows" diagnostic)
     Av = Xc.T                                             # (nfeat, N)
-    if randomized:
-        nm = min(max(N, 1), nfeat)
-        Phi_v, s_v, _ = randomized_svd(Av, min(nm, N), seed=seed)
-    else:
-        Phi_v, s_v, _ = np.linalg.svd(Av, full_matrices=False)
 
     # stacked value+derivative basis (the shipped modes)
     cols = [Av]
@@ -221,7 +222,7 @@ def pod_basis(her: HermiteSolutionND, *, r: Optional[int] = None,
         cols += [De.T for De in D_list]
     A = np.hstack(cols) if len(cols) > 1 else Av          # (nfeat, N*(1+n_enh))
     if randomized:
-        nm = min(A.shape[1], nfeat)
+        nm = min(A.shape[1], nfeat) if r is None else min(int(r), A.shape[1], nfeat)
         Phi, s, _ = randomized_svd(A, nm, seed=seed)
     else:
         Phi, s, _ = np.linalg.svd(A, full_matrices=False)
@@ -235,22 +236,30 @@ def pod_basis(her: HermiteSolutionND, *, r: Optional[int] = None,
 
     # diagnostics
     diag = {
-        "s": s, "s_value": s_v,
+        "s": s,
         "rank_stacked": {t: rank_for_tail(s, t) for t in (1e-3, 1e-4, 1e-6, 1e-8)},
-        "rank_value": {t: rank_for_tail(s_v, t) for t in (1e-3, 1e-4, 1e-6, 1e-8)},
         "r": r, "N": N, "nfeat": nfeat, "n_enhanced": len(D_list),
     }
-    # projection residual of dU onto the value-only rank-r basis (share-the-basis)
-    if D_list:
-        Pv = Phi_v[:, :min(r, Phi_v.shape[1])]
-        resid = []
-        for De in D_list:
-            Dt = De.T
-            proj = Pv @ (Pv.T @ Dt)
-            num = np.linalg.norm(Dt - proj)
-            den = np.linalg.norm(Dt)
-            resid.append(float(num / den) if den else 0.0)
-        diag["dU_on_value_basis_resid"] = resid
+    if value_diagnostics:
+        # value-only basis (for the "rank barely grows" diagnostic)
+        if randomized:
+            nm = min(max(N, 1), nfeat)
+            Phi_v, s_v, _ = randomized_svd(Av, min(nm, N), seed=seed)
+        else:
+            Phi_v, s_v, _ = np.linalg.svd(Av, full_matrices=False)
+        diag["s_value"] = s_v
+        diag["rank_value"] = {t: rank_for_tail(s_v, t) for t in (1e-3, 1e-4, 1e-6, 1e-8)}
+        # projection residual of dU onto the value-only rank-r basis (share-the-basis)
+        if D_list:
+            Pv = Phi_v[:, :min(r, Phi_v.shape[1])]
+            resid = []
+            for De in D_list:
+                Dt = De.T
+                proj = Pv @ (Pv.T @ Dt)
+                num = np.linalg.norm(Dt - proj)
+                den = np.linalg.norm(Dt)
+                resid.append(float(num / den) if den else 0.0)
+            diag["dU_on_value_basis_resid"] = resid
     return Phi_r, mean, diag
 
 
@@ -258,7 +267,7 @@ def pod_basis(her: HermiteSolutionND, *, r: Optional[int] = None,
 # The POD (reduced-basis) gradient-enhanced Hermite surrogate
 # --------------------------------------------------------------------------
 @dataclass
-class PODHermiteND:
+class PODHermiteND(CertifiedEvaluateMixin):
     """Reduced-basis (POD) re-encoding of a :class:`hermite_nd.HermiteSolutionND`.
 
     Interpolates the length-``r`` POD **coefficient** vectors (value + one per
@@ -323,22 +332,9 @@ class PODHermiteND:
         u = self._mean_j + self._Phi_j @ c
         return jnp.reshape(u, self.field_shape)
 
-    # ----- certified evaluation (unchanged; decode → committed solve_fn) -----
-    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
-                          strict: bool = False):
-        """POD-decoded Hermite guess + 1–2 Newton steps → certified ``‖R‖≤tol``.
-
-        Certification is unchanged: the compressed object is only a *guess*; the
-        attached ``solve_fn`` → ``newton_solve`` is the certificate.  ``strict=True``
-        closes the gate: a datum that misses ``tol`` raises
-        :class:`~.certification.CertificationError` instead of being returned."""
-        if self._solve_fn is None:
-            raise RuntimeError(
-                "no solve_fn attached; build via project_hermite_pod with a solver-backed "
-                "HermiteSolutionND, or reattach a solve_fn")
-        guess = jnp.asarray(self.evaluate(theta))
-        U, info = self._solve_fn(np.asarray(theta, dtype=float), guess, tol, newton_steps)
-        return certified_return(U, info, theta, tol, strict)
+    # ----- certified evaluation: evaluate_polished from CertifiedEvaluateMixin -----
+    _solve_fn_hint = ("build via project_hermite_pod with a solver-backed "
+                      "HermiteSolutionND, or reattach a solve_fn")
 
     # ----- persistence (numpy-only .npz) -----
     def save(self, path, *, meta=None, coeff_dtype=np.float64, mode_dtype=np.float64):
@@ -351,9 +347,6 @@ class PODHermiteND:
         upcasts to float64, so ``evaluate`` still runs in float64).  Defaults
         preserve the float64 artifact byte-for-byte.
         """
-        path = str(path)
-        if not path.endswith(".npz"):
-            path += ".npz"
         ch = self.coeff_hermite
         d = ch.d
         arrays = {}
@@ -372,14 +365,9 @@ class PODHermiteND:
         arrays["enhanced"] = np.asarray(sorted(int(e) for e in ch.enhanced), dtype=np.int64)
         arrays["field_shape"] = np.asarray(self.field_shape, dtype=np.int64)
         arrays["r"] = np.asarray(self.r, dtype=np.int64)
-        full_meta = {"d": int(d), "r": int(self.r), "git_commit": _git_commit()}
-        if meta:
-            full_meta.update(meta)
-        full_meta["format_version"] = FORMAT_VERSION
-        full_meta["kind"] = "pod_hermite_nd"
-        arrays["meta_json"] = _pack_meta(full_meta)
-        np.savez(path, **arrays)
-        return path
+        return _save_npz(path, arrays,
+                         {"d": int(d), "r": int(self.r), "git_commit": _git_commit()},
+                         meta, kind="pod_hermite_nd")
 
 
 def project_hermite_pod(her: HermiteSolutionND, Phi: np.ndarray, mean: np.ndarray,
@@ -442,10 +430,7 @@ def load_pod_hermite_nd(path) -> "PODHermiteND":
     immediately; ``evaluate_polished`` raises until a solver is attached).  Parsed
     metadata is stored on the returned object as ``.meta``.
     """
-    data = _load_npz(path)
-    meta = _unpack_meta(data)
-    _check_meta(meta, "pod_hermite_nd")
-    try:
+    def build(data, meta):
         d = int(meta["d"])
         nodes = [np.asarray(data[f"nodes_{k}"], dtype=float) for k in range(d)]
         weights = [np.asarray(data[f"weights_{k}"], dtype=float) for k in range(d)]
@@ -453,24 +438,20 @@ def load_pod_hermite_nd(path) -> "PODHermiteND":
         axes = [(float(a[0]), float(a[1]), int(round(float(a[2]))))
                 for a in np.asarray(data["axes"], dtype=float)]
         enhanced = tuple(int(e) for e in np.asarray(data["enhanced"], dtype=np.int64))
-        U_coeff = np.asarray(data["U_coeff"], dtype=float)
-        dU_coeff = np.asarray(data["dU_coeff"], dtype=float)
-        Phi = np.asarray(data["Phi"], dtype=float)
-        mean = np.asarray(data["mean"], dtype=float)
-        iters = np.asarray(data["iters"])
-        residuals = np.asarray(data["residuals"], dtype=float)
         field_shape = tuple(int(x) for x in np.asarray(data["field_shape"], dtype=np.int64))
         coeff_hermite = HermiteSolutionND(
-            axes=axes, nodes=nodes, weights=weights, U_nodes=U_coeff, dU_nodes=dU_coeff,
-            cvec=cvec, enhanced=enhanced, iters=iters, residuals=residuals, _solve_fn=None)
-        pod = PODHermiteND(coeff_hermite=coeff_hermite, Phi=Phi, mean=mean,
-                           field_shape=field_shape, _solve_fn=None)
-    except ValueError:
-        raise
-    except Exception as e:
-        raise ValueError(f"corrupt LM-initial-data pod_hermite_nd surrogate '{path}': {e}")
-    pod.meta = meta
-    return pod
+            axes=axes, nodes=nodes, weights=weights,
+            U_nodes=np.asarray(data["U_coeff"], dtype=float),
+            dU_nodes=np.asarray(data["dU_coeff"], dtype=float),
+            cvec=cvec, enhanced=enhanced,
+            iters=np.asarray(data["iters"]),
+            residuals=np.asarray(data["residuals"], dtype=float), _solve_fn=None)
+        return PODHermiteND(coeff_hermite=coeff_hermite,
+                            Phi=np.asarray(data["Phi"], dtype=float),
+                            mean=np.asarray(data["mean"], dtype=float),
+                            field_shape=field_shape, _solve_fn=None)
+
+    return _load_model_npz(path, "pod_hermite_nd", build)
 
 
 # --------------------------------------------------------------------------

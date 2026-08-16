@@ -314,6 +314,14 @@ def make_solve_fn(prob: Problem3D, active_names: Sequence[str], M_tot: float = 1
         if solver == "nk":
             sep = s3nk.choose_separable(prob, separable)
             asm = assemble_cached_3d(prob, sl, cache, separable=sep) if use_cache else None
+            if asm is not None:
+                # Expose the assembly of the LAST solve so a per-node tangent_fn
+                # can reuse it instead of re-assembling from scratch at the same
+                # θ (a dense re-assembly per corpus node is hour-scale waste on
+                # an 8-D build).  One entry only — the builders compute the
+                # tangent immediately after the solve at the same point.
+                solve_fn.last_asm = (tuple(float(x) for x in np.asarray(theta).ravel()),
+                                     asm)
             U, info = s3nk.newton_solve_nk(prob, sl, U0=guess, tol=tol,
                                            max_iter=int(max_iter) + 1, asm=asm,
                                            gmres_rtol=gmres_rtol, separable=separable)

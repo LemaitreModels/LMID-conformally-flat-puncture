@@ -200,6 +200,27 @@ def build_F_jax(model, prob, target_names, M_tot=1.0):
     return F_jax
 
 
+def _jacF_jit(model, prob, target_names):
+    """Cached ``jit(jacfwd(F_jax))`` per ``(model, prob, target set)``.
+
+    ``jacfwd`` of the eager surrogate re-traces the whole subgrid evaluation loop
+    on every Gauss–Newton step (~1 s/call on the shipped 4-D models); compiled it
+    is ~5 ms/call (measured 2026-08-16), and the compile is reused across every
+    target of a sweep — ``run_qc_targeting`` calls :func:`gauss_newton_target`
+    hundreds of times on one model.  XLA fusion may move the Jacobian by ulps
+    relative to the eager trace.  Cached on the model object; the ``prob``
+    identity is re-checked so a stale grid can never serve a hit.
+    """
+    cache = model.__dict__.setdefault("_qc_jacF_jit", {})
+    key = (id(prob),) + tuple(target_names)
+    hit = cache.get(key)
+    if hit is not None and hit[0] is prob:
+        return hit[1]
+    Jf = jax.jit(jax.jacfwd(build_F_jax(model, prob, list(target_names), M_tot=1.0)))
+    cache[key] = (prob, Jf)
+    return Jf
+
+
 # ==========================================================================
 # Counters
 # ==========================================================================
@@ -390,8 +411,7 @@ def gauss_newton_target(model, prob, target, theta0, target_names, box, *,
     t0 = time.perf_counter()
     target = np.asarray(target, float)
     active = list(active)
-    F_jax = build_F_jax(model, prob, target_names, M_tot=1.0)
-    Jf = jax.jacfwd(F_jax)
+    Jf = _jacF_jit(model, prob, tuple(target_names))
     lo, hi = box[0], box[1]
     node_sets = _cc_node_superset(box)
 
