@@ -156,10 +156,11 @@ def assemble(prob: Problem3D, sl: Slice3D, separable: bool = False) -> Assembly3
         from . import separable as sepmod
         sep = sepmod.get_separable(prob.Na, prob.Nb, prob.Nphi)
         M0_list = None
-        w_list = [ops3.bc_factor(Bf, int(m))[0] for m in prob.m_vals]
-        interior = np.ones(prob.Ntot2d, dtype=bool)
-        interior[:prob.B.size] = False                 # A=1 (infinity) BC rows
-        interior[-prob.B.size:] = False                # A=0 (inner axis) BC rows
+        # grid-only, so carried by the SeparableModes (shared, read-only) rather
+        # than rebuilt per slice; only the row scales depend on b, and those are
+        # memoized per separation inside ``sep``.
+        w_list = sep.w_nodes
+        interior = sep.interior
         scales = sep.row_scales(sl.b)
     else:
         # per-m FACTORED operators (acting on v_m = u_m / w; spectral odd-m) + BC

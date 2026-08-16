@@ -258,6 +258,24 @@ class SeparableModes:
             self.C_B.append(C_B)
             self.W.append(W)
             self.fdm.append(_FastDiagonalization(L_A, C_B, W, DA1, int(m), self.pref1))
+
+        # Grid-only pieces of a separable ASSEMBLY, shared by every slice built
+        # on this grid: the per-mode node-array B-factor (u_m = w · v_m, the same
+        # values the dense route's mode_operators returns) and the PDE-row mask.
+        # ``solver_3d.assemble(separable=True)`` was rebuilding both per slice
+        # although neither depends on b, θ or the iterate.  Read-only because the
+        # arrays are shared across assemblies.
+        Bf = np.meshgrid(A, B, indexing="ij")[1].ravel()
+        self.w_nodes = []
+        for m in self.m_vals:
+            w = ops3.bc_factor(Bf, int(m))[0]
+            w.setflags(write=False)
+            self.w_nodes.append(w)
+        interior = np.ones(self.Na1 * self.Nb1, dtype=bool)
+        interior[:self.Nb1] = False                 # A=1 (infinity) BC rows
+        interior[-self.Nb1:] = False                # A=0 (inner axis) BC rows
+        interior.setflags(write=False)
+        self.interior = interior
         # small per-separation memos; the objects are O(Na·Nb), not O((Na·Nb)²),
         # but a sweep visits many separations so they are bounded rather than open
         self._scales = collections.OrderedDict()

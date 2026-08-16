@@ -319,6 +319,15 @@ _BLOCK_CACHE = collections.OrderedDict()
 _BLOCK_CACHE_MAX = 2      # each entry is Nm dense (Na·Nb)² blocks — 79 MiB at (44,32,8)
 
 
+# The canonical grid per (Na, Nb), for the identity check below.  build_grid is
+# deterministic, so memoizing it changes no comparison; without the memo the
+# check cost ~0.7 ms per CACHE HIT — almost the entire hit cost — because it
+# rebuilt the Chebyshev/GL nodes and differentiation matrices every time.
+# Entries are O(Na²+Nb²) floats (~25 KiB at the production grid), so this is
+# not bounded the way the 79-MiB block cache is.
+_CANON_GRID_MEMO: dict = {}
+
+
 def _canonical_grid(A, B, DA1, DB1):
     """True if this is the grid ``operators_abt.build_grid`` builds for its size.
 
@@ -326,7 +335,12 @@ def _canonical_grid(A, B, DA1, DB1):
     1-D grid is the canonical one for that size.  A caller experimenting with a
     hand-built grid gets a fresh, uncached build rather than someone else's nodes.
     """
-    Ac, Bc, DA1c, DB1c = ops.build_grid(A.size - 1, B.size)
+    key = (A.size - 1, B.size)
+    canon = _CANON_GRID_MEMO.get(key)
+    if canon is None:
+        canon = ops.build_grid(*key)
+        _CANON_GRID_MEMO[key] = canon
+    Ac, Bc, DA1c, DB1c = canon
     return all(np.array_equal(np.asarray(x), np.asarray(y)) for x, y in
                ((A, Ac), (B, Bc), (DA1, DA1c), (DB1, DB1c)))
 
