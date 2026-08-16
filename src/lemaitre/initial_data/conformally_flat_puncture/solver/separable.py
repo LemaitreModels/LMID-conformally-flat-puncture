@@ -197,6 +197,17 @@ class _FastDiagonalization:
         # double diagonalization can amplify roundoff, and cond(S_B) grows with m.
         lamA, SA = np.linalg.eig(L_red)
         lamB, SB = np.linalg.eig((C_B / W[:, None]).T)   # (W⁻¹ C_B)ᵀ
+        # NumPy 2 returns complex from eig unconditionally; these spectra are
+        # real (imaginary parts EXACTLY zero — checked, not assumed), so the
+        # factors are cast back to real.  The cast alone would be a REGRESSION:
+        # the live operand is complex for every generic mode, and a real matrix
+        # times a complex vector makes NumPy promote the matrix on every apply.
+        # ``solve`` therefore pairs the cast with a re/im split — see there.
+        cast = ops3._real_part_if_real
+        reals = [cast(x) for x in (lamA, SA, lamB, SB)]
+        self._real_factors = all(x is not None for x in reals)
+        if self._real_factors:
+            lamA, SA, lamB, SB = reals
         self.SA, self.SAi = SA, np.linalg.inv(SA)
         self.SB, self.SBi = SB, np.linalg.inv(SB)
         self.den = lamA[:, None] + lamB[None, :]
@@ -207,8 +218,30 @@ class _FastDiagonalization:
         self.n = n
 
     def solve(self, Y: np.ndarray, b: float) -> np.ndarray:
-        """Solve ``M0_m X = Y`` for one mode.  ``Y`` is (Na+1, Nb), real or complex."""
+        """Solve ``M0_m X = Y`` for one mode.  ``Y`` is (Na+1, Nb), real or complex.
+
+        With real factors (the generic case — see ``__init__``) the dtype of
+        ``Y`` picks the route, mirroring ``solver_3d_nk._lu_solve_equilibrated``
+        on the dense side: an exactly-real ``Y`` — m=0 always, the Nyquist mode
+        for even Nφ — runs the one pure-real pass, and a genuinely complex ``Y``
+        is solved as ``solve(Re Y) + i·solve(Im Y)``, exact because every factor
+        is real.  Casting the factors WITHOUT this split is a measured
+        regression: NumPy would promote them back to complex on every apply.
+        Measured at (44,32,8), all 5 modes, per preconditioner apply: complex
+        factors as-is 0.34 ms → split 0.20 ms; the two routes agree to ~1e-14
+        relative (different BLAS accumulation order), so GMRES trajectories may
+        shift by ulps — the separable same-answer gates pin the outcome.
+        """
         Y = np.asarray(Y)
+        if self._real_factors and np.iscomplexobj(Y):
+            yr = ops3._real_part_if_real(Y)
+            if yr is not None:
+                return self._solve_one(yr, b).astype(complex)
+            return self._solve_one(Y.real, b) + 1j * self._solve_one(Y.imag, b)
+        return self._solve_one(Y, b)
+
+    def _solve_one(self, Y: np.ndarray, b: float) -> np.ndarray:
+        """One pass of the fast-diagonalization solve, dtype following ``Y``."""
         rhs_b = Y[self.i_bc]                            # BC rows carry no pref factor
 
         # Interior rows: undo the row factor pref = pref1/b², then divide by W,
