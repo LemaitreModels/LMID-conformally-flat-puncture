@@ -159,6 +159,14 @@ def _block_scales(asm: Assembly3D):
     return scales
 
 
+def _equil_norm(Rm: np.ndarray, scales) -> float:
+    """``max_m ‖R̂_m / scale_m‖∞`` of an already-assembled mode-space residual."""
+    e = 0.0
+    for mi in range(Rm.shape[1]):
+        e = max(e, float(np.max(np.abs(Rm[:, mi]) / scales[mi])))
+    return e
+
+
 def equil_residual_inf(asm: Assembly3D, U: np.ndarray, scales=None) -> float:
     """The **equilibrated** mode-space residual inf-norm — the certified monitor.
 
@@ -176,10 +184,7 @@ def equil_residual_inf(asm: Assembly3D, U: np.ndarray, scales=None) -> float:
     if scales is None:
         scales = _block_scales(asm)
     Rm = s3.residual_modes(asm, np.asarray(U).reshape(asm.interior.size, Nphi))
-    e = 0.0
-    for mi in range(asm.m_vals.size):
-        e = max(e, float(np.max(np.abs(Rm[:, mi]) / scales[mi])))
-    return e
+    return _equil_norm(Rm, scales)
 
 
 # --------------------------------------------------------------------------
@@ -194,7 +199,9 @@ class _StepInfo:
 
 def newton_step_nk(asm: Assembly3D, U: np.ndarray,
                    gmres_rtol: float = 1e-4, gmres_atol: float = 1e-12,
-                   gmres_restart: int = 50, gmres_maxiter: int = 60):
+                   gmres_restart: int = 50, gmres_maxiter: int = 60,
+                   Rm: Optional[np.ndarray] = None,
+                   base: Optional[np.ndarray] = None):
     """One true-Newton step ``U → U + δu`` with ``δu = J⁻¹(−R)`` via GMRES.
 
     ``U`` nodal (Ntot2d, Nφ).  Returns ``(U_new, _StepInfo)``.  The Jacobian is
@@ -207,6 +214,11 @@ def newton_step_nk(asm: Assembly3D, U: np.ndarray,
     convergence.  A fixed-small absolute tolerance would instead demand the
     impossible (sub-roundoff) target ``rtol·‖R‖`` once ‖R‖ nears the
     discretisation floor, stalling GMRES at thousands of iterations.
+
+    ``Rm``/``base`` accept the mode-space residual and the ψ+u base at the
+    CURRENT iterate precomputed — the loop's monitor has just measured both, and
+    recomputing them here doubled the residual assemblies per iteration.  Both
+    are deterministic in ``(asm, U)``, so passing them is call-identical.
     """
     Nphi = U.shape[1]
     Ntot = asm.interior.size
@@ -216,9 +228,11 @@ def newton_step_nk(asm: Assembly3D, U: np.ndarray,
     w = asm.w
 
     # current residual (mode space, exact) and the physical-space source derivative
-    Rm = s3.residual_modes(asm, U)
+    if Rm is None:
+        Rm = s3.residual_modes(asm, U)
     R_node = np.fft.irfft(Rm, n=Nphi, axis=1)
-    _, base = s3._nl_source(asm, U)
+    if base is None:
+        _, base = s3._nl_source(asm, U)
     D_nl = -0.875 * base ** (-8.0) * asm.A2          # (Ntot, Nφ) node-diagonal deriv
     d_bar = D_nl.mean(axis=1)                          # φ-average -> m=0 diagonal
 
@@ -357,9 +371,21 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
          else np.asarray(U0, dtype=float).reshape(prob.Ntot2d, prob.Nphi))
 
     gmres_iters = []
+    # The monitor assembles the residual ONCE per iterate and hands it (plus the
+    # ψ+u base the step's preconditioner diagonal needs) to the step through the
+    # loop's aux channel; the step used to re-assemble both at the same iterate.
+    # It also keeps the residual of the BEST iterate — same strict-< rule as the
+    # loop, whose best_U it therefore matches — so the exit raw norm below does
+    # not need a third assembly.
+    best = [np.inf, None]
 
     def monitor(U):
-        return equil_residual_inf(asm, U, scales), None
+        S_nl, base = s3._nl_source(asm, U)
+        Rm = s3.residual_modes(asm, U, S_nl=S_nl)
+        rn = _equil_norm(Rm, scales)
+        if rn < best[0]:
+            best[0], best[1] = rn, Rm
+        return rn, (Rm, base)
 
     def hook(k, rn, U):
         if verbose:
@@ -368,18 +394,27 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
         if on_iterate is not None:
             on_iterate(k, rn, U)
 
-    def step(U, k, _aux):
+    def step(U, k, aux):
+        Rm, base = aux
         if k < n_warmup:
-            U_new, _ = s3.newton_step(asm, U)         # cheap modified-Newton warm-up
+            U_new, _ = s3.newton_step(asm, U, Rm=Rm, base=base)   # modified-Newton warm-up
             gmres_iters.append(0)
         else:
-            U_new, sinfo = newton_step_nk(asm, U, gmres_rtol=gmres_rtol)
+            U_new, sinfo = newton_step_nk(asm, U, gmres_rtol=gmres_rtol,
+                                          Rm=Rm, base=base)
             gmres_iters.append(sinfo.gmres_iters)
         return U_new
 
     run = newton_loop(U, monitor_fn=monitor, step_fn=step,
                       tol=tol, max_steps=max_iter, on_iterate=hook)
-    raw = s3.nodal_residual_inf(asm, run.U)
+    # residual_modes is deterministic in (asm, U), so the irfft of the best
+    # iterate's stored Rm is bit-for-bit s3.nodal_residual_inf(asm, run.U).  The
+    # fallback only fires if every measurement was non-finite (best never set),
+    # where the old exit recomputation is reproduced verbatim.
+    if best[1] is not None:
+        raw = float(np.max(np.abs(np.fft.irfft(best[1], n=prob.Nphi, axis=1))))
+    else:
+        raw = s3.nodal_residual_inf(asm, run.U)
     return run.U.reshape(shp), NKInfo(run.converged, run.iters, run.residual_norm,
                                       raw, run.history, gmres_iters)
 

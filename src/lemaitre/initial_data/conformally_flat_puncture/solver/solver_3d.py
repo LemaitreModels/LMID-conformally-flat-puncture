@@ -210,14 +210,20 @@ def linear_apply(asm: Assembly3D, mi: int, vhat: np.ndarray) -> np.ndarray:
     return asm.sep.apply(mi, np.asarray(vhat).reshape(shp), asm.b).ravel()
 
 
-def residual_modes(asm: Assembly3D, U: np.ndarray):
+def residual_modes(asm: Assembly3D, U: np.ndarray,
+                   S_nl: Optional[np.ndarray] = None):
     """Exact mode-space residual R̂_m (Ntot2d, Nm complex).
 
     R̂_m = M0_m v̂_m + interior · Ŝ_m, with v̂_m = Û_m / w (the factored unknown,
     smooth in B), Û = rfft_φ(U), Ŝ = rfft_φ(S_nl).  Since M0_m v̂_m = L_m u_m, this
     is the exact mode-space residual of the nonlinear PDE.
+
+    ``S_nl`` accepts the nodal source of ``_nl_source(asm, U)`` precomputed, for
+    a caller that also needs the source (or its ψ+u base) for something else —
+    the Newton loops' monitors do.  Passing it is call-identical.
     """
-    S_nl, _ = _nl_source(asm, U)
+    if S_nl is None:
+        S_nl, _ = _nl_source(asm, U)
     Uhat = np.fft.rfft(U, axis=1)
     Shat = np.fft.rfft(S_nl, axis=1)
     Rm = np.empty_like(Uhat)
@@ -240,12 +246,19 @@ def nodal_residual_inf(asm: Assembly3D, U: np.ndarray) -> float:
     return float(np.max(np.abs(R_node)))
 
 
-def newton_step(asm: Assembly3D, U: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def newton_step(asm: Assembly3D, U: np.ndarray,
+                Rm: Optional[np.ndarray] = None,
+                base: Optional[np.ndarray] = None) -> Tuple[np.ndarray, np.ndarray]:
     """One modified-Newton step; returns ``(U_new, Rm)`` (Rm pre-step residual).
 
     Solves per mode for the factored increment δv_m (Ĵ_m δv_m = −R̂_m), then
     reconstructs δu_m = w · δv_m.  The source Jacobian in v-space is
     diag(interior · d̄ · w) (chain rule ∂u/∂v = w; d̄ = φ-averaged source deriv).
+
+    ``Rm``/``base`` accept the residual and the ψ+u base at the CURRENT iterate
+    precomputed — the loop's monitor has just measured both, and recomputing
+    them here doubled the residual assemblies per iteration.  Both are
+    deterministic in ``(asm, U)``, so passing them is call-identical.
     """
     if asm.sep is not None:
         raise ValueError(
@@ -255,8 +268,10 @@ def newton_step(asm: Assembly3D, U: np.ndarray) -> Tuple[np.ndarray, np.ndarray]
             "solver_3d_nk.newton_step_nk, whose separable preconditioner drops "
             "that diagonal on purpose, or assemble without separable=True.")
     Nphi = U.shape[1]
-    Rm = residual_modes(asm, U)
-    S_nl, base = _nl_source(asm, U)
+    if Rm is None:
+        Rm = residual_modes(asm, U)
+    if base is None:
+        _, base = _nl_source(asm, U)
     D_nl = -0.875 * base ** (-8.0) * asm.A2            # node-diagonal source deriv
     d_bar = D_nl.mean(axis=1)                          # (Ntot2d,) = φ-average (m=0)
     dUhat = np.empty((asm.interior.size, asm.m_vals.size), dtype=complex)
@@ -299,11 +314,19 @@ def newton_solve(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = None,
     U = (np.zeros((prob.Ntot2d, prob.Nphi)) if U0 is None
          else np.asarray(U0, dtype=float).reshape(prob.Ntot2d, prob.Nphi))
 
+    # The monitor assembles the residual ONCE per iterate and hands it (plus the
+    # ψ+u base the step's Jacobian diagonal needs) to the step through the loop's
+    # aux channel; the step used to re-assemble both at the same iterate.  The
+    # norm below is nodal_residual_inf's arithmetic verbatim.
     def monitor(U):
-        return nodal_residual_inf(asm, U), None
+        S_nl, base = _nl_source(asm, U)
+        Rm = residual_modes(asm, U, S_nl=S_nl)
+        R_node = np.fft.irfft(Rm, n=U.shape[1], axis=1)
+        return float(np.max(np.abs(R_node))), (Rm, base)
 
-    def step(U, _k, _aux):
-        U_new, _ = newton_step(asm, U)
+    def step(U, _k, aux):
+        Rm, base = aux
+        U_new, _ = newton_step(asm, U, Rm=Rm, base=base)
         return U_new
 
     run = newton_loop(U, monitor_fn=monitor, step_fn=step,
