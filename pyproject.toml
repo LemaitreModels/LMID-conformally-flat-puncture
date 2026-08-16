@@ -10,6 +10,25 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [{ name = "Frederik De Ceuster" }]
+# The classifier restates the LICENSE file's own wording ("either version 3 of
+# the License, or (at your option) any later version"), so it is GPLv3+, not
+# GPLv3.  Note for a future family-wide pass: setuptools >= 77 deprecates BOTH
+# `license = {file = ...}` and the `License ::` classifier in favour of a PEP 639
+# SPDX string.  All four family distributions use the old form, so modernising
+# is one coordinated change across four repositories, not a leaf-local edit.
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+]
 dependencies = [
     # the namespace levels this leaf plugs into (see the family table in README)
     "lemaitre",
@@ -20,6 +39,15 @@ dependencies = [
     "jax",
     "matplotlib",
 ]
+
+# The repository is one leaf of a nested submodule tree, and a reader who lands
+# on it from an index has no way to find the rest — `Homepage` therefore points
+# at the leaf itself and `Family` at the superproject that explains the layout.
+[project.urls]
+Homepage = "https://github.com/LemaitreModels/LMID-conformally-flat-puncture"
+Repository = "https://github.com/LemaitreModels/LMID-conformally-flat-puncture"
+Issues = "https://github.com/LemaitreModels/LMID-conformally-flat-puncture/issues"
+Family = "https://github.com/LemaitreModels/Lemaitre"
 
 [project.optional-dependencies]
 # sympy is a TEST-only dependency: tests/test_source_spin.py derives the
@@ -40,8 +68,36 @@ where = ["src"]
 include = ["lemaitre.initial_data.conformally_flat_puncture*"]
 namespaces = true
 
+# NO `py.typed`, and that is a decision rather than an omission (PEP 561).
+# Shipping the marker tells a downstream type checker "this package is typed",
+# after which every unannotated signature here silently resolves to `Any`
+# instead of being reported as untyped — the marker converts a loud "no stubs"
+# into a quiet wrong answer.  Measured on this tree: 158 of 813 `def`s carry a
+# return annotation (~19 %), so the marker would misdescribe four functions in
+# five.  85 of 91 modules already have `from __future__ import annotations`, so
+# the route to earning it is annotating the public surface — `solver/`,
+# `parametric/certification.py` and `pipeline/production_model.py` first — and
+# adding the marker in the same commit that makes the claim true.
+
+
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-    "slow: heavier B1 checks (external TwoPunctures oracle / Cartesian sweep)",
+    # Measured 2026-08-16 on leaf 0fcaafe: `slow` marks 30 of 661 tests and they
+    # are 1167 s of the suite's 1497 s, so `-m "not slow"` runs 95 % of the tests
+    # in 22 % of the wall clock (631 passed in 329 s against 661 in 1497 s).
+    # That ratio is what `make test-quick` exists for.
+    #
+    # The description used to read "heavier B1 checks (external TwoPunctures
+    # oracle / Cartesian sweep)", which undersold it: the marked set now also
+    # covers the 4-D held-out gate, the 3-D TP cross-check and the spin
+    # axisymmetry sweep.
+    #
+    # It is NOT a licence to mark anything expensive. `test_certified_polish_4d`
+    # is 140 s and stays unmarked on purpose -- it is a certification gate, and a
+    # gate deselected by default is a comment that costs CPU. The sibling leaf
+    # kept a red gate for six weeks exactly that way. Mark for "needs an external
+    # oracle or is minutes-long by nature", never for "makes my loop slower".
+    "slow: needs an external oracle, or is minutes-long by nature (30 tests, ~1167 s)",
 ]

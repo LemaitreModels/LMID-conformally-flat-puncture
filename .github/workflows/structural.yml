@@ -1,0 +1,99 @@
+# The structural tier, on every push and pull request.
+#
+# WHAT IT DOES NOT DO, deliberately: it does not run the acceptance suite.  That
+# suite is dominated by elliptic solves and runs for tens of minutes on a quiet
+# eight-core machine, which is neither a sensible hosted-runner job nor the thing
+# most likely to break.  What breaks silently is the *install*: this leaf is one
+# package spread over three repositories, and a namespace-ownership mistake (a
+# stray `__init__.py`, a leaf claiming a parent's level, an editable install
+# without `editable_mode=compat`) leaves every direct import working while the
+# documented lazy idiom fails.  `make fast` is exactly the check for that, and it
+# costs seconds.
+#
+# So this workflow's real subject is the four-step install below.  A green run
+# means an outside reader can follow README.md's install block and get a working
+# package on a machine that has never seen this project.
+name: structural
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  structural:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The floor declared in `requires-python`, and a current release.  The
+        # floor is the one that matters: 3.10 is what the family promises, and
+        # nothing here is ever run on it locally.
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: LMID-conformally-flat-puncture
+
+      # The two namespace parents are separate repositories and REAL runtime
+      # dependencies -- `lemaitre` and `lemaitre.initial_data` are owned there,
+      # never vendored here (see docs/STRUCTURE.md).  They are checked out as
+      # siblings rather than as submodules: this repository is a leaf and does
+      # not contain them.
+      #
+      # `actions/checkout` reads a public repository with no credentials.  While
+      # the family is still private these two steps need a PAT with read access
+      # passed as `token:`; publication is what removes that requirement.
+      - uses: actions/checkout@v4
+        with:
+          repository: LemaitreModels/Lemaitre
+          path: Lemaitre
+      - uses: actions/checkout@v4
+        with:
+          repository: LemaitreModels/LM-initial-data
+          path: LM-initial-data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # The solver stack comes from PyPI; the family distributions do not, which
+      # is why they are installed --no-deps below.
+      - name: Install the solver stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy jax matplotlib pytest sympy
+
+      # Order and flags are both load-bearing, and are the README's install block
+      # verbatim.  `editable_mode=compat` keeps setuptools from hiding each
+      # distribution behind a meta-path finder, which `PathFinder` would preempt
+      # -- leaving the leaves' bare `lemaitre/` directories to win as PEP 420
+      # namespace portions and the owners' real `__init__.py` never loaded.
+      # `--no-deps` is required because none of these three is on PyPI.
+      - name: Install the family, in dependency order
+        run: |
+          for d in Lemaitre LM-initial-data LMID-conformally-flat-puncture; do
+            python -m pip install -e "$d" --config-settings editable_mode=compat --no-deps
+          done
+
+      # Prove the lazy two-level idiom resolves before running anything, so a
+      # namespace failure reports itself here rather than as 255 collection
+      # errors.  Print __file__: two clones of the family on one sys.path merge
+      # into a single package, and that failure mode is a PASS.
+      - name: Check the namespace resolves from this checkout
+        run: |
+          python -c "
+          import lemaitre as lm
+          pkg = lm.initial_data.conformally_flat_puncture
+          print('lemaitre:', lm.__file__)
+          print('package :', pkg.__file__)
+          "
+
+      # `make fast`, not a bare pytest, so CI exercises the target the docs hand
+      # to a reader -- including the caffeinate guard, which resolves to nothing
+      # here because Linux has no caffeinate.
+      - name: Structural tier
+        working-directory: LMID-conformally-flat-puncture
+        run: make fast PY=python
