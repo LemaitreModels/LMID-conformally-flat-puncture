@@ -309,8 +309,13 @@ def test_warm_start_handful():
     ps = p3.from_problem_nd(prob, axes).build(tol=1e-12, max_iter=20)
     n_nodes = ps.n_nodes
     mean_iters = float(np.sum(ps.iters)) / n_nodes
-    # warm-started Newton stays a handful per node (vs the cold floor ~6-8)
-    assert mean_iters < 6.0, f"mean iters/node {mean_iters:.1f} (warm start not effective)"
+    # warm-started Newton stays a handful per node.  Calibration: at tol=1e-12
+    # the internal target (tol/10) sits below the 2-D residual floor, so every
+    # node solve now runs a 1-2 measurement stagnation tail (two-strike rule)
+    # on top of its descent — measured mean 6.4 warm vs a cold floor that the
+    # same tail lifts to ~8-10.  The old threshold (6.0) was calibrated to the
+    # one-strike loop.
+    assert mean_iters < 7.0, f"mean iters/node {mean_iters:.1f} (warm start not effective)"
     # all nodes converged to the residual floor
     assert float(np.max(ps.residuals)) < 1e-8
 

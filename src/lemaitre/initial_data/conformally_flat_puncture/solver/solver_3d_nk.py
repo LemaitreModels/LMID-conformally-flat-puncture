@@ -63,6 +63,7 @@ from scipy.sparse.linalg import LinearOperator, gmres
 
 from . import operators_3d as ops3
 from . import solver_3d as s3
+from .newton_loop import newton_loop
 from .solver_3d import Assembly3D, Problem3D, Slice3D  # noqa: F401  (re-export)
 
 
@@ -306,7 +307,8 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
                     n_warmup: int = 0,
                     gmres_rtol: float = 1e-4,
                     verbose: bool = False,
-                    separable: Optional[bool] = None):
+                    separable: Optional[bool] = None,
+                    on_iterate=None):
     """Solve the non-axisymmetric two-centre Lichnerowicz equation by Newton–Krylov.
 
     Returns ``(U, NKInfo)`` with ``U`` shaped (Na+1, Nb, Nφ).  Convergence is
@@ -317,9 +319,16 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
     ``info.raw_residual_norm`` is the roundoff-limited raw nodal inf-norm (what
     the modified-Newton solver reports), kept for the before/after comparison.
 
+    The loop is the shared driver (``newton_loop.py``): ``max_iter`` is the
+    Newton **step budget** and every step taken is measured, the loop solves to
+    an internal target one decade below ``tol`` (so the certified residual lands
+    at the quadratic-convergence floor rather than marginally under the gate),
+    stagnation needs two consecutive non-halving measurements, and the BEST
+    iterate is returned with ``info.converged`` judged against the caller's
+    ``tol``.
+
     ``n_warmup`` optional cheap modified-Newton (``solver_3d.newton_step``) steps
-    first — gets into the basin without a GMRES solve, then NK polishes.  Tracks
-    the BEST iterate and stops once the equilibrated residual stagnates.
+    first — gets into the basin without a GMRES solve, then NK polishes.
 
     ``separable`` picks the representation of the linear operator: the assembly is
     built without dense blocks and preconditioned by the exact inverse of the
@@ -330,6 +339,11 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
     (``None``) is *auto*: separable except at Nφ=1 and with ``n_warmup``, where
     the dense blocks are needed or strictly better — see :func:`choose_separable`.
     Ignored when the caller supplies ``asm``, which already fixes the choice.
+
+    ``on_iterate(k, rn, U)``, if given, sees every measured iterate (``k`` = NK
+    steps taken so far, ``rn`` its equilibrated residual, ``U`` nodal
+    ``(Ntot2d, Nφ)``) — the hook the instrumented fig04 producers use instead of
+    replicating this loop.
     """
     if asm is None:
         asm = s3.assemble(prob, sl,
@@ -342,31 +356,32 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
     U = (np.zeros((prob.Ntot2d, prob.Nphi)) if U0 is None
          else np.asarray(U0, dtype=float).reshape(prob.Ntot2d, prob.Nphi))
 
-    history, gmres_iters = [], []
-    best_U, best_rn = U, np.inf
-    it = 0
-    for it in range(1, max_iter + 1):
-        rn = equil_residual_inf(asm, U, scales)
-        history.append(rn)
-        if rn < best_rn:
-            best_U, best_rn = U, rn
+    gmres_iters = []
+
+    def monitor(U):
+        return equil_residual_inf(asm, U, scales), None
+
+    def hook(k, rn, U):
         if verbose:
             gi = gmres_iters[-1] if gmres_iters else None
-            print(f"  [NK] it={it:2d}  equil||R||={rn:.3e}  gmres={gi}")
-        if rn < tol:
-            break
-        if it >= 3 and rn > 0.5 * history[-2]:        # stagnation near the floor
-            break
-        if it <= n_warmup:
-            U, _ = s3.newton_step(asm, U)             # cheap modified-Newton warm-up
+            print(f"  [NK] it={k + 1:2d}  equil||R||={rn:.3e}  gmres={gi}")
+        if on_iterate is not None:
+            on_iterate(k, rn, U)
+
+    def step(U, k, _aux):
+        if k < n_warmup:
+            U_new, _ = s3.newton_step(asm, U)         # cheap modified-Newton warm-up
             gmres_iters.append(0)
         else:
-            U, sinfo = newton_step_nk(asm, U, gmres_rtol=gmres_rtol)
+            U_new, sinfo = newton_step_nk(asm, U, gmres_rtol=gmres_rtol)
             gmres_iters.append(sinfo.gmres_iters)
+        return U_new
 
-    raw = s3.nodal_residual_inf(asm, best_U)
-    return best_U.reshape(shp), NKInfo(best_rn < tol, it, best_rn, raw,
-                                       history, gmres_iters)
+    run = newton_loop(U, monitor_fn=monitor, step_fn=step,
+                      tol=tol, max_steps=max_iter, on_iterate=hook)
+    raw = s3.nodal_residual_inf(asm, run.U)
+    return run.U.reshape(shp), NKInfo(run.converged, run.iters, run.residual_norm,
+                                      raw, run.history, gmres_iters)
 
 
 # --------------------------------------------------------------------------
@@ -376,13 +391,17 @@ def evaluate_polished_nk(prob: Problem3D, sl: Slice3D, U_guess: np.ndarray,
                          newton_steps: int = 2, tol: float = 1e-10,
                          asm: Optional[Assembly3D] = None,
                          separable: Optional[bool] = None):
-    """Warm guess + ≤``newton_steps`` NK-Newton steps → certified ``‖R‖∞`` ≤ tol.
+    """Warm guess + NK-Newton polish → certified ``‖R‖∞`` ≤ tol.
 
     The 3-D certified-evaluation gate: ``info.residual_norm`` is the constraint
     residual at ``sl``, independent of how ``U_guess`` was produced (e.g. an
-    interpolated / perturbed warm start).  ``max_iter`` is ``newton_steps+1`` so
-    the residual AFTER the final step is the certified number (the loop measures
-    the residual at the start of each iteration).
+    interpolated / perturbed warm start).  The step budget is ``newton_steps+1``:
+    the nominal ``newton_steps`` plus one reserve step the loop spends only when
+    the residual after ``newton_steps`` steps is under the gate but above the
+    internal target (``tol/10``) — a marginally-certified point then gains the
+    quadratic-convergence floor instead of shipping a certificate within a few
+    percent of its threshold.  Every step taken is measured, so the certified
+    number is the residual after the last step actually spent.
     """
     return newton_solve_nk(prob, sl, U0=U_guess, tol=tol,
                            max_iter=newton_steps + 1, asm=asm, gmres_rtol=1e-4,

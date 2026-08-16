@@ -41,6 +41,7 @@ import numpy as np
 
 
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d_nk as s3nk
 from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric import cheb_param_nodes
 from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_3d import make_solve_fn
 
@@ -86,7 +87,9 @@ def cold_history(solve_fn, theta, steps):
     value once the solve has converged/stagnated, plus (certified residual, first
     step k with ||R||<=1e-10 or None)."""
     # tol 1e-12 (like run_polish_table) so the loop descends to the NK floor, not
-    # 1e-10; max_iter=steps -> newton_solve_nk runs steps+1 iters -> history[0..steps].
+    # 1e-10.  solve_fn passes max_iter=steps+1 to newton_solve_nk, whose budget is
+    # in Newton STEPS with every step measured -> history[0..steps(+1)]; the
+    # staircase reads the shared axis [0..steps].
     _U, info = solve_fn(np.asarray(theta, dtype=float), None, 1e-12, steps)
     h = list(info.history)
     res = [float(h[k] if k < len(h) else h[-1]) for k in range(steps + 1)]
@@ -116,6 +119,7 @@ def run_dim(dim, n_points, steps, seed):
     # plain cold NK solve_fn (retry_tol=None) — matches run_qc_timing's cold solve
     solve_fn, _ = make_solve_fn(prob, names, M_tot=1.0, fixed=fixed,
                                 use_cache=True, solver="nk")
+    route = "separable" if s3nk.choose_separable(prob, None) else "dense"
 
     print(f"[{tag}] drawing {n_points} uniform off-node points (seed={seed}) ...",
           flush=True)
@@ -148,6 +152,7 @@ def run_dim(dim, n_points, steps, seed):
                       "box": [{"name": n, "min": lo, "max": hi}
                               for n, (lo, hi) in zip(names, box)],
                       "fixed": fixed, "Na": Na, "Nb": Nb, "Nphi": Nphi,
+                      "route": route,
                       "model_file": os.path.basename(model_path),
                       "n_points": n_points, "seed": seed, "gap_min": GAP_MIN,
                       "max_steps": steps},

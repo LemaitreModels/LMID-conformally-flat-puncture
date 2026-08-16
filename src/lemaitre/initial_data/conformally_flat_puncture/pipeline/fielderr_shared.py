@@ -144,6 +144,54 @@ def rel_l2(u, ut):
     return float(np.linalg.norm(u - ut) / max(np.linalg.norm(ut), 1e-300))
 
 
+def polish_history(prob, sl, U0, max_steps, tol=1e-12, separable=None):
+    """Instrumented NK polish: the per-step residual AND field-error staircase.
+
+    This IS ``solver_3d_nk.newton_solve_nk`` — the production certified loop —
+    hooked through its ``on_iterate`` callback to also store the field at every
+    measured step, so the residuals recorded here reproduce the residual
+    staircases (``run_polish_cold`` / ``run_polish_table``) per-step by
+    construction rather than by a re-implementation kept in sync by hand.  It
+    used to be a byte-identical copy of the loop in each field-error producer,
+    assembled **dense** — a route the production solve no longer takes — so the
+    field-error rows of fig04 were measured on different linear algebra than the
+    residual rows they share a step axis with.
+
+    ``separable`` is the route: ``None`` (default) resolves through
+    ``choose_separable`` exactly as a production query does; pass ``True``/
+    ``False`` to force.  Callers should resolve it themselves and record the
+    route in the artifact meta.
+
+    Returns ``(residuals[0..max_steps], field_error[0..max_steps])``; field
+    error is relative Frobenius L2 against the best (converged) iterate.  Both
+    lists are padded with their last value once the solve has converged or
+    stagnated (matching the residual-staircase padding).
+
+    The solver imports are local so this module keeps its jax-free import for
+    callers that only want the truth cache.
+    """
+    from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d_nk as s3nk
+
+    fields, hist = [], []
+
+    def _store(_k, rn, U):
+        hist.append(float(rn))
+        fields.append(np.array(U, dtype=float, copy=True))
+
+    U_best, _info = s3nk.newton_solve_nk(prob, sl, U0=U0, tol=tol,
+                                         max_iter=max_steps, separable=separable,
+                                         on_iterate=_store)
+
+    while len(hist) < max_steps + 1:            # pad to the full step axis
+        hist.append(hist[-1])
+        fields.append(fields[-1])
+
+    best = np.asarray(U_best, dtype=float).reshape(fields[0].shape)
+    uref_norm = float(np.linalg.norm(best))
+    ferr = [float(np.linalg.norm(f - best) / max(uref_norm, 1e-300)) for f in fields]
+    return hist, ferr
+
+
 # ------------------------------------------------------------------ truth cache ----------------
 def truth_key(*, box, Na, Nb, Nphi, sampler, seed, u_steps, u_tol, fixed=None):
     """Canonical description of a certified-truth set.

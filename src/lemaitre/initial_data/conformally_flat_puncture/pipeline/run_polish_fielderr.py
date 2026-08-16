@@ -12,13 +12,14 @@ the relative-L2 field error per step for the two families the fig04 staircase sh
   * ``cold`` — cold NK from the zero field (U0=None), the surrogate-free start.
   * ``pod``  — warm start from the shipped r=75 value+gradient (cross) POD guess.
 
-It faithfully replicates ``solver_3d_nk.newton_solve_nk``'s Newton loop (same
-equilibrated-residual convergence + stagnation break) using the committed
-primitives ``newton_step_nk`` / ``equil_residual_inf`` / ``_block_scales`` — the
-only difference being that it also stores ``U`` at each step so the field error
-vs the converged (best) iterate can be formed.  The residual it records must (and
-does) reproduce ``polish_cold_chi4d_1000.json`` / ``polish_table_chi4d_pod_r75_
-cross_1000.json`` per-step, so the field-error staircase shares their step axis.
+It runs ``solver_3d_nk.newton_solve_nk`` itself — the production certified loop,
+on the production route (``choose_separable``, recorded in the output meta) —
+through the shared ``fielderr_shared.polish_history`` wrapper, whose
+``on_iterate`` hook also stores ``U`` at each measured step so the field error
+vs the converged (best) iterate can be formed.  The residual it records
+therefore reproduces the residual staircases (``polish_cold`` /
+``polish_table``) per-step by construction, so the field-error staircase shares
+their step axis.
 
 Field error convention matches ``run_cross_fielderror_chi.field_err`` and the
 ``guess_vs_memory_4d_field_1000.json`` sweep: plain relative Frobenius L2 against
@@ -56,6 +57,8 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak_
 from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 # reuse the EXACT seed-shared off-node sampling of the residual staircases
 from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_cold import random_offnode_points, read_meta
+# the instrumented production loop (residual + field per step), shared with the 8-D producer
+from lemaitre.initial_data.conformally_flat_puncture.pipeline.fielderr_shared import polish_history
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
@@ -71,48 +74,6 @@ def pod_cross_path(rank):
                                 f"cross_r{int(rank)}.npz")
 
 
-POD_R75_CROSS = pod_cross_path(75)      # the original fig04 revision
-
-
-def polish_history(prob, sl, U0, max_steps, tol=1e-12):
-    """Instrumented NK polish: faithfully replicate ``newton_solve_nk``'s loop
-    (equilibrated-residual convergence + stagnation break) while ALSO storing the
-    field ``U`` at every step.  Returns (residuals[0..max_steps],
-    field_error[0..max_steps]); field error is relative Frobenius L2 vs the best
-    (converged) iterate ``u_ref``.  Both lists are padded with their last value
-    once the solve has converged/stagnated (matching the residual-staircase
-    padding in run_polish_cold / run_polish_table)."""
-    asm = s3.assemble(prob, sl)
-    scales = s3nk._block_scales(asm)
-    if U0 is None:
-        U = np.zeros((prob.Ntot2d, prob.Nphi))
-    else:
-        U = np.asarray(U0, dtype=float).reshape(prob.Ntot2d, prob.Nphi)
-
-    fields, hist = [], []
-    best_U, best_rn = U, np.inf
-    for it in range(1, max_steps + 2):          # store U_0..U_{max_steps}
-        rn = s3nk.equil_residual_inf(asm, U, scales)
-        hist.append(float(rn))
-        fields.append(U.copy())
-        if rn < best_rn:
-            best_U, best_rn = U.copy(), rn
-        if rn < tol:
-            break
-        if it >= 3 and rn > 0.5 * hist[-2]:     # stagnation near the floor
-            break
-        if it <= max_steps:                     # no wasted step past the last stored iterate
-            U, _ = s3nk.newton_step_nk(asm, U, gmres_rtol=1e-4)
-
-    while len(hist) < max_steps + 1:            # pad to the full step axis
-        hist.append(hist[-1])
-        fields.append(fields[-1])
-
-    uref_norm = float(np.linalg.norm(best_U))
-    ferr = [float(np.linalg.norm(f - best_U) / max(uref_norm, 1e-300)) for f in fields]
-    return hist, ferr
-
-
 def _stats(a):
     a = np.asarray(a, float)
     return dict(min=float(a.min()), median=float(np.median(a)),
@@ -120,7 +81,7 @@ def _stats(a):
                 max=float(a.max()))
 
 
-def run_family(name, prob, names, fixed, pts, max_steps, guess_fn):
+def run_family(name, prob, names, fixed, pts, max_steps, guess_fn, separable=None):
     """guess_fn(theta) -> U0 (None for cold).  Returns the family result dict."""
     n = len(pts)
     F = [[] for _ in range(max_steps + 1)]      # field error per step
@@ -129,7 +90,7 @@ def run_family(name, prob, names, fixed, pts, max_steps, guess_fn):
     for i, theta in enumerate(pts):
         sl = theta_to_slice3d(np.asarray(theta, float), names, 1.0, fixed)
         U0 = guess_fn(theta)
-        hist, ferr = polish_history(prob, sl, U0, max_steps)
+        hist, ferr = polish_history(prob, sl, U0, max_steps, separable=separable)
         for k in range(max_steps + 1):
             R[k].append(hist[k])
             F[k].append(ferr[k])
@@ -188,11 +149,18 @@ def main():
     # sanity: same axis order/box as the sampling
     assert list(pod.axis_names) == names if hasattr(pod, "axis_names") else True
 
+    # the production route, resolved once and recorded: fig04's field-error rows
+    # must run the same linear algebra as the residual staircases they reproduce
+    sep = s3nk.choose_separable(prob, None)
+    route = "separable" if sep else "dense"
+    print(f"[fielderr] solver route: {route} (production default)", flush=True)
+
     t0 = time.time()
     cold = run_family("cold", prob, names, fixed, pts, args.cold_steps,
-                      guess_fn=lambda th: None)
+                      guess_fn=lambda th: None, separable=sep)
     pod_res = run_family("pod", prob, names, fixed, pts, args.pod_steps,
-                         guess_fn=lambda th: np.asarray(pod.evaluate(th)))
+                         guess_fn=lambda th: np.asarray(pod.evaluate(th)),
+                         separable=sep)
 
     out = {
         "config": {"tag": "chi4d", "dim": len(box), "n_points": args.n_points,
@@ -201,6 +169,7 @@ def main():
                            for n, (lo, hi) in zip(names, box)],
                    "fixed": fixed, "metric": "field_error_relL2",
                    "u_ref": "best (converged) NK iterate",
+                   "route": route,
                    "pod_guess": os.path.basename(pod_path),
                    "pod_rank": rank},
         "cold": cold,

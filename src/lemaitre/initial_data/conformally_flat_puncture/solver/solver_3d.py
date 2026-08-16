@@ -54,6 +54,7 @@ from . import operators_3d as ops3
 from . import operators_abt as ops
 from . import source
 from . import source_3d
+from .newton_loop import newton_loop
 
 
 # --------------------------------------------------------------------------
@@ -285,8 +286,11 @@ def newton_solve(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = None,
     """Solve the non-axisymmetric two-centre Lichnerowicz equation at ``sl``.
 
     Returns ``(U, NewtonInfo)`` with ``U`` shaped (Na+1, Nb, Nφ).  Tracks the
-    nodal residual inf-norm; returns the BEST iterate and stops once the
-    residual stagnates (mirrors ``solver_abt.newton_solve``).
+    nodal residual inf-norm and returns the BEST iterate; the loop itself
+    (internal target below ``tol``, two-strike stagnation, ``max_iter`` as the
+    step budget) is the shared driver in ``newton_loop.py``, the same one
+    ``solver_abt.newton_solve`` runs — which is what keeps the Nφ=1 reduction
+    stepping in lockstep with the frozen 2-D Newton.
     """
     if asm is None:
         asm = assemble(prob, sl)
@@ -294,21 +298,17 @@ def newton_solve(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = None,
     U = (np.zeros((prob.Ntot2d, prob.Nphi)) if U0 is None
          else np.asarray(U0, dtype=float).reshape(prob.Ntot2d, prob.Nphi))
 
-    history = []
-    best_U, best_rn = U, np.inf
-    it = 0
-    for it in range(1, max_iter + 1):
-        rn = nodal_residual_inf(asm, U)
-        history.append(rn)
-        if rn < best_rn:
-            best_U, best_rn = U, rn
-        if rn < tol:
-            break
-        if it >= 3 and rn > 0.5 * history[-2]:        # stagnation -> stop
-            break
-        U, _ = newton_step(asm, U)
+    def monitor(U):
+        return nodal_residual_inf(asm, U), None
 
-    return best_U.reshape(shp), NewtonInfo(best_rn < tol, it, best_rn, history)
+    def step(U, _k, _aux):
+        U_new, _ = newton_step(asm, U)
+        return U_new
+
+    run = newton_loop(U, monitor_fn=monitor, step_fn=step,
+                      tol=tol, max_steps=max_iter)
+    return run.U.reshape(shp), NewtonInfo(run.converged, run.iters,
+                                          run.residual_norm, run.history)
 
 
 # --------------------------------------------------------------------------

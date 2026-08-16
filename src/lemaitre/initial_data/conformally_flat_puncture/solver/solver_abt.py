@@ -35,6 +35,7 @@ import jax.numpy as jnp
 from . import operators_abt as ops
 from . import source
 from . import spectral
+from .newton_loop import newton_loop
 
 
 @dataclass(frozen=True)
@@ -151,33 +152,29 @@ def newton_solve(prob: Problem, sl: Slice, U0: Optional[np.ndarray] = None,
     Newton converges quadratically (with row-equilibrated linear solves the
     operator is well conditioned, cond ~1e4) then floors at the nonlinear-source
     residual floor (~1e-11 at moderate Na, growing mildly with resolution as the
-    nodal source carries more high-frequency content).  We return the
-    BEST iterate and stop once the residual stagnates, so the sweep stays cheap.
+    nodal source carries more high-frequency content).  The loop itself — best
+    iterate, an internal target one decade below ``tol``, the two-strike
+    stagnation rule, ``max_iter`` as the step budget — is the shared driver in
+    ``newton_loop.py``; ``converged`` is judged against the caller's ``tol``.
     """
     if asm is None:
         asm = assemble(prob, sl)
     n = prob.Ntot
     u = np.zeros(n) if U0 is None else np.asarray(U0, dtype=float).ravel()
 
-    history = []
-    best_u, best_rn = u, np.inf
-    it = 0
-    for it in range(1, max_iter + 1):
+    def monitor(u):
         R = residual_vec(asm, u)
-        rn = float(np.max(np.abs(R)))
-        history.append(rn)
-        if rn < best_rn:
-            best_u, best_rn = u, rn
-        if rn < tol:
-            break
-        # stagnation: residual stopped improving (hit the floor) -> stop
-        if it >= 3 and rn > 0.5 * history[-2]:
-            break
+        return float(np.max(np.abs(R))), R
+
+    def step(u, _k, R):
         J = jacobian_mat(asm, u)
         du = ops.solve_equilibrated(J, -R)
-        u = u + du
+        return u + du
 
-    return best_u.reshape(prob.shape), NewtonInfo(best_rn < tol, it, best_rn, history)
+    run = newton_loop(u, monitor_fn=monitor, step_fn=step,
+                      tol=tol, max_steps=max_iter)
+    return run.U.reshape(prob.shape), NewtonInfo(run.converged, run.iters,
+                                                 run.residual_norm, run.history)
 
 
 # --------------------------------------------------------------------------

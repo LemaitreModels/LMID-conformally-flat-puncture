@@ -54,8 +54,16 @@ def test_axisym_reduction_reproduces_2d():
         print(f"\n[A] b={b} mA={mA}: 2D its={i2.iters} 3D its={i3.iters} "
               f"|U3-U2|={d:.2e}  max|U2|={scale:.3e}")
         assert d < 1e-12, f"axisym reduction off by {d:.2e} (b={b}, mA={mA})"
-        # iteration counts match too (identical Newton path)
-        assert i3.iters == i2.iters, f"iters differ: 2D {i2.iters} vs 3D {i3.iters}"
+        # The descent is in lockstep: both solvers cross the certification level
+        # at the same step (a change in the m=0 block or in either Newton step
+        # would shift this).  Total iteration counts are NOT compared: at
+        # tol=1e-12 — below the ~5e-12 residual floor — the shared loop driver's
+        # stagnation tail is decided by floor jitter that differs between the
+        # two routes in the 12th digit, so the tail length is not a property of
+        # the Newton path.
+        c2 = next(k for k, r in enumerate(i2.history) if r < 1e-10)
+        c3 = next(k for k, r in enumerate(i3.history) if r < 1e-10)
+        assert c3 == c2, f"certify-crossing step differs: 2D {c2} vs 3D {c3}"
 
 
 def test_axisym_P0_zero_spin_exact_fixed_point():
