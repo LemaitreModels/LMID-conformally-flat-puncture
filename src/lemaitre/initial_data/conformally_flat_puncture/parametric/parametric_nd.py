@@ -429,13 +429,16 @@ def jax_evaluator(model):
 
     Works for every solution container in this package that exposes
     ``evaluate_jax`` (the dense, Hermite, Smolyak and POD families all have
-    static shapes per model, so one compile serves every subsequent query).  The
-    eager ``evaluate_jax`` dispatches hundreds of small ops per call — on the
-    shipped 4-D POD models that is ~160-200 ms/call where the compiled version is
-    ~0.6-0.7 ms (measured 2026-08-16, one-time compile ~3 s).  XLA fusion may
-    move the result by ulps relative to the eager path (observed ≤6e-16
-    relative); callers that pin bit-for-bit against ``evaluate`` must keep using
-    ``evaluate_jax``.  Same off-node contract as ``evaluate_jax``.
+    static shapes per model, so one compile serves every subsequent query), and
+    this is the intended way to query one in bulk: eager jax dispatches hundreds
+    of small ops per call, and compiling collapses that.  On the shipped 4-D POD
+    models the compiled pool-weight twin runs ~0.26-0.30 ms/call after a
+    one-time ~1.1-1.2 s compile, against ~1.5 ms for the numpy ``evaluate``
+    (measured 2026-08-16).  XLA fusion may move the result by ulps relative to
+    the eager path (observed ≤6e-16 relative), and the pool-weight path itself
+    differs from ``evaluate_subgrid_sum`` at roundoff, so a caller that needs
+    the historical summation order must ask for that method by name.  Same
+    off-node contract as ``evaluate_jax``.
     """
     fn = model.__dict__.get("_jax_evaluator")
     if fn is None:

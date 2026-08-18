@@ -182,13 +182,25 @@ class _PODSmolyakBase(CertifiedEvaluateMixin):
 
     # ----- decode: interpolate the coeffs, then u = mean + Φ·c -----
     def coeffs(self, theta):
-        """The interpolated length-``r`` POD coefficient vector at ``θ``."""
+        """The interpolated length-``r`` POD coefficient vector at ``θ``.
+
+        The coefficient interpolation inherits whatever path the wrapped
+        combination model's ``evaluate`` takes — the pool-weight one since the
+        default flip (see
+        :meth:`~.parametric_nd_smolyak.SmolyakSolutionND.evaluate`)."""
         return np.asarray(self.coeff_model.evaluate(theta)).reshape(-1)   # (r,)
 
     def evaluate(self, theta):
         """``ũ(θ)`` decoded from the interpolated POD coefficients (numpy, node-safe)."""
         u = self.mean + self.Phi @ self.coeffs(theta)
         return u.reshape(self.field_shape)
+
+    def evaluate_subgrid_sum(self, theta):
+        """``ũ(θ)`` with the coefficient interpolation on the direct
+        combination sum — the reference path :meth:`evaluate` is gated against
+        (agrees to roundoff; different summation order)."""
+        c = np.asarray(self.coeff_model.evaluate_subgrid_sum(theta)).reshape(-1)
+        return (self.mean + self.Phi @ c).reshape(self.field_shape)
 
     def evaluate_jax(self, theta):
         """``jnp`` twin of :meth:`evaluate` — the exposed-gradient hook
@@ -198,11 +210,18 @@ class _PODSmolyakBase(CertifiedEvaluateMixin):
         u = self._mean_j + self._Phi_j @ c
         return jnp.reshape(u, self.field_shape)
 
-    # ----- pool-weight path (opt-in; the subgrid sum stays the oracle) -----
+    def evaluate_jax_subgrid_sum(self, theta):
+        """``jnp`` twin of :meth:`evaluate_subgrid_sum` (the reference path)."""
+        c = jnp.reshape(self.coeff_model.evaluate_jax_subgrid_sum(theta), (-1,))
+        u = self._mean_j + self._Phi_j @ c
+        return jnp.reshape(u, self.field_shape)
+
+    # ----- retained name: the pooled path is what evaluate does since the flip -----
     def evaluate_pooled(self, theta):
-        """``ũ(θ)`` with the coeff interpolation on the pool-weight path
-        (:mod:`.pooled`) and the same ``mean + Φ·c`` decode.  Agrees with
-        :meth:`evaluate` to roundoff; node-safe."""
+        """``ũ(θ)`` on the pool-weight path (:mod:`.pooled`).  Since the default
+        flip this is what :meth:`evaluate` already does; the dedicated
+        evaluator additionally offers ``evaluate_batch`` (one GEMM per query
+        block) and a cached jax decode."""
         from .pooled import pooled_evaluator
         return pooled_evaluator(self).evaluate(theta)
 

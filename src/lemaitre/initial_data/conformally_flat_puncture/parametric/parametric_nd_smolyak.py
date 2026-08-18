@@ -191,9 +191,32 @@ class SmolyakSolutionND(CertifiedEvaluateMixin):
         """Alias for :attr:`n_solver_nodes` (mirrors ``ParametricSolutionND.n_nodes``)."""
         return self.n_solver_nodes
 
-    # ----- combination-technique barycentric interpolant -----
+    # ----- combination-technique barycentric interpolant (pool-weight path) -----
     def evaluate(self, theta):
-        """U(θ) = Σ_i c_i · subgrid_i.evaluate(θ).  ``θ`` is a length-d vector."""
+        """``U(θ)`` — the combination interpolant on the pool-weight path
+        (:mod:`.pooled`).  ``θ`` is a length-d vector.
+
+        Mathematically this is ``Σ_i c_i · subgrid_i.evaluate(θ)``, but the sum
+        is distributed through each subgrid's linearity and contracted as GEMVs
+        against the *deduplicated* node pool, so each pool field is streamed
+        once instead of once per subgrid slot that shares it — the shipped 8-D
+        model's 15,713 pool nodes cover 101,575 subgrid slots.
+
+        The re-association changes the order of summation, so this agrees with
+        :meth:`evaluate_subgrid_sum` to roundoff and **not** bit-for-bit; that
+        direct sum is retained as the reference this path is gated against
+        (``tests/test_parametric_pooled.py``).  Node-safe: the exact-node guard
+        fires at the same θ as the reference and returns the same values.
+        """
+        from .pooled import pooled_evaluator
+        return pooled_evaluator(self).evaluate(theta)
+
+    def evaluate_subgrid_sum(self, theta):
+        """``U(θ) = Σ_i c_i · subgrid_i.evaluate(θ)`` — the direct combination
+        sum.  Retained as the reference implementation that :meth:`evaluate` is
+        gated against, and as the summation order the historical figure data was
+        produced with; correct, but it re-streams every shared node once per
+        subgrid that contains it.  Prefer :meth:`evaluate`."""
         out = None
         for c, sub in zip(self.coeffs, self.subgrids):
             v = sub.evaluate(theta)
@@ -202,23 +225,27 @@ class SmolyakSolutionND(CertifiedEvaluateMixin):
 
     # ----- JAX-differentiable twin (∂ID/∂θ hook; must not be queried at a node) -----
     def evaluate_jax(self, theta):
+        """``jnp`` twin of :meth:`evaluate`, on the same pool-weight path:
+        branchless, differentiable in θ, and jit-friendly — compile it once per
+        model with :func:`parametric_nd.jax_evaluator`.  Must NOT be queried
+        exactly at a node."""
+        from .pooled import pooled_evaluator
+        return pooled_evaluator(self).evaluate_jax(theta)
+
+    def evaluate_jax_subgrid_sum(self, theta):
+        """``jnp`` twin of :meth:`evaluate_subgrid_sum` (the reference path)."""
         out = None
         for c, sub in zip(self.coeffs, self.subgrids):
             v = sub.evaluate_jax(theta)
             out = c * v if out is None else out + c * v
         return out
 
-    # ----- pool-weight path (opt-in; the subgrid sum above stays the oracle) -----
+    # ----- retained name: the pooled path is what evaluate does since the flip -----
     def evaluate_pooled(self, theta):
-        """``U(θ)`` via the pool-weight path (:mod:`.pooled`): the same
-        interpolant contracted as GEMVs against the deduplicated node pool
-        instead of the 6.5×-redundant subgrid sum.  Agrees with
-        :meth:`evaluate` to roundoff (different summation order — the subgrid
-        sum stays the oracle); node-safe.  The evaluator is built on first use
-        and cached on the model; batch/jax variants live on
-        ``pooled.pooled_evaluator(self)``."""
-        from .pooled import pooled_evaluator
-        return pooled_evaluator(self).evaluate(theta)
+        """Alias of :meth:`evaluate`, which *is* the pool-weight path since the
+        default flip (2026-08-18).  Kept so the call sites that opted in while
+        it was opt-in keep working; new code should call :meth:`evaluate`."""
+        return self.evaluate(theta)
 
     # ----- certified evaluation: evaluate_polished from CertifiedEvaluateMixin -----
     _solve_fn_hint = "build via SmolyakSolverND/from_problem_smolyak_*"

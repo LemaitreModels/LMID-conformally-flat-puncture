@@ -116,6 +116,37 @@ deliberate: build-time behaviour stays bit-for-bit unchanged, while the query
 path — the one the certification claim is about, and the one that meets the
 extreme corners where Newton–Krylov stalls globally — gets the fallback.
 
+## How a query is evaluated (and the reference it is tested against)
+
+`parametric/pooled.py` owns the evaluation path, and since 2026-08-18 it **is**
+the default: `SmolyakSolutionND.evaluate` / `.evaluate_jax` — inherited by every
+combination family member, and reached by both POD wrappers through
+`coeff_model.evaluate` — delegate to `pooled.pooled_evaluator(model)`. The
+combination sum is distributed through each subgrid's linearity and contracted as
+GEMVs against the deduplicated node pool, so each stored field is streamed once
+per query rather than once per subgrid slot sharing it (4-D: 1,105 pool nodes over
+5,257 slots; 8-D: 15,713 over 101,575).
+
+**The direct sum is retained, deliberately, as `evaluate_subgrid_sum` /
+`evaluate_jax_subgrid_sum`.** Re-association changes the order of floating-point
+summation, so the two agree to roundoff (measured ≤3.1e-15 relative on the gate
+models, ≤9.2e-15 on the shipped artifacts) and not bit-for-bit. That reference is
+what `tests/test_parametric_pooled.py` compares against on all five family
+members — and the comparison is the whole point, because a wrong subgrid→pool
+index map yields a smooth, plausible, *wrong* field that still certifies (the
+polish repairs any guess), so only a field comparison can catch it. Two gates pin
+the flip itself, so reverting `evaluate` to the direct sum fails loudly instead of
+silently changing the guess behind every figure.
+
+One consequence to know before touching either: `evaluate` is also the **warm
+start**, via `CertifiedEvaluateMixin.evaluate_polished`. Anything that changes it
+at roundoff reshuffles mid-convergence Newton iterates, which is what fig04 plots
+— so a change here owes a fig04 re-distill even when held-out accuracy is
+unchanged to 7 digits. `parametric_nd.jax_evaluator(model)` compiles the jax twin
+once per model and is the intended bulk-query path; it is node-unsafe, like every
+`evaluate_jax` here, which is why the certified path deliberately uses the
+node-safe numpy route.
+
 ## What was kept
 
 - The full `solver` / `parametric` / `applications` / `validation` module

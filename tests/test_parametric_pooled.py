@@ -1,14 +1,19 @@
 """Acceptance tests for the pool-weight evaluation path (``parametric/pooled.py``).
 
 The pooled path re-associates the combination sum into GEMVs against the
-deduplicated node pool.  Its failure mode is silent: a wrong subgrid→pool index
-map produces a smooth, plausible, WRONG field that still certifies (the polish
+deduplicated node pool, and **it is what ``evaluate`` does** since the default
+flip (2026-08-18); the direct combination sum is retained as
+``evaluate_subgrid_sum``, which is the reference every equivalence gate here
+compares against.  Its failure mode is silent: a wrong subgrid→pool index map
+produces a smooth, plausible, WRONG field that still certifies (the polish
 repairs any guess), so the certification gate cannot catch it — only a field
 comparison can.  What must hold, on every member of the combination family
 (value-only / gradient-enhanced / full-bilinear cross / both POD wrappers):
 
-* pooled ``evaluate`` agrees with the oracle (the subgrid-sum ``evaluate``) to
+* the pooled path agrees with the reference ``evaluate_subgrid_sum`` to
   roundoff at generic θ — same interpolant, different summation order;
+* the default ``evaluate`` really is the pooled path, so that an accidental
+  revert is a failure here and not a silent change of every figure;
 * the exact-node guard fires at the same θ and returns the same values;
 * the jax twin agrees off-node, and so does its ``jacfwd`` (the exposed
   gradient the applications differentiate);
@@ -155,7 +160,7 @@ def test_pooled_matches_oracle(request, name):
     sc = _scale(model)
     worst = 0.0
     for th in _rng_thetas(25):
-        a = np.asarray(model.evaluate(th))
+        a = np.asarray(model.evaluate_subgrid_sum(th))
         b = np.asarray(ev.evaluate(th))
         worst = max(worst, float(np.max(np.abs(a - b))) / sc)
     assert worst < 1e-12, f"{name}: pooled vs oracle rel diff {worst:.2e}"
@@ -176,7 +181,7 @@ def test_pooled_node_guard(request, name):
     for th in [np.array([n0[1], 0.17, 0.123]),
                np.array([2.345, 0.21, n2[2]]),
                np.array([n0[2], 0.11, n2[0]])]:
-        a = np.asarray(model.evaluate(th))
+        a = np.asarray(model.evaluate_subgrid_sum(th))
         b = np.asarray(ev.evaluate(th))
         assert float(np.max(np.abs(a - b))) / sc < 1e-12
 
@@ -190,7 +195,7 @@ def test_pooled_jax_matches(request, name):
     ev = pooled_evaluator(model)
     sc = _scale(model)
     for th in _rng_thetas(5, seed=1):
-        a = np.asarray(model.evaluate_jax(jnp.asarray(th)))
+        a = np.asarray(model.evaluate_jax_subgrid_sum(jnp.asarray(th)))
         b = np.asarray(ev.evaluate_jax(jnp.asarray(th)))
         assert float(np.max(np.abs(a - b))) / sc < 1e-12
 
@@ -198,7 +203,7 @@ def test_pooled_jax_matches(request, name):
 def test_pooled_jacfwd_matches(pod_cross_model):
     """The exposed gradient (what qc_targeting/qc_effpot differentiate)."""
     ev = pooled_evaluator(pod_cross_model)
-    Ja = jax.jacfwd(pod_cross_model.evaluate_jax)
+    Ja = jax.jacfwd(pod_cross_model.evaluate_jax_subgrid_sum)
     Jb = jax.jacfwd(ev.evaluate_jax)
     for th in _rng_thetas(3, seed=2):
         a = np.asarray(Ja(jnp.asarray(th)))
@@ -228,6 +233,46 @@ def test_pooled_weights_partition_of_unity(cross_model):
     for th in _rng_thetas(5, seed=4):
         Wv, _, _ = ev.inner.weights(th) if hasattr(ev, "inner") else ev.weights(th)
         assert abs(float(np.sum(Wv)) - 1.0) < 1e-12
+
+
+# ==========================================================================
+# P7 — the DEFAULT evaluate is the pooled path, and the reference still differs
+# ==========================================================================
+@pytest.mark.parametrize("name", ALL)
+def test_default_evaluate_is_the_pooled_path(request, name):
+    """``evaluate`` must route through the pool weights, not the direct sum.
+
+    This is the gate that makes the default flip visible: it fails if anyone
+    reverts ``evaluate`` to the subgrid sum, which would otherwise silently
+    change the guess behind every figure and every certified query.  The
+    containers delegate straight to the cached evaluator, so the agreement is
+    exact; the POD wrappers decode through their own numpy ``mean + Φ·c``, so
+    they are held to roundoff instead.
+    """
+    model = request.getfixturevalue(name)
+    ev = pooled_evaluator(model)
+    sc = _scale(model)
+    for th in _rng_thetas(5, seed=7):
+        d = float(np.max(np.abs(np.asarray(model.evaluate(th))
+                                - np.asarray(ev.evaluate(th)))))
+        assert d / sc < 1e-14, f"{name}: evaluate is not the pooled path ({d:.2e})"
+
+
+@pytest.mark.parametrize("name", ALL)
+def test_reference_path_is_still_reachable(request, name):
+    """The retained direct sum stays callable and stays a *different* summation.
+
+    Reachability is the point (the historical figure data was produced with it);
+    it is deliberately NOT asserted bit-equal to the default, because the whole
+    reason the flip needed a figure re-run is that it is not.
+    """
+    model = request.getfixturevalue(name)
+    sc = _scale(model)
+    for th in _rng_thetas(3, seed=8):
+        a = np.asarray(model.evaluate_subgrid_sum(th))
+        b = np.asarray(model.evaluate(th))
+        assert a.shape == b.shape
+        assert float(np.max(np.abs(a - b))) / sc < 1e-12
 
 
 # ==========================================================================
