@@ -502,9 +502,11 @@ Because row equilibration is only a left scaling, it does not change the root of
 the discrete system. We therefore monitor Eq.~\eqref{eq:equil_residual} and
 abbreviate it as $\|R\|_\infty$ throughout.
 
-The nonlinear iteration terminates when the requested tolerance is reached, when
-progress stalls, or when the iteration limit is exhausted, and returns the
-lowest-residual iterate encountered. Termination alone does not constitute
+The nonlinear iteration drives the residual to an internal target one decade
+below the requested tolerance, and terminates when that target is reached, when
+the best residual fails to halve on two consecutive iterations, or when the
+budget of Newton steps is exhausted, returning the lowest-residual iterate
+encountered. Termination alone does not constitute
 certification: the interface of Sec.~\ref{sec:polish} returns a datum only if
 Eq.~\eqref{eq:equil_residual} satisfies the prescribed tolerance; otherwise the
 attempt remains uncertified. This equilibrated residual is an internal diagnostic
@@ -1208,16 +1210,31 @@ orders of magnitude more, an accuracy the certified construction never needs,
 because the polish can already ensure the correctness.
 
 Evaluating the interpolant is cheap. A bare query is a single contraction over
-the stored nodal solves, with no Newton iteration and no factorization, and costs
-only a small fraction of one Newton--Krylov step of the elliptic solve, and less
-still after the reduced-basis re-encoding of Sec.~\ref{sec:model:pod}. The warm
-start it provides is therefore essentially free relative to the solve it seeds. A
+the stored nodal solves, with no Newton iteration and no factorization, and its
+cost is dominated by streaming those stored fields; the reduced-basis
+re-encoding of Sec.~\ref{sec:model:pod} is therefore what makes it small. At the
+shipped ranks a query costs a small fraction of one Newton--Krylov step of the
+elliptic solve, so the warm start is essentially free relative to the solve it
+seeds. A
 certified query is that same warm-started solve, and its saving over a cold solve
 is the reduced step count: two to three polish steps rather than the four to five a
 cold start needs. The practical pattern is thus to bulk-generate initial data
 with bare queries and certify only the configurations one actually evolves.
 Because the model is nothing but its stored nodal solves, its memory is
 \emph{linear} in the node count.
+
+Two implementation choices are what make a query that cheap, and both are the
+defaults in the released code. Rather than evaluate the combination one subgrid
+at a time, we distribute the sum through each subgrid's linearity, which turns a
+query into a few matrix--vector products against the deduplicated node pool;
+the subgrids overlap heavily, the eight-dimensional model's $15{,}713$ distinct
+nodes filling $101{,}575$ subgrid slots. The evaluator is then compiled once per
+model. Neither choice changes the interpolant, but both reorder its
+floating-point summation, so a query differs from the direct subgrid-by-subgrid
+sum by less than $10^{-14}$ relative --- far below the interpolation error of
+Fig.~\ref{fig:joint}, and immaterial to a certified query, whose residual is
+measured on the polished field. We retain the direct sum in the released code as
+the reference implementation against which the default path is tested.
 
 \begin{figure*}[t]
   \centering
@@ -1573,6 +1590,25 @@ gradients $\dID$ for end-to-end parameter inference.
 The authors would like to thank Miguel Bezares Figueroa, Thiago Assump\c{c}\~ao, and Ignacio Brevis for encouraging and interesting discussions.
 This research was supported by the Research Foundation -- Flanders (FWO; Grant No.\ I000725N and I002123N).
 \end{acknowledgments}
+
+% ===========================================================================
+\section*{Data and code availability}
+% ===========================================================================
+The complete implementation --- the elliptic solver, the parametric models,
+the certification layer, and the pipeline that produces every figure and
+table in this paper --- is publicly available as part of the Lemaitre model
+family at
+\url{https://github.com/LemaitreModels/LMID-conformally-flat-puncture}, and
+depends only on Python with \texttt{jax}, \texttt{numpy}, \texttt{scipy},
+and \texttt{matplotlib}. An archived release is deposited at \stub{DOI ---
+to be minted on the published history once the archival route is fixed}.
+The distilled data behind each figure are committed with the code, together
+with the scripts that regenerate every plot from them; the solve corpora and
+the shipped reduced-order models are \stub{part of the same deposit /
+available from the authors --- author decision}. The reference data of
+Appendix~\ref{sec:validation} were produced with the standalone NRPy port of
+the TwoPunctures code, and the constraint measurements of
+Fig.~\ref{fig:constraints} with GRTeclyn; both codes are publicly available.
 
 \appendix
 
