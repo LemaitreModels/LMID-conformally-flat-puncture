@@ -41,6 +41,7 @@ import numpy as np
 
 
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d_nk as s3nk
 from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_3d import theta_to_slice3d
 from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_smolyak import load_smolyak
 # reuse the EXACT seed-shared off-node sampling and instrumented polish of the cold/pod families
@@ -98,6 +99,7 @@ def main():
                            for n, (lo, hi) in zip(names, box)],
                    "fixed": fixed, "metric": "field_error_relL2",
                    "u_ref": "best (converged) NK iterate",
+                   "route": "separable" if s3nk.choose_separable(prob, None) else "dense",
                    "value_guess": os.path.basename(model_path)},
         "value": value,
     }

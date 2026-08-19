@@ -289,8 +289,12 @@ def make_solve_fn(prob: Problem3D, active_names: Sequence[str], M_tot: float = 1
     residual reported is the one AFTER ``max_iter`` Newton steps (the
     ``evaluate_polished_nk`` convention — its loop measures the residual at the
     start of each iteration, so the +1 certifies the final step).  Hence
-    ``ParametricSolutionND.evaluate_polished(θ, newton_steps=2)`` performs exactly
-    2 certified NK steps.
+    ``ParametricSolutionND.evaluate_polished(θ, newton_steps=2)`` therefore
+    *budgets* 2 certified NK steps; it does not always spend both.  The shared loop
+    (``solver/newton_loop.py``) breaks as soon as the residual is below its internal
+    target of ``tol/10``, and stops early on two consecutive stagnation strikes, so
+    ``newton_steps`` is an upper bound and the step actually taken is reported in
+    ``info``.  Do not read a step count off this argument.
 
     ``retry_tol`` (default ``None`` → OFF, behaviour bit-for-bit unchanged) enables
     a **damped-Newton globalization fallback** for the ``nk`` build path. At

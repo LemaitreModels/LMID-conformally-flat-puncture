@@ -65,6 +65,18 @@ The b axis is cheap to SHIFT but expensive to WIDEN: its wall is pinned at
 b* ~ 0 (see ``WALL_B_MIN_SWEEP``), so the Bernstein rate depends on the interval's
 ratio rather than its width -- [3,10] converges at ~0.53 decades/node, marginally
 FASTER than the old [2,7] (~0.52), whereas [2,14] would drop to ~0.35.
+
+UNRECONCILED (2026-08-19), and left as it stands rather than quietly edited: the
+three rates above are NOT reproducible from fig02's committed figdata, whose
+[3,10] entry measures 0.516 decades/node.  No fit window of that entry gives 0.53
+(0.495 on the last two Q points, 0.516 on the last three -- which is what it
+stores -- and 0.512 on all four), so the two numbers are different measurements,
+not a rounding difference, and the sweep window that produced 0.53 is unrecorded.
+This matters beyond the digit: [2,7] has no committed figdata at all, so the
+"marginally FASTER" ordering cannot be checked, and at 0.516 against 0.52 it would
+invert.  Do not repair this by copying 0.516 in -- that would assert the two are
+the same measurement.  Either re-measure all three windows and restate them with
+their fit, or drop the comparison.
 """
 
 B_MIN_NARROW, B_MAX_NARROW = 2.0, 4.0
@@ -156,6 +168,13 @@ WALL_B_MIN_SWEEP = (B_MIN, 2.0, 1.5, 1.0)
 
 The wall is a HARD (real) one pinned at b* ~ 0, so unlike the spin sweep these
 ranges must descend BELOW the box for the rate to respond.
+
+fig02's committed figdata carries three of these four ranges -- b_min = 3.0, 2.0
+and 1.0.  ``b_min = 1.5`` was never distilled into it.  No claim in the paper
+rests on the missing range (the figure's argument is that the rate responds
+monotonically as b_min descends, which the three surviving ranges show), so this
+is recorded rather than treated as a gap to fill: a re-distill that adds it must
+re-fit, and the fit window is the unsettled part above.
 """
 
 WALL_Q_MAX = (3.0, 3.5, 4.0)

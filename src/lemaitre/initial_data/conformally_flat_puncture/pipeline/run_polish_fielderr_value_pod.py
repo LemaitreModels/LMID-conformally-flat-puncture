@@ -45,6 +45,7 @@ import numpy as np
 
 
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
+from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d_nk as s3nk
 # reuse the EXACT seed-shared off-node sampling and instrumented polish of the cold/pod families
 from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_cold import random_offnode_points, read_meta
 from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_fielderr import run_family
@@ -159,6 +160,7 @@ def main():
                            for n, (lo, hi) in zip(names, box)],
                    "fixed": fixed, "metric": "field_error_relL2",
                    "u_ref": "best (converged) NK iterate",
+                   "route": "separable" if s3nk.choose_separable(prob, None) else "dense",
                    "r": r_eff, "r_shipped": r_ship, "enhanced": [],
                    "model_file": os.path.basename(path),
                    "max_steps": args.steps},
