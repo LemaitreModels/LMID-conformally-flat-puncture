@@ -82,8 +82,10 @@
           8.122031935897665e-11
         ]
       },
-      "rate_value": 0.549804679346559,
-      "rate_hermite": 1.0498615250611758
+      "rate_value": 0.5498046793465592,
+      "fit_intercept_value": -1.463198074028726,
+      "rate_hermite": 1.0498615250611754,
+      "fit_intercept_hermite": -1.6395061125623756
     },
     "q": {
       "Qs": [
@@ -168,7 +170,9 @@
         ]
       },
       "rate_value": 0.6027221858329278,
-      "rate_hermite": 1.1834632242091283
+      "fit_intercept_value": -1.6652975204269977,
+      "rate_hermite": 1.1834632242091285,
+      "fit_intercept_hermite": -1.7682606588223633
     },
     "chi_Ax": {
       "Qs": [
@@ -252,8 +256,10 @@
           5.57380552129727e-10
         ]
       },
-      "rate_value": 0.4734833364035945,
-      "rate_hermite": 0.9073135251228361
+      "rate_value": 0.47348333640359463,
+      "fit_intercept_value": -1.3426693307647213,
+      "rate_hermite": 0.9073135251228348,
+      "fit_intercept_hermite": -1.0551930904839906
     },
     "chi_Ay": {
       "Qs": [
@@ -337,8 +343,10 @@
           7.247599633289358e-10
         ]
       },
-      "rate_value": 0.47579523777565436,
-      "rate_hermite": 0.9154084311866866
+      "rate_value": 0.47579523777565447,
+      "fit_intercept_value": -1.3361151081582079,
+      "rate_hermite": 0.9154084311866862,
+      "fit_intercept_hermite": -1.0525338395346078
     },
     "chi_Az": {
       "Qs": [
@@ -422,8 +430,10 @@
           2.7408830274855394e-10
         ]
       },
-      "rate_value": 0.46912520224255516,
-      "rate_hermite": 0.9023955881982375
+      "rate_value": 0.46912520224255505,
+      "fit_intercept_value": -1.342297202863418,
+      "rate_hermite": 0.9023955881982363,
+      "fit_intercept_hermite": -1.0463195906735083
     },
     "chi_Bx": {
       "Qs": [
@@ -507,8 +517,10 @@
           1.2340763307083764e-10
         ]
       },
-      "rate_value": 0.4780570926839833,
-      "rate_hermite": 0.9163366606236705
+      "rate_value": 0.4780570926839835,
+      "fit_intercept_value": -1.3528232749314963,
+      "rate_hermite": 0.9163366606236695,
+      "fit_intercept_hermite": -1.080133773937085
     },
     "chi_By": {
       "Qs": [
@@ -593,7 +605,9 @@
         ]
       },
       "rate_value": 0.47144846461629913,
-      "rate_hermite": 0.9061736823888241
+      "fit_intercept_value": -1.3570251261249673,
+      "rate_hermite": 0.9061736823888228,
+      "fit_intercept_hermite": -1.0732169569502419
     },
     "chi_Bz": {
       "Qs": [
@@ -678,7 +692,9 @@
         ]
       },
       "rate_value": 0.4776377958897128,
-      "rate_hermite": 0.9136728032466546
+      "fit_intercept_value": -1.317379969980209,
+      "rate_hermite": 0.9136728032466539,
+      "fit_intercept_hermite": -1.0705667632389118
     }
   },
   "meta": {
@@ -697,5 +713,99 @@
       32,
       8
     ]
+  },
+  "cost": {
+    "level": 5,
+    "nodes_per_axis": 33,
+    "fit_window": [
+      1e-09,
+      1.0
+    ],
+    "statistic": "median held-out, value model",
+    "assumption": "per-axis 1-D rate, independent axes; lower bound",
+    "models": {
+      "4D": {
+        "axes": [
+          "b",
+          "q",
+          "chi_Ay",
+          "chi_By"
+        ],
+        "n_sparse_level5": 1105,
+        "n_tensor_at_level5": 1185921.0,
+        "ratio_tensor_over_sparse": 1073.2316742081448,
+        "by_target_accuracy": {
+          "1e-06": {
+            "Q_per_axis": {
+              "b": 8.251661174225083,
+              "q": 7.191874766618536,
+              "chi_Ay": 9.802294183618738,
+              "chi_By": 9.848319004822384
+            },
+            "n_tensor": 8881.40084392182,
+            "ratio_over_sparse": 8.03746682707857,
+            "ratio_over_tensor_at_level5": 0.007489032443073206
+          },
+          "1e-09": {
+            "Q_per_axis": {
+              "b": 13.708144381253238,
+              "q": 12.169292340611056,
+              "chi_Ay": 16.107527531529108,
+              "chi_By": 16.2116868491564
+            },
+            "n_tensor": 57033.62902629311,
+            "ratio_over_sparse": 51.61414391519738,
+            "ratio_over_tensor_at_level5": 0.048092266707725984
+          }
+        }
+      },
+      "8D": {
+        "axes": [
+          "b",
+          "chi_Ax",
+          "chi_Ay",
+          "chi_Az",
+          "chi_Bx",
+          "chi_By",
+          "chi_Bz",
+          "q"
+        ],
+        "n_sparse_level5": 15713,
+        "n_tensor_at_level5": 1406408618241.0,
+        "ratio_tensor_over_sparse": 89506053.47425698,
+        "by_target_accuracy": {
+          "1e-06": {
+            "Q_per_axis": {
+              "b": 8.251661174225083,
+              "chi_Ax": 9.83631378584651,
+              "chi_Ay": 9.802294183618738,
+              "chi_Az": 9.928485561789063,
+              "chi_Bx": 9.720965960315727,
+              "chi_By": 9.848319004822384,
+              "chi_Bz": 9.803704962873194,
+              "q": 7.191874766618536
+            },
+            "n_tensor": 121823103.56051892,
+            "ratio_over_sparse": 7753.013654968428,
+            "ratio_over_tensor_at_level5": 8.661999221313326e-05
+          },
+          "1e-09": {
+            "Q_per_axis": {
+              "b": 13.708144381253238,
+              "chi_Ax": 16.17233402002602,
+              "chi_Ay": 16.107527531529108,
+              "chi_Az": 16.32336689764381,
+              "chi_Bx": 15.996367049246187,
+              "chi_By": 16.2116868491564,
+              "chi_Bz": 16.084614944906324,
+              "q": 12.169292340611056
+            },
+            "n_tensor": 4926675226.150639,
+            "ratio_over_sparse": 313541.3495927346,
+            "ratio_over_tensor_at_level5": 0.0035030183705162784
+          }
+        }
+      }
+    }
   }
 }

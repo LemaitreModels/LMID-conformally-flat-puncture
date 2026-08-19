@@ -108,7 +108,21 @@ def build():
                       theta_star=w["chi_star"], n_fit=n_fit,
                       fit_slope=slope, fit_intercept=intercept))
 
-    p = dump("fig02_walls", dict(B_wall_b=B, Q_wall_q=Q, C_wall_spin=C))
+    # Provenance.  fig02 is a pure reshape of one raw sweep, but nothing in the
+    # committed figdata said WHICH sweep or on what box -- the fig06 failure mode.
+    # ``dropped_b_min`` is recorded because the drop is a decision of this script,
+    # not an absence in the source: the sweep measures four b_min ranges and the
+    # figure shows three, which otherwise reads as a missing measurement.
+    rm = r.get("meta", {})
+    meta = dict(
+        box=rm.get("box"), axes=rm.get("axes"),
+        grid=[rm.get("Na"), rm.get("Nb"), rm.get("Nphi")],
+        chi_rep=rm.get("chi_rep"), code_tag=rm.get("code_tag"),
+        source_wall_s=rm.get("wall_s"),
+        dropped_b_min=list(DROP_B_MIN),
+        n_b_min_measured=len(r["B_wall_b"]), n_b_min_plotted=len(B),
+    )
+    p = dump("fig02_walls", dict(B_wall_b=B, Q_wall_q=Q, C_wall_spin=C, meta=meta))
     print(f"wrote {os.path.relpath(p)}  ({len(B)} separation ranges, "
           f"{len(Q)} mass-ratio ranges, {len(C)} spin ranges)")
 

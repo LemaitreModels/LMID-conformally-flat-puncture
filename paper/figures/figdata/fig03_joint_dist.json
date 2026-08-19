@@ -154,5 +154,111 @@
       ],
       "n_points": 1000
     }
+  },
+  "meta": {
+    "joint_dist_4d": {
+      "box": "d4_qc_chi_prod",
+      "axes": [
+        "b",
+        "q",
+        "chi_Ay",
+        "chi_By"
+      ],
+      "n_points": 1000,
+      "seed": 0,
+      "levels": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "grid": [
+        44,
+        32,
+        8
+      ],
+      "code_tag": "chi-rebuild"
+    },
+    "joint_dist_cross_4d": {
+      "box": "d4_qc_chi_prod",
+      "axes": [
+        "b",
+        "q",
+        "chi_Ay",
+        "chi_By"
+      ],
+      "n_points": 1000,
+      "seed": 0,
+      "levels": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "grid": [
+        44,
+        32,
+        8
+      ],
+      "code_tag": null
+    },
+    "joint_dist_8d": {
+      "box": "spin8_qc_chi_prod",
+      "axes": [
+        "b",
+        "q",
+        "chi_Ax",
+        "chi_Ay",
+        "chi_Az",
+        "chi_Bx",
+        "chi_By",
+        "chi_Bz"
+      ],
+      "n_points": 1000,
+      "seed": 0,
+      "levels": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "grid": [
+        44,
+        32,
+        8
+      ],
+      "code_tag": "chi-rebuild"
+    },
+    "joint_dist_hermite_8d": {
+      "box": "spin8_qc_chi_prod",
+      "axes": [
+        "b",
+        "q",
+        "chi_Ax",
+        "chi_Ay",
+        "chi_Az",
+        "chi_Bx",
+        "chi_By",
+        "chi_Bz"
+      ],
+      "n_points": 1000,
+      "seed": 0,
+      "levels": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "grid": [
+        44,
+        32,
+        8
+      ],
+      "code_tag": null
+    }
   }
 }

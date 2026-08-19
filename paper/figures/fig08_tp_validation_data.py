@@ -35,10 +35,53 @@ def _band(d):
     return {k: d[k] for k in BAND} if d else None
 
 
+# The probe set behind ``max_dpsi``.  ``run_tp_random_sweep._probe_points`` builds
+# ``6 + N_PROBE_DENSE`` points (the six legacy probes of the predecessor, kept as a
+# reproducible subset, plus 64 well-spread ones), i.e. 70 -- see that module's
+# ll. 211-235.  Recorded here rather than imported because the figure tier is
+# deliberately jax-free, and read out of the code rather than remembered because the
+# paper quoted 69.  The raw artifact predates the producer emitting it; the durable
+# fix is for ``run_tp_random_sweep`` to write ``n_probe`` into its own meta, which
+# would catch a drift at build time instead of at review time.
+N_PROBE_LEGACY = 6
+N_PROBE_DENSE = 64
+N_PROBE = N_PROBE_LEGACY + N_PROBE_DENSE
+
+
+def _n_nonmonotone(rows, value):
+    """Configurations whose refinement sequence is not monotonically decreasing.
+
+    ``value`` maps one rung dict (plus its row) to the statistic being refined.
+    The count is statistic-SPECIFIC and definition-specific -- that is the whole
+    reason it is recorded per statistic here rather than as one number: the raw
+    ``M_ADM`` is non-monotone for 75 of the 100 interior configurations, while its
+    *error against the oracle* ``|M_ADM - tp_E|`` is non-monotone for 32.  Quoting
+    "the ADM mass is non-monotone for N" without saying which is meaningless.
+    """
+    n = 0
+    for r in rows:
+        v = [value(g, r) for g in r["rungs"]]
+        v = [x for x in v if x is not None]
+        if len(v) > 1 and any(v[i + 1] > v[i] for i in range(len(v) - 1)):
+            n += 1
+    return n
+
+
+def _max_nonmonotone_steps(rows, value):
+    """Worst number of upward steps inside a single configuration's sequence."""
+    best = 0
+    for r in rows:
+        v = [value(g, r) for g in r["rungs"]]
+        best = max(best, sum(1 for i in range(len(v) - 1) if v[i + 1] > v[i]))
+    return best
+
+
 def build():
     R = load_source("tp_band_sweep")
     m, s = R["meta"], R["summary"]
     I = s["interior"]
+    # the interior sample the bands are built from, per configuration
+    interior_rows = [r for r in R["rows"] if r.get("ok") and r.get("label") is None]
 
     # psi_l2 and psi_legacy6 are carried for provenance, not plotted: the L2 is the stabler
     # statistic, and the six-probe estimate is what the predecessor reported, so keeping both
@@ -60,7 +103,30 @@ def build():
         meta=dict(n_interior=I["n"], n_edge=E.get("n", 0), ladder=m["ladder"],
                   tp_res=m["tp_res"], cert_tol=m["cert_tol"], box=m["box"],
                   sampler=m["sampler"], seed=m["seed"],
-                  oracle_floor=s.get("tp_selfconv_dpsi_max"),
+                  # RENAMED from ``oracle_floor``: this is the oracle's azimuthal
+                  # self-convergence floor specifically, and the bare name invited
+                  # reading it as a floor on the whole comparison.
+                  oracle_floor_azimuthal=s.get("tp_selfconv_dpsi_max"),
+                  # how far the closest measured agreement sits ABOVE that floor
+                  # (min over rungs of the psi band minimum / the floor): the
+                  # comparison is floor-limited only if this approaches 1.
+                  oracle_floor_margin_min=min(
+                      r["psi"]["min"] / s["tp_selfconv_dpsi_max"]
+                      for r in I["ladder"]),
+                  n_probe=N_PROBE, n_probe_legacy=N_PROBE_LEGACY,
+                  # named by statistic; see _n_nonmonotone
+                  n_nonmonotone_psi=_n_nonmonotone(
+                      interior_rows, lambda g, r: g["max_dpsi"]),
+                  n_nonmonotone_psi_legacy6=_n_nonmonotone(
+                      interior_rows, lambda g, r: g["max_dpsi_legacy6"]),
+                  n_nonmonotone_l2=_n_nonmonotone(
+                      interior_rows, lambda g, r: g["l2_dpsi"]),
+                  n_nonmonotone_M_ADM=_n_nonmonotone(
+                      interior_rows, lambda g, r: abs(g["M_ADM"] - r["tp_E"])),
+                  n_nonmonotone_M_ADM_raw=_n_nonmonotone(
+                      interior_rows, lambda g, r: g["M_ADM"]),
+                  n_nonmonotone_max_steps=_max_nonmonotone_steps(
+                      interior_rows, lambda g, r: g["max_dpsi"]),
                   axisym_m_ge1_max=(s.get("axisym") or {}).get("m_ge1_max"),
                   anchor=s.get("anchor"),          # the axisymmetric code-to-code reference
                   n_failed=s.get("n_failed", 0))))

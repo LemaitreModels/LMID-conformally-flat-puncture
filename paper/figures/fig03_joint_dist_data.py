@@ -27,11 +27,28 @@ def _series(key):
                 levels=[j["level"] for j in J], n_points=r["meta"]["n_points"])
 
 
+def _meta(key):
+    """The raw source's own provenance blob, carried through verbatim."""
+    r = load_source(key)
+    m = r.get("meta", {})
+    return dict(box=m.get("box"), axes=m.get("axes"), n_points=m.get("n_points"),
+                seed=m.get("seed"), levels=m.get("levels"),
+                grid=[m.get("Na"), m.get("Nb"), m.get("Nphi")],
+                code_tag=m.get("code_tag"))
+
+
 def build():
     out = dict(
         left=dict(bare=_series("joint_dist_4d"), cross=_series("joint_dist_cross_4d")),
         right=dict(bare=_series("joint_dist_8d"), cross=_series("joint_dist_hermite_8d")),
     )
+    # Provenance, per source rather than one block: the four series come from four
+    # separate runs, and the figure's whole point is a comparison BETWEEN them --
+    # so "same box, same 1000 points, same seed, same code_tag" is a claim the
+    # figure rests on and must be checkable from the committed figdata alone.
+    out["meta"] = {k: _meta(k) for k in
+                   ("joint_dist_4d", "joint_dist_cross_4d",
+                    "joint_dist_8d", "joint_dist_hermite_8d")}
     p = dump("fig03_joint_dist", out)
     print(f"wrote {os.path.relpath(p)}  (4D + 8D, {len(out['left']['bare']['levels'])} levels)")
 
