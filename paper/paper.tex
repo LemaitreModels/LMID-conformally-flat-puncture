@@ -2,6 +2,7 @@
   aps,
   prd,
   twocolumn,
+  10pt,
   amsmath,
   amssymb,
   nofootinbib,
@@ -13,6 +14,10 @@
 \usepackage{booktabs}
 \usepackage{xcolor}
 \usepackage{hyperref}
+% The repository URL is longer than a column, so the line carrying it sets at
+% badness 10000.  Letting url stretch at its punctuation fixes the line without
+% touching the surrounding prose or the float placement.
+\Urlmuskip=0mu plus 1mu\relax
 \hypersetup{colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue}
 
 \graphicspath{{figures/}}
@@ -57,7 +62,7 @@ Interpolation is used only to provide warm starts for the underlying elliptic so
 A small number of Newton iterations refines each interpolated solution to a discrete constraint residual $\|R\|_\infty\le10^{-10}$, independent of the interpolation error, so that every returned initial-data set satisfies the discretized constraint to that tolerance.
 Our JAX implementation provides analytic derivatives with respect to the physical parameters, enabling gradient-based parameter targeting, optimization, and sensitivity analysis.
 We demonstrate the method for quasi-circular binary-black-hole initial data using conformally flat Bowen--York punctures by constructing four-dimensional aligned-spin and eight-dimensional general-spin models.
-The resulting initial data are validated against TwoPunctures, and the method is applied to certified targeting of the physical ADM mass and angular momentum and to effective-potential eccentricity reduction using a dedicated $(b,P_{\rm t})$ model.
+The resulting initial data are validated against TwoPunctures, and the method is applied to certified targeting of the physical Arnowitt--Deser--Misner mass and angular momentum and to effective-potential eccentricity reduction using a dedicated separation--tangential-momentum model.
 \end{abstract}
 
 \maketitle
@@ -1030,7 +1035,7 @@ onto $\hat{\vect{L}}$; in-plane spin components first enter at higher PN order a
 are neglected. Converted to the convention used throughout this
 paper\footnote{Ciarfella \emph{et al.}~\cite{Healy2024} write this correction with
 $q=m_2/m_1\le1$ (body $1$ the larger hole); Eq.~\eqref{eq:ptso} is the
-algebraically identical form obtained by substituting $q\to1/q$ and relabelling
+algebraically identical form obtained by substituting $q\to1/q$ and relabeling
 $(1,2)\to(A,B)$. It is invariant under $q\to1/q$ with
 $\chi^{A}_{\parallel}\leftrightarrow\chi^{B}_{\parallel}$, as it must be.}
 ($q=m_A/m_B\ge1$, $A$ the larger hole; $\chi^{X}_{\parallel} \equiv (\vect{S}^{X}\!\cdot\!\hat{\vect{L}})/m_X^2$
@@ -1116,7 +1121,7 @@ large $\varrho$ and fast convergence.
 
 We read this estimate \emph{backwards} to locate the wall. From the slope of the
 held-out error against the node count $Q$ we measure the geometric convergence rate
-$r \equiv \log_{10}\varrho$, invert it to
+$\zeta \equiv \log_{10}\varrho$, invert it to
 $|\xi_\ast|=\tfrac12(\varrho+\varrho^{-1})$, and map $\xi_\ast$ back through the affine map, taking the real root outside the sampled box on the physically singular side
 (small $b$ toward merger for the separation; large $q$ toward the test-mass limit
 for the mass ratio; large $|\chi|$ toward the extremal
@@ -1179,9 +1184,9 @@ only soft, receding ones.
   \caption{\label{fig:walls}%
     \textbf{Analyticity walls of the quasi-circular family.} Held-out
     interpolation error against the number of nodes on the swept axis, for several
-    sampling ranges, with the geometric fit $\varepsilon\approx A\,10^{-\rho Q}$
+    sampling ranges, with the geometric fit $\varepsilon\approx A\,10^{-\zeta Q}$
     dashed over the fitted window, which ends where the error saturates on the
-    float64 floor. Legends give, per range, the fitted rate $\rho$ (decades/node)
+    float64 floor. Legends give, per range, the fitted rate $\zeta$ (decades/node)
     and the inferred nearest real singularity $\theta_\ast$.
     \emph{Top (separation $b$):} the rate degrades as the interval is pushed toward
     coincidence while $b_\ast$ stays pinned at the merger, i.e.\ a hard, real wall.
@@ -1260,7 +1265,7 @@ the reference implementation against which the default path is tested.
     \textbf{Certified refinement.} Constraint residual $\|R\|_\infty$ (top row)
     and relative field error $\|U-U_{\rm true}\|_2/\|U_{\rm true}\|_2$ (bottom
     row) over $1000$ uniformly-random off-node points of the quasi-circular models
-    ($\chi$, $b\in[3,10]\,M$, Smolyak $\ell=5$; left column four-dimensional
+    ($\chi\in[-0.9,0.9]$, $b\in[3,10]\,M$, Smolyak $\ell=5$; left column four-dimensional
     aligned-spin, right column eight-dimensional general-spin), before the polish
     (``guess'') and after each Newton step. Each curve is the median with
     min--max whiskers over the $1000$ points, the field error measured against the
@@ -1329,7 +1334,7 @@ soft, its nearest real singularity receding as the fit range grows, so precessio
 introduces no new hard wall. At this dimension it is the polish, not the bare
 sparse interpolant, that carries the accuracy: the $1000$-point certified-polish
 statistics for both $\ell=5$ models are reported in Fig.~\ref{fig:polish}. The
-gradient-enhanced corpus reduced-basis compresses by a factor of $20$ with no loss
+gradient-enhanced corpus reduced-basis compresses by a factor of $19$ with no loss
 of certification or differentiability (Sec.~\ref{sec:model:pod}).
 
 \subsection{Reduced-basis compression of the model}
@@ -1337,7 +1342,7 @@ of certification or differentiability (Sec.~\ref{sec:model:pod}).
 
 The corpora are correspondingly large: the gradient-enhanced four-dimensional
 $\ell=5$ corpus (values, the two enhanced-axis node tangents, \emph{and} their
-bilinear cross tangent) is $389$~MiB and the eight-dimensional one $5.4$~GiB. This is a
+bilinear cross tangent) is $388$~MiB and the eight-dimensional one $5.4$~GiB. This is a
 distribution liability for an artifact
 meant to be hosted and cited, and it is entirely removable by the reduced-basis
 (POD) re-encoding of Sec.~\ref{sec:param:pod}: an SVD of the stored fields yields
@@ -1356,7 +1361,7 @@ the two are independent.
 
 Figure~\ref{fig:pod} shows the resulting memory--accuracy tradeoff. At the shipped
 ranks ($r=250$ and $r=500$) the four-dimensional model shrinks by a factor of $13$
-($389$~MiB to $30$~MiB) and the eight-dimensional one by $20$ ($5.4$~GiB to $284$~MiB), and
+($388$~MiB to $30$~MiB) and the eight-dimensional one by $19$ ($5.4$~GiB to $284$~MiB), and
 per-query evaluation, now a barycentric sum over $r$ coefficients rather than the
 full field, drops to a few milliseconds. The certified constraint residual, the
 number of Newton steps needed to reach it (Sec.~\ref{sec:polish}), and the
@@ -1412,8 +1417,8 @@ Sec.~\ref{sec:polish}. This is the unit used in every cost statement and figure
 below; the Newton steps and linear solves inside one such solve are not counted
 separately.
 
-Both applications read physical observables off that certified field. The ADM mass
-is the monopole of the solved conformal factor,
+Both applications read physical observables off that certified field. The
+Arnowitt--Deser--Misner (ADM) mass is the monopole of the solved conformal factor,
 $\Madm=(m_A+m_B)-2b\,\langle\partial_A u\rangle_{A=1}$ on the $m=0$ mode at the
 compactified outer edge; the angular momentum $J$ is the Bowen--York surface
 integral, which for the nonspinning configurations targeted here reduces to the
@@ -1618,7 +1623,7 @@ Fig.~\ref{fig:constraints} with GRTeclyn; both codes are publicly available.
 \section{Validation against TwoPunctures}
 \label{sec:validation}
 % ===========================================================================
-We validate the initial-data solver against the Two-Punctures
+We validate the initial-data solver against the TwoPunctures
 code~\cite{AnsorgBruegmannTichy2004}, using its standalone C port from the NRPy
 suite compiled against GSL. We compare the quasi-circular data over the
 production box (App.~\ref{sec:validation:qc}) and, through an independent
@@ -1631,7 +1636,7 @@ axisymmetric limit the two codes agree to near machine precision.
   \centering
   \includegraphics[width=\columnwidth]{fig08_tp_validation.pdf}
   \caption{\label{fig:tpval}%
-    \textbf{Quasi-circular data validated against Two-Punctures, across the
+    \textbf{Quasi-circular data validated against TwoPunctures, across the
     production box.} Each point is a median over $100$ quasi-circular
     configurations drawn from the production box by a Latin hypercube, with
     whiskers spanning the sample minimum to maximum; the shared resolution axis
@@ -1757,7 +1762,7 @@ solver.
     measurement with the conformal factor supplied by TwoPunctures.}
 \end{figure}
 
-As a final validation, we hand the initial data to GR-Teclyn~\cite{GRTeclyn}, an
+As a final validation, we hand the initial data to GRTeclyn~\cite{GRTeclyn}, an
 independent numerical-relativity code, and let it measure the
 constraint violation with its own machinery. GRTeclyn evaluates the Hamiltonian
 and momentum constraints with fourth-order stencils, working from the evolution

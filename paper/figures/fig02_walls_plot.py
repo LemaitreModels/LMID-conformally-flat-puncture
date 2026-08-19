@@ -6,8 +6,8 @@ close the inferred wall sits to the sampled box:
   TOP     separation wall: held-out error vs separation nodes Q_b, per fit range;
   MIDDLE  mass-ratio wall: held-out error vs mass-ratio nodes Q_q, per fit range;
   BOTTOM  spin wall:       held-out error vs spin nodes Q_chi,     per fit range.
-Each curve shows the data (markers) AND its geometric fit line eps ~ A*10^(-rho*Q);
-the legend reports, per fit range, the rate rho (decades/node) and the inferred
+Each curve shows the data (markers) AND its geometric fit line eps ~ A*10^(-zeta*Q);
+the legend reports, per fit range, the rate zeta (decades/node) and the inferred
 nearest real singularity theta* (b* pinned near merger; chi* marching outward).
 The former theta*-vs-range panels are folded into these legends.
 
@@ -84,15 +84,15 @@ def main():
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(PANEL_W, 3 * PANEL_H_SHORT))
 
     _panel(ax1, d["B_wall_b"], "b_min",
-           lambda r, rho, th: rf"$b_{{\min}}={r}$;   fit:  $\rho={rho:.2f}$,  $b_\ast={th:.2f}$",
+           lambda r, rate, th: rf"$b_{{\min}}={r}$;   fit:  $\zeta={rate:.2f}$,  $b_\ast={th:.2f}$",
            r"separation nodes  $Q_b$",
            "Separation wall")
     _panel(ax2, d["Q_wall_q"], "q_max",
-           lambda r, rho, th: rf"$q_{{\max}}={r:.1f}$;   fit:  $\rho={rho:.2f}$,  $q_\ast={th:.2f}$",
+           lambda r, rate, th: rf"$q_{{\max}}={r:.1f}$;   fit:  $\zeta={rate:.2f}$,  $q_\ast={th:.2f}$",
            r"mass-ratio nodes  $Q_q$",
            Q_TITLE)
     _panel(ax3, d["C_wall_spin"], "chi_max",
-           lambda r, rho, th: rf"$\chi_{{\max}}={r:.1f}$;   fit:  $\rho={rho:.2f}$,  $\chi_\ast={th:.1f}$",
+           lambda r, rate, th: rf"$\chi_{{\max}}={r:.1f}$;   fit:  $\zeta={rate:.2f}$,  $\chi_\ast={th:.1f}$",
            r"spin nodes  $Q_\chi$",
            "Spin wall")
 
