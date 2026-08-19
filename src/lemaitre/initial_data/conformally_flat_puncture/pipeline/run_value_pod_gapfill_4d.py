@@ -115,7 +115,18 @@ def main(n_points=1000, seed=0, model=None):
     tev = time.time()
     for i, th in enumerate(pts):
         sl = theta_to_slice3d(th, names, 1.0, fixed)
-        asm = s3.assemble(prob, sl)
+        # certification-only: this loop needs the residual of a GIVEN field, never a
+        # linear solve, so the dense per-m blocks would be built and thrown away.
+        # The separable assembly is the same operator in Kronecker factors, and
+        # `_block_scales` / `equil_residual_inf` take the same route through it --
+        # ~two orders cheaper per new-b assembly.  Agreement is at roundoff, NOT
+        # bitwise: measured 2.5e-16..9.1e-16 relative on the residual (the block
+        # scales themselves differ by ~1e-12), because the factored operator
+        # accumulates in a different order.  Harmless here -- nothing iterates on
+        # this number, so there is no Newton step to amplify it -- but fig05's
+        # committed figdata was distilled on the DENSE route, so a re-distill will
+        # differ in the last digit or two, and this comment is why.
+        asm = s3.assemble(prob, sl, separable=True)
         scales = s3nk._block_scales(asm)
         u_full = np.asarray(view.evaluate(th)).reshape(-1)
         c = Phi.T @ (u_full - mean)

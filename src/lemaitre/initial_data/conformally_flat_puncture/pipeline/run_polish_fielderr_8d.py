@@ -67,7 +67,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_3d
 from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak_pod_cross import load_pod_hermite_smolyak_cross
 # metadata / box / grid / axes / fixed source (the SAME plain 8-D model
 # run_polish_cold --dim 8 reads its metadata + off-node points from)
-from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_guess_vs_memory import MODELS
+from lemaitre.initial_data.conformally_flat_puncture.pipeline.fielderr_shared import MODELS
 from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 # reuse the EXACT seed-shared off-node sampling of the residual staircases
 from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_cold import random_offnode_points, read_meta
