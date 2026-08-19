@@ -1824,10 +1824,11 @@ attainable accuracy of the inverse.
 The boundary rows preserve this form because they are one-dimensional. The
 $A$-direction conditions of Sec.~\ref{sec:solve:abt} (Dirichlet at $A=1$, and at
 $A=0$ either the $m=0$ Neumann row or $u_m=0$) involve $A$ alone, so they are
-imposed inside $L_A^{(m)}$ and then eliminated exactly: writing $b$ for those two
-rows and $i$ for the interior, solving the boundary equations for $V_b$ and
-substituting into the interior rows replaces $L_A^{(m)}$ by the Schur complement
-$L_{ii}-L_{ib}L_{bb}^{-1}L_{bi}$ (static condensation), again a one-dimensional
+imposed inside $L_A^{(m)}$ and then eliminated exactly: writing $\partial$ for
+those two rows and $i$ for the interior, solving the boundary equations for
+$V_\partial$ and substituting into the interior rows replaces $L_A^{(m)}$ by the
+Schur complement $L_{ii}-L_{i\partial}L_{\partial\partial}^{-1}L_{\partial i}$
+(static condensation), again a one-dimensional
 operator in $A$. A condition coupling $A$ and $B$ would not permit this, and the
 Kronecker structure would be lost.
 
