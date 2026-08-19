@@ -1,4 +1,4 @@
-"""LM-initial-data paper — shared figure geometry (single source of truth for figure size).
+r"""LM-initial-data paper — shared figure geometry (single source of truth for figure size).
 
 UNIFORMITY.  Every figure sizes itself through ``figdims`` so panels share ONE aspect ratio
 (``PANEL_W : PANEL_H``) across the whole paper, regardless of the panel grid.  A figure with an
@@ -17,10 +17,37 @@ by a measured RevTeX float-fitting limit rather than by appearance — see its p
 FONTS.  The font *family* IS forced globally, here, as an import-time side effect: every plotter
 imports this module for ``figdims``, so this is the one place that keeps all ten figures on a single
 typeface — and that puts a new figure on it automatically.  matplotlib's default is DejaVu Sans,
-which clashes with the Times-like serif RevTeX sets for the body text; STIXGeneral with the ``stix``
-mathtext set is the Times-metric-compatible pair, so figure text and figure math now match the
-surrounding page.  STIX ships *with* matplotlib, so this needs neither a system font nor a LaTeX
-install (``text.usetex`` stays off) and the figures build identically everywhere.
+which clashes with the serif RevTeX sets for the body text.
+
+That body face is **Computer Modern**, not Times.  ``revtex4-2`` with ``aps,prd`` loads no font
+package, and ``paper.tex`` adds none, so the compiled paper is CMR10/CMMI10/CMSY10 throughout —
+check it rather than assuming, with ``pdffonts paper.pdf``.  (This module set STIXGeneral until
+2026-08-19 on the stated premise that RevTeX gives a Times-like serif; that premise was wrong, and
+STIX's Times metrics are exactly what made the figures read as a different face from the page.)
+
+``cmr10`` with the ``cm`` mathtext set is therefore the matching pair, and matplotlib bundles the
+whole CM family (``cmr10``, ``cmmi10``, ``cmsy10``, ``cmex10``, ``cmti10``, ``cmb10``, ``cmtt10``) —
+so this needs neither a system font nor a LaTeX install (``text.usetex`` stays off) and the figures
+build identically everywhere.  Latin Modern would cover more glyphs, but it ships only inside a TeX
+distribution, which would trade that portability away.
+
+The two companion rcParams are not cosmetic, they are what make ``cmr10`` usable.  ``cmr10`` is a
+Type-1 conversion carrying the TeX text encoding: it has **no** U+2212 MINUS, no en/em dash and no
+Greek, so a negative tick label renders as a missing-glyph box.  ``axes.formatter.use_mathtext``
+routes numeric tick labels through mathtext, where the minus comes from ``cmsy10`` and typesets as
+the page's own minus (matplotlib emits a UserWarning naming this rcParam if you set ``cmr10``
+without it); ``axes.unicode_minus = False`` catches any remaining non-mathtext text by falling back
+to the ASCII hyphen, which ``cmr10`` does have.  Fig. 7's negative binding-energy axis is the case
+that exercises both.  Literal non-ASCII in a plotter's *rendered* strings will still be a box —
+write it as mathtext (``$\times$``, ``$\chi$``), as the plotters already do.
+
+Two glyphs still fall back to STIX, and they are the only ones: matplotlib bundles no bold math
+italic and no ``cmex``-side star, so ``\boldsymbol{\chi}`` (``MODEL_TITLES[8]``, Figs. 3--5) draws
+from STIXGeneral-BoldItalic and ``\star`` (Fig. 6's ``\|F-F_\star\|_\infty``) from
+STIXGeneral-Regular — while ``paper.tex`` sets the same two from CMMIB10 and CMSY10.  Plain
+``\chi`` is unaffected: mathtext resolves it through the TeX name into ``cmmi10``, not by codepoint.
+Neither is worth fixing by changing the notation, which must track the paper.  ``pdffonts`` on each
+figure is the check; a *third* STIX name appearing there means a new label needs a CM-covered symbol.
 
 Font *sizes*, by contrast, are deliberately NOT globally forced.  Each plotter keeps matplotlib's
 natural per-element hierarchy (title >= axis labels / ticks > legend > small in-panel data labels),
@@ -33,8 +60,10 @@ mild downscale of the ``figdims`` size make the effective text a little smaller 
 import matplotlib as _mpl
 
 _mpl.rcParams["font.family"] = "serif"
-_mpl.rcParams["font.serif"] = ["STIXGeneral"]
-_mpl.rcParams["mathtext.fontset"] = "stix"
+_mpl.rcParams["font.serif"] = ["cmr10"]
+_mpl.rcParams["mathtext.fontset"] = "cm"
+_mpl.rcParams["axes.formatter.use_mathtext"] = True   # cmr10 has no U+2212; see FONTS above
+_mpl.rcParams["axes.unicode_minus"] = False
 
 PANEL_W = 4.5          # inches per panel (width)
 PANEL_H = 3.0          # inches per panel (height);  PANEL_W : PANEL_H = 3 : 2  (~golden)
