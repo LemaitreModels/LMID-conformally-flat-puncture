@@ -141,3 +141,55 @@ def test_producer_ranks_are_not_hard_coded():
     assert not offenders, (
         f"producer argv restates a shipped rank literally: {offenders}.  Use '{{rank}}' / "
         f"'{{pod_stem}}' so production_model stays the single source (CLAUDE.md).")
+
+
+# --------------------------------------------------------------------------- fig07 numerals ---
+# ``registry.FIGURES[stem]["keys"]`` can only pin TOP-LEVEL keys, so the numerals that
+# live inside ``per_J`` are unguarded by the mechanism above.  They are exactly the
+# numerals the paper quotes for Fig. 7 -- the scan/gradient agreement and the
+# eccentricity ladder -- and the ladder in particular was regenerated after a bug that
+# had made every rung unmeasurable, so a silent reversion must not pass.
+FIG07_PER_J_KEYS = [
+    "b_circ", "b_circ_scan", "d_bcirc_abs", "d_bcirc_rel", "scan_argmin_b",
+    "dEb_db_certified", "ecc_b0", "ecc", "n_ecc_measurable", "b0_max_measurable",
+    "e_max",
+]
+
+
+def test_fig07_per_J_carries_the_numerals_the_paper_quotes():
+    with open(os.path.join(FIGURES, "figdata", "fig07_eccentricity.json")) as f:
+        d = json.load(f)
+    for J, pj in d["per_J"].items():
+        missing = [k for k in FIG07_PER_J_KEYS if k not in pj]
+        assert not missing, f"fig07 per_J[{J}] missing {missing} — re-distill fig07"
+        assert pj["d_bcirc_abs"] == pytest.approx(
+            abs(pj["b_circ_scan"] - pj["b_circ"]), rel=1e-12), (
+            f"fig07 per_J[{J}]: d_bcirc_abs is not |b_circ_scan - b_circ|")
+        assert pj["d_bcirc_rel"] == pytest.approx(
+            pj["d_bcirc_abs"] / pj["b_circ"], rel=1e-12), (
+            f"fig07 per_J[{J}]: d_bcirc_rel is not taken against the gradient value")
+
+
+def test_fig07_eccentricity_ladder_is_measurable_somewhere():
+    """The regression the figure itself would not show.
+
+    ``eccentricity`` returns NaN -> ``null`` for a rung whose second turning point
+    leaves the box, which is a legitimate result -- so an all-null column is
+    indistinguishable from "not measurable here" by eye.  It was in fact a node
+    collision at the box edge, and every rung of every J was dead.  Pin that at
+    least one J still measures a non-trivial ladder; a bare "no nulls" assertion
+    would be wrong, since J=1.00 genuinely has only its circular rung.
+    """
+    with open(os.path.join(FIGURES, "figdata", "fig07_eccentricity.json")) as f:
+        d = json.load(f)
+    n_meas = {J: pj["n_ecc_measurable"] for J, pj in d["per_J"].items()}
+    assert max(n_meas.values()) > 1, (
+        f"no J measures an eccentricity beyond the circular point: {n_meas} — "
+        "the box-edge node collision is back (see tests/test_qc_effpot.py)")
+    for J, pj in d["per_J"].items():
+        finite = [e for e in pj["ecc"] if e is not None]
+        assert len(finite) == pj["n_ecc_measurable"]
+        assert finite and finite[0] == pytest.approx(0.0, abs=1e-9), (
+            f"fig07 per_J[{J}]: the first rung is b0 = b_circ and must have e = 0")
+        if pj["e_max"] is not None:
+            assert pj["e_max"] == pytest.approx(max(finite))

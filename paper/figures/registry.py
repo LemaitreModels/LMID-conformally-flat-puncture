@@ -320,13 +320,17 @@ SOURCES = {
                                  where="cluster",
                                  status="ready", model=True, figures=["fig07_eccentricity"]),
 
-    # ---- superseded as figure sources, RETAINED for provenance ----
+    # ---- superseded as figure sources, RETAINED as standalone diagnostics ----
     # Neither feeds a figure any more (both fed the former fig08 / the former
-    # single-configuration fig09).  They are kept because the appendix still quotes numbers
-    # produced by them: the ADM-angular-momentum diagnostics (theta_J vs theta_S to
-    # ~1e-14 deg, J_y = 2 b P_x, TP agreement <= 1.4e-14) from `sweep_3d`, and the
-    # axisymmetric-limit code-to-code anchor (psi to 4.7e-12, M_ADM to 1.0e-11 at b=3,
-    # P=0.5) from `tp_validation`.  Deleting the entries would strand those numbers.
+    # single-configuration fig09), and neither supplies a paper numeral any more either:
+    # the appendix's axisymmetric-limit anchor (psi to 2.6e-10, M_ADM to 5.0e-11, certified
+    # residual 1.2e-12 at b=3, P=0.5) and its "all m>=1 below 1e-16" statement now come from
+    # `tp_band_sweep` itself -- the `anchor` and `axisym_m_ge1_max` entries of fig08's
+    # committed figdata meta.  The ADM-angular-momentum diagnostics these once supplied
+    # (theta_J vs theta_S, J_y = 2 b P_x) appear nowhere in the manuscript.
+    # They are kept because their producers are still useful run-by-hand diagnostics and
+    # this is the only record of where their output lands; retiring the producers is a
+    # separate decision from retiring these entries.
     "sweep_3d":             dict(reports="3D/sweep_results.json",
                                  producer=_prod("run_3d_sweep"), where="cluster",
                                  status="ready", figures=[]),
@@ -367,10 +371,11 @@ SOURCES = {
 FIGURES = {
     "fig01_peraxis_hermite":    dict(sources=["peraxis_dist_chi"], keys=["A_per_axis"]),
     "fig02_walls":              dict(sources=["walls_dense"],
-                                     keys=["B_wall_b", "Q_wall_q", "C_wall_spin"]),
+                                     keys=["B_wall_b", "Q_wall_q", "C_wall_spin",
+                                           "meta"]),
     "fig03_joint_dist":         dict(sources=["joint_dist_4d", "joint_dist_cross_4d",
                                               "joint_dist_8d", "joint_dist_hermite_8d"],
-                                     keys=["left", "right"]),
+                                     keys=["left", "right", "meta"]),
     "fig04_polish_staircase":   dict(sources=["polish_cold_4d", "polish_cold_8d", "polish_pod_4d",
                                               "polish_pod_8d", "polish_fielderr_4d",
                                               "polish_fielderr_8d", "polish_table_4d",
@@ -397,8 +402,16 @@ FIGURES = {
     # against the superseded narrow model cannot be replotted silently (the caption
     # states the box).
     "fig06_targeting":          dict(sources=["qc_targeting"], keys=["methods", "meta"]),
+    # ``meta`` names the model artifact the curves were evaluated from (file, build
+    # commit, box, dense Q, grid) -- the fig06 failure mode, since that artifact is
+    # gitignored.  Pinned here in the same commit as the re-distill that produced it.
+    # NOTE this pins top-level PRESENCE only.  The per-J numerals added alongside it
+    # (b_circ_scan, d_bcirc_abs/_rel, scan_argmin_b, dEb_db_certified, and the
+    # ecc block) live INSIDE per_J and so cannot be declared here at all; see
+    # tests/test_paper_figures.py, which asserts them structurally instead.
     "fig07_eccentricity":       dict(sources=["qc_effpot", "effpot_model"],
-                                     keys=["Jlist", "per_J", "bg", "n_scan", "n_grad"]),
+                                     keys=["Jlist", "per_J", "bg", "n_scan", "n_grad",
+                                           "meta"]),
     # one shared source, two figures: the resolution ladder and the azimuthal spectrum share
     # no abscissa, so each distills its own block of tp_band_sweep (see SOURCES above)
     "fig08_tp_validation":      dict(sources=["tp_band_sweep"],
