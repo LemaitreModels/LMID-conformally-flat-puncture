@@ -68,7 +68,7 @@ Physical Review D is a physics journal with a strong preference for precision an
 tolerance for salesmanship. Calibrate to that:
 
 - **Every claim is quantitative or it is not a claim.** "Substantially faster" is weak;
-  "a factor of 27 smaller (12.1 GiB → 461 MiB)" is a result. Prefer the number.
+  "a factor of 20 smaller (5.4 GiB → 284 MiB)" is a result. Prefer the number.
 - **Qualifiers on central claims are load-bearing, not padding.** "Certified to
   `‖R‖_∞ ≤ 10⁻¹⁰` *after a few Newton steps, independent of the interpolation error*" —
   every clause there is doing work. Tightening such a sentence is welcome; shedding a
@@ -193,7 +193,18 @@ figures, POD ranks, and convergence rates recur in the abstract, the introductio
 results, and the captions. If you touch one, grep for the others:
 
 ```bash
-grep -n "15{,}713\|1105\|461 MiB\|decades/node" paper.tex
+grep -n "15{,}713\|1105\|38[89]\|5\.4\|284\|decades/node" paper.tex
+```
+
+The memory numerals are the ones that drift, because they are derived: the shipped
+model is 388.5 MiB bare → 30.5 MiB at POD r=250 in 4-D (a factor of 12.7), and
+5.39 GiB → 283.8 MiB at r=500 in 8-D (19.5). `pipeline/production_model.py` computes
+all four and is their single source — check the paper against it, not against an
+earlier draft:
+
+```bash
+python -c "from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+print(pm.bare_bytes(8)/2**30, pm.pod_bytes(pm.SHIPPED_RANK[8], 8)/2**20, pm.compression_factor(8))"
 ```
 
 **Paper edits come last.** Per the repository CLAUDE.md: settle the code and figures
