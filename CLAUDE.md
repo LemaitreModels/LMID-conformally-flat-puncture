@@ -73,17 +73,19 @@ caffeinate -i pytest tests/test_solver_3d.py -v
 make figures                                   # build any MISSING figure data, then plot
 ```
 
-Installing needs the two unpublished namespace parents in order, so a bare
-`pip install -e .` here fails — see the `README.md` install block.
+Installing needs the two namespace parents in order, and `--no-deps`: both parents
+are on PyPI, so a bare `pip install -e .` here silently resolves them from there
+instead of from your checkout — see the `README.md` install block.
 
-**The full suite is a ~40-minute job.** Measured 2026-08-15 on the post-Wave-0
-tree: **622 passed, 40m57s**, no failures and no skips, on an M-series laptop with
-`uptime` load running 8→16 throughout (a peer session held the box). Start it in
+**The full suite is a 20–40 minute job.** Measured 2026-08-18: **671 passed,
+22m20s**, no failures and no skips, on an M-series laptop with `uptime` load
+running 3–4 (a quiet box). Start it in
 the background and do other work — and do not pipe it through `tail`/`head`, which
 buffers until pytest exits so a running suite looks hung.
 
-That figure has now moved four times, so treat it as a measurement and not a
-constant. It was **611 tests, 36m35s** on 2026-08-13, **589 tests, 2h01m** earlier
+That figure has now moved five times, so treat it as a measurement and not a
+constant. It was **622 passed, 40m57s** on 2026-08-15 at load 8→16 (a peer session
+held the box), **611 tests, 36m35s** on 2026-08-13, **589 tests, 2h01m** earlier
 that day, and "542 tests, ~36 min" before that. The wall-clock swings are real —
 the suite is dominated by elliptic solves, the solver's assembly and per-step
 linear algebra were made several times cheaper (see `solver/operators_3d.py` and
@@ -91,8 +93,10 @@ linear algebra were made several times cheaper (see `solver/operators_3d.py` and
 
 **The 611 → 622 count is only partly accounted for.** The evaluate_field/GRTeclyn
 commit adds 7 gates, which reaches 618; the remaining **four tests are
-unexplained**, and nobody has bisected them. Do not treat 622 as 611+7. Re-measure
-rather than quoting this line if the number matters to a decision.
+unexplained**, and nobody has bisected them. Do not treat 622 as 611+7. The same
+caution applies to every later count, 671 included: only its final step has been
+attributed test-by-test. Re-measure rather than quoting this line if the number
+matters to a decision.
 
 `tests/test_source_spin.py::test_sympy_exact_spin_closed_form` needs `sympy`,
 which is a **test-only** dependency — the standalone guard forbids importing it
@@ -104,11 +108,11 @@ environment is stale — `pip install -e ".[dev]"`, or `./scripts/create_env.sh`
 from the workspace root.
 
 For a fast check while iterating, these three cover the structural invariants in
-about four seconds:
+about two seconds:
 
 ```bash
 caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.py \
-                       tests/test_qc_wiring.py          # 255 tests, ~2 s
+                       tests/test_qc_wiring.py          # 241 tests, ~2.4 s
 ```
 
 ## Architecture

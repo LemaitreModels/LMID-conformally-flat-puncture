@@ -14,7 +14,7 @@ reports/
 # Figure data (`make figdata`) IS COMMITTED — do not ignore it.
 #
 # The plotters read figdata/figNN_*.json and nothing else: no reports/, no model
-# corpus, no jax.  Committing it (~136 kB for all nine) is what makes the claim in
+# corpus, no jax.  Committing it (~110 kB for all ten) is what makes the claim in
 # registry.py, figures/README.md and docs/DATA.md true — that every figure rebuilds
 # from a bare clone with only matplotlib.  Recomputing it instead needs the
 # multi-GB corpora and the cluster, which a reader or a co-author cloning the repo

@@ -23,22 +23,25 @@ installed alongside.
 ## Install
 
 This distribution declares two namespace parents, `lemaitre` and
-`LM-initial-data`. **Neither is published on PyPI**, so a bare
-`pip install -e .` here cannot resolve them. Install all three from a checkout
-of the family superproject, outermost first, and tell pip not to look upstream:
+`LM-initial-data`. **Both are published on PyPI**; this distribution is not. A
+bare `pip install -e .` here therefore resolves the parents from PyPI rather
+than failing — which is not what you want while developing against a checkout.
+Install all three from a checkout of the family superproject, outermost first,
+with `--no-deps` so pip uses the checked-out parents:
 
 ```bash
 pip install numpy scipy jax matplotlib pytest sympy    # the solver stack + test deps
 
-# from the Lemaitre superproject root, with LMID-conformally-flat-puncture checked out
+# from the Lemaitre superproject root -- https://github.com/LemaitreModels/Lemaitre
+# -- with LMID-conformally-flat-puncture checked out
 for d in . LM-initial-data LM-initial-data/LMID-conformally-flat-puncture; do
   pip install -e "$d" --config-settings editable_mode=compat --no-deps
 done
 python -c "import lemaitre as lm; lm.initial_data.conformally_flat_puncture"   # smoke check
 ```
 
-`--no-deps` and the **order** go together: pip must not try to resolve the two
-unpublished parents from PyPI, and each must already be installed before its
+`--no-deps` and the **order** go together: pip must not resolve the two parents
+from PyPI in place of your checkout, and each must already be installed before its
 dependents — so the runtime stack is installed first, by hand. `sympy` is the
 `[dev]` extra, needed by one test that fails rather than skips without it.
 
@@ -106,4 +109,5 @@ cached run output is **Stage 2, and is not done**. See `docs/DATA.md`.
 
 ## License
 
-GPL-3.0 (see `LICENSE`).
+GPL-3.0-or-later (GPLv3+) — the wording of the `License ::` classifier in
+`pyproject.toml`. See `LICENSE`.

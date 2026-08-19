@@ -71,7 +71,8 @@ jobs:
       # distribution behind a meta-path finder, which `PathFinder` would preempt
       # -- leaving the leaves' bare `lemaitre/` directories to win as PEP 420
       # namespace portions and the owners' real `__init__.py` never loaded.
-      # `--no-deps` is required because none of these three is on PyPI.
+      # `--no-deps` keeps pip from resolving the two parents from PyPI (both are
+      # published there) in place of the checkouts this workflow is testing.
       - name: Install the family, in dependency order
         run: |
           for d in Lemaitre LM-initial-data LMID-conformally-flat-puncture; do
@@ -79,7 +80,7 @@ jobs:
           done
 
       # Prove the lazy two-level idiom resolves before running anything, so a
-      # namespace failure reports itself here rather than as 255 collection
+      # namespace failure reports itself here rather than as 241 collection
       # errors.  Print __file__: two clones of the family on one sys.path merge
       # into a single package, and that failure mode is a PASS.
       - name: Check the namespace resolves from this checkout
