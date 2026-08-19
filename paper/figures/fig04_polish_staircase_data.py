@@ -117,8 +117,9 @@ STOPPING = ("newton_loop (e6ff7ec): breaks on an internal target of tol/10 while
 GUESS = ("pool-weight evaluate (b4c56cb): the default query contracts against the "
          "deduplicated node pool, not the subgrid-by-subgrid sum; the job asserts this "
          "before solving, since a pre-flip checkout would reproduce the old guess")
-# Which lane each moved numeral is attributable to.  Measured, not assumed -- see the
-# campaign reports in context/LM-initial-data/FINDINGS.md (2026-08-16 and 2026-08-18).
+# Which lane each moved numeral is attributable to.  Measured, not assumed: each entry
+# names the commit whose change was tested, and the two re-distills that separated the
+# movers from the inert lanes (2026-08-16, 2026-08-18) are in this file's own git log.
 SUSPECTS = {
     "T3 (e6ff7ec)": "intended mover; changes only WHEN the loop stops, never how a "
                     "Newton step is computed, so it cannot move a step-1 residual",
