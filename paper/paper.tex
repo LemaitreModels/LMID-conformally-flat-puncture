@@ -1223,17 +1223,16 @@ with bare queries and certify only the configurations one actually evolves.
 Because the model is nothing but its stored nodal solves, its memory is
 \emph{linear} in the node count.
 
-Two implementation choices are what make a query that cheap, and both are the
-defaults in the released code. Rather than evaluate the combination one subgrid
+Two implementation choices are what make a query that cheap.
+Rather than evaluate the combination one subgrid
 at a time, we distribute the sum through each subgrid's linearity, which turns a
 query into a few matrix--vector products against the deduplicated node pool;
 the subgrids overlap heavily, the eight-dimensional model's $15{,}713$ distinct
 nodes filling $101{,}575$ subgrid slots. The evaluator is then compiled once per
 model. Neither choice changes the interpolant, but both reorder its
 floating-point summation, so a query differs from the direct subgrid-by-subgrid
-sum by less than $10^{-14}$ relative --- far below the interpolation error of
-Fig.~\ref{fig:joint}, and immaterial to a certified query, whose residual is
-measured on the polished field. We retain the direct sum in the released code as
+sum by less than $10^{-14}$ relative (far below the interpolation error).
+We retain the direct sum in the released code as
 the reference implementation against which the default path is tested.
 
 \begin{figure*}[t]
