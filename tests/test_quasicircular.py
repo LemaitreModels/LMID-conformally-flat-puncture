@@ -1,8 +1,7 @@
 """Phase-P0 gates for the quasi-circular (QC) momentum condition.
 
 De-risks ``parametric/quasicircular.py`` in isolation (no ``theta_to_slice3d``
-wiring — that is Phase P1).  Three validation axes from the standing plan
-(``notes/qc_extension_plan.md``):
+wiring — that is Phase P1).  Three validation axes:
 
   (a) large-b **Newtonian anchor**  p_t → μ √(M/D) = μ √(M/2b);
   (b) the **L-along-y convention** (risk R2): P_A=(+p_t,0,−p_r), P_B=(−p_t,0,+p_r)

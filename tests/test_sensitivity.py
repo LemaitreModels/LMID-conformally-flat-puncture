@@ -1,4 +1,4 @@
-"""B3 acceptance — differentiability ``∂ID/∂θ`` (PAPER_PLAN §5 B3, claim 3).
+"""B3 acceptance — differentiability ``∂ID/∂θ`` (claim 3).
 
 JAX gradients of the certified/interpolated initial data w.r.t. the physical
 parameters θ=(q,b,χ_A,χ_B), with two concrete uses:
@@ -8,7 +8,7 @@ parameters θ=(q,b,χ_A,χ_B), with two concrete uses:
       the differentiable cousin of B2's gradient-free Broyden loop);
   (b) **sensitivity fields** ``∂ψ/∂χ_A`` (figure (viii)).
 
-Gates (PAPER_PLAN §5 B3):
+Gates (the B3 acceptance thread):
   * analytic gradients match finite differences to FD accuracy (O(h²));
   * — ideally — the surrogate gradient matches the *certified-ID* sensitivity
     (the solver's implicit-function tangent ``solver_abt.tangent_b/q`` and the new

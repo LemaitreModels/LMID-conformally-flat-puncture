@@ -3,7 +3,7 @@
 A Mendes-style Broyden control loop on ``G(θ)=F(θ)−target`` (``applications.control``)
 over two representative head-on(+aligned-spin) targets, run **cold** (each solve
 from scratch) vs **warm** (each solve seeded by the P3 interpolant ``ps.evaluate``).
-Gates (PAPER_PLAN §5 B2):
+Gates (the B2 acceptance thread):
 
   * the control loop converges to the target (and the **cold** loop reproduces the
     directly-targeted free data — the known-answer round-trip);

@@ -66,7 +66,7 @@ def test_spin_psi_agreement_vs_tp():
     """LM-initial-data's spinning ψ agrees with TwoPunctures at shared meridian points.
 
     The agreement floors at the (steeper) spin two-centre spatial floor, not the
-    head-on 1e-12 (PAPER_PLAN R7); both spectral codes converge to the same
+    head-on 1e-12 (risk R7); both spectral codes converge to the same
     analytic solution at the well-resolved interior probes.
     """
     prob = sa.make_problem(Na=64, Nb=44, P=P)

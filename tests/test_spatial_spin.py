@@ -84,7 +84,7 @@ def test_spin_spatial_spectral_convergence():
     The steeper spin source (Â_S²~r^{-6} ⇒ effective source ~r^1 at the
     punctures, vs the momentum r^3) carries more near-puncture structure, so the
     floor is reached at a slightly higher resolution than momentum-only
-    (PAPER_PLAN R7); it crosses 1e-9 by Na≈56 and the certified Newton polish
+    (risk R7); it crosses 1e-9 by Na≈56 and the certified Newton polish
     (B-thread) recovers ≤1e-10 regardless.
     """
     b, m_A, m_B, P, S = 1.0, 0.5, 0.5, 0.5, 0.3

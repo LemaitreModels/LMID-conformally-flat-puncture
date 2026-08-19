@@ -2,7 +2,7 @@
 
 The N-D tensor-product Chebyshev-in-parameter layer (``parametric_nd.py``) wired
 to the validated ABT two-centre spin solver (``parametric_nd_2c.py``) over
-``θ = (q, b, χ_A, χ_B)``.  Gates (PAPER_PLAN §5 P3):
+``θ = (q, b, χ_A, χ_B)``.  Gates (the P3 acceptance thread):
 
   * joint held-out error ≤ 1e-8 at practical Q;
   * per-axis rates match Bernstein to ≲ 10–15% (b: a-priori merger b=0, reproduces

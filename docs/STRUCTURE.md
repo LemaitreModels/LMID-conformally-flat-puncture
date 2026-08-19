@@ -150,24 +150,27 @@ node-safe numpy route.
 ## What was kept
 
 - The full `solver` / `parametric` / `applications` / `validation` module
-  hierarchy. The production QC/χ stack (`solver_3d`, `solver_3d_nk`,
-  `operators_3d`, `separable`, `source_3d`, `diagnostics_3d`; `parametric_nd_smolyak`,
-  `hermite_smolyak{,_pod,_pod_cross}`, `quasicircular`, `solve_store`;
+  hierarchy. The production QC/χ stack (`solver_3d`, `solver_3d_nk`, `newton_loop`
+  (the one Newton loop all three solvers share), `operators_3d`, `separable`,
+  `source_3d`, `diagnostics_3d`; `parametric_nd_smolyak`,
+  `hermite_smolyak{,_cross,_pod,_pod_cross}`, `quasicircular`, `solve_store`;
   `sensitivity_3d{,_qc,_cross,_cross_bq}`, `qc_targeting`, `qc_effpot`,
   `control`) plus its **transitively-required base layers** (the axisymmetric
   two-centre ABT rungs `operators_abt`/`source`/`solver_abt`; the Hermite/ND base
   rungs `parametric`, `parametric_nd`, `hermite`, `hermite_nd`, `hermite_pod`,
   `parametric_nd_2c/_3d`). These are the paper's method ladder — each a distinct
   model, all test-covered — not redundant copies.
-- The acceptance suite (measured 2026-08-15: **622 passed, 40m57s**, no failures
-  and no skips, with a peer suite competing for the box at load 8–16; `sympy` is a
-  declared `[dev]` extra, so the one long-standing expected failure is gone. 29
-  `slow` tests need the external TwoPunctures oracle). Earlier measurements: 611 /
-  36m35s and 589 / 2h01m on 2026-08-13. **The count is only partly accounted
+- The acceptance suite (measured 2026-08-18: **671 passed, 22m20s**, no failures
+  and no skips, at load 3–4; `sympy` is a declared `[dev]` extra, so the one
+  long-standing expected failure is gone. **30** tests are marked `slow` — they need
+  the external TwoPunctures oracle or are minutes-long by nature, and
+  `pyproject.toml` defines the mark and states that count). Earlier measurements:
+  622 / 40m57s on 2026-08-15 with a peer suite competing for the box at load 8–16,
+  611 / 36m35s and 589 / 2h01m on 2026-08-13. **The count is only partly accounted
   for** — the evaluate_field/GRTeclyn commit adds 7 gates to 611, reaching 618, and
-  the remaining four tests are unexplained and unbisected. Re-measure rather than
-  quoting this; the suite is dominated by elliptic solves and both the solver cost
-  and the machine load move it.
+  the remaining four tests are unexplained and unbisected; the same caution applies
+  to every later count. Re-measure rather than quoting this; the suite is dominated
+  by elliptic solves and both the solver cost and the machine load move it.
 - The canonical figure producers + χ model builders, as `…pipeline`.
 - The paper source + figure scripts + the 10 figure PDFs.
 
@@ -252,12 +255,16 @@ its pass criteria. Also kept: `validation/constraints.py`,
   `paper/figures/registry.py`. Until it is done, do not write "recompute" in a
   doc: `README.md` and `CLAUDE.md` both claimed it, and both were corrected on
   2026-08-15.
-- **Docstring cleanup — done 2026-08-15.** The retired add-only banners, the
-  citations to private planning documents (`plan.md`, `PAPER_PLAN`,
-  `GRADIENT_ENHANCED_PLAN.md`, `notes/`, `reports/*/analysis.md`,
+- **Docstring cleanup — done 2026-08-15, extended to `tests/` on 2026-08-19.** The
+  retired add-only banners, the citations to private planning documents (`plan.md`,
+  `PAPER_PLAN`, `GRADIENT_ENHANCED_PLAN.md`, `notes/`, `reports/*/analysis.md`,
   `experiments/ml/`), the private milestone jargon in prose, and the
   `~/micromamba/envs/BBHFM/bin/python` invocation strings were swept out of
-  `src/`, the docs and `paper/figures/`. Two deliberate survivors: this file's and
+  `src/`, the docs and `paper/figures/`. The 2026-08-15 pass did not cover `tests/`;
+  its seven surviving citations (`PAPER_PLAN` in six places,
+  `notes/qc_extension_plan.md` in one) went on 2026-08-19. The short milestone
+  labels themselves (`B2`, `P3`, `risk R7`) are still used in `tests/` docstrings —
+  same open question as the runtime tags below. Two deliberate survivors: this file's and
   `CLAUDE.md`'s references to the BBHFM monorepo, which are migration *history*;
   and `solver/operators_3d.py:6`, which states that the add-only policy **is**
   retired. Still open: milestone tags inside runtime `print`/plot-title strings
