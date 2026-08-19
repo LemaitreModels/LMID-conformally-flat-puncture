@@ -13,8 +13,8 @@ Usage
   python make_figdata.py --fig fig03      # build one (stem or number; --force to overwrite)
 
 A figure is "buildable" iff all its raw sources are present under reports/.  Missing sources are
-reported with the exact producer command and where it runs (laptop/cluster) — this is the same
-list the cluster prompt fills.  ``--check`` never runs anything.
+reported with the exact producer command and where it runs (laptop/cluster), which is the
+worklist for a heavy-tier rebuild.  ``--check`` never runs anything.
 """
 from __future__ import annotations
 

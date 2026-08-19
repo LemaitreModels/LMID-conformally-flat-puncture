@@ -8,7 +8,7 @@ now comes as a **data/plot split** so it rebuilds from the repo alone — no sol
 |---|---|
 | `figNN_<name>_plot.py`  | **plotter** — reads **only** `figdata/figNN_<name>.json` and draws the `.pdf`. |
 | `figNN_<name>_data.py`  | **data script** — distills the arrays the figure plots out of the raw run artifacts under `../../reports/` into that committed json. This is the only step that ever touches `reports/`, heavy models, or `jax`. |
-| `figdata/figNN_<name>.json` | the committed, plot-ready data (105 kB total for all ten figures). |
+| `figdata/figNN_<name>.json` | the committed, plot-ready data (~110 kB total for all ten figures — `ls -l figdata/*.json`; `du` reports more, because it counts block allocation). |
 
 Two departures from that pattern:
 
@@ -178,8 +178,9 @@ truth. Sources appearing under more than one figure (`tp_band_sweep`, `polish_ta
 |  9 | `fig09_tp_spectrum_data.py` | `tp_band_sweep` — the azimuthal spectrum |
 | 10 | `fig10_constraints_data.py` | none under `reports/` — an external GRTeclyn run tree |
 
-Two further keys, `sweep_3d` and `tp_validation`, feed no figure: they are retained because the
-appendix still quotes numbers they produced. See the comment on them in `registry.py`.
+Two further keys, `sweep_3d` and `tp_validation`, feed no figure and supply no paper numeral
+either — the appendix's axisymmetric anchor now comes from `tp_band_sweep` (fig08's figdata
+meta). They are retained as standalone diagnostics; see the comment on them in `registry.py`.
 
 **Status.** All ten figures are data-split, every source reads `status="ready"`, and all ten
 `figdata/*.json` are committed — so the plot tier rebuilds from a bare clone with only

@@ -20,8 +20,11 @@ Four blocks, all written to ``reports/3D/sweep_results.json``:
      momentum Px so the orbital term x×P feeds a 1/R tail in J; checks the
      Richardson-in-1/R surface extrapolation recovers Σ x_X×P_X.
 
-  D. **Oracle anchors** — a few TP solves (ψ spectral agreement, M_ADM, J vector
-     in the PARASOL frame).  Skipped cleanly if the binary is absent.
+  D. **Oracle anchors** — a few TP solves (ψ spectral agreement, M_ADM, and the J
+     vector, compared in *our* frame: the punctures lie on the z-axis here and on
+     TwoPunctures' default x-axis there, so the oracle's J is mapped over by
+     ``validation.conventions.tp_vec_to_lm_initial_data`` before the comparison.
+     Skipped cleanly if the binary is absent.
 
 The TwoPunctures oracle is OPTIONAL here: block B's psi cross-check and block D
 (the anchor solves) skip cleanly when the binary is absent, and the remaining
@@ -29,8 +32,9 @@ blocks still run.
 
 This sweep feeds **no figure** any more -- ``run_tp_random_sweep`` superseded it
 as the validation source (``registry.SOURCES["sweep_3d"]``, ``docs/DATA.md``).
-It is kept because the appendix still quotes its ADM-angular-momentum
-diagnostics (theta_J vs theta_S to ~1e-14 deg, J_y = 2 b P_x).
+Its ADM-angular-momentum diagnostics (theta_J vs theta_S to ~1e-14 deg,
+J_y = 2 b P_x) are no longer quoted in the paper either; it is kept because it is
+still a useful diagnostic to run by hand.
 
 Run:  python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_3d_sweep
 """

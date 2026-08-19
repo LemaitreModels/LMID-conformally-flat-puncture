@@ -62,16 +62,18 @@ figure→producer→artifact graph). Those producers are the heavy tier below.
   parallel; every rung of `--ladder` shares that one call, which is what makes a whole
   resolution ladder per configuration affordable.
 
-  Each curve in fig09 is a **min/median/max band over configurations** sampled from the
-  production box, so no panel depends on an arbitrary parameter point. This one figure
-  replaced two: the former fig08 (a separate non-axisymmetric validation at `b=1.5`,
-  head-on — below the production `B_MIN`) and the former single-configuration fig09.
+  Each curve in fig08 is a **min/median/max band over configurations** sampled from the
+  production box, so no panel depends on an arbitrary parameter point. This one source
+  replaced two earlier figures: the former fig08 (a separate non-axisymmetric validation
+  at `b=1.5`, head-on — below the production `B_MIN`) and the former
+  single-configuration fig09.
   The separate non-axisymmetric figure was redundant because **the quasi-circular data
   are already non-axisymmetric**: measured, the tangential momentum puts ~2% of the field
   in `m=2` and generic spins add ~2% at `m=1`, so the QC family exercises the
-  Fourier-in-φ solver by itself. Its spectrum panel became fig09(c); the one check QC
-  cannot supply (a head-on slice with spin along the collision axis keeps every `m≥1`
-  mode at ~3e-17) is computed by the same producer's `axisym` block and quoted as text.
+  Fourier-in-φ solver by itself. The spectrum is now a figure of its own, fig09; the one
+  check QC cannot supply (a head-on slice with spin along the collision axis keeps every
+  `m≥1` mode below 1e-16 — `axisym_m_ge1_max` is 9.2e-17 in fig08's committed figdata) is
+  computed by the same producer's `axisym` block and quoted as text.
 
   See that producer's docstring for the two findings needed to read the figure: spin
   combined with `q` drives the disagreement and it converges (~100× worse from `q=1` to
@@ -115,8 +117,8 @@ figure→producer→artifact graph). Those producers are the heavy tier below.
 - **Committed:** the figure **PDFs** (so `pdflatex paper/paper.tex` works out of
   the box), the source scripts, and **`paper/figures/figdata/*.json`**.
 - **Why figdata is committed:** the plotters read `figdata/figNN_*.json` and
-  nothing else — no `reports/`, no model corpus, no jax. Committing it (~150 kB
-  for all of them) is what lets anyone **replot from a bare clone**, with only
+  nothing else — no `reports/`, no model corpus, no jax. Committing it (~110 kB
+  for all ten) is what lets anyone **replot from a bare clone**, with only
   matplotlib and no copy step:
 
   ```bash
@@ -148,15 +150,24 @@ the output of the producer that fed it and every source read as absent.
 
 `paper/figures/registry.py` names a producer per source, but several of those
 strings were stale or wrong. The verified mapping, and the decisions behind the
-non-obvious ones:
+non-obvious ones.
+
+The rank and artifact strings below are the **rendered** form of the registry's
+structured producers, which take the rank and the POD filename from
+`production_model.SHIPPED_RANK` / `production_model.pod_stem(dim)` — their single
+source. If a shipped rank moves, re-render rather than hand-editing this table:
+
+```bash
+cd paper/figures && python -c "import registry as R; print(R.producer_cmd('polish_pod_8d'))"
+```
 
 | source | produced by | note |
 |---|---|---|
-| `tp_band_sweep` | `run_tp_random_sweep --n 100 --workers 6` | the single validation source. Supersedes `sweep_3d` (`run_3d_sweep`) and `tp_validation` (`run_qc_tp_validation`), which fed the former fig08 and the former single-configuration fig09; both are now unreferenced by any figure. `run_3d_sweep` remains useful standalone for the ADM-`J` diagnostics quoted in the appendix text. |
-| `polish_pod_4d` | `run_polish_table --model pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross_r75.npz --tag chi4d_pod_r75_cross` | `run_polish_podrank` hardcodes the *non-cross* POD per dimension, so it cannot emit the `_cross` name. |
+| `tp_band_sweep` | `run_tp_random_sweep --n 100 --workers 6` | the single validation source. Supersedes `sweep_3d` (`run_3d_sweep`) and `tp_validation` (`run_qc_tp_validation`), which fed the former fig08 and the former single-configuration fig09; both are now unreferenced by any figure, and by any paper numeral. `run_3d_sweep` remains useful standalone for its ADM-`J` diagnostics, which the manuscript does not quote. |
+| `polish_pod_4d` | `run_polish_table --model pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross_r250.npz --tag chi4d_pod_r250_cross` | the shipped rank-250 **cross** POD. `run_polish_podrank` hardcodes the *non-cross* POD per dimension, so it cannot emit the `_cross` name. |
 | `polish_table_4d_cross` | `run_polish_table --model hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz --tag qc_chi_prod_cross` | the *untruncated* cross corpus — corroborated by the `8·N·(1+d+npair)·nfeat` memory fig05 applies to it. |
 | `polish_table_8d_value` | `run_polish_table --model surrogate_smolyak_spin8_qc_chi_prod_L5.npz --tag chi8d_value` | the 8-D **value** surrogate — corroborated by fig05's `8·N·nfeat` value-only memory. |
-| `polish_pod_8d` | `run_polish_podrank --dim 8 --rank 250` | podrank's tag `chi8d_pod_r250` already matches byte-for-byte. |
+| `polish_pod_8d` | `run_polish_table --model pod_hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross_r500.npz --tag chi8d_pod_r500_cross` | the shipped rank-500 **cross** POD — the same model family as the 4-D row. It was `run_polish_podrank --dim 8 --rank 250`, i.e. the six-axis *non-cross* POD, which made this column's residual row and its field-error row two different models, masked by a shared `r=250`. |
 | `gvm_4d_value` | `run_value_pod_gapfill_4d` | the 4-D sibling of the 8-D producer; same value-only POD construction, so `gvm_4d_value` and `gvm_4d_field` describe one model at two metrics. |
 | `gvm_4d_field` | `run_cross_fielderr_sweep --flavours value` | the value flavour lives in the *cross* sweep so both fig05 bottom-left curves are measured against the same certified `u_true` (the expensive part), mirroring the 8-D `_sweep_flavor` design. |
 | `qc_targeting` | `run_qc_targeting --n 100` | a parameter, not a missing producer. `run_qc_targeting_hermite` writes `P6/qc_targeting_hermite.json` and is a different study. |
@@ -249,12 +260,19 @@ the azimuthal spectrum, and the `axisym` block do not (they are internal propert
 our own solve), but they ride along in the same producer because the expensive part is
 one oracle call per configuration.
 
-Two diagnostics that no longer have a panel and are quoted in the appendix text instead:
-the ADM-`J` tilt against the spin tilt (measured, θ_J tracked θ_S to ~1e-14 deg for every
-|S| and every TP anchor, so the panel was three coincident curves on the line y=x), and
-the axisymmetric-limit code-to-code anchor at `b=3`, `P=0.5` head-on (ψ to 4.7e-12,
-`M_ADM` to 1.0e-11 relative — the most stringent TwoPunctures number in the paper, and
-not obtainable from a quasi-circular configuration, which is never axisymmetric).
+Two diagnostics that no longer have a panel of their own:
+
+- the **axisymmetric-limit code-to-code anchor** at `b=3`, `P=0.5` head-on, quoted in the
+  appendix text — the most stringent TwoPunctures number in the paper, and not obtainable
+  from a quasi-circular configuration, which is never axisymmetric. It is measured by this
+  same producer and read out of fig08's committed figdata meta (`anchor`): ψ to 2.6e-10 in
+  the supremum norm, `M_ADM` to 5.0e-11 relative, certified residual 1.2e-12. The older
+  4.7e-12 / 1.0e-11 pair came from the superseded `tp_validation` source and no longer
+  appears anywhere in the manuscript.
+- the **ADM-`J` tilt against the spin tilt** (measured, θ_J tracked θ_S to ~1e-14 deg for
+  every |S| and every TP anchor, so the panel was three coincident curves on the line
+  y=x). This one is *not* quoted in the manuscript at all; it survives only as a
+  `run_3d_sweep` diagnostic.
 
 ### Where the source comes from, and how the binary is built
 
