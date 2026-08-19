@@ -364,6 +364,25 @@ def circular_scan(model, prob, J, box_b, *, n_scan=13, tol=1e-10):
 # ==========================================================================
 # Eccentricity of an off-circular apsis (turning-point / Cook)
 # ==========================================================================
+def ecc_ladder(b_circ, box_b, n=15, margin=0.1):
+    """The ``b0`` ladder the eccentricity read-out is sampled on, ``b_circ`` outward.
+
+    Defined here rather than at the call site so the pipeline producer
+    (``run_qc_effpot``) and fig07's distiller sample the SAME rungs: the two
+    compute ``e`` from the same model and must not drift into quoting ladders
+    that differ in their end point.
+
+    The ladder starts *at* the circular orbit -- a genuinely circular point whose
+    ``e = 0`` anchors the curve -- and stops ``margin`` short of the upper box
+    edge.  That margin is load-bearing: ``b0`` is handed to ``V`` directly, and
+    ``box_b[1]`` is an endpoint Chebyshev-Lobatto node where the barycentric
+    quotient is 0/0 (see :func:`_off_node`).  The bracket guard inside
+    :func:`eccentricity` protects the *search interval*, not the caller's rung,
+    so a ladder run to the edge would still hand ``V`` a node and lose the rung.
+    """
+    return np.linspace(float(b_circ), float(box_b[1]) - float(margin), int(n))
+
+
 def eccentricity(model, prob, b0, J, b_circ, box_b):
     """``e = |b0 − b'|/(b0 + b')`` with ``b'`` the second turning point of the
     effective potential across the circular minimum (surrogate, no solve).
@@ -380,10 +399,29 @@ def eccentricity(model, prob, b0, J, b_circ, box_b):
     Vf = lambda b: float(V(b, J))
     E0 = Vf(b0)
     # the other root of V(b;J)=E0 lies on the opposite side of b_circ
+    #
+    # BOTH edges of ``box_b`` are endpoint Chebyshev-Lobatto nodes of the model's
+    # b axis, where the barycentric quotient is 0/0 and ``V`` returns NaN (see
+    # :func:`_off_node`).  Every other evaluator in this module nudges before it
+    # evaluates; this one did not, so on the production box b in [3, 10] ``brentq``
+    # was handed a NaN endpoint and *every* rung of the caller's b0 ladder came
+    # back unmeasurable.  It never fired on the historical (2.6, 6.4) window,
+    # whose edges sat strictly inside the model box.
+    #
+    # The nudge goes on the bracket ENDPOINTS, not inside ``Vf``: brentq must be
+    # told the interval it is actually searching, or its bisection would attribute
+    # an off-node value to the edge itself.  ``b_circ`` needs no guard -- it is an
+    # interior minimum, and the gradient path already returns an off-node point.
+    # Cost of the guard: ``_NODE_SHIFT_FRAC`` is sized for *derivative* accuracy
+    # (2e-3 of the span, here 0.014 in b), so a second turning point lying within
+    # one nudge of a box edge is now reported unmeasurable rather than located.
+    # That is the conservative direction -- NaN says "not measurable on this
+    # model", which is the contract above -- but it is a real, if narrow, blind
+    # spot at the very edge of the box.
     if b0 < b_circ:
-        lo, hi = b_circ, box_b[1]
+        lo, hi = b_circ, _off_node(box_b[1], model, J, box_b)
     else:
-        lo, hi = box_b[0], b_circ
+        lo, hi = _off_node(box_b[0], model, J, box_b), b_circ
     try:
         bp = brentq(lambda b: Vf(b) - E0, lo, hi)
     except ValueError:                             # E0 not bracketed on that side

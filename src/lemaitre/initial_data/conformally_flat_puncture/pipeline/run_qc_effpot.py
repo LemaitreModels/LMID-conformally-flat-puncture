@@ -76,7 +76,7 @@ def main(Jlist=None, n_scan=13):
         grad = E.circular_gradient(model, prob, J, b0=0.5 * (BOX_B[0] + BOX_B[1]),
                                    box_b=BOX_B)
         # eccentricity readout, outer apsis (in-box) parametrization
-        b0s = np.linspace(grad.b_circ, BOX_B[1] - 0.1, 15)
+        b0s = E.ecc_ladder(grad.b_circ, BOX_B)
         eccs = np.array([E.eccentricity(model, prob, float(b0), J, grad.b_circ, BOX_B)[0]
                          for b0 in b0s])
         per_J[J] = dict(scan=scan, grad=grad, b0s=b0s, eccs=eccs)
