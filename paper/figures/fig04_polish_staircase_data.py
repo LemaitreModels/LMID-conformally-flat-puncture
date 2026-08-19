@@ -111,33 +111,27 @@ def _check_rank(dim, r):
 # Here it carries more than the box, because this figure's caption states a *step count*
 # and the numbers moved once already: the campaign below re-ran all eight producers.
 CODE_TAG = "54e90ac"        # leaf commit the producers ran at (the fig04 campaign pin)
-CAMPAIGN = "fys-kuleuven job 99173, array 0-7, 2026-08-18"
+# Date only, deliberately.  The commit SHA above is what makes the numbers
+# reproducible; the machine that ran them does not, and naming a specific cluster
+# and job id in a public artifact leaks internal infrastructure while adding
+# nothing a reader can act on.  (The run log keeps the job id privately.)
+CAMPAIGN = "2026-08-18"
 STOPPING = ("newton_loop (e6ff7ec): breaks on an internal target of tol/10 while "
             "certification is judged at the caller's tol; stagnation needs two strikes")
 GUESS = ("pool-weight evaluate (b4c56cb): the default query contracts against the "
          "deduplicated node pool, not the subgrid-by-subgrid sum; the job asserts this "
          "before solving, since a pre-flip checkout would reproduce the old guess")
-# Which lane each moved numeral is attributable to.  Measured, not assumed: each entry
-# names the commit whose change was tested, and the two re-distills that separated the
-# movers from the inert lanes (2026-08-16, 2026-08-18) are in this file's own git log.
-SUSPECTS = {
-    "T3 (e6ff7ec)": "intended mover; changes only WHEN the loop stops, never how a "
-                    "Newton step is computed, so it cannot move a step-1 residual",
-    "lane P (6d0eef9)": "was inert on this path while the pooled path was opt-in -- "
-                        "every curve's step-0 guess was bit-identical at that pin",
-    "lane S (719f334)": "dominant mover of the mid-convergence entries at the 2026-08-16 "
-                        "pin: the separable eigen-factors' real cast shifts GMRES "
-                        "trajectories by ulps (its own commit message says so), which a "
-                        "quadratically converging Newton amplifies to ~8x where the "
-                        "residual is 1e-5..1e-9.  NOT floor-level on this path",
-    "pooled default (b4c56cb)": "mover of THIS re-distill: making the pool-weight path "
-                                "the default changes the guess at <1e-14 relative, which "
-                                "the same quadratic amplification turns into a few "
-                                "percent at mid-convergence.  It moved NO step count "
-                                "(all six entries identical to 2026-08-16), and the two "
-                                "COLD series are bit-identical -- they guess the zero "
-                                "field and touch no model, so they are the control",
-}
+# The per-lane attribution narrative that used to sit here has been dropped from the
+# committed artifact: it was a snapshot of one investigation, written in terms of
+# in-flight branch names and peer commits, and figdata is not the place for a
+# changing story.  The durable outcome it established is kept as a fact instead --
+# the two COLD series guess the zero field and touch no model, so they are the
+# control that proves a model-side change moved no step count.  The investigation
+# itself lives in the session record, and the re-distills that separated the movers
+# (2026-08-16, 2026-08-18) are in this file's own git log.
+CONTROL = ("the two cold series guess the zero field and touch no model; they are "
+           "bit-identical across the re-distills, which is what makes a moved "
+           "mid-convergence entry attributable to the model path rather than the loop")
 
 
 def _meta(cfgs):
@@ -150,7 +144,7 @@ def _meta(cfgs):
     c4, c8 = cfgs[4], cfgs[8]
     return dict(
         code_tag=CODE_TAG, campaign=CAMPAIGN, stopping_rule=STOPPING,
-        guess_path=GUESS, suspects=SUSPECTS,
+        guess_path=GUESS, control=CONTROL,
         # The route the residual staircases ran.  fig04's field-error producers used to
         # assemble dense while the residuals they reproduce ran separable (review 5.4).
         route={str(d): cfgs[d].get("route") for d in (4, 8)},
