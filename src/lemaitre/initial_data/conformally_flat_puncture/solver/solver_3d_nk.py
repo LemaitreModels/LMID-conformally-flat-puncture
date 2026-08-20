@@ -343,6 +343,14 @@ class NKInfo:
     raw_residual_norm: float    # the raw nodal inf-norm (roundoff-limited monitor)
     history: list               # equilibrated-residual history
     gmres_iters: list           # GMRES iterations used per Newton step
+    # The FACTORED state the loop carried, nodal, shaped (Ntot2d, Nφ) — ``u_m =
+    # w_m·v_m``, so ``solver_3d.u_from_v(asm, V)`` is exactly the returned ``U``.
+    # The solve holds this anyway; it used to be discarded at the boundary.  It is
+    # handed out so a caller that solves LIVE can pass it to the tangent route
+    # (``sensitivity_3d.certified_tangent_3d(..., Vhat=)``) and skip the one
+    # remaining division there.  ``None`` on a hand-built info, and None is the
+    # honest answer for a caller holding only a stored physical field.
+    V: Optional[np.ndarray] = None
 
 
 def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = None,
@@ -460,7 +468,7 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
     else:
         raw = s3.nodal_residual_inf(asm, U_best)
     return U_best.reshape(shp), NKInfo(run.converged, run.iters, run.residual_norm,
-                                       raw, run.history, gmres_iters)
+                                       raw, run.history, gmres_iters, V=run.U)
 
 
 # --------------------------------------------------------------------------

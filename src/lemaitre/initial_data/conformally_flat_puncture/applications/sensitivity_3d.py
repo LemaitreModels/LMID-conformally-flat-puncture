@@ -212,13 +212,21 @@ def _dpsi_dtheta(asm: Assembly3D, sl: Slice3D, name: str, M_tot: float) -> np.nd
 
 
 def dR_dtheta_node(prob: Problem3D, asm: Assembly3D, U: np.ndarray, sl: Slice3D,
-                   name: str, M_tot: float) -> np.ndarray:
+                   name: str, M_tot: float,
+                   Vhat: Optional[np.ndarray] = None) -> np.ndarray:
     """The analytic nodal residual derivative ``∂R/∂θ`` — shape ``(Ntot2d, Nφ)``.
 
     ``R_node = Δ_3D u + interior·S``, ``S = ⅛(ψ+u)^{-7}Â²``.  So on interior rows
         ``∂R/∂θ = [geometry ∂/∂b] + ⅛[ −7(ψ+u)^{-8} ∂ψ/∂θ Â² + (ψ+u)^{-7} ∂Â²/∂θ ]``
     and 0 on the (θ-independent) BC rows.  The geometry term (present only for the
     ``b`` axis) is ``−(2/b)·Δ_3D u`` reconstructed from the per-m linear operator.
+
+    ``Vhat`` is the FACTORED modes of the base solution ``U`` (``NKInfo.V``, via
+    ``rfft``).  It only matters for the ``b`` axis, which is the one term needing the
+    operator action: pass it and no division happens; omit it and
+    :func:`solver_3d.linear_apply_nodal` recovers the factored modes by dividing —
+    see there for why that is safe once but was not safe per-matvec, and for the
+    measured cost (``≤1.2e−14`` on the delivered tangent).
     """
     U = np.asarray(U, dtype=float).reshape(prob.Ntot2d, prob.Nphi)
     interior = asm.interior
@@ -229,12 +237,9 @@ def dR_dtheta_node(prob: Problem3D, asm: Assembly3D, U: np.ndarray, sl: Slice3D,
                      + base ** (-7.0) * dA2)
     dR_int = dS_nl
     if name == "b":
-        # −(2/b)·Δ_3D u on interior rows: reconstruct the linear operator action
-        Uhat = np.fft.rfft(U, axis=1)
-        linhat = np.empty((prob.Ntot2d, asm.m_vals.size), dtype=complex)
-        for mi in range(asm.m_vals.size):
-            linhat[:, mi] = s3.linear_apply(asm, mi, Uhat[:, mi] / asm.w[mi])
-        lap_nodal = np.fft.irfft(linhat, n=prob.Nphi, axis=1)
+        # −(2/b)·Δ_3D u on interior rows, through the one canonical operator-action
+        # helper — factored-state-native when the caller has it.
+        lap_nodal = s3.linear_apply_nodal(asm, U, prob.Nphi, What=Vhat)
         dR_int = dR_int + (-2.0 / sl.b) * lap_nodal
     return np.where(interior[:, None], dR_int, 0.0)
 
@@ -269,15 +274,42 @@ def _tangent_solve_modified(asm: Assembly3D, U: np.ndarray,
 
 def _tangent_solve_nk(asm: Assembly3D, U: np.ndarray, dR_node: np.ndarray,
                       gmres_rtol: float = 1e-11, gmres_atol: float = 1e-14,
-                      gmres_restart: int = 60, gmres_maxiter: int = 200):
+                      gmres_restart: int = 60, gmres_maxiter: int = 200,
+                      return_v: bool = False):
     """``J·dU = −∂R/∂θ`` with the **full** Jacobian (mode-coupling included) via a
     preconditioned GMRES — the tangent analog of ``solver_3d_nk.newton_step_nk``.
 
-    ``(J δu)_m = M0_m(δû_m/w_m) + interior·rfft(D_nl·δu)_m`` (matrix-free, exact),
-    preconditioned by the per-``m`` block ``Ĵ_m`` (a triangular solve on the
-    row-equilibrated LU).  Returns ``(dU, gmres_iters)``.  With ``Nφ=1`` (or a
-    φ-independent source) the preconditioner IS ``J`` and GMRES converges in one
-    step — reducing to the block-diagonal solve.
+    **The Krylov state is the factored unknown ``δv``, not the physical ``δu``.**
+    Same equation rows, same preconditioner blocks, different unknown:
+
+        (J δv)_m = M0_m δv̂_m + interior·rfft(D_nl·δu)_m ,   δu = irfft(w·δv̂)
+
+    so the operator MULTIPLIES by ``w`` where the physical form divided the iterate
+    by it.  That division was the one this file's ``:313`` used to run once per
+    matvec, and ``rfft(δu)_m / w_m`` carries roundoff absolute in ``|δu|_max``
+    amplified by ``1/w_m`` — which GMRES then measures, so it stopped on its own
+    noise.  Measured at ``36×24×8`` (dense, the representation the shipped ROM
+    builders take) the IFT residual of the delivered tangent improves ``1.03e−11
+    → 7.56e−14`` on the ``b`` axis, and the old form could NOT be tuned to that:
+    ``gmres_rtol=1e-13`` reached only ``1.47e−13`` and ``1e-15`` burned 11675 inner
+    iterations to come out *worse*, because a Krylov method cannot converge below
+    the noise its own operator injects.  See the ``2026-08-20`` entry of
+    ``context/…/LMID-conformally-flat-puncture/FINDINGS.md``.
+
+    **The API is unchanged: ``dR_node`` is physical and the returned ``dU`` is
+    physical**, reconstructed once at the boundary by a multiply
+    (:func:`solver_3d.u_from_v`).  The equation rows are untouched, so ``−∂R/∂θ``
+    enters as before and the row-equilibration scales keep their calibration —
+    this re-measures the tangent, it does not redefine it.  Every caller
+    (:func:`certified_tangent_3d`, ``sensitivity_3d_qc``, ``sensitivity_3d_cross``,
+    ``sensitivity_3d_cross_bq``) exchanges physical fields and is unaffected.
+
+    At ``Nφ=1`` the two forms are identical (``w ≡ 1``) and the output is
+    bit-for-bit unchanged; there the preconditioner IS ``J`` and GMRES converges in
+    one step, reducing to the block-diagonal solve.  Returns ``(dU, gmres_iters)``.
+
+    ``_tangent_solve_modified`` needed no change: it already solved for ``δv`` and
+    multiplied out, so it never divided.
     """
     Nphi = U.shape[1]
     Ntot = asm.interior.size
@@ -304,28 +336,32 @@ def _tangent_solve_nk(asm: Assembly3D, U: np.ndarray, dR_node: np.ndarray,
             Jm[np.diag_indices_from(Jm)] += di
             facs.append(s3nk._lu_factor_equilibrated(Jm))
 
-    def _Jmatvec(dU_flat):
-        dU = dU_flat.reshape(Ntot, Nphi)
-        dUhat = np.fft.rfft(dU, axis=1)
+    def _Jmatvec(dv_flat):
+        # the iterate IS the factored unknown: rfft it and MULTIPLY by w to reach
+        # the physical field the nonlinear diagonal acts on.  No division anywhere.
+        dvhat = np.fft.rfft(dv_flat.reshape(Ntot, Nphi), axis=1)
+        dU = s3.u_from_vhat(asm, dvhat, Nphi)
         DdU_hat = np.fft.rfft(D_nl * dU, axis=1)
         out = np.empty((Ntot, Nm), dtype=complex)
         for mi in range(Nm):
-            out[:, mi] = (s3.linear_apply(asm, mi, dUhat[:, mi] / w[mi])
+            out[:, mi] = (s3.linear_apply(asm, mi, dvhat[:, mi])
                           + np.where(interior, DdU_hat[:, mi], 0.0))
         return np.fft.irfft(out, n=Nphi, axis=1).ravel()
 
     def _Minv(y_flat):
+        # the blocks were always written in the factored unknown, so the physical
+        # form multiplied by w on the way out.  In v-state that line is DELETED
+        # rather than added -- the preconditioner returns what it already solved for.
         y = y_flat.reshape(Ntot, Nphi)
         yhat = np.fft.rfft(y, axis=1)
-        dUhat = np.empty((Ntot, Nm), dtype=complex)
+        dvhat = np.empty((Ntot, Nm), dtype=complex)
         for mi in range(Nm):
             if sep is None:
-                dvhat = s3nk._lu_solve_equilibrated(facs[mi], yhat[:, mi])
+                dvhat[:, mi] = s3nk._lu_solve_equilibrated(facs[mi], yhat[:, mi])
             else:
-                dvhat = sep.solve(mi, yhat[:, mi].reshape(sep.Na1, sep.Nb1),
-                                  asm.b).ravel()
-            dUhat[:, mi] = w[mi] * dvhat
-        return np.fft.irfft(dUhat, n=Nphi, axis=1).ravel()
+                dvhat[:, mi] = sep.solve(mi, yhat[:, mi].reshape(sep.Na1, sep.Nb1),
+                                         asm.b).ravel()
+        return np.fft.irfft(dvhat, n=Nphi, axis=1).ravel()
 
     n = Ntot * Nphi
     Jop = LinearOperator((n, n), matvec=_Jmatvec)
@@ -335,11 +371,19 @@ def _tangent_solve_nk(asm: Assembly3D, U: np.ndarray, dR_node: np.ndarray,
     def _cb(_pr):
         it_count[0] += 1
 
-    dU_flat, _status = gmres(Jop, -np.asarray(dR_node).ravel(), M=Mop,
+    # RHS unchanged: the equation ROWS are the same, only the unknown moved.
+    dv_flat, _status = gmres(Jop, -np.asarray(dR_node).ravel(), M=Mop,
                              rtol=gmres_rtol, atol=gmres_atol,
                              restart=gmres_restart, maxiter=gmres_maxiter,
                              callback=_cb, callback_type="pr_norm")
-    return dU_flat.reshape(Ntot, Nphi), it_count[0]
+    # back to the physical tangent by a MULTIPLY, once, at the boundary
+    dv = dv_flat.reshape(Ntot, Nphi)
+    dU = s3.u_from_v(asm, dv)
+    # ``return_v`` hands out the state the solve actually carried, so a caller can
+    # measure the IFT residual in it rather than reconstructing ``δv`` by dividing
+    # ``δu`` — which would put the very roundoff this reformulation removes back into
+    # the ruler.  tests/test_sensitivity_3d.py's IFT gate uses this for that reason.
+    return (dU, it_count[0], dv) if return_v else (dU, it_count[0])
 
 
 # ==========================================================================
@@ -348,7 +392,8 @@ def _tangent_solve_nk(asm: Assembly3D, U: np.ndarray, dR_node: np.ndarray,
 def certified_tangent_3d(prob: Problem3D, U: np.ndarray, sl: Slice3D, name: str,
                          M_tot: float, asm: Optional[Assembly3D] = None, *,
                          jac: str = "nk", gmres_rtol: float = 1e-11,
-                         return_iters: bool = False):
+                         return_iters: bool = False,
+                         Vhat: Optional[np.ndarray] = None):
     """The certified-ID sensitivity ``dU/dθ_name`` of the 3-D solve (IFT tangent).
 
     Solves ``J·(dU/dθ) = −∂R/∂θ`` for axis ``name`` ∈ :data:`TANGENT_AXES_3D`,
@@ -359,11 +404,18 @@ def certified_tangent_3d(prob: Problem3D, U: np.ndarray, sl: Slice3D, name: str,
     block-diagonal per-mode back-solve.  Returns ``dU`` shaped ``prob.shape``
     (``(Na+1, Nb, Nφ)``); with ``return_iters`` also the GMRES iteration count
     (``0`` for the modified route).
+
+    ``Vhat`` is the FACTORED modes of ``U`` — ``rfft(NKInfo.V)`` from the solve that
+    produced it.  Supplying it removes the last division on this route (the ``b``
+    axis's operator action, see :func:`dR_dtheta_node`); omitting it takes the
+    documented fallback in :func:`solver_3d.linear_apply_nodal`.  A caller holding a
+    STORED corpus field has no factored state to pass and should omit it — that is
+    the honest default, not a shortcut.
     """
     if asm is None:
         asm = s3.assemble(prob, sl)
     Uarr = np.asarray(U, dtype=float).reshape(prob.Ntot2d, prob.Nphi)
-    dR = dR_dtheta_node(prob, asm, Uarr, sl, name, M_tot)
+    dR = dR_dtheta_node(prob, asm, Uarr, sl, name, M_tot, Vhat=Vhat)
     if jac == "modified":
         dU = _tangent_solve_modified(asm, Uarr, dR)
         iters = 0

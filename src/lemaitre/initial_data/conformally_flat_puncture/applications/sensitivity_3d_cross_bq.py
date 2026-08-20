@@ -295,16 +295,23 @@ def _psi_cross(asm: s3.Assembly3D, sl: s3.Slice3D, name_i: str, name_j: str,
     return np.zeros(asm.psi.shape)
 
 
-def _lap_nodal(asm: s3.Assembly3D, prob: s3.Problem3D, V: np.ndarray) -> np.ndarray:
-    """``Δ_3D V`` reconstructed from the per-``m`` linear blocks (the operator
+def _lap_nodal(asm: s3.Assembly3D, prob: s3.Problem3D, W: np.ndarray,
+               What: Optional[np.ndarray] = None) -> np.ndarray:
+    """``Δ_3D W`` reconstructed from the per-``m`` linear blocks (the operator
     action ``L u``), exactly as :func:`sensitivity_3d.dR_dtheta_node`'s ``b``
-    geometry term.  ``V`` is (Ntot2d, Nφ); returns (Ntot2d, Nφ)."""
-    V = np.asarray(V, dtype=float).reshape(prob.Ntot2d, prob.Nphi)
-    Vhat = np.fft.rfft(V, axis=1)
-    linhat = np.empty((prob.Ntot2d, asm.m_vals.size), dtype=complex)
-    for mi in range(asm.m_vals.size):
-        linhat[:, mi] = s3.linear_apply(asm, mi, Vhat[:, mi] / asm.w[mi])
-    return np.fft.irfft(linhat, n=prob.Nphi, axis=1)
+    geometry term.  ``W`` is (Ntot2d, Nφ); returns (Ntot2d, Nφ).
+
+    Delegates to :func:`solver_3d.linear_apply_nodal`, which is the single home of
+    the ``1/w`` recovery this used to duplicate — pass ``What`` (the factored modes)
+    to divide nothing, omit it for the documented fallback.  **The callers here
+    always omit it**, and that is correct rather than lazy: the fields differenced
+    are the *first* tangents ``dU_i``/``dU_j``, which the shipped model supplies from
+    its **stored** ``node_dU`` corpus, i.e. as physical fields with no factored state
+    in existence.  Removing the division there means storing the factored state in
+    the corpus, which is a corpus rebuild and a maintainer decision.
+    """
+    W = np.asarray(W, dtype=float).reshape(prob.Ntot2d, prob.Nphi)
+    return s3.linear_apply_nodal(asm, W, prob.Nphi, What=What)
 
 
 # ==========================================================================

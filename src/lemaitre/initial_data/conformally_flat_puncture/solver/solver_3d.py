@@ -272,6 +272,46 @@ def v_from_u(asm: Assembly3D, U: np.ndarray) -> np.ndarray:
     return np.fft.irfft(Vhat, n=U.shape[1], axis=1)
 
 
+def linear_apply_nodal(asm: Assembly3D, W: np.ndarray, Nphi: int,
+                       What: Optional[np.ndarray] = None) -> np.ndarray:
+    """``Δ_3D W`` for a NODAL field, returned nodal — the linear operator action
+    reassembled from the per-``m`` blocks.
+
+    ``What`` is the **factored** modes of ``W`` (``ŵ_m = Ŵ_m / w_m``, the smooth
+    one).  Pass it and this function divides nothing.  Omit it and the factored
+    modes are recovered by dividing ``rfft(W)`` by ``w`` — the same lossy direction
+    as :func:`v_from_u`, and kept for the same reason: a caller holding only a
+    physical field has nothing else to offer.  Two such callers exist and both are
+    legitimate — the parametric builders hand in **stored corpus** fields
+    (``build_pod_hermite_model.tangent_fn``'s ``U``, ``build_cross_model_chi``'s
+    ``U[i]`` / ``dU[i, ·]``), and those corpora store physical fields.
+
+    **Why the fallback is safe here when the same division was not safe inside the
+    Krylov loop.**  It is applied ONCE to a field whose operator action is then used
+    as a right-hand side, not once per iterate to a vector whose norm a stopping test
+    reads.  The high-``m`` roundoff it injects is annihilated on the way out, because
+    the tangent reconstructs ``δu_m = w_m δv̂_m`` and the ``w`` undoes the ``1/w``.
+    Measured on the ``b``-geometry term of ``∂R/∂θ``: the injected error reaches
+    ``1.57e−11`` relative in the RHS itself, and moves the delivered physical tangent
+    by ``3.7e−15``–``1.2e−14``.  See the 2026-08-20 entry in
+    ``context/…/LMID-conformally-flat-puncture/FINDINGS.md``.
+
+    This is the single home of that division.  It used to be copied in
+    ``sensitivity_3d.dR_dtheta_node`` and ``sensitivity_3d_cross_bq._lap_nodal``;
+    both now delegate here, so the rationale lives in one place.
+    """
+    W = np.asarray(W, dtype=float)
+    if What is None:
+        Whatm = np.fft.rfft(W, axis=1)
+        What = np.empty_like(Whatm)
+        for mi in range(asm.m_vals.size):
+            What[:, mi] = Whatm[:, mi] / asm.w[mi]
+    linhat = np.empty((W.shape[0], asm.m_vals.size), dtype=complex)
+    for mi in range(asm.m_vals.size):
+        linhat[:, mi] = linear_apply(asm, mi, What[:, mi])
+    return np.fft.irfft(linhat, n=Nphi, axis=1)
+
+
 def residual_modes(asm: Assembly3D, U: np.ndarray,
                    S_nl: Optional[np.ndarray] = None):
     """Exact mode-space residual R̂_m (Ntot2d, Nm complex).

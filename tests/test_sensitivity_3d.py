@@ -139,7 +139,20 @@ def test_nk_tangent_vs_fd_axisymmetric(prob):
 def test_nk_tangent_ift_residual_machine(prob):
     """‖J·dU + ∂R/∂θ‖_∞ / ‖∂R/∂θ‖_∞ is machine — the full-J tangent is an exact
     (to roundoff) solve of the implicit-function equation, so the ~1e-8 FD mismatch
-    above is the O(h²) FD oracle, not the tangent."""
+    above is the O(h²) FD oracle, not the tangent.
+
+    **The ruler is evaluated in the FACTORED state, which is the state the solve
+    carries.**  It used to rebuild the operator action as
+    ``asm.M0[mi] @ (rfft(dU)_m / asm.w[mi])`` — i.e. the ruler performed the very
+    ``1/w`` division the tangent route was reformulated to remove, so it measured
+    its own roundoff on top of the answer.  Consequences, measured 2026-08-20 at
+    ``36×24×8``: through the dividing ruler the v-space tangent read *worse* on
+    ``S_z`` (7.98e-12 against 5.11e-12) than the u-space one it replaced, while
+    under this ruler it is better; and at this file's own grid the dividing ruler
+    saw no difference at all.  A gate whose oracle shares the defect under test
+    cannot see the fix — hence ``return_v=True`` and ``linear_apply``, which reads
+    the factored state directly and works for either operator representation.
+    """
     sl = MISALIGNED[0]
     U, _ = s3.newton_solve(prob, sl, tol=1e-12, max_iter=40)
     asm = s3.assemble(prob, sl)
@@ -147,23 +160,29 @@ def test_nk_tangent_ift_residual_machine(prob):
     _, base = s3._nl_source(asm, Uarr)
     D_nl = -0.875 * base ** (-8.0) * asm.A2
 
-    def Jmatvec(dU):
-        dU = np.asarray(dU).reshape(prob.Ntot2d, prob.Nphi)
-        dUhat = np.fft.rfft(dU, axis=1)
+    def Jmatvec_v(dv):
+        """``(J δv)_m = M0_m δv̂_m + interior·rfft(D_nl·δu)_m``, no division."""
+        dvhat = np.fft.rfft(np.asarray(dv).reshape(prob.Ntot2d, prob.Nphi), axis=1)
+        dU = s3.u_from_vhat(asm, dvhat, prob.Nphi)
         DdU = np.fft.rfft(D_nl * dU, axis=1)
         out = np.empty((prob.Ntot2d, asm.m_vals.size), dtype=complex)
         for mi in range(asm.m_vals.size):
-            out[:, mi] = (asm.M0[mi] @ (dUhat[:, mi] / asm.w[mi])
+            out[:, mi] = (s3.linear_apply(asm, mi, dvhat[:, mi])
                           + np.where(asm.interior, DdU[:, mi], 0.0))
         return np.fft.irfft(out, n=prob.Nphi, axis=1)
 
     for name in ("b", "q", "P", "S_x", "S_z"):
         dR = s3d.dR_dtheta_node(prob, asm, Uarr, sl, name, M_TOT)
-        dU = np.asarray(s3d.certified_tangent_3d(prob, U, sl, name, M_TOT,
-                                                 asm=asm, jac="nk"))
-        lin = Jmatvec(dU) + dR
+        # the factored tangent, as the solve carried it — NOT dU re-divided
+        dU, _iters, dv = s3d._tangent_solve_nk(asm, Uarr, dR, gmres_rtol=1e-11,
+                                               return_v=True)
+        lin = Jmatvec_v(dv) + dR
         rel = np.max(np.abs(lin)) / max(np.max(np.abs(dR)), 1e-30)
         assert rel < 1e-9, (name, rel)
+        # and the public entry point must deliver exactly that physical tangent
+        dU_pub = np.asarray(s3d.certified_tangent_3d(prob, U, sl, name, M_TOT,
+                                                     asm=asm, jac="nk"))
+        assert np.max(np.abs(dU_pub.reshape(dU.shape) - dU)) == 0.0, name
 
 
 # ==========================================================================
