@@ -197,16 +197,35 @@ class _StepInfo:
     residual_norm: float        # ‖R‖∞ BEFORE the step (nodal)
 
 
-def newton_step_nk(asm: Assembly3D, U: np.ndarray,
+def newton_step_nk(asm: Assembly3D, V: np.ndarray,
                    gmres_rtol: float = 1e-4, gmres_atol: float = 1e-12,
                    gmres_restart: int = 50, gmres_maxiter: int = 60,
                    Rm: Optional[np.ndarray] = None,
-                   base: Optional[np.ndarray] = None):
-    """One true-Newton step ``U → U + δu`` with ``δu = J⁻¹(−R)`` via GMRES.
+                   base: Optional[np.ndarray] = None,
+                   U: Optional[np.ndarray] = None):
+    """One true-Newton step ``V → V + δv`` with ``δv = J_v⁻¹(−R)`` via GMRES.
 
-    ``U`` nodal (Ntot2d, Nφ).  Returns ``(U_new, _StepInfo)``.  The Jacobian is
-    applied matrix-free in mode space (full mode-coupling); the block-diagonal
-    modified-Newton operator preconditions it.
+    **The state is the factored field ``v``, not the physical ``u``.**  ``V`` is
+    nodal ``(Ntot2d, Nφ)``; returns ``(V_new, _StepInfo)``.  See
+    ``solver_3d.u_from_vhat`` for the convention and why it is the state: carrying
+    ``u`` means recovering ``v`` by dividing by ``w_m = (1-B²)^{|m|/2}`` at every
+    iterate, and that division — not the field — is what made the certified
+    monitor climb twelve orders over Nφ = 4..24.
+
+    The change of variables is exact and diagonal, ``δu = w δv``, so the Jacobian
+    in the factored variable is ``J_v = J_u diag(w)``.  Concretely, against the
+    physical-state form this routine replaces:
+
+    * the linear term applies ``M0_m`` to the state itself, not to ``rfft(U)_m/w_m``;
+    * the mode-coupling term still needs the physical increment, which is
+      ``δu = irfft(w δv̂)`` — a multiply;
+    * the preconditioner is the **same** per-``m`` block; only the final ``* w`` of
+      the physical form is absent, because it now returns ``δv`` rather than ``δu``.
+
+    Everything else is deliberately untouched: same assembly, same
+    ``linear_apply``, same **row-equilibration scales**, same nonlinear source,
+    same GMRES in real nodal space with the same forcing term, same stopping
+    rules.  One variable changed, so a difference in outcome is attributable.
 
     ``gmres_rtol`` is the **inexact-Newton forcing term** η: GMRES reduces the
     *linear* residual to ``η‖R‖`` (relative to the current ‖R‖).  η≈1e-4 keeps
@@ -215,12 +234,14 @@ def newton_step_nk(asm: Assembly3D, U: np.ndarray,
     impossible (sub-roundoff) target ``rtol·‖R‖`` once ‖R‖ nears the
     discretisation floor, stalling GMRES at thousands of iterations.
 
-    ``Rm``/``base`` accept the mode-space residual and the ψ+u base at the
-    CURRENT iterate precomputed — the loop's monitor has just measured both, and
-    recomputing them here doubled the residual assemblies per iteration.  Both
-    are deterministic in ``(asm, U)``, so passing them is call-identical.
+    ``Rm``/``base``/``U`` accept the mode-space residual, the ψ+u base and the
+    reconstructed physical field at the CURRENT iterate precomputed — the loop's
+    monitor has just built all three, and recomputing them here doubled the
+    residual assemblies per iteration.  All are deterministic in ``(asm, V)``, so
+    passing them is call-identical.
     """
-    Nphi = U.shape[1]
+    V = np.asarray(V, dtype=float)
+    Nphi = V.shape[1]
     Ntot = asm.interior.size
     Nm = asm.m_vals.size
     interior = asm.interior
@@ -228,8 +249,13 @@ def newton_step_nk(asm: Assembly3D, U: np.ndarray,
     w = asm.w
 
     # current residual (mode space, exact) and the physical-space source derivative
-    if Rm is None:
-        Rm = s3.residual_modes(asm, U)
+    Vhat = np.fft.rfft(V, axis=1)
+    if Rm is None or U is None:
+        Rm_c, U_c = s3.residual_modes_v(asm, Vhat, Nphi, U=U)
+        if Rm is None:
+            Rm = Rm_c
+        if U is None:
+            U = U_c
     R_node = np.fft.irfft(Rm, n=Nphi, axis=1)
     if base is None:
         _, base = s3._nl_source(asm, U)
@@ -244,10 +270,14 @@ def newton_step_nk(asm: Assembly3D, U: np.ndarray,
     #    nothing left to factor per step or per parameter point; it costs a GMRES
     #    iteration or two, and at Nφ=1 it is no longer the exact Jacobian.
     #  * dense — M̂_m = M0_m + diag(interior·d̄·w_m), i.e. exactly what
-    #    solver_3d.newton_step solves, LU-factored once per Newton step.  It is J
-    #    minus only the azimuthal mode-coupling, so at Nφ=1 it IS J and GMRES
+    #    solver_3d.newton_step_v solves, LU-factored once per Newton step.  It is
+    #    J minus only the azimuthal mode-coupling, so at Nφ=1 it IS J and GMRES
     #    converges in one iteration.  The factorizations are ~80% of the step.
     #    choose_separable opts back into it at Nφ=1 and during warm-up.
+    #
+    # Both blocks are unchanged by the reformulation — they were always written in
+    # the factored unknown.  What changed is that _Minv no longer multiplies the
+    # result by w on the way out.
     #
     # Which one this call gets was already decided by the caller: it is whichever
     # representation ``asm`` holds (``asm.sep is None`` => dense).
@@ -261,28 +291,28 @@ def newton_step_nk(asm: Assembly3D, U: np.ndarray,
             Jm[np.diag_indices_from(Jm)] += di
             facs.append(_lu_factor_equilibrated(Jm))
 
-    def _Jmatvec(dU_flat):
-        dU = dU_flat.reshape(Ntot, Nphi)
-        dUhat = np.fft.rfft(dU, axis=1)
+    def _Jmatvec(dV_flat):
+        dV = dV_flat.reshape(Ntot, Nphi)
+        dVhat = np.fft.rfft(dV, axis=1)
+        dU = s3.u_from_vhat(asm, dVhat, Nphi)           # δu = w δv, a multiply
         DdU_hat = np.fft.rfft(D_nl * dU, axis=1)        # the mode-coupling term
         out = np.empty((Ntot, Nm), dtype=complex)
         for mi in range(Nm):
-            out[:, mi] = (s3.linear_apply(asm, mi, dUhat[:, mi] / w[mi])
+            out[:, mi] = (s3.linear_apply(asm, mi, dVhat[:, mi])
                           + np.where(interior, DdU_hat[:, mi], 0.0))
         return np.fft.irfft(out, n=Nphi, axis=1).ravel()
 
     def _Minv(y_flat):
         y = y_flat.reshape(Ntot, Nphi)
         yhat = np.fft.rfft(y, axis=1)
-        dUhat = np.empty((Ntot, Nm), dtype=complex)
+        dVhat = np.empty((Ntot, Nm), dtype=complex)
         for mi in range(Nm):
             if sep is None:
-                dvhat = _lu_solve_equilibrated(facs[mi], yhat[:, mi])
+                dVhat[:, mi] = _lu_solve_equilibrated(facs[mi], yhat[:, mi])
             else:
-                dvhat = sep.solve(mi, yhat[:, mi].reshape(sep.Na1, sep.Nb1),
-                                  asm.b).ravel()
-            dUhat[:, mi] = w[mi] * dvhat                # δu_m = w · δv_m
-        return np.fft.irfft(dUhat, n=Nphi, axis=1).ravel()
+                dVhat[:, mi] = sep.solve(mi, yhat[:, mi].reshape(sep.Na1, sep.Nb1),
+                                         asm.b).ravel()
+        return np.fft.irfft(dVhat, n=Nphi, axis=1).ravel()
 
     n = Ntot * Nphi
     Jop = LinearOperator((n, n), matvec=_Jmatvec)
@@ -294,12 +324,12 @@ def newton_step_nk(asm: Assembly3D, U: np.ndarray,
     def _cb(_pr):
         it_count[0] += 1
 
-    dU_flat, status = gmres(Jop, b, M=Mop, rtol=gmres_rtol, atol=gmres_atol,
+    dV_flat, status = gmres(Jop, b, M=Mop, rtol=gmres_rtol, atol=gmres_atol,
                             restart=gmres_restart, maxiter=gmres_maxiter,
                             callback=_cb, callback_type="pr_norm")
-    dU = dU_flat.reshape(Ntot, Nphi)
+    dV = dV_flat.reshape(Ntot, Nphi)
     rn = float(np.max(np.abs(R_node)))
-    return U + dU, _StepInfo(it_count[0], int(status), rn)
+    return V + dV, _StepInfo(it_count[0], int(status), rn)
 
 
 # --------------------------------------------------------------------------
@@ -367,56 +397,70 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
                          "separable; rebuild it with assemble(..., separable=False)")
     shp = prob.shape
     scales = _block_scales(asm)
-    U = (np.zeros((prob.Ntot2d, prob.Nphi)) if U0 is None
-         else np.asarray(U0, dtype=float).reshape(prob.Ntot2d, prob.Nphi))
+    Nphi = int(prob.Nphi)
+    # The loop's state is the FACTORED field v, not the physical u — see
+    # solver_3d.u_from_vhat.  A cold start divides nothing (v = 0 and w·0 = 0); a
+    # warm start pays exactly one division, on the guess, rather than one per
+    # iterate, and Newton corrects the high-m components it pollutes.
+    V = (np.zeros((prob.Ntot2d, Nphi)) if U0 is None
+         else s3.v_from_u(asm, np.asarray(U0, dtype=float).reshape(prob.Ntot2d,
+                                                                  Nphi)))
 
     gmres_iters = []
-    # The monitor assembles the residual ONCE per iterate and hands it (plus the
-    # ψ+u base the step's preconditioner diagonal needs) to the step through the
-    # loop's aux channel; the step used to re-assemble both at the same iterate.
-    # It also keeps the residual of the BEST iterate — same strict-< rule as the
-    # loop, whose best_U it therefore matches — so the exit raw norm below does
-    # not need a third assembly.
+    # The monitor assembles the residual ONCE per iterate and hands it — plus the
+    # ψ+u base the step's preconditioner diagonal needs and the physical field it
+    # reconstructed on the way — to the step through the loop's aux channel; the
+    # step used to re-assemble all three at the same iterate.  It also keeps the
+    # residual of the BEST iterate — same strict-< rule as the loop, whose best_U
+    # it therefore matches — so the exit raw norm below does not need a third
+    # assembly, and the physical field of the LAST measured iterate, so the
+    # on_iterate hook can be handed a physical U without a second reconstruction.
     best = [np.inf, None]
+    last_U = [None]
 
-    def monitor(U):
+    def monitor(V):
+        Vhat = np.fft.rfft(V, axis=1)
+        U = s3.u_from_vhat(asm, Vhat, Nphi)
         S_nl, base = s3._nl_source(asm, U)
-        Rm = s3.residual_modes(asm, U, S_nl=S_nl)
+        Rm, _ = s3.residual_modes_v(asm, Vhat, Nphi, U=U, S_nl=S_nl)
         rn = _equil_norm(Rm, scales)
         if rn < best[0]:
             best[0], best[1] = rn, Rm
-        return rn, (Rm, base)
+        last_U[0] = U
+        return rn, (Rm, base, U)
 
-    def hook(k, rn, U):
+    def hook(k, rn, _V):
         if verbose:
             gi = gmres_iters[-1] if gmres_iters else None
             print(f"  [NK] it={k + 1:2d}  equil||R||={rn:.3e}  gmres={gi}")
         if on_iterate is not None:
-            on_iterate(k, rn, U)
+            # the hook's contract is PHYSICAL U, and the monitor just built it
+            on_iterate(k, rn, last_U[0])
 
-    def step(U, k, aux):
-        Rm, base = aux
+    def step(V, k, aux):
+        Rm, base, U = aux
         if k < n_warmup:
-            U_new, _ = s3.newton_step(asm, U, Rm=Rm, base=base)   # modified-Newton warm-up
-            gmres_iters.append(0)
+            V_new, _ = s3.newton_step_v(asm, V, Rm=Rm, base=base, U=U)
+            gmres_iters.append(0)                      # modified-Newton warm-up
         else:
-            U_new, sinfo = newton_step_nk(asm, U, gmres_rtol=gmres_rtol,
-                                          Rm=Rm, base=base)
+            V_new, sinfo = newton_step_nk(asm, V, gmres_rtol=gmres_rtol,
+                                          Rm=Rm, base=base, U=U)
             gmres_iters.append(sinfo.gmres_iters)
-        return U_new
+        return V_new
 
-    run = newton_loop(U, monitor_fn=monitor, step_fn=step,
+    run = newton_loop(V, monitor_fn=monitor, step_fn=step,
                       tol=tol, max_steps=max_iter, on_iterate=hook)
-    # residual_modes is deterministic in (asm, U), so the irfft of the best
-    # iterate's stored Rm is bit-for-bit s3.nodal_residual_inf(asm, run.U).  The
-    # fallback only fires if every measurement was non-finite (best never set),
-    # where the old exit recomputation is reproduced verbatim.
+    # residual_modes_v is deterministic in (asm, V), so the irfft of the best
+    # iterate's stored Rm is the nodal residual at run.U.  The fallback only fires
+    # if every measurement was non-finite (best never set), where the old exit
+    # recomputation is reproduced verbatim on the reconstructed field.
+    U_best = s3.u_from_v(asm, run.U)
     if best[1] is not None:
-        raw = float(np.max(np.abs(np.fft.irfft(best[1], n=prob.Nphi, axis=1))))
+        raw = float(np.max(np.abs(np.fft.irfft(best[1], n=Nphi, axis=1))))
     else:
-        raw = s3.nodal_residual_inf(asm, run.U)
-    return run.U.reshape(shp), NKInfo(run.converged, run.iters, run.residual_norm,
-                                      raw, run.history, gmres_iters)
+        raw = s3.nodal_residual_inf(asm, U_best)
+    return U_best.reshape(shp), NKInfo(run.converged, run.iters, run.residual_norm,
+                                       raw, run.history, gmres_iters)
 
 
 # --------------------------------------------------------------------------

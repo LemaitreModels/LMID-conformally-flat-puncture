@@ -220,6 +220,58 @@ def linear_apply(asm: Assembly3D, mi: int, vhat: np.ndarray) -> np.ndarray:
     return asm.sep.apply(mi, np.asarray(vhat).reshape(shp), asm.b).ravel()
 
 
+# --------------------------------------------------------------------------
+# The factored (v-space) state
+# --------------------------------------------------------------------------
+# The unknown the per-m block is written in is the FACTORED field
+# ``v_m = u_m / w_m`` with ``w_m = (1-B^2)^{|m|/2}`` (``operators_3d.bc_factor``),
+# and ``v`` — not ``u`` — is the smooth one: ``u`` is suppressed by ``w`` towards
+# B = +-1 and ``v`` is not.  Carrying ``u`` as the Newton state therefore has to
+# recover ``v`` by DIVIDING at every iterate, and ``rfft(U)`` only carries
+# roundoff absolute in ``|U|_max``, so ``rfft(U)_m / w_m`` carries roundoff
+# ~``eps |U|_max / w_m`` — which the mode-space residual then inherits and the
+# certified monitor reports as constraint violation.  Measured: the monitor climbs
+# twelve orders over Nphi = 4..24 while the FIELD the two routes return agrees to
+# ~1e-15, so at high Nphi the shipped monitor was measuring underflow it created.
+#
+# So the solve carries ``v`` and reconstructs ``u`` by a MULTIPLY.  Note what this
+# does NOT change: the row-equilibration ``scales`` are untouched, so the
+# equilibrated residual is the same quantity in the same norm — computed without
+# the amplification.  The certification threshold keeps its calibration.
+def u_from_vhat(asm: Assembly3D, Vhat: np.ndarray, Nphi: int) -> np.ndarray:
+    """Physical nodal ``U`` from the factored modes: ``u_m = w_m * v_m``.
+
+    The only route from state to field, and it is a multiply.
+    """
+    Uhat = np.empty_like(Vhat)
+    for mi in range(asm.m_vals.size):
+        Uhat[:, mi] = asm.w[mi] * Vhat[:, mi]
+    return np.fft.irfft(Uhat, n=Nphi, axis=1)
+
+
+def u_from_v(asm: Assembly3D, V: np.ndarray) -> np.ndarray:
+    """Physical nodal ``U`` from the nodal factored state ``V``."""
+    V = np.asarray(V, dtype=float)
+    return u_from_vhat(asm, np.fft.rfft(V, axis=1), V.shape[1])
+
+
+def v_from_u(asm: Assembly3D, U: np.ndarray) -> np.ndarray:
+    """Nodal factored state ``V`` from a physical field — ``v_m = u_m / w_m``.
+
+    **The lossy direction, and the only division left in the solve.**  It is used
+    to seed a warm start and nowhere else: once per solve rather than once per
+    iterate, so it is not in the hot path, and Newton corrects the high-``m``
+    components it pollutes because the residual that sees them is now measured in
+    the clean norm.  A cold start (``U0 is None``) never calls it.
+    """
+    U = np.asarray(U, dtype=float)
+    Uhat = np.fft.rfft(U, axis=1)
+    Vhat = np.empty_like(Uhat)
+    for mi in range(asm.m_vals.size):
+        Vhat[:, mi] = Uhat[:, mi] / asm.w[mi]
+    return np.fft.irfft(Vhat, n=U.shape[1], axis=1)
+
+
 def residual_modes(asm: Assembly3D, U: np.ndarray,
                    S_nl: Optional[np.ndarray] = None):
     """Exact mode-space residual R̂_m (Ntot2d, Nm complex).
@@ -229,8 +281,16 @@ def residual_modes(asm: Assembly3D, U: np.ndarray,
     is the exact mode-space residual of the nonlinear PDE.
 
     ``S_nl`` accepts the nodal source of ``_nl_source(asm, U)`` precomputed, for
-    a caller that also needs the source (or its ψ+u base) for something else —
-    the Newton loops' monitors do.  Passing it is call-identical.
+    a caller that also needs the source (or its ψ+u base) for something else.
+    Passing it is call-identical.
+
+    **This is the physical-state form, and the certified solve no longer runs it.**
+    The ``/ w`` below is the division the v-state reformulation exists to remove —
+    see :func:`residual_modes_v`, which the Newton loops' monitors call instead.
+    Kept because it is the residual *of a physical field*, which is what an
+    external field (a ROM guess, an imported solution, a test oracle) hands you,
+    and what :func:`nodal_residual_inf` and ``solver_3d_nk.equil_residual_inf``
+    are defined on.  At Nphi = 1 the two forms are identical: ``w = 1``.
     """
     if S_nl is None:
         S_nl, _ = _nl_source(asm, U)
@@ -243,6 +303,35 @@ def residual_modes(asm: Assembly3D, U: np.ndarray,
         Rm[:, mi] = (linear_apply(asm, mi, vhat)
                      + np.where(interior, Shat[:, mi], 0.0))
     return Rm
+
+
+def residual_modes_v(asm: Assembly3D, Vhat: np.ndarray, Nphi: int,
+                     U: Optional[np.ndarray] = None,
+                     S_nl: Optional[np.ndarray] = None):
+    """Exact mode-space residual from the FACTORED state.  Returns ``(Rm, U)``.
+
+    Identically :func:`residual_modes` except that ``v_m`` **is** the state rather
+    than ``rfft(U)_m / w_m``, so the linear term is ``M0_m`` applied to the state
+    itself and no division happens.  The nonlinear source still needs the physical
+    field, which is reconstructed by :func:`u_from_vhat` — a multiply — and handed
+    back, because every caller that measures the residual also wants the field (or
+    its ``psi+u`` base) and reconstructing it twice was the duplication this
+    signature exists to avoid.
+
+    ``U``/``S_nl`` accept the reconstruction and the nodal source precomputed.
+    Both are deterministic in ``(asm, Vhat)``, so passing them is call-identical.
+    """
+    if U is None:
+        U = u_from_vhat(asm, Vhat, Nphi)
+    if S_nl is None:
+        S_nl, _ = _nl_source(asm, U)
+    Shat = np.fft.rfft(S_nl, axis=1)
+    Rm = np.empty_like(Vhat)
+    interior = asm.interior
+    for mi in range(asm.m_vals.size):
+        Rm[:, mi] = (linear_apply(asm, mi, Vhat[:, mi])
+                     + np.where(interior, Shat[:, mi], 0.0))
+    return Rm, U
 
 
 def nodal_residual_inf(asm: Assembly3D, U: np.ndarray) -> float:
@@ -293,6 +382,53 @@ def newton_step(asm: Assembly3D, U: np.ndarray,
         dUhat[:, mi] = asm.w[mi] * dvhat               # δu_m = w · δv_m
     dU = np.fft.irfft(dUhat, n=Nphi, axis=1)
     return U + dU, Rm
+
+
+def newton_step_v(asm: Assembly3D, V: np.ndarray,
+                  Rm: Optional[np.ndarray] = None,
+                  base: Optional[np.ndarray] = None,
+                  U: Optional[np.ndarray] = None) -> Tuple[np.ndarray, np.ndarray]:
+    """One modified-Newton step in the FACTORED state; returns ``(V_new, Rm)``.
+
+    The v-state twin of :func:`newton_step`, and the arithmetic difference is one
+    line: that routine already solves the per-mode system for the factored
+    increment ``dv_m`` and then multiplies by ``w`` to report ``du_m``, so
+    carrying ``v`` means *not* multiplying rather than dividing somewhere new.
+    The Jacobian block is the same ``M0_m + diag(interior . dbar . w_m)``.
+
+    This is the ``n_warmup`` step of the certified NK solve, so it has to be in
+    the same state as the NK step it warms up — a warm-up that stepped in ``u``
+    would hand back a physical field the loop would then have to divide, which is
+    exactly the roundoff the reformulation removes, once per warm-up step.
+    """
+    if asm.sep is not None:
+        raise ValueError(
+            "solver_3d.newton_step_v needs the dense per-m blocks: its Jacobian "
+            "is M0_m + diag(interior·d̄·w_m), and the nonlinear diagonal breaks "
+            "the Kronecker structure a separable assembly stores.  Use "
+            "solver_3d_nk.newton_step_nk, whose separable preconditioner drops "
+            "that diagonal on purpose, or assemble without separable=True.")
+    V = np.asarray(V, dtype=float)
+    Nphi = V.shape[1]
+    Vhat = np.fft.rfft(V, axis=1)
+    if Rm is None or base is None or U is None:
+        Rm_c, U_c = residual_modes_v(asm, Vhat, Nphi, U=U)
+        if Rm is None:
+            Rm = Rm_c
+        if U is None:
+            U = U_c
+        if base is None:
+            _, base = _nl_source(asm, U)
+    D_nl = -0.875 * base ** (-8.0) * asm.A2            # node-diagonal source deriv
+    d_bar = D_nl.mean(axis=1)                          # (Ntot2d,) = φ-average (m=0)
+    dVhat = np.empty((asm.interior.size, asm.m_vals.size), dtype=complex)
+    for mi in range(asm.m_vals.size):
+        Jm = np.array(asm.M0[mi])
+        di = np.where(asm.interior, d_bar * asm.w[mi], 0.0)
+        Jm[np.diag_indices_from(Jm)] += di
+        dVhat[:, mi] = ops3.solve_mode_block(Jm, -Rm[:, mi])   # δv_m, kept as δv_m
+    dV = np.fft.irfft(dVhat, n=Nphi, axis=1)
+    return V + dV, Rm
 
 
 # --------------------------------------------------------------------------
