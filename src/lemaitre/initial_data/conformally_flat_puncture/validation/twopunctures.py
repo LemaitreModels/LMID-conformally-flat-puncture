@@ -7,7 +7,7 @@ Ansorg–Brügmann–Tichy puncture equation (PRD 70, 064011) — the Einstein-T
 TwoPunctures code, ported to C by Z. Etienne (NRPy) and compiled against GSL.
 
 Build recipe (outside the package, so the package stays jax/numpy/matplotlib):
-    bash ~/.cache/bbhfm/parasol_tp_oracle/build.sh        # -> tp_solve binary
+    make oracle          # runs oracle/build.sh; see oracle/README.md
 
 The binary reads ``b mA mB P nA nB nphi`` from argv and Cartesian query points
 ``x y z`` (TP native x-axis frame) from stdin; it writes a ``SUMMARY`` line
@@ -27,8 +27,8 @@ import numpy as np
 from . import conventions
 
 
-# Default build location (see build.sh); override with LM_TP_BIN.
-_DEFAULT_BIN = os.path.expanduser("~/.cache/bbhfm/parasol_tp_oracle/tp_solve")
+# Where oracle/build.sh installs by default; override with LM_TP_BIN.
+_DEFAULT_BIN = os.path.expanduser("~/.cache/lemaitre/tp-oracle/tp_solve")
 
 
 def binary_path() -> str:
@@ -79,7 +79,7 @@ def solve_tp(b, m_A, m_B, P, points_tp, nA=48, nB=48, nphi=4,
     if not available():
         raise RuntimeError(
             f"TwoPunctures binary not found at {binary_path()!r}. "
-            "Build it with ~/.cache/bbhfm/parasol_tp_oracle/build.sh "
+            "Build it with `make oracle` (see oracle/README.md) "
             "or set LM_TP_BIN.")
     pts = np.atleast_2d(np.asarray(points_tp, dtype=float))
     stdin = "".join(f"{x:.17g} {y:.17g} {z:.17g}\n" for x, y, z in pts)
@@ -147,7 +147,7 @@ def solve_tp_3d(b, m_A, m_B, P_A_vec, P_B_vec, S_A_vec, S_B_vec, points_tp,
     if not available():
         raise RuntimeError(
             f"TwoPunctures binary not found at {binary_path()!r}. "
-            "Build it with ~/.cache/bbhfm/parasol_tp_oracle/build.sh "
+            "Build it with `make oracle` (see oracle/README.md) "
             "or set LM_TP_BIN.")
     Pp = conventions.lm_initial_data_vec_to_tp(P_A_vec)
     Pm = conventions.lm_initial_data_vec_to_tp(P_B_vec)

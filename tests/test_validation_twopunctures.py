@@ -1,7 +1,7 @@
 """B1 Step 4 — agreement with the external TwoPunctures oracle.
 
 Skipped cleanly if the compiled TwoPunctures binary is absent (build it with
-``~/.cache/bbhfm/parasol_tp_oracle/build.sh`` or set ``LM_TP_BIN``), so the
+``make oracle`` or set ``LM_TP_BIN``), so the
 oracle-independent B1 deliverables still run everywhere.  Marked ``slow`` (each
 TwoPunctures solve is ~10-30 s).
 """

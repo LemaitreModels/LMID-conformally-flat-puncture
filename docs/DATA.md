@@ -265,8 +265,8 @@ Two diagnostics that no longer have a panel of their own:
 - the **axisymmetric-limit code-to-code anchor** at `b=3`, `P=0.5` head-on, quoted in the
   appendix text — the most stringent TwoPunctures number in the paper, and not obtainable
   from a quasi-circular configuration, which is never axisymmetric. It is measured by this
-  same producer and read out of fig08's committed figdata meta (`anchor`): ψ to 2.6e-10 in
-  the supremum norm, `M_ADM` to 5.0e-11 relative, certified residual 1.2e-12. The older
+  same producer and read out of fig08's committed figdata meta (`anchor`): ψ to 2.5e-10 in
+  the supremum norm, `M_ADM` to 1.2e-11 relative, certified residual 9.3e-15. The older
   4.7e-12 / 1.0e-11 pair came from the superseded `tp_validation` source and no longer
   appears anywhere in the manuscript.
 - the **ADM-`J` tilt against the spin tilt** (measured, θ_J tracked θ_S to ~1e-14 deg for
@@ -276,48 +276,48 @@ Two diagnostics that no longer have a panel of their own:
 
 ### Where the source comes from, and how the binary is built
 
-`make oracle` only echoes — the build script is **not** in this repo (it must not
-be: the oracle is deliberately external, so that "agrees with TwoPunctures" means
-something). It lives beside the binary it produces:
+`make oracle` runs `oracle/build.sh`, which is **in this repo**. What is *not* in
+this repo is the oracle's own source: the build generates it, so "agrees with
+TwoPunctures" still means agreement with upstream code we did not write or edit.
 
 ```bash
-bash ~/.cache/bbhfm/parasol_tp_oracle/build.sh --check    # -> tp_solve  (+ self-test)
+make oracle                                   # -> ~/.cache/lemaitre/tp-oracle/tp_solve
+LM_TP_PREFIX=/elsewhere ./oracle/build.sh     # install somewhere else
 ```
 
-Provenance of everything that build script compiles:
+Provenance of everything the build compiles:
 
 | layer | origin |
 |---|---|
 | physics | Einstein Toolkit thorn **`TwoPunctures`** (M. Ansorg, E. Schnetter, F. Löffler) — the single-domain spectral puncture solver of Ansorg, Brügmann & Tichy, *PRD* **70**, 064011 (2004), arXiv:gr-qc/0404056. Upstream `https://bitbucket.org/einsteintoolkit/einsteininitialdata`. **LGPL v2.0+.** |
-| C port | Z. B. Etienne's Cactus-free port, shipped inside the `nrpy` package as `nrpy/infrastructures/BHaH/general_relativity/TwoPunctures/` (`https://github.com/nrpy/nrpy`, PyPI `nrpy`). The build **pins** `nrpy==2.2026.6`. |
-| numerics | GSL (BiCGStab + linear algebra); built against GSL 2.7.1, linked statically so the binary is node-portable. |
+| C port | Z. B. Etienne's Cactus-free port, shipped inside the `nrpy` package as `nrpy/infrastructures/BHaH/general_relativity/TwoPunctures/` (`https://github.com/nrpy/nrpy`, PyPI `nrpy`). The build pins **`nrpy==2.2026.6`**, the version the committed oracle numbers were produced with. |
+| numerics | GSL (BiCGStab + linear algebra), taken from the build environment. The binary here was built against **GSL 2.8** and links it dynamically via `-rpath`, so it is tied to the environment that built it — rebuild rather than copying it between machines. |
 
-`build.sh` pip-installs the pinned `nrpy` into a throwaway venv, runs `emit_c.py`
-to write the six TwoPunctures translation units to disk **verbatim** (no upstream
-C is edited or retyped), and compiles them with two small local files:
-`shim/BHaH_defines.h` (the ~40-line subset of BH@H's generated header the
-solver actually uses — `REAL`, `derivs`, `ID_persist_struct`, transcribed from
-nrpy's own `ID_persist_str()`) and `shim/tp_solve_main.c` (argv/stdin/stdout glue
-only: it fills the struct, calls the unmodified `TP_solve()`, and evaluates the
-result with the unmodified `PunctIntPolAtArbitPositionFast()`). BH@H's
-`TP_Interp()` is not built — it only exists to fill a BH@H grid.
+`oracle/gen_tp.py` writes the six TwoPunctures translation units and their two
+headers to `oracle/src/` **verbatim** from `nrpy` (no upstream C is edited or
+retyped), plus a minimal `BHaH_defines.h` — the small subset of BH@H's generated
+header the solver uses (`REAL`, `derivs`, `ID_persist_struct`), transcribed from
+nrpy's own `ID_persist_str()`. Those generated files are **gitignored**: they are
+third-party code and are produced at build time rather than vendored.
 
-The build is **serial on purpose**: upstream parallelises the BiCGStab
-line-relaxation preconditioner, which would make the Krylov path
-schedule-dependent. `tests/test_validation_spin.py::test_spin_axisymmetry_nphi`
-diffs ψ across two separate invocations at `1e-10`, and a paper oracle should be
-bit-reproducible, so ~2× wall-clock is traded for determinism (`TP_OPENMP=1`
-overrides).
+The one hand-written file, and the only one committed under `oracle/src/`, is
+`main.c` — argv/stdin/stdout glue that fills `ID_persist_struct`, calls the
+unmodified `TP_solve()`, and evaluates the result with the unmodified
+`PunctIntPolAtArbitPosition()`. BH@H's `TP_Interp()` is not built; it exists only
+to fill a BH@H grid.
 
-`build.sh --check` verifies the binary against closed-form Brill–Lindquist: at
-`P=0` the regular correction must vanish identically and `E = m_A + m_B`,
-`m^ADM_± = m_± + m_+m_-/(4b)`, `ψ = 1 + m_A/2r_A + m_B/2r_B` — all reproduced to
-**0.0** absolute. Aligned spins give `J = (S_A+S_B, 0, 0)` exactly. Resolution
-`n = 32→64` shows clean spectral convergence (`E` settles by ~1e-12).
+The build passes no OpenMP flag, so the oracle is **serial and deterministic
+across invocations** — which is what
+`tests/test_validation_spin.py::test_spin_axisymmetry_nphi` relies on when it
+diffs ψ across two separate runs at `1e-10`. Upstream parallelises the BiCGStab
+line-relaxation preconditioner; building that would make the Krylov path
+schedule-dependent, so a paper oracle should stay serial.
 
-Set `LM_TP_BIN` to use a binary somewhere else; otherwise
-`~/.cache/bbhfm/parasol_tp_oracle/tp_solve` is the default that
-`validation/twopunctures.py` looks for.
+Set `LM_TP_BIN` to point at a binary somewhere else; otherwise
+`~/.cache/lemaitre/tp-oracle/tp_solve` — where `oracle/build.sh` installs — is the
+default `validation/twopunctures.py` looks for. If it is absent,
+`validation.twopunctures.available()` returns `False` and the 29 oracle-dependent
+tests skip rather than fail.
 
 > Status: the recompute wiring (rewriting `figNN_*_data.py` to compute from the
 > solver/ROM instead of reading `reports/*.json`) is **Stage 2** — not yet done.

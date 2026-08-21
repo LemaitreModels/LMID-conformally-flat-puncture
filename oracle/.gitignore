@@ -1,0 +1,11 @@
+# The NRPy-generated TwoPunctures C sources: third-party code, produced by
+# gen_tp.py at build time rather than vendored here.  src/main.c is ours and IS
+# committed, so this ignores by name instead of ignoring src/ wholesale.
+src/TP_*.c
+src/TP_*.h
+src/TwoPunctures.h
+src/BHaH_defines.h
+
+# Build output (build.sh installs to $LM_TP_PREFIX, but allow in-tree builds too)
+tp_solve
+*.o

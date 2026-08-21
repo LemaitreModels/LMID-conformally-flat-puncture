@@ -78,7 +78,7 @@ models:
 	@echo "            build_cross_model_chi"
 
 oracle:
-	@echo "Build the external TwoPunctures oracle binary. See docs/DATA.md."
+	@bash oracle/build.sh
 
 clean:
 	rm -rf build dist *.egg-info .pytest_cache
