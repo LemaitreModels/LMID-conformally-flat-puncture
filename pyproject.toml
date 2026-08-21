@@ -84,7 +84,7 @@ namespaces = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-    # Measured 2026-08-16 on leaf 1a3d90d: `slow` marks 30 of 661 tests and they
+    # Measured 2026-08-16 on leaf 3f4462d: `slow` marks 30 of 661 tests and they
     # are 1167 s of the suite's 1497 s, so `-m "not slow"` runs 95 % of the tests
     # in 22 % of the wall clock (631 passed in 329 s against 661 in 1497 s).
     # That ratio is what `make test-quick` exists for.

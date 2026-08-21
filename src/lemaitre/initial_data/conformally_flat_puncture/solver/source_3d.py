@@ -136,7 +136,7 @@ def A2_at_nodes_3d(rho, z, phi, b, P_A_vec, P_B_vec, S_A_vec, S_B_vec):
 # every θ afterwards costs two small matvecs instead of Nφ tensor contractions.
 #
 # OPT-IN on purpose: every default route stays bit-for-bit (the curved sibling's
-# gates pin this package's solver arithmetic at the bit level — the 963fe62
+# gates pin this package's solver arithmetic at the bit level — the a050ee8
 # precedent), so the switch is ``solver_3d.assemble(..., a2_gram=True)`` and
 # flipping the default is a cross-leaf decision.
 _A2_GRAM_CACHE: collections.OrderedDict = collections.OrderedDict()

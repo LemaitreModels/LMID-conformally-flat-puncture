@@ -108,7 +108,7 @@ def test_unmeasurable_turning_point_still_returns_nan():
 
     With ``b_circ`` close to the lower edge the second turning point falls
     outside the box; the contract is ``(nan, nan)``, never a silent ``b' = b0``
-    (which would report a perfectly circular orbit -- the bug 201d7e7 removed).
+    (which would report a perfectly circular orbit -- the bug d332497 removed).
     """
     calls = []
     model, prob = _install(calls, b_circ=3.5)

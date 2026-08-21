@@ -107,7 +107,7 @@ def build():
         # source.  Two reasons, both provenance:
         #   * the committed raw source predates the `_off_node` guard on
         #     `eccentricity`'s bracket, so its `ecc` column is all zeros -- the
-        #     pre-201d7e7 `b' = b0` fallback firing on a NaN box edge, i.e. an
+        #     pre-d332497 `b' = b0` fallback firing on a NaN box edge, i.e. an
         #     unmarked "perfectly circular" orbit at every rung;
         #   * re-running the producer would recompute the CERTIFIED scan through
         #     the elliptic solver, so its numbers would carry whatever solver state

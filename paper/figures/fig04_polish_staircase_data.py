@@ -110,15 +110,15 @@ def _check_rank(dim, r):
 # a staircase measured on a superseded route or model cannot go unnoticed (fig06 did).
 # Here it carries more than the box, because this figure's caption states a *step count*
 # and the numbers moved once already: the campaign below re-ran all eight producers.
-CODE_TAG = "54e90ac"        # leaf commit the producers ran at (the fig04 campaign pin)
+CODE_TAG = "85c76c0"        # leaf commit the producers ran at (the fig04 campaign pin)
 # Date only, deliberately.  The commit SHA above is what makes the numbers
 # reproducible; the machine that ran them does not, and naming a specific cluster
 # and job id in a public artifact leaks internal infrastructure while adding
 # nothing a reader can act on.  (The run log keeps the job id privately.)
 CAMPAIGN = "2026-08-18"
-STOPPING = ("newton_loop (e6ff7ec): breaks on an internal target of tol/10 while "
+STOPPING = ("newton_loop (01014a5): breaks on an internal target of tol/10 while "
             "certification is judged at the caller's tol; stagnation needs two strikes")
-GUESS = ("pool-weight evaluate (b4c56cb): the default query contracts against the "
+GUESS = ("pool-weight evaluate (deec3a1): the default query contracts against the "
          "deduplicated node pool, not the subgrid-by-subgrid sum; the job asserts this "
          "before solving, since a pre-flip checkout would reproduce the old guess")
 # The per-lane attribution narrative that used to sit here has been dropped from the

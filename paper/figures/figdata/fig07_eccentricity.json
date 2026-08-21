@@ -1206,7 +1206,7 @@
   },
   "meta": {
     "model_file": "surrogate_bpt_ecc.npz",
-    "model_git_commit": "cf5c652",
+    "model_git_commit": "8eeef29",
     "box": [
       [
         3.0,

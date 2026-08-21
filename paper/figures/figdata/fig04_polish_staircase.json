@@ -348,15 +348,15 @@
     }
   ],
   "meta": {
-    "code_tag": "54e90ac",
+    "code_tag": "85c76c0",
     "campaign": "fys-kuleuven job 99173, array 0-7, 2026-08-18",
-    "stopping_rule": "newton_loop (e6ff7ec): breaks on an internal target of tol/10 while certification is judged at the caller's tol; stagnation needs two strikes",
-    "guess_path": "pool-weight evaluate (b4c56cb): the default query contracts against the deduplicated node pool, not the subgrid-by-subgrid sum; the job asserts this before solving, since a pre-flip checkout would reproduce the old guess",
+    "stopping_rule": "newton_loop (01014a5): breaks on an internal target of tol/10 while certification is judged at the caller's tol; stagnation needs two strikes",
+    "guess_path": "pool-weight evaluate (deec3a1): the default query contracts against the deduplicated node pool, not the subgrid-by-subgrid sum; the job asserts this before solving, since a pre-flip checkout would reproduce the old guess",
     "suspects": {
-      "T3 (e6ff7ec)": "intended mover; changes only WHEN the loop stops, never how a Newton step is computed, so it cannot move a step-1 residual",
-      "lane P (6d0eef9)": "was inert on this path while the pooled path was opt-in -- every curve's step-0 guess was bit-identical at that pin",
-      "lane S (719f334)": "dominant mover of the mid-convergence entries at the 2026-08-16 pin: the separable eigen-factors' real cast shifts GMRES trajectories by ulps (its own commit message says so), which a quadratically converging Newton amplifies to ~8x where the residual is 1e-5..1e-9.  NOT floor-level on this path",
-      "pooled default (b4c56cb)": "mover of THIS re-distill: making the pool-weight path the default changes the guess at <1e-14 relative, which the same quadratic amplification turns into a few percent at mid-convergence.  It moved NO step count (all six entries identical to 2026-08-16), and the two COLD series are bit-identical -- they guess the zero field and touch no model, so they are the control"
+      "T3 (01014a5)": "intended mover; changes only WHEN the loop stops, never how a Newton step is computed, so it cannot move a step-1 residual",
+      "lane P (0296ddc)": "was inert on this path while the pooled path was opt-in -- every curve's step-0 guess was bit-identical at that pin",
+      "lane S (cb71a2f)": "dominant mover of the mid-convergence entries at the 2026-08-16 pin: the separable eigen-factors' real cast shifts GMRES trajectories by ulps (its own commit message says so), which a quadratically converging Newton amplifies to ~8x where the residual is 1e-5..1e-9.  NOT floor-level on this path",
+      "pooled default (deec3a1)": "mover of THIS re-distill: making the pool-weight path the default changes the guess at <1e-14 relative, which the same quadratic amplification turns into a few percent at mid-convergence.  It moved NO step count (all six entries identical to 2026-08-16), and the two COLD series are bit-identical -- they guess the zero field and touch no model, so they are the control"
     },
     "route": {
       "4": "separable",

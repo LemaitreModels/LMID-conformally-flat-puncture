@@ -5,7 +5,7 @@ useful one: **the persistent JAX compilation cache that makes the curved sibling
 suite 2.2x faster does nothing here, and that was measured rather than assumed.**
 Without this note the next person to compare the two leaves re-derives it.
 
-Measured 2026-08-16 on leaf ``1a3d90d``, 8-core M-series laptop, peers on the box
+Measured 2026-08-16 on leaf ``3f4462d``, 8-core M-series laptop, peers on the box
 (``uptime`` load 2.4-8.3 across the runs; the arms below were interleaved and the
 warm arm ran at the *higher* load, so it is if anything flattered).
 
