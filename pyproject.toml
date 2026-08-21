@@ -9,6 +9,10 @@ description = "Certified, differentiable, parametric conformally-flat binary-bla
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
+# One author here, two on the paper (paper.tex:40-49), and that is deliberate
+# (decided 2026-08-21): this field records who maintains the distribution, not
+# who wrote the physics.  Do not "fix" the apparent mismatch -- the paper's
+# author list is the authorship of record.
 authors = [{ name = "Frederik De Ceuster" }]
 # The classifier restates the LICENSE file's own wording ("either version 3 of
 # the License, or (at your option) any later version"), so it is GPLv3+, not
