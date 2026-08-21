@@ -78,7 +78,7 @@ This problem must be solved once for each configuration.
 
 Modern applications, however, rarely require a single solution.
 Parameter surveys, waveform catalogs, eccentricity reduction, and mass and spin targeting all require the same elliptic problem to be solved repeatedly across the binary-black-hole parameter space.
-The repeated solution of the constraint equations therefore becomes a dominant recurring computational cost~\cite{Mendes2025}.
+The repeated solution of the constraint equations therefore becomes a recurring computational cost~\cite{Mendes2025}.
 The computational challenge is therefore not solving a single elliptic problem, but efficiently solving a family of closely related elliptic problems across the physical parameter space.
 
 
@@ -110,7 +110,7 @@ We demonstrate the approach for both a four-dimensional aligned-spin model and a
 The proposed solver is \emph{parametric} and \emph{analytically differentiable} with respect to the physical parameters, a combination that, to our knowledge, has not previously been demonstrated for binary-black-hole initial data.
 The entire construction is implemented in JAX~\cite{Jax2018}, so the resulting parameter-to-solution map is differentiable with respect to the physical parameters, and these derivatives are obtained automatically through algorithmic differentiation rather than by finite differencing.
 Neither property is bought at the cost of accuracy.
-Every queried parameter is refined by Newton iterations of the genuine elliptic solver until the discrete constraint residual satisfies $\|R\|_\infty \le 10^{-10}$, a gate checked before the datum is returned; the corresponding continuum constraint violation is verified independently on an evolution grid in Appendix~\ref{sec:validation:constraints}.
+Every queried parameter is refined by Newton iterations of the genuine elliptic solver until the discrete constraint residual satisfies $\|R\|_\infty \le 10^{-10}$, a gate checked before the datum is returned; the corresponding continuum constraint violation is verified independently on an evolution grid (App.~\ref{sec:validation:constraints}).
 The sparse interpolant therefore accelerates the computation but does not replace the underlying elliptic solver.
 
 
@@ -295,7 +295,7 @@ The $B$ nodes are retained in full, positive and negative alike, so no $z$-refle
 Because the $B$ edges carry no node, the puncture corners are not collocation points.
 The regular correction $u$ is represented nodally, the unknown being the tensor of collocation values $U_{ijk}\equiv u(A_i,B_j,\phi_k)$.
 
-The solver stores this tensor, but the approximation space it spans is most transparent in modal form,
+The solver stores this nodal tensor, but the approximation space it spans is most transparent in modal form,
 \begin{equation}
   u(A,B,\phi) \ = \sum_{|m|\le N_\phi/2} \ \sum_{n=0}^{N_A}\sum_{l=0}^{N_B-1} c^{m}_{nl} \ \phi_{nl}^{m}(A,B,\phi) \label{eq:expansion}
 \end{equation}
@@ -307,7 +307,7 @@ with basis functions,
 The basis consists of a Fourier expansion in the azimuthal angle $\phi$ (with
 $c^{-m}_{nl}=(c^{m}_{nl})^{*}$ since $u$ is real, and, for even $N_\phi$, with the
 Nyquist term $|m|=N_\phi/2$ counted once, since on $N_\phi$ equispaced nodes it
-retains only its cosine part; see Fig.~\ref{fig:tpspec}), Chebyshev polynomials $T_n$ in the compactified radial coordinate
+retains only its cosine part; see also Fig.~\ref{fig:tpspec}), Chebyshev polynomials $T_n$ in the compactified radial coordinate
 $A$, and Legendre polynomials $P_l$ in the angle $B$.
 The implementation stores the real-FFT half-spectrum $m=0,\dots,N_\phi/2$, the negative modes following from the reality condition.
 The coefficients $c_{nl}^m$ are not formed explicitly.
@@ -415,7 +415,7 @@ $M_0$. We evaluate the nonlinear term pseudo-spectrally on the $\phi$
 collocation grid.
 
 \paragraph{Matrix-free Fourier solve.}
-We solve the linear system at each Newton step with GMRES. The two terms in
+We solve the linear system at each Newton step with GMRES. The two terms in the Jacobian
 Eq.~\eqref{eq:jacobian} are simplest in different representations. In Fourier
 space, $M_0$ is block diagonal in $m$, since
 $\partial_\phi^2\!\rightarrow\!-m^2$, and each block is a two-dimensional
@@ -469,8 +469,7 @@ operators in $A$ and $B$: a diagonal factor times a true Kronecker sum. Fast
 diagonalization then
 replaces a full two-dimensional factorization with two one-dimensional
 eigendecompositions per mode. Appendix~\ref{sec:separable} gives the algebra and
-boundary treatment. For a different meridional operator, this decomposition must
-be derived anew.
+boundary treatment.
 
 Although $M_0$ contains the coordinate parameter $b$, this dependence enters only
 through a diagonal left scaling that row equilibration cancels. The
@@ -530,7 +529,7 @@ constructed.
 % ===========================================================================
 So far we have described how to obtain one constraint-satisfying datum. The
 contribution of this paper is to obtain the datum \emph{as a function of} the
-physical parameters, without a cold elliptic solve at query time.
+physical para\-meters, without a cold elliptic solve at query time.
 
 \subsection{The parametric problem}
 \label{sec:param:setup}
@@ -550,10 +549,8 @@ Sampling the spins in $\chi^{X}_{i}$ keeps the parameter domain rectangular:
 because $\boldsymbol{\chi}^{X}$ is normalized to its own puncture mass, its range
 does not depend on the component masses, so the spin axes are fixed independent of
 $q$ and symmetric about zero. The domain is thus a hypercube in the spin
-\emph{components}. It is a box of free data rather than a physical spin domain:
-the free-data spin para\-meter is not the horizon spin of the resulting hole, a
-distinction we return to in Sec.~\ref{sec:conclusions}. Each
-interpolation axis is finally mapped affinely onto $[-1,1]$, the natural domain
+\emph{components}.
+Each interpolation axis is finally mapped affinely onto $[-1,1]$, the natural domain
 of the Chebyshev basis.
 
 \subsection{Value (Lagrange) collocation}
@@ -627,7 +624,7 @@ The parametric model of Eq.~\eqref{eq:surrogate} supplies only a
 solver of Sec.~\ref{sec:solve:newton}. Taking the barycentric prediction as the
 initial iterate, $U^{(0)} = \mathcal{I}[u](\theta)$, we then apply the Newton
 iteration of Eq.~\eqref{eq:newton}, with the residual $R$ and analytic Jacobian $J$ of
-Eqs.~(\ref{eq:residual},\ref{eq:jacobian}). Because the guess is already close,
+Eqs.~(\ref{eq:residual}, \ref{eq:jacobian}). Because the guess is already close,
 a few steps drive the constraint residual to $\|R\|_\infty \le 10^{-10}$,
 \emph{independent} of the interpolation error, and that residual is checked before
 the datum is returned, so a query cannot be silently wrong.
@@ -662,7 +659,7 @@ for any queried $\theta$ it exposes the sensitivities $\partial U/\partial\theta
 of the emitted field and, through any observable $F$ constructed from it, the
 sensitivity $\partial F/\partial\theta$. That an interpolant is differentiable is
 unremarkable; the content of the claim is that these are derivatives of the
-\emph{certified} initial data. The challenge is therefore not differentiating the
+\emph{certified} initial data. The challenge is not differentiating the
 interpolant, but preserving differentiability through the projection back onto
 the Einstein constraint manifold. Implemented in JAX~\cite{Jax2018} as a
 branchless barycentric map, the parametric model admits forward-mode automatic
@@ -699,7 +696,7 @@ and the aligned spins, since those axes also move the momenta through the
 quasi-circularity condition of Sec.~\ref{sec:model:qc}: differentiating that closed-form
 prescription gives $\mathrm{d}\vect{P}_X/\mathrm{d}\theta_k$, whose momentum tensor
 enters $\partial\Ahat^2/\partial\theta_k$ alongside the terms above. Nothing in the
-tangent is finite-differenced.
+tangent is approximated.
 
 The gradient the model exposes is therefore tied to the certified solve rather than
 to the interpolant alone. On the axes enhanced in Sec.~\ref{sec:param:hermite} the
@@ -1158,10 +1155,7 @@ only mildly, from $0.62$ to $0.52$ decades per node between $q_{\max}=3$ and
 $q_{\max}=4$, while the inferred nearest real singularity recedes from
 $q_\ast=4.19$ to $5.22$, holding $q_\ast/q_{\max}$ near $1.3$--$1.4$ throughout. A
 feature that retreats in proportion to the interval is a complex-conjugate pair
-rather than a real branch point, so the interval never approaches it and
-$q_{\max}=3$ is not an accuracy limit: covering the asymmetric mass ratios out to
-$q=4$ would cost some $15\%$ of the rate. The production edge is therefore a scope
-choice, not a wall.
+rather than a real branch point.
 
 The \emph{spin} wall, in $\chi$, is also soft. The measured rate degrades
 only mildly as the range grows. Here, the range was deliberately extended past the production
@@ -1251,7 +1245,7 @@ the reference implementation against which the default path is tested.
     \emph{Left (four-dimensional model):} the
     value-only sparse interpolant against the full-bilinear gradient-enhanced
     model enhanced on the two spin axes, which is more accurate
-    at every level and reaches a $\sim\!35\times$ deeper best-case floor at the
+    at every level and reaches a $\sim\!49\times$ deeper best-case floor at the
     same node count, from derivative information already stored at the nodes --- the
     two first tangents \emph{and} their bilinear cross --- at no additional nonlinear
     elliptic solves.
@@ -1501,13 +1495,13 @@ circular orbit on the free interpolant and certifies at the end. Sweeping $J$
 traces the circular-orbit sequence, whose minimum shifts outward with angular
 momentum (Fig.~\ref{fig:ecc}). The gradient locates each $b_{\rm circ}$ in three
 certified solves against the scan's thirteen, agreeing with it to
-$5\times10^{-3}$ where the well is well resolved. It is moreover \emph{more
+$6\times10^{-3}$ where the well is well resolved. It is moreover \emph{more
 accurate} in the shallow, near-innermost-stable-orbit regime, where the fixed
-thirteen-point scan mislocates the minimum by half a mass and the derivative still
+thirteen-point scan mislocates the minimum by $0.05\,M$ in $b$ and the derivative still
 resolves it: a black-box scan must sample ever more finely, at more certified
 solves, exactly where the physics is most delicate. The same differentiable $E_{\rm b}$
 reads the orbital eccentricity off the turning points, from $e=0$ at the circular
-orbit to $e\approx0.23$ at the box edge, and so exposes
+orbit to $e\approx0.42$ at the box edge, and so exposes
 $\partial e/\partial\theta$ for gradient-based eccentricity reduction.
 
 \begin{figure}[t]
@@ -1598,32 +1592,17 @@ This research was supported by the Research Foundation -- Flanders (FWO; Grant N
 % ===========================================================================
 \section*{Data and code availability}
 % ===========================================================================
-The complete implementation --- the elliptic solver, the parametric models,
-the certification layer, and the pipeline that produces every figure and
-table in this paper --- is publicly available as part of the Lemaitre model
-family at
-\url{https://github.com/LemaitreModels/LMID-conformally-flat-puncture}, and
-depends only on Python with \texttt{jax}, \texttt{numpy}, \texttt{scipy},
-and \texttt{matplotlib}. An archived release is deposited at \stub{DOI ---
-to be minted on the published history once the archival route is fixed}.
-The distilled data behind each figure are committed with the code, together
-with the scripts that regenerate every plot from them; the solve corpora and
-the shipped reduced-order models are \stub{part of the same deposit /
-available from the authors --- author decision}. The reference data of
-Appendix~\ref{sec:validation} were produced with the standalone NRPy port of
-the TwoPunctures code, and the constraint measurements of
-Fig.~\ref{fig:constraints} with GRTeclyn; both codes are publicly available.
+The whole implementation is publicly available at
+\url{https://github.com/LemaitreModels/LMID-conformally-flat-puncture}.
+
 
 \appendix
-
-
-
 
 % ===========================================================================
 \section{Validation against TwoPunctures}
 \label{sec:validation}
 % ===========================================================================
-We validate the initial-data solver against the TwoPunctures
+We validate the initial-data solver against the Two\-Punctures
 code~\cite{AnsorgBruegmannTichy2004}, using its standalone C port from the NRPy
 suite compiled against GSL. We compare the quasi-circular data over the
 production box (App.~\ref{sec:validation:qc}) and, through an independent
@@ -1636,7 +1615,7 @@ axisymmetric limit the two codes agree to near machine precision.
   \centering
   \includegraphics[width=\columnwidth]{fig08_tp_validation.pdf}
   \caption{\label{fig:tpval}%
-    \textbf{Quasi-circular data validated against TwoPunctures, across the
+    \textbf{Quasi-circular data validated against Two\-Punctures, across the
     production box.} Each point is a median over $100$ quasi-circular
     configurations drawn from the production box by a Latin hypercube, with
     whiskers spanning the sample minimum to maximum; the shared resolution axis
