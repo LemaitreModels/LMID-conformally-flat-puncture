@@ -4,7 +4,7 @@
 Per-axis held-out interpolation error, value-only vs gradient-enhanced (Hermite), as a
 2x4 grid of panels (shared y-range) over the eight quasi-circular axes.  Each curve
 is a DISTRIBUTION over the paper's random base points: the median (marker)
-carries a fitted geometric rate (dec/Q, shown in each panel's upper-right legend),
+carries a fitted geometric rate zeta (dec/Q, shown in each panel's upper-right legend),
 and the min-max whiskers span the best-to-worst held-out error across those base
 points (cf. Fig. 3).  The two series are named once, in a second legend in the
 lower left of the bottom row's first panel, so the per-panel legends stay compact.
@@ -72,7 +72,7 @@ def main():
         ax.set_yscale("log")
         for key, color, mk, lab in SERIES:
             _series(ax, Qs, d[key], color, mk,
-                    rf"$r={d['rate_' + key]:.2f}$ dec/$Q$")
+                    rf"$\zeta={d['rate_' + key]:.2f}$ dec/$Q$")
         ax.set_title(LBL.get(name, name), fontsize=18)
         ax.grid(True, which="both", alpha=0.3)
         ax.set_ylim(*YLIM)
