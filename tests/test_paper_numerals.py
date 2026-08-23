@@ -13,6 +13,12 @@ happened three times on this leaf:
   sweep while all 284 gates passed, *because fig08 had no numeral gate*.
 * 2026-08-21: ``docs/DATA.md`` still restated fig08's anchor with the three
   values ``paper.tex`` had been corrected away from the day before.
+* 2026-08-21, the ``docs/`` audit: ``MODELS.md`` gave a POD artifact name with a
+  ``_slim`` suffix ``production_model.pod_stem`` deliberately does not emit, and
+  promised that a stale figdata "reads as stale" -- which the staleness check,
+  being key-presence only, cannot do.  ``STRUCTURE.md``'s layout block predated
+  ``oracle/``, and its "the threshold is not restated anywhere else" was false of
+  four producers.
 
 Every one of those was a *prose* defect over a *correct* artifact, which is the
 one thing none of the other gates look at.  So these tests read the artifact,
@@ -31,6 +37,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 import pytest
 
@@ -39,6 +46,9 @@ ROOT = os.path.dirname(HERE)
 PAPER = os.path.join(ROOT, "paper", "paper.tex")
 FIGDATA = os.path.join(ROOT, "paper", "figures", "figdata")
 DATA_MD = os.path.join(ROOT, "docs", "DATA.md")
+MODELS_MD = os.path.join(ROOT, "docs", "MODELS.md")
+STRUCTURE_MD = os.path.join(ROOT, "docs", "STRUCTURE.md")
+PYPROJECT = os.path.join(ROOT, "pyproject.toml")
 
 
 def _figdata(stem):
@@ -279,3 +289,125 @@ def test_the_anchor_is_still_certified():
     assert a["residual"] < certification.CERT_TOL, (
         f"the anchor residual {a['residual']:.2e} is no longer below CERT_TOL "
         f"{certification.CERT_TOL:.0e}")
+
+
+# ==========================================================================
+# docs/ -- the same failure class, one directory over
+# ==========================================================================
+# The 2026-08-21 audit found MODELS.md and STRUCTURE.md carrying numbers and
+# mechanisms nothing checked.  Everything below is derived from the tree at test
+# time, so the docs cannot drift from the code without going red.
+
+
+def test_models_md_memory_table_is_the_one_production_model_prints():
+    """MODELS.md says "regenerate it rather than hand-editing" -- so enforce that.
+
+    ``production_model.table()`` is the printer the page's own header tells you to
+    run.  Comparing the whole block at once pins the four family rows, both bare
+    and both POD columns in one assertion, and makes a hand-edit fail rather than
+    quietly disagree with the module that defines the model.
+    """
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+    doc = _text(MODELS_MD)
+    table = pm.table().strip()
+    assert table in doc, (
+        "docs/MODELS.md's memory table is not the one production_model prints. "
+        "Regenerate it:\n  python -m lemaitre.initial_data."
+        "conformally_flat_puncture.pipeline.production_model\n\nexpected:\n"
+        + table)
+
+
+def test_models_md_headline_numbers_come_from_production_model():
+    """The ranks, node counts, level and compression, each read from the module.
+
+    Derived here rather than transcribed: if ``SHIPPED_RANK`` or ``N_NODES``
+    moves, this fails on the doc instead of leaving the paper's narrative page
+    describing the previous model.
+    """
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+    doc = _text(MODELS_MD)
+    for dim in (4, 8):
+        assert f"{pm.N_NODES[dim]}" in doc, f"{dim}-D node count missing from MODELS.md"
+        assert f"**{pm.SHIPPED_RANK[dim]}**" in doc, f"{dim}-D shipped rank missing"
+        assert f"**{pm.compression_factor(dim):.1f}\u00d7**" in doc, (
+            f"{dim}-D compression is {pm.compression_factor(dim):.1f}x and "
+            "MODELS.md does not say so")
+    assert f"| Smolyak level | {pm.pb.SMOLYAK_LEVEL} | {pm.pb.SMOLYAK_LEVEL} |" in doc
+    for dim in (4, 8):
+        idx = ", ".join(str(i) for i in pm.enhanced_indices(dim))
+        assert f"({idx})" in doc, (
+            f"{dim}-D enhanced indices are ({idx}); MODELS.md must not carry a "
+            "literal that disagrees with production_model.enhanced_indices")
+
+
+def test_models_md_pod_artifact_name_is_exactly_what_pod_stem_emits():
+    """The example filename, pinned to the function the doc credits for it.
+
+    It carried a ``_slim`` suffix through a revision.  ``pod_stem``'s docstring
+    says the layout is deliberately NOT in the name -- it lives in
+    ``meta['dU_layout']`` so a name cannot go stale against its contents -- so the
+    doc was advertising a guarantee the code refuses to give.
+    """
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+    doc = _text(MODELS_MD)
+    assert f"{pm.pod_stem(4)}.npz" in doc, (
+        f"MODELS.md should show {pm.pod_stem(4)}.npz as the artifact name")
+    assert "_slim.npz" not in doc, (
+        "the '_slim' suffix is back in MODELS.md; pod_stem does not emit it, and "
+        "the layout is recorded inside the file as meta['dU_layout']")
+
+
+def test_structure_md_pool_and_slot_counts_are_reproducible():
+    """The pooled-evaluation redundancy figures, recomputed from the index set.
+
+    ``slots`` counts only the NONZERO-coefficient subgrids -- ``combination_coeffs``
+    drops the rest -- which is exactly the 13-slot difference between the naive
+    4-D count (5,270) and the true one (5,257).  Getting that wrong is how a
+    reader concludes the doc is off by a rounding error when it is not.
+    """
+    import numpy as np
+    from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_smolyak import (
+        isotropic_index_set, combination_coeffs)
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+
+    doc = _text(STRUCTURE_MD)
+    L = pm.pb.SMOLYAK_LEVEL
+    for dim in (4, 8):
+        kept = combination_coeffs(isotropic_index_set(dim, L))
+        slots = sum(int(np.prod([1 if i == 0 else 2 ** i + 1 for i in l])) for l in kept)
+        pool = pm.N_NODES[dim]
+        assert f"{pool:,}" in doc, f"{dim}-D pool node count {pool:,} missing"
+        assert f"{slots:,}" in doc, (
+            f"{dim}-D expands {pool:,} pool nodes into {slots:,} subgrid slots "
+            f"({slots / pool:.1f}x) and STRUCTURE.md does not say {slots:,}")
+
+
+def test_the_slow_test_count_is_stated_identically_in_both_places():
+    """One number, written down twice, and never compared.
+
+    ``pyproject.toml``'s marker description states it and ``docs/STRUCTURE.md``
+    restates it, which is the shape every defect in this file has had.  The mark
+    count itself is deliberately NOT re-derived here: parametrized marks expand at
+    collection (21 ``@pytest.mark.slow`` decorators become 30 collected tests), so
+    a static count would pin the wrong number and read as authoritative.  Check
+    that with ``pytest --collect-only -q -m slow``; what this pins is that the two
+    prose copies cannot drift apart.
+    """
+    m = re.search(r"slow: needs an external oracle[^\"]*?\((\d+) tests", _text(PYPROJECT))
+    assert m, "pyproject.toml's `slow` marker description no longer states a count"
+    n = int(m.group(1))
+    assert f"{n} `slow`" in _text(STRUCTURE_MD) or f"{n} slow" in _text(STRUCTURE_MD), (
+        f"pyproject.toml says the suite has {n} slow tests; docs/STRUCTURE.md "
+        "states a different number, or none. Re-measure with "
+        "`pytest --collect-only -q -m slow` and fix both.")
+
+
+def test_cert_tol_is_stated_once_and_correctly_in_the_docs():
+    """The paper's threshold, in the two docs that name it.
+
+    Pinned as a rendered string so a doc cannot keep 1e-10 after the module moves.
+    """
+    from lemaitre.initial_data.conformally_flat_puncture.parametric import certification
+    want = f"CERT_TOL = {certification.CERT_TOL:.0e}"
+    assert want in _text(STRUCTURE_MD), (
+        f"STRUCTURE.md should state {want} (read from parametric.certification)")

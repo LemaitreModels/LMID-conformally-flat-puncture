@@ -1,0 +1,113 @@
+# GRTeclyn BinaryBH params — t=0 CONSTRAINT NORMS of the initial data.
+#
+# Purpose: measure L2(H), L2(M) of an initial-data set with GRTeclyn's own
+# fourth-order constraint operator (Source/CCZ4/Constraints.hpp) on a uniform
+# grid, as the successor to LM-initial-data's in-house second-order monitor
+# (App. A 2 of the paper).  See docs/GRTECLYN_CONSTRAINTS_PLAN.md.
+#
+# The box is [0, L_full]^3 with `center` defaulting to L_full/2 in every
+# direction (all-Sommerfeld boundaries, no reflective face), so with
+# L_full = 18 the physical box is a half-width-9 M cube about the centre —
+# matching the paper's [-9,9]^3.  h = L_full / N_full.
+#
+# The punctures sit on the z-axis at center ± b ẑ, matching LM-initial-data's
+# convention (punctures at (0,0,±b)).
+#
+# Substituted by run_ladder.sh: @N@ @L@ @MASSA@ @MASSB@ @BZ@ @PA@ @PB@ @RXCL@
+#                              @MAXLEV@ @PTRACK@
+#
+#################################################
+# Filesystem
+
+verbosity = 1
+output_path = .
+
+# No plotfiles, no checkpoints: the only output we want is constraint_norms.json,
+# written from specific_post_init at t = 0.  (Requesting Weyl4 in the plot vars
+# while activate_extraction = 0 aborts at the first plotfile write.)
+amr.check_int = -1
+checkpoint_interval = -1
+amr.plot_int = -1
+plot_interval = -1
+
+#################################################
+# BH initial data
+
+massA = @MASSA@
+massB = @MASSB@
+
+# punctures on the z-axis at ±b
+offsetA = 0 0  @BZ@
+offsetB = 0 0 -@BZ@
+
+# head-on: anti-parallel z-momenta, A at +b moving in -z
+momentumA = 0.0 0.0 @PA@
+momentumB = 0.0 0.0 @PB@
+
+#################################################
+# Grid
+
+N_full = @N@
+L_full = @L@
+
+# max_level = 0 gives the uniform grid the convergence statement is read from.
+# With max_level > 0 AMReX builds the refined hierarchy during initialisation
+# (bldFineLevels iterates the taggers), so an AMR measurement still needs no
+# evolution step; ConstraintNorms then reports per-level as well as leaf totals.
+max_level = @MAXLEV@
+# One entry per level below max_level (getarr(..., 0, max_level)); the last is
+# irrelevant.  0 = never regrid after initialisation, which is all we need since
+# the hierarchy is built during initialisation and no step is taken.
+regrid_interval = @REGRID@
+
+max_grid_size = 32
+block_factor = 16
+
+#################################################
+# Boundary conditions — all Sommerfeld, no reflective face, so `center`
+# defaults to L_full/2 in every direction and the box is symmetric about it.
+
+isPeriodic = 0 0 0
+hi_boundary = 1 1 1
+lo_boundary = 1 1 1
+
+nonzero_asymptotic_vars = chi h11 h22 h33 lapse
+nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
+
+#################################################
+# Evolution — none.  post_init runs, then the run stops.
+
+dt_multiplier = 0.25
+max_steps = 0
+
+nan_check = true
+
+lapse_advec_coeff = 1.0
+lapse_coeff = 2.0
+lapse_power = 1.0
+shift_advec_coeff = 1.0
+shift_Gamma_coeff = 0.75
+eta = 1.0
+
+formulation = 0
+kappa1 = 0.1
+kappa2 = 0.
+kappa3 = 1.
+covariantZ4 = 1
+sigma = 0.5
+
+#################################################
+# Diagnostics
+
+activate_extraction = false
+# PunctureTagger reads the tracker's coordinates, so tracking must be on for
+# any refined run (otherwise the coords stay zero and it tags the wrong place).
+puncture_tracking.enabled = @PTRACK@
+puncture_tracking.level = 0
+regrid_threshold = 0.05
+
+calculate_constraint_norms = 1
+# exclude a ball of this radius about each puncture, and drop this many cells
+# from the domain edge (mirrors the in-house monitor's mask)
+constraint_norm_exclusion_radius = @RXCL@
+constraint_norm_border_cells = 2

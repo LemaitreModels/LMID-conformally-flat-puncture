@@ -18,6 +18,8 @@ src/lemaitre/initial_data/conformally_flat_puncture/
   pipeline/       canonical figure producers + model builders (runnable + importable)
 tests/            acceptance suite (float64, CPU)
 paper/            paper.tex + references + figures/ (data+plot scripts, helpers, registry)
+oracle/           the external TwoPunctures build (build.sh, gen_tp.py, src/main.c);
+                  the NRPy-generated C is gitignored and produced at build time
 docs/             this file · MODELS.md (shipped model) · DATA.md (data regeneration)
 ```
 
@@ -86,7 +88,16 @@ than letting a degraded install pass silently.
 `parametric/certification.py` owns the one number the paper's central claim rests
 on — `CERT_TOL = 1e-10`, the threshold on the *equilibrated* discrete constraint
 residual — plus the comparison that enforces it. It is the default `tol` of every
-`evaluate_polished` in the package; the threshold is not restated anywhere else.
+`evaluate_polished` in the package, and it is the only place the *library* states it.
+
+**It is restated in the producers, and those copies are not wired to it.** `1e-10`
+appears as a literal in gate comparisons in `pipeline/run_polish_table.py` (`r <=
+1e-10`, and the `frac_certified_le_1e-10` block), `pipeline/run_cross_fielderror_chi.py`
+(three `<= 1e-10` fractions under the same key name), and as a printed gate in
+`pipeline/run_qc_effpot.py` and `pipeline/run_tp_random_sweep.py`. Moving `CERT_TOL`
+would not move any of them. They are measurement bookkeeping rather than the
+certified return path, so no shipped datum escapes the gate — but do not read "single
+source" as "grep finds one hit".
 
 The split to know:
 
@@ -100,7 +111,10 @@ The split to know:
 - The gate is **closed at every exit** — `applications/qc_targeting.py`,
   `applications/qc_effpot.py`, and `pipeline/run_export_grteclyn.py`. That is what
   makes the paper's "a gate checked before the datum is returned" true of the
-  package rather than only of its bookkeeping.
+  package rather than only of its bookkeeping. **The third one closes it
+  differently**, so grepping for `strict=True` will make it look absent: the export
+  driver takes `--tol` defaulting to `CERT_TOL` (imported, not restated) and exits
+  non-zero on `not info.converged` before it writes anything.
 
 Historical note, because the failure mode was silent: before 2026-08-13 the
 default `tol` was `1e-12` — *below* the equilibrated residual's roundoff floor
@@ -129,8 +143,11 @@ per query rather than once per subgrid slot sharing it (4-D: 1,105 pool nodes ov
 
 **The direct sum is retained, deliberately, as `evaluate_subgrid_sum` /
 `evaluate_jax_subgrid_sum`.** Re-association changes the order of floating-point
-summation, so the two agree to roundoff (measured ≤3.1e-15 relative on the gate
-models, ≤9.2e-15 on the shipped artifacts) and not bit-for-bit. That reference is
+summation, so the two agree to roundoff (≤3.1e-15 relative on the gate models —
+re-measured 2026-08-21 at **2.16e-15** worst over all five, using the gate's own θ set;
+≤9.2e-15 on the shipped artifacts, which needs the heavy corpus and was not
+re-measured) and not bit-for-bit. Note the gate asserts only `< 1e-12`, ~460× looser,
+so these are recorded measurements and not thresholds anything enforces. That reference is
 what `tests/test_parametric_pooled.py` compares against on all five family
 members — and the comparison is the whole point, because a wrong subgrid→pool
 index map yields a smooth, plausible, *wrong* field that still certifies (the
@@ -160,7 +177,14 @@ node-safe numpy route.
   rungs `parametric`, `parametric_nd`, `hermite`, `hermite_nd`, `hermite_pod`,
   `parametric_nd_2c/_3d`). These are the paper's method ladder — each a distinct
   model, all test-covered — not redundant copies.
-- The acceptance suite (measured 2026-08-18: **671 passed, 22m20s**, no failures
+- The acceptance suite. **Later than the 2026-08-18 measurement below**: the A3 lane
+  recorded `680 passed` on 2026-08-20, and on 2026-08-22 the fast tier ran
+  **664 passed, 30 deselected in 9:47** at load 17-25 (a busy box), out of **694**
+  collected (30 `slow`). Collection is cheap and exact, unlike a run, so prefer
+  `pytest --collect-only -q` to any quoted total — and note that this line's own
+  previous figure, 688, went stale within the hour because the commit that wrote it
+  added six tests. That is the argument for collecting rather than quoting. Earlier (measured 2026-08-18:
+  **671 passed, 22m20s**, no failures
   and no skips, at load 3–4; `sympy` is a declared `[dev]` extra, so the one
   long-standing expected failure is gone. **30** tests are marked `slow` — they need
   the external TwoPunctures oracle or are minutes-long by nature, and
@@ -249,8 +273,15 @@ its pass criteria. Also kept: `validation/constraints.py`,
   the prune removed", above. `applications/sensitivity.py` was NOT droppable and
   stays — surviving Hermite-ND tests use it via `hermite_nd.from_problem_nd_hermite`.
 - **Figure recompute (Stage 2).** The `figNN_*_data.py` scripts still carry the
-  old "read `reports/` cache" logic — every one of them distils via
-  `_figdata.load_source`, and none runs the solver. Rewiring them to genuinely
+  old "read `reports/` cache" logic, and **none runs the elliptic solver**. The
+  distillation route is not uniform, though: seven go through
+  `_figdata.load_source`; `fig06_targeting_data.py` takes only `_figdata.source` (a
+  path, which it opens itself); and `fig10_constraints_data.py` imports neither — it
+  reads `<root>/<tag>/ladder.json` from a GRTeclyn output root that is not in the
+  source registry and not in this repo (see [`DATA.md`](DATA.md)).
+  `fig07_eccentricity_data.py` runs no solve but does *evaluate* the parametric model
+  and build its jax effective potential, so "pure distillation" is not true of it
+  either. Rewiring them to genuinely
   recompute from the solver/ROM (two-tier) is Stage 2 — see `DATA.md` and
   `paper/figures/registry.py`. Until it is done, do not write "recompute" in a
   doc: `README.md` and `CLAUDE.md` both claimed it, and both were corrected on
@@ -264,8 +295,13 @@ its pass criteria. Also kept: `validation/constraints.py`,
   its seven surviving citations (`PAPER_PLAN` in six places,
   `notes/qc_extension_plan.md` in one) went on 2026-08-19. The short milestone
   labels themselves (`B2`, `P3`, `risk R7`) are still used in `tests/` docstrings —
-  same open question as the runtime tags below. Two deliberate survivors: this file's and
-  `CLAUDE.md`'s references to the BBHFM monorepo, which are migration *history*;
+  same open question as the runtime tags below. Deliberate survivors, and there are more than the two this line used to
+  claim: this file's, `CLAUDE.md`'s and `tests/test_self_containment.py`'s references
+  to the BBHFM monorepo, which are migration *history*; the `bbhfm` entries in the
+  self-containment pattern lists of a dozen test files, which are *enforcement*; and
+  four commit SHAs cited in `src/`/`tests/` docstrings (`fb4f07f`, `25d120e`,
+  `055c722`, `4f78e98`) which name the retired monorepo's history and so **resolve
+  nowhere from this repo** — provenance a reader cannot check out;
   and `solver/operators_3d.py:6`, which states that the add-only policy **is**
   retired. Still open: milestone tags inside runtime `print`/plot-title strings
   (`[S6]`, `[S7-merge]`, `risk R3`) — changing those changes program output, so

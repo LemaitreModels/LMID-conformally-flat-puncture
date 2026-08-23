@@ -94,15 +94,36 @@ figure→producer→artifact graph). Those producers are the heavy tier below.
      cross-code comparison shares the interpolation operator too.
   2. the GRTeclyn runs (~30 min for the six-series ladder, plus the
      refined-hierarchy AMR runs). Each rung leaves one `constraint_norms.json`;
-     the rungs of one series are collected into `<tag>/ladder.json`.
+     the rungs of one series are collected into `<tag>/ladder.json` by
 
-     > **Not reproducible from a checkout today.** The batch scripts that submit
-     > this ladder and collect the per-rung output exist in neither this repo nor
-     > the GRTeclyn branch the paper cites (`lm-initial-data-constraints`, checked
-     > 2026-08-15: no `runs/` directory in the tree or anywhere in its history).
-     > What *is* pinned is the schema step 3 consumes — see the docstring of
-     > `paper/figures/fig10_constraints_data.py`, which lists every field it
-     > reads. Shipping the submit/collect scripts is an open publication item.
+     ```bash
+     LM_GRTECLYN_EXE=/path/to/BinaryBH3d.gnu.MPI.OMP.ex \
+       ./grteclyn/run_ladder.sh lm_anchor "48 64 96 128 192" \
+           LMID=<export>/qc_b3.lmid LMREF=<export>/qc_b3_reference.dat
+     ```
+
+     See [`../grteclyn/README.md`](../grteclyn/README.md) for the series, the
+     configuration defaults and where each of their numbers is pinned. The
+     script is account- and cluster-agnostic on purpose: it takes the executable
+     and the launcher from the environment and hard-codes no paths. GRTeclyn
+     itself is **not** vendored here — you need a build of our fork's
+     `lm-initial-data-constraints` branch, which carries the `lm_id_file`
+     runtime switch.
+
+     > **Provenance of the committed numbers: they are format-1 measurements, and
+     > that is deliberate.** The exporter now writes **format 2**, which divides
+     > the axis factor `w_k(B) = (1-B^2)^{k/2}` out of the wavenumber-`k`
+     > coefficients so that polynomial interpolation on the consumer side is
+     > exact for every `k` rather than only for `k = 0`. The consumer learned to
+     > restore it on 2026-08-19 (`510dd01` on `lm-initial-data-constraints`); the
+     > ladder behind fig10 was run against the earlier format-1 consumer
+     > (`94323cd`, 2026-08-06). So a re-run today would exercise a *different*,
+     > strictly better consumer-side interpolation, and the committed figure is
+     > the conservative measurement rather than the best one available. Re-running
+     > it was weighed and declined for this paper. **The two halves cannot be
+     > mixed:** `LMSpectralData` aborts unless the file says `format 2`, and
+     > `Export.read` refuses the mismatch from this side, because reading a
+     > newer file under an older rule is silently wrong rather than an error.
   3. `python paper/figures/fig10_constraints_data.py --runs <that tree>` (seconds, reads
      files only) then the plotter. Set `$LM_GRTECLYN_RUNS` instead of `--runs` if you
      prefer.

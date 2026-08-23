@@ -76,33 +76,51 @@ a slim round-trip evaluates **bit-for-bit** like a full one
 (`tests/test_production_model.py::test_slim_roundtrip_is_lossless`). Files record
 their layout in `meta['dU_layout']`; pre-existing full-`d` artifacts still load.
 
-Artifact names carry both the rank and the layout, e.g.
+Artifact names carry the model and the rank, and deliberately **not** the layout:
 
 ```
-pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross_r250_slim.npz
+pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross_r250.npz
 ```
 
-so a reader can tell which model, which rank and which accounting a file obeys from
-its name alone (`production_model.pod_stem`).
+`production_model.pod_stem` builds that stem, and its docstring gives the reason the
+layout is left out: the layout is recorded *inside* the file as `meta['dU_layout']`
+and both layouts load, so a name cannot go stale against its contents. Read the
+layout from the file, never from the filename.
 
 ---
 
 ## 3. Where each figure's model comes from
 
-Figures record provenance in their figdata `meta` block (model stem, enhanced axes,
-rank, blocks/node, memory), and `registry.FIGURES[stem]["keys"]` declares it, so a
-figdata built before a model change reads as **stale** instead of silently feeding
-the paper old numbers.
+Provenance is recorded in each figure's figdata `meta` block, and unevenly:
+`fig05_guess_vs_memory` carries the full set (`model`, `enhanced_axes`,
+`shipped_rank`, `blocks_per_node`, `bare_mib`, `shipped_pod_mib`, `compression`),
+`fig04_polish_staircase` carries `shipped_rank`, `smolyak_level` and a `code_tag`,
+and `fig03_joint_dist` carries per-source box, grid and `code_tag` but **no model
+stem at all**.
+
+**What that does and does not catch.** `registry.FIGURES[stem]["keys"]` pins only the
+*presence of top-level keys*: `make_figdata._figdata_tag` calls a figdata STALE when
+it "lacks a top-level key its plotter reads", and nothing more. A figdata whose `meta`
+names an older model therefore reads as `figdata OK`, and `make figdata` skips it. The
+guards that do fire are producer-side, and only once the producer is re-run —
+`fig04`'s rank guard and `fig05`'s blocks/node guard each `raise SystemExit` on a
+sweep that is a different model than the panel claims, and `fig07` refuses a model
+built on a different grid. In the suite,
+`test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model`
+pins the *registry's* rank to `SHIPPED_RANK`. **Nothing compares a committed figdata's
+`meta` to `production_model`,** so a figdata can name a different model from the prose
+that cites it with the suite green.
 
 | figure | model plotted |
 |---|---|
-| `fig03_joint_dist` | value-only vs shipped cross |
+| `fig03_joint_dist` | value-only vs cross-enhanced, both **bare** — its sources (`run_qc_joint_dist_chi`, `run_qc_joint_dist_cross_chi`) pass no rank, and the json's two series are keyed `bare`/`cross` |
 | `fig04_polish_staircase` | cold / value-only POD / shipped cross POD, at the shipped ranks |
 | `fig05_guess_vs_memory` | value-only vs shipped cross, POD rank ladder |
 
 `fig05_guess_vs_memory_data.py` **recomputes** every byte count from
 `production_model` rather than trusting the sweeps' stored `mem_bytes`. That is what
-lets a memory-accounting fix be a re-distill (`make figdata`) instead of a re-sweep:
+lets a memory-accounting fix be a re-distill (`make_figdata.py --fig
+fig05_guess_vs_memory --force`) instead of a re-sweep:
 the accuracy statistics were never affected by it.
 
 ---
@@ -127,7 +145,11 @@ the cross POD bases from the full Hermite corpora.
 
 1. Change `production_model.py` — nothing else defines the model.
 2. `pytest tests/test_production_model.py` (identity, accounting, slim losslessness).
-3. Rebuild the affected figdata (`make figdata`; most sources are cluster-side, see
-   [`DATA.md`](DATA.md)) — the provenance guard will fail until you do.
+3. Rebuild the affected figdata — `python paper/figures/make_figdata.py --fig <stem>
+   --force`; most sources are cluster-side, see [`DATA.md`](DATA.md). **Do not wait for
+   a guard to tell you.** Plain `make figdata` skips a figdata that is present, and its
+   staleness check is key-presence only (§3), so a model change leaves the old numbers
+   reading as `figdata OK`. `fig04` and `fig05` refuse a mismatched sweep, but only
+   once their producer actually runs.
 4. Update this page by re-running the self-report.
 5. Only then touch `paper/paper.tex`.
