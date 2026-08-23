@@ -20,6 +20,12 @@ happened three times on this leaf:
   ``oracle/``, and its "the threshold is not restated anywhere else" was false of
   four producers.
 
+The first of those had a gate, and it is gone: the caption claiming a deeper
+best-case floor was deleted on 2026-08-23, so ``49.3x`` is now a measurement fig03
+carries and the paper does not quote.  A gate over a claim nobody makes fails on
+the *prose* being shortened, which is not the defect class this file is for -- so
+it was retired with the claim rather than kept green by re-adding the sentence.
+
 Every one of those was a *prose* defect over a *correct* artifact, which is the
 one thing none of the other gates look at.  So these tests read the artifact,
 render the number the way the prose does, and assert the prose says it.
@@ -78,46 +84,29 @@ def _sci_tex(x, digits=1):
 # fig03 -- the joint held-out convergence ratio
 # --------------------------------------------------------------------------
 
-def test_fig03_best_case_ratio_matches_the_caption():
-    """The caption's "reaches a ~Nx deeper best-case floor" is the DEEPEST level.
-
-    It is a ratio between two curves in one figdata, so nothing outside this file
-    has to agree for it to be checkable -- and it was wrong (35 for a measured
-    49.3) through an entire revision.
-    """
-    d = _figdata("fig03_joint_dist.json")
-    bare, cross = d["left"]["bare"]["best"], d["left"]["cross"]["best"]
-    assert len(bare) == len(cross)
-    ratio = bare[-1] / cross[-1]
-    want = f"\\sim\\!{round(ratio)}\\times"
-    paper = _text(PAPER)
-    assert want in paper, (
-        f"fig03's deepest-level best-case ratio is {ratio:.1f}x, so the caption "
-        f"should quote {want!r} and does not. Re-read paper.tex against "
-        f"fig03_joint_dist.json rather than adjusting this test.")
-    assert "\\sim\\!35\\times" not in paper, (
-        "fig03's caption is back to 35x, a value no level of the committed "
-        "figdata reproduces (by-level ratios: "
-        + ", ".join(f"{b / c:.1f}" for b, c in zip(bare, cross)) + ")")
-
-
 def test_fig03_ratio_is_non_monotonic_so_the_qualifier_is_load_bearing():
-    """Why the caption must say "reaches", not merely quote a number.
+    """The shape of fig03's ratio curve, which the paper no longer describes.
 
-    The by-level ratios rise 1.5, 3.9, 13.3, **12.6**, 49.3 -- they dip at level
-    4.  A caption quoting one figure without saying which level it belongs to
-    would be ambiguous rather than merely terse, so pin the dip: if it ever goes
-    monotone, the wording can be relaxed deliberately instead of by accident.
+    This began as the reason the caption had to say "reaches" rather than quote a
+    bare number: the by-level ratios rise 1.5, 3.9, 13.3, **12.6**, 49.3 -- they
+    dip at level 4, so a figure quoted without its level would have been
+    ambiguous rather than merely terse.  The caption that made the claim was
+    removed on 2026-08-23 along with its gate, so nothing in the prose depends on
+    this any more and it pins the ARTIFACT alone: the dip is real, and the
+    deepest level is still the best ratio.  Kept because both facts are what a
+    reader of fig03 would reconstruct, and a re-drawn panel that lost either
+    would be a different figure.
     """
     d = _figdata("fig03_joint_dist.json")
     r = [b / c for b, c in zip(d["left"]["bare"]["best"], d["left"]["cross"]["best"])]
     assert any(r[i + 1] < r[i] for i in range(len(r) - 1)), (
-        f"the by-level best-case ratios are now monotone ({r}); the caption's "
-        "'reaches' qualifier is no longer load-bearing and the prose may be "
-        "simplified -- deliberately, in a commit that says so")
+        f"the by-level best-case ratios are now monotone ({r}); the level-4 dip "
+        "is gone, so fig03 is measuring something other than what it did -- "
+        "check the sweep before redrawing the panel")
     assert r[-1] == max(r), (
-        f"the deepest level is no longer the best ratio ({r}); 'reaches' is now "
-        "the wrong word and the caption needs rethinking, not renumbering")
+        f"the deepest level is no longer the best ratio ({r}); fig03's left "
+        "panel no longer bottoms out at $\\ell=5$, which is a change in the "
+        "measurement and not in the wording")
 
 
 # --------------------------------------------------------------------------
