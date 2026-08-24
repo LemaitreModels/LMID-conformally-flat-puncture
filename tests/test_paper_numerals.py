@@ -84,6 +84,48 @@ def _sci_tex(x, digits=1):
 # fig03 -- the joint held-out convergence ratio
 # --------------------------------------------------------------------------
 
+def test_the_oracle_meridional_bound_matches_its_artifact():
+    """App. A's footnote bounds the REFERENCE solve's own meridional truncation.
+
+    The class of defect this closes is not a wrong arithmetic result but a **scope**
+    error: the footnote previously stated ``9e-16``, which is exactly right at the anchor
+    (``b=3``, 4 ulp of double precision) and understates the sampled box by ~1500x, because
+    the difference grows as roughly ``b**5`` -- ~1e-15 at ``b=3``, ~1e-12 at ``b~9``.  A
+    single-configuration number cannot bound a sweep over ``b in [3,10]``, and nothing
+    caught that for five days because no artifact carried the measurement at all.
+
+    Reads only the committed JSON and the committed prose; the measurement itself needs the
+    oracle binary and minutes per configuration, which is why the artifact is committed.
+    """
+    p = os.path.join(ROOT, "oracle", "meridional_selfconv.json")
+    assert os.path.exists(p), (
+        "oracle/meridional_selfconv.json is missing; it is the only evidence for App. A's "
+        "meridional convergence bound. Rebuild: python oracle/meridional_selfconv.py "
+        "--rows 0-19 --workers 3   (needs `make oracle`)")
+    with open(p) as f:
+        d = json.load(f)
+
+    mx = d["max_over_sample"]
+    stated = d["meta"]["bound"]
+    assert mx == pytest.approx(max(r["max_dpsi"] for r in d["rows"])), (
+        "max_over_sample disagrees with the rows it summarises")
+    assert mx < stated, (
+        f"the measured meridional difference {mx:.3e} EXCEEDS the {stated:.0e} bound the "
+        "paper states; re-derive the footnote rather than widening the assert")
+
+    tex = _text(PAPER)
+    assert "moves by below $10^{-11}$ across the sampled box" in tex, (
+        f"App. A's footnote no longer states the {stated:.0e} box-wide bound that "
+        f"oracle/meridional_selfconv.json supports (measured max {mx:.3e})")
+    assert "9\\times10^{-16}" not in tex, (
+        "the anchor-only 9e-16 value is back in the footnote; it is right at b=3 and "
+        "wrong as a bound over the sampled box by ~1500x")
+
+    assert d["meta"]["n_configs"] >= 20, (
+        f"the bound now rests on only {d['meta']['n_configs']} configurations; with ~a "
+        "decade of scatter at fixed b, a small sample cannot support a box-wide claim")
+
+
 def test_fig03_ratio_is_non_monotonic_so_the_qualifier_is_load_bearing():
     """The shape of fig03's ratio curve, which the paper no longer describes.
 

@@ -51,3 +51,23 @@ Cartesian query points `x y z` arrive one per line on stdin, in TwoPunctures'
 native frame (`m+` at `(+b,0,0)`, `m-` at `(-b,0,0)`). Numbers go to stdout;
 TwoPunctures' own progress chatter goes to stderr. `validation/conventions.py`
 holds the frame map between that convention and this package's.
+
+## Bounding the oracle's own meridional truncation
+
+The paper's App.-A footnote needs a bound on how well converged the *reference* is, and
+that bound has to hold across the sampled box rather than at one configuration — the
+difference grows as roughly `b**5`, from ~1e-15 at `b=3` to ~1e-12 near `b=10`.
+
+`meridional_selfconv.py` measures it: two oracle solves at the same probe points and the
+same `nphi`, moving only `(nA, nB)` from 72 to 96, over configurations drawn from fig08's
+own LHS sample.
+
+```bash
+make oracle                                              # the binary this needs
+python oracle/meridional_selfconv.py --rows 0-19 --workers 3
+```
+
+Each configuration is two solves at 72² and 96² and costs minutes, so the result is
+**committed** as `meridional_selfconv.json` (21 configurations, max `1.38e-12`) and
+`tests/test_paper_numerals.py` pins the footnote against it. A reader checking the paper's
+claim should read that file rather than re-run this.
