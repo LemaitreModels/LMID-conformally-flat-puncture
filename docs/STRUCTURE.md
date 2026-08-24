@@ -179,11 +179,14 @@ node-safe numpy route.
   model, all test-covered — not redundant copies.
 - The acceptance suite. **Later than the 2026-08-18 measurement below**: the A3 lane
   recorded `680 passed` on 2026-08-20, and on 2026-08-22 the fast tier ran
-  **664 passed, 30 deselected in 9:47** at load 17-25 (a busy box), out of **694**
-  collected (30 `slow`). Collection is cheap and exact, unlike a run, so prefer
+  **664 passed, 30 deselected in 9:47** at load 17-25 (a busy box); collection has since
+  moved to **710** (30 `slow`), measured 2026-08-24 after `tests/test_provenance.py` added
+  fifteen. Collection is cheap and exact, unlike a run, so prefer
   `pytest --collect-only -q` to any quoted total — and note that this line's own
   previous figure, 688, went stale within the hour because the commit that wrote it
-  added six tests. That is the argument for collecting rather than quoting. Earlier (measured 2026-08-18:
+  added six tests, while its successor, 694, was already one short of the 695 measured
+  immediately before those fifteen landed. That is the argument for collecting rather
+  than quoting. Earlier (measured 2026-08-18:
   **671 passed, 22m20s**, no failures
   and no skips, at load 3–4; `sympy` is a declared `[dev]` extra, so the one
   long-standing expected failure is gone. **30** tests are marked `slow` — they need

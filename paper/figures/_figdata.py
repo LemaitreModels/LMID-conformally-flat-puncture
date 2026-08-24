@@ -26,6 +26,7 @@ FIGDATA = os.path.join(HERE, "figdata")
 # output of the producer that fed it; both now resolve through the one setting,
 # $LM_REPORTS.  See lemaitre.initial_data.conformally_flat_puncture.paths and docs/DATA.md.
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root  # noqa: E402  (pure stdlib; no jax)
+from lemaitre.initial_data.conformally_flat_puncture.provenance import code_stamp  # noqa: E402
 
 REPORTS = reports_root()          # display convenience; source_path() resolves live
 
@@ -52,7 +53,19 @@ def figdata_path(stem):
 
 
 def dump(stem, obj):
-    """Write the distilled, plot-ready arrays for a figure to figdata/<stem>.json."""
+    """Write the distilled, plot-ready arrays for a figure to figdata/<stem>.json.
+
+    Stamps ``meta.code`` with the ``src/`` tree that produced the file.  A figdata's
+    ``meta`` records what the run was *asked* for — box, ladder, seed, model — and used to
+    say nothing about which code answered, so two artifacts from trees far apart could
+    compare identical (see ``provenance``).  The stamp is deterministic, so re-running a
+    producer on unchanged code still yields a byte-identical file and ``git diff`` keeps
+    meaning "the numbers moved".
+    """
+    if isinstance(obj, dict):
+        obj.setdefault("meta", {})
+        if isinstance(obj["meta"], dict):
+            obj["meta"]["code"] = code_stamp()
     os.makedirs(FIGDATA, exist_ok=True)
     with open(figdata_path(stem), "w") as f:
         json.dump(obj, f, indent=2, default=_to_jsonable)

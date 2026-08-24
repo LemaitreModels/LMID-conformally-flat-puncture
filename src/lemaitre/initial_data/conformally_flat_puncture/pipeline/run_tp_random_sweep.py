@@ -103,6 +103,7 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.provenance import run_stamp
 from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_3d as p3
 from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as pbox
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3, solver_3d_nk as s3nk, source
@@ -519,7 +520,7 @@ def main():
                                  tp_res=list(args.tp_res), selfconv=args.selfconv,
                                  selfconv_nphi=args.selfconv_nphi, tol=args.tol,
                                  cert_tol=CERT_TOL, fixed=FIXED_QC,
-                                 box="spin8_qc_chi_prod"),
+                                 box="spin8_qc_chi_prod", code=run_stamp()),
                       summary=summary, rows=rows, axisym=ax_rows), f, indent=1)
 
     print(f"\n=== summary ({summary['wall_s'] / 60:.1f} min) ===")
