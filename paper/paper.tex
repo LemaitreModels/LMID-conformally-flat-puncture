@@ -1357,7 +1357,8 @@ loop, i.e.\ an outer Newton/Broyden iteration that adjusts the free data and per
 full constraint solve at every step to measure the resulting physical parameters. We
 target the ADM mass and angular momentum $(\Madm,J)$ by adjusting $(b,q)$ at zero
 spin, over $100$ random known-answer targets, and compare three strategies, all on
-the four-dimensional aligned-spin model of Sec.~\ref{sec:model}. A \emph{cold} black box
+the four-dimensional value-only sparse-grid model of Sec.~\ref{sec:param:smolyak},
+on which the targeting loop is model-agnostic. A \emph{cold} black box
 solves the constraints from scratch at each control evaluation. A \emph{warm} black
 box seeds each solve from the interpolant, so every constraint solve begins close to
 its answer. The \emph{differentiable} method runs the entire Gauss--Newton control
