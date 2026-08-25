@@ -385,9 +385,114 @@ def mode_operators_cached(A, B, DA1, DB1, b, m_vals):
     return out
 
 
+_U_SCALE_CACHE = collections.OrderedDict()
+_U_SCALE_CACHE_MAX = 2    # Nm vectors of length Na·Nb — kilobytes, not the blocks
+
+
+#: The norm ``equil_residual_inf`` uses when a caller does not name one.
+#:
+#: ``"v"`` is the shipped row norm — ``max|M0_m row|``, the divisor
+#: ``operators_abt.solve_equilibrated`` applies inside the solve — and every
+#: published residual in either leaf's ``paper/`` and every constant in the
+#: quasi-circular box was calibrated against it.  ``"u"`` is the same row norm taken in the physical field.
+#:
+#: **This default is deliberately still ``"v"``.**  Frederik's 2026-08-24 ruling
+#: adopts the ``u`` norm in both leaves, but flipping the default is not separable
+#: from re-deriving the threshold it is read against: under ``u`` every recorded
+#: residual reads ``1/w_min`` (``3.3e+04`` at the production grid) smaller for
+#: reasons that have nothing to do with the solve being better, so a ``u`` residual
+#: quoted against the ``v``-calibrated ``1e-10`` would read as a 4-order improvement
+#: that is purely a change of units.  The flip therefore lands together with the new
+#: threshold value and the re-pointing of every gate that asserts against it — see
+#: ``context/Lemaitre/LM-initial-data/LMID-curved-puncture/PLAN.md``.  Until then
+#: both norms are computable, which is the reversibility the ruling requires.
+EQUIL_NORM_DEFAULT = "v"
+
+
+def u_row_scales(M0_list, w_list):
+    """``scales_u[m][j] = max_k |M0_m[j,k]| / w_k`` — the row scale in ``u``, not ``v``.
+
+    The companion of the ``scales`` computed in :func:`mode_operators_cached`, which
+    is ``max_k |M0_m[j,k]|``: the same row norm, taken **after** undoing the
+    ``v = u/w`` factoring on the columns.  ``M0_m`` acts on the factored modes
+    ``v̂_m = û_m/w_m`` (see :func:`mode_operators`), so a residual assembled from a
+    *physical* field and divided by ``scales`` mixes the two spaces; dividing by
+    ``scales_u`` does not.  Both are kept and neither is a replacement for the other
+    — a monitor selects one by name, so a number can always be recomputed in the
+    norm it was originally quoted in.
+
+    **The ratio is a closed form in the grid alone, and it is attained.**  With
+    ``w_k >= w_min > 0`` at every node,
+
+        scales_u[m][j] <= (1/w_min) · max_k |M0_m[j,k]| = scales[m][j] / w_min
+
+    row by row, so ``max_j,m scales_u/scales <= 1/w_min`` with
+
+        1/w_min = (1 − max_j B_j²)^{−m_max/2},   m_max = max|fourier_modes(Nφ)|
+
+    because :func:`bc_factor` takes no ``b``, no ``Na`` and no physical parameter.
+    The bound is *attained* — not merely a bound — because ``w`` is smallest at the
+    outermost ``B`` node while the ``m``-block's largest entries are the centrifugal
+    ``m²·Den/(4A²)`` rows, which are largest toward that same axis.  So the factor
+    by which any recorded residual moves under the norm change is computable from
+    ``(Nb, Nφ)`` with no solve; ``tests/test_solver_3d_fast.py`` pins it.
+
+    ``w`` is guarded against a zero node exactly as ``scales`` is guarded against a
+    zero row: the grid never puts a node at ``B = ±1``, so the guard never fires at
+    a shipped grid, but a hand-built grid that did would otherwise divide by zero.
+    """
+    scales_u = []
+    for M0, w in zip(M0_list, w_list):
+        wa = np.abs(np.asarray(w, dtype=float))
+        wa = np.where(wa > 0.0, wa, 1.0)
+        s = np.max(np.abs(np.asarray(M0)) / wa[None, :], axis=1)
+        scales_u.append(np.where(s > 0.0, s, 1.0))
+    return scales_u
+
+
+def u_row_scales_cached(A, B, DA1, DB1, b, m_vals):
+    """:func:`u_row_scales` on the cached blocks, memoized on the same key.
+
+    Separate from :func:`mode_operators_cached` rather than a fifth element of its
+    tuple, deliberately: that tuple is unpacked positionally in the solver and in
+    ten places in the flat suite, and widening it would be a breaking change to an
+    interface whose whole job is to be cheap and stable.  The cost being avoided is
+    the same one its docstring names — re-scanning 79 MiB of blocks per Newton
+    iteration — and the cached value is kilobytes.
+    """
+    m_vals = np.asarray(m_vals)
+    key = (A.size - 1, B.size, int(m_vals.size), float(b),
+           tuple(int(m) for m in m_vals))
+    hit = _U_SCALE_CACHE.get(key)
+    if hit is not None and _canonical_grid(A, B, DA1, DB1):
+        _U_SCALE_CACHE.move_to_end(key)
+        return hit
+    M0_list, w_list, _, _ = mode_operators_cached(A, B, DA1, DB1, b, m_vals)
+    out = _readonly(u_row_scales(M0_list, w_list))
+    if _canonical_grid(A, B, DA1, DB1):
+        _U_SCALE_CACHE[key] = out
+        while len(_U_SCALE_CACHE) > _U_SCALE_CACHE_MAX:
+            _U_SCALE_CACHE.popitem(last=False)
+    return out
+
+
+def inv_wmin(B, Nphi: int) -> float:
+    """``1/w_min = (1 − max_j B_j²)^{−m_max/2}`` — the closed form of the norm ratio.
+
+    The factor every residual recorded in the ``v`` row norm moves by when it is
+    requoted in the ``u`` one, from the grid alone.  See :func:`u_row_scales` for
+    why the bound is attained rather than merely an upper bound.
+    """
+    m_max = int(np.max(np.abs(fourier_modes(Nphi))))
+    if m_max == 0:
+        return 1.0
+    return float((1.0 - float(np.max(np.asarray(B, dtype=float) ** 2))) ** (-0.5 * m_max))
+
+
 def clear_block_cache():
     """Drop every cached per-grid operator (frees ~79 MiB per held separation)."""
     _BLOCK_CACHE.clear()
+    _U_SCALE_CACHE.clear()
 
 
 # --------------------------------------------------------------------------

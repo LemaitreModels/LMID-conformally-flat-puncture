@@ -466,6 +466,137 @@ def test_separable_row_scales_match_block_scales():
             assert rel < 1e-11, f"row scales off by {rel:.2e} (m={m}, b={b})"
 
 
+def test_u_row_scales_attain_the_inv_wmin_closed_form():
+    """The ``u``/``v`` norm ratio is ``1/w_min``, from the GRID alone — and attained.
+
+    ``scales_u[j] = max_k |M0_m[j,k]|/w_k`` against ``scales[j] = max_k |M0_m[j,k]|``.
+    Since ``w_k >= w_min > 0`` at every node the ratio is bounded by ``1/w_min`` row
+    by row; the bound is ATTAINED because ``w = (1−B²)^{|m|/2}`` is smallest at the
+    outermost B node while the m-block's largest entries are the centrifugal
+    ``m²·Den/(4A²)`` rows, largest toward that same axis.  ``bc_factor`` takes no
+    ``b``, no ``Na`` and no physical parameter, so
+
+        1/w_min = (1 − max_j B_j²)^{−m_max/2}
+
+    is closed form in ``(Nb, Nφ)``.  **That is what prices the norm change without a
+    re-solve**: every residual ever recorded in the ``v`` norm moves by exactly this
+    factor when requoted in ``u``, so no historical number needs re-measuring to be
+    converted — which is the reversibility the two-norm design exists for.
+    """
+    S = separable.get_separable(**GRID)
+    closed = ops3.inv_wmin(S.B, GRID["Nphi"])
+    for b in (2.5, 7.0):
+        M0, w, _, scales = ops3.mode_operators_cached(S.A, S.B, S.DA1, S.DB1, b, S.m_vals)
+        su = ops3.u_row_scales(M0, w)
+        got = max(float(np.max(su[mi] / scales[mi])) for mi in range(S.m_vals.size))
+        print(f"\n[u-norm] b={b}: max(scales_u/scales)={got:.6e} "
+              f"1/w_min(closed)={closed:.6e} ratio={got / closed:.9f}")
+        assert got <= closed * (1 + 1e-12), (
+            f"the bound scales_u/scales <= 1/w_min is VIOLATED: {got:.6e} > {closed:.6e}")
+        assert abs(got / closed - 1.0) < 1e-6, (
+            f"the bound is no longer ATTAINED ({got / closed:.9f}); the closed form "
+            "then over-prices the norm change and cannot convert a recorded residual")
+
+
+def test_m0_block_is_identical_in_both_norms():
+    """``m = 0`` has ``w ≡ 1``, so the norm change cannot move the axisymmetric rung.
+
+    Load-bearing for the whole two-norm design: every bit-for-bit reduction gate in
+    this leaf and in the curved sibling is measured at ``Nφ = 1`` or on the ``m = 0``
+    block, so none of them moves when the monitor's norm is selected differently.
+    Asserted as exact array equality, not a tolerance.
+    """
+    S = separable.get_separable(**GRID)
+    for b in (2.5, 7.0):
+        M0, w, _, scales = ops3.mode_operators_cached(S.A, S.B, S.DA1, S.DB1, b, S.m_vals)
+        su = ops3.u_row_scales(M0, w)
+        print(f"\n[u-norm m0] b={b}: scales_u[0] == scales[0]: "
+              f"{np.array_equal(su[0], scales[0])}")
+        assert np.array_equal(su[0], scales[0]), "the m=0 block MOVED under the u norm"
+
+
+def test_separable_row_scales_u():
+    """GATE — the ``u`` row scales from the 1-D factors are the dense block's.
+
+    The **only** thing tying ``separable.row_scales_u``'s O(Na·Nb) derivation to
+    ``operators_3d.u_row_scales``'s definition.  It is a genuine derivation and not
+    a rescaling of :meth:`row_scales`: the ``u`` norm divides by column while a row
+    scale maxes over columns, so the B-block's off-diagonal term needs its own
+    ``max_l |C_B[j,l]|/w_l`` and is not ``offB[j]/w_j``.  Getting it wrong is
+    invisible on the default norm — nothing divides by these until the norm is
+    selected — so this gate is what makes it visible.
+    """
+    S = separable.get_separable(**GRID)
+    for b in (2.5, 7.0):
+        M0, w, _, _ = ops3.mode_operators_cached(S.A, S.B, S.DA1, S.DB1, b, S.m_vals)
+        su_dense = ops3.u_row_scales(M0, w)
+        su_sep = S.row_scales_u(b)
+        for mi, m in enumerate(S.m_vals):
+            rel = np.max(np.abs(su_sep[mi] - su_dense[mi])) / np.max(su_dense[mi])
+            print(f"\n[sep-scales-u] b={b} m={m}: rel={rel:.2e}")
+            assert rel < 1e-11, f"u row scales off by {rel:.2e} (m={m}, b={b})"
+
+
+def test_equil_residual_inf_honours_the_norm_argument():
+    """Both norms are reachable on BOTH linear-operator routes, and differ as derived.
+
+    A separable assembly has ``M0 = None``, so the ``u`` norm there can only come
+    from the Kronecker factors — this is the gate that the separable route carries
+    the norm at all.  At ``Nφ = 1`` the two must be bit-identical.
+    """
+    prob = s3.make_problem(**GRID)
+    sl = _slice()
+    closed = ops3.inv_wmin(prob.B, GRID["Nphi"])
+    for sep in (False, True):
+        asm = s3.assemble(prob, sl, separable=sep)
+        U, _ = nk.newton_solve_nk(prob, sl, asm=asm, tol=1e-10, max_iter=10)
+        Uf = np.asarray(U).reshape(asm.interior.size, GRID["Nphi"])
+        rv = nk.equil_residual_inf(asm, Uf, norm="v")
+        ru = nk.equil_residual_inf(asm, Uf, norm="u")
+        print(f"\n[norm-arg] separable={sep}: v={rv:.4e} u={ru:.4e} "
+              f"v/u={rv / ru:.4e} (1/w_min={closed:.4e})")
+        assert 1.0 <= rv / ru <= closed * (1 + 1e-9), (
+            f"v/u = {rv / ru:.4e} outside [1, 1/w_min={closed:.4e}]")
+    with pytest.raises(ValueError):
+        nk.equil_residual_inf(asm, Uf, norm="w")
+
+    prob1 = s3.make_problem(Na=GRID["Na"], Nb=GRID["Nb"], Nphi=1)
+    sl1 = Slice3D(b=4.0, m_A=0.5, m_B=0.5, P_A_vec=(0.0, 0.0, -0.2),
+                  P_B_vec=(0.0, 0.0, 0.2))
+    asm1 = s3.assemble(prob1, sl1, separable=False)
+    U1, _ = nk.newton_solve_nk(prob1, sl1, asm=asm1, tol=1e-10, max_iter=10)
+    U1f = np.asarray(U1).reshape(asm1.interior.size, 1)
+    a = nk.equil_residual_inf(asm1, U1f, norm="v")
+    c = nk.equil_residual_inf(asm1, U1f, norm="u")
+    print(f"\n[norm-arg] Nphi=1: v={a:.17e} u={c:.17e} identical={a == c}")
+    assert a == c, "at Nphi=1 (w == 1) the two norms must be bit-identical"
+
+
+def test_default_monitor_norm_is_still_v():
+    """The default norm is ``"v"``, and flipping it is NOT a one-line change.
+
+    Frederik's 2026-08-24 ruling adopts the ``u`` norm in both leaves, but the flip
+    is not separable from re-deriving the threshold it is read against: under ``u``
+    every recorded residual reads ``1/w_min`` smaller — ``3.3e+04`` at the production
+    grid — for reasons that have nothing to do with the solve being better.  So a
+    ``u`` residual checked against the ``v``-calibrated ``CERT_TOL = 1e-10`` would
+    read as a four-order improvement that is purely a change of units, which is the
+    *mixing* failure mode the ruling's reversibility constraint exists to prevent.
+
+    This gate is deliberately a tripwire rather than a claim about which norm is
+    right: when the threshold is re-derived, change this test **in the same commit**
+    that flips the default and re-points the gates.  A default flipped on its own
+    silently reinterprets every published number in ``paper/``.
+    """
+    print(f"\n[norm-default] EQUIL_NORM_DEFAULT={ops3.EQUIL_NORM_DEFAULT!r} "
+          f"CERT_TOL={CERT_TOL:.1e}")
+    assert ops3.EQUIL_NORM_DEFAULT == "v", (
+        "the monitor's default norm changed; the threshold it is read against must "
+        "change in the same commit — see the docstring")
+    assert nk.EQUIL_NORM_DEFAULT == ops3.EQUIL_NORM_DEFAULT, (
+        "solver_3d_nk's re-export drifted from operators_3d's definition")
+
+
 def test_separable_factors_do_not_depend_on_b():
     """The 1-D factors carry no separation — the setup is once per grid, ever.
 

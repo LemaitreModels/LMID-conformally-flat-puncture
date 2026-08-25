@@ -65,6 +65,7 @@ from . import operators_3d as ops3
 from . import solver_3d as s3
 from .newton_loop import newton_loop
 from .solver_3d import Assembly3D, Problem3D, Slice3D  # noqa: F401  (re-export)
+from .operators_3d import EQUIL_NORM_DEFAULT  # noqa: F401  (re-export)
 
 
 # --------------------------------------------------------------------------
@@ -159,6 +160,41 @@ def _block_scales(asm: Assembly3D):
     return scales
 
 
+def _block_scales_u(asm: Assembly3D):
+    """Per-m row scale in the PHYSICAL ``u``, ``max_k |M0_m[j,k]|/w_k``.
+
+    The companion of :func:`_block_scales`.  ``operators_3d.u_row_scales`` owns the
+    definition and the derivation of why ``max(scales_u/scales)`` is the closed form
+    ``1/w_min = (1 − max B²)^{−m_max/2}``; this is the assembly-level accessor, with
+    the same "carried on the assembly, recomputed only for a hand-built one" rule.
+
+    At ``Nφ = 1`` this returns ``scales`` **exactly**: ``w ≡ 1`` there, so the two
+    norms coincide and every axisymmetric bit-for-bit reduction gate is independent
+    of which one is selected.
+    """
+    su = getattr(asm, "scales_u", None)
+    if su is not None:
+        return su
+    if getattr(asm, "sep", None) is not None:
+        # A SEPARABLE assembly has ``M0 = None`` — there is no row to scan, so the
+        # norm has to come from the Kronecker factors.  ``separable.row_scales_u``
+        # derives it in O(Na·Nb) and is gated against the dense definition.
+        return asm.sep.row_scales_u(asm.b)
+    return ops3.u_row_scales([np.asarray(asm.M0[mi]) for mi in range(asm.m_vals.size)],
+                             [np.asarray(asm.w[mi]) for mi in range(asm.m_vals.size)])
+
+
+def _select_scales(asm: Assembly3D, norm: str, scales=None):
+    """The row scales for ``norm``, or an explicit ``scales`` override unchanged."""
+    if scales is not None:
+        return scales
+    if norm == "v":
+        return _block_scales(asm)
+    if norm == "u":
+        return _block_scales_u(asm)
+    raise ValueError(f"norm must be 'v' or 'u', not {norm!r}")
+
+
 def _equil_norm(Rm: np.ndarray, scales) -> float:
     """``max_m ‖R̂_m / scale_m‖∞`` of an already-assembled mode-space residual."""
     e = 0.0
@@ -167,7 +203,8 @@ def _equil_norm(Rm: np.ndarray, scales) -> float:
     return e
 
 
-def equil_residual_inf(asm: Assembly3D, U: np.ndarray, scales=None) -> float:
+def equil_residual_inf(asm: Assembly3D, U: np.ndarray, scales=None,
+                       norm: str = EQUIL_NORM_DEFAULT) -> float:
     """The **equilibrated** mode-space residual inf-norm — the certified monitor.
 
     ``max_m ‖R̂_m / scale_m‖∞`` with ``scale_m = max|M0_m row|`` (the same exact
@@ -179,10 +216,22 @@ def equil_residual_inf(asm: Assembly3D, U: np.ndarray, scales=None) -> float:
     roundoff amplification, giving the residual in the well-conditioned norm the
     Newton solve actually drives to zero — the honest certified constraint
     residual.
+
+    ``norm`` selects the space the row scale is taken in — ``"v"`` (the factored
+    unknown the solve carries, and what every published number here was calibrated
+    against) or ``"u"`` (the physical field, which is the space ``U`` itself is in).
+    **Neither is a replacement for the other**: both are kept so that any recorded
+    residual stays recomputable in the norm it was quoted in, which is the
+    anti-mixing guard — a residual and the threshold it is checked against must come
+    from the same norm, and with both available the pairing can be named rather than
+    assumed.  ``max(scales_u/scales) = 1/w_min = (1 − max B²)^{−m_max/2}``, so the
+    two differ by ``3.3e+04`` at the production grid and coincide exactly at
+    ``Nφ = 1``.  See :data:`EQUIL_NORM_DEFAULT` for why the default is still ``"v"``.
+    An explicit ``scales`` still wins over ``norm``, unchanged, for a caller that
+    has already built the divisor it wants.
     """
     Nphi = U.shape[1]
-    if scales is None:
-        scales = _block_scales(asm)
+    scales = _select_scales(asm, norm, scales)
     Rm = s3.residual_modes(asm, np.asarray(U).reshape(asm.interior.size, Nphi))
     return _equil_norm(Rm, scales)
 
@@ -360,7 +409,8 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
                     gmres_rtol: float = 1e-4,
                     verbose: bool = False,
                     separable: Optional[bool] = None,
-                    on_iterate=None):
+                    on_iterate=None,
+                    norm: str = EQUIL_NORM_DEFAULT):
     """Solve the non-axisymmetric two-centre Lichnerowicz equation by Newton–Krylov.
 
     Returns ``(U, NKInfo)`` with ``U`` shaped (Na+1, Nb, Nφ).  Convergence is
@@ -396,6 +446,13 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
     steps taken so far, ``rn`` its equilibrated residual, ``U`` nodal
     ``(Ntot2d, Nφ)``) — the hook the instrumented fig04 producers use instead of
     replicating this loop.
+
+    ``norm`` selects the space the monitor's row scale is taken in and so **what
+    ``tol`` means** — see :func:`equil_residual_inf` and :data:`EQUIL_NORM_DEFAULT`.
+    A returned residual carries no record of its own norm, so a caller that changes
+    this must also change the threshold it compares against: the two differ by
+    ``1/w_min``, ``3.3e+04`` at the production grid.  This is why the default is not
+    flipped independently of the threshold.
     """
     if asm is None:
         asm = s3.assemble(prob, sl,
@@ -404,7 +461,7 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
         raise ValueError("n_warmup needs the dense blocks, and this assembly is "
                          "separable; rebuild it with assemble(..., separable=False)")
     shp = prob.shape
-    scales = _block_scales(asm)
+    scales = _select_scales(asm, norm)
     Nphi = int(prob.Nphi)
     # The loop's state is the FACTORED field v, not the physical u — see
     # solver_3d.u_from_vhat.  A cold start divides nothing (v = 0 and w·0 = 0); a

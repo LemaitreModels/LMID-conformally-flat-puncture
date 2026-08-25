@@ -312,6 +312,7 @@ class SeparableModes:
         # small per-separation memos; the objects are O(Na·Nb), not O((Na·Nb)²),
         # but a sweep visits many separations so they are bounded rather than open
         self._scales = collections.OrderedDict()
+        self._scales_u = collections.OrderedDict()
         self._pref = collections.OrderedDict()
 
     def _pref_at(self, b: float) -> np.ndarray:
@@ -377,6 +378,77 @@ class SeparableModes:
         while len(self._scales) > _PER_B_MEMO_MAX:
             self._scales.popitem(last=False)
         return scales
+
+
+    # -- the same scales in the PHYSICAL u, still without forming a row -------
+    def row_scales_u(self, b: float):
+        """``[max_k |M0_m[j,k]|/w_k]`` per mode — the ``u``-space row scale.
+
+        The companion of :meth:`row_scales`, and the reason it needs its own
+        derivation rather than a division: the ``u`` norm divides **by column**,
+        ``max_k |M0[j,k]|/w_k``, while a row scale is a max **over** columns — so
+        ``scales_u`` is not ``scales`` divided by anything.  ``operators_3d.
+        u_row_scales`` is the definition; this reproduces it in ``O(Na·Nb)``
+        instead of ``O((Na·Nb)²)``, which is what lets the separable route (the
+        default above ``Nφ = 1``) carry the norm at all — a separable assembly has
+        ``M0 = None`` and no row to scan.
+
+        **The derivation, from :meth:`apply`'s own structure.**  ``w`` comes from
+        ``bc_factor(Bf, m)`` and so depends on the ``B`` index alone — asserted
+        below, because the whole shortcut rests on it.  Writing a node index as
+        ``(i, j)`` for ``(A_i, B_j)``, row ``(i,j)`` of the interior block has
+        entries ``pref_ij·L_A[i,k]·W_j`` at columns ``(k,j)`` and ``pref_ij·C_B[j,l]``
+        at columns ``(i,l)``, overlapping only at ``(i,j)`` where they add.  The
+        two families sit at different ``B`` indices, so they divide by different
+        ``w``:
+
+        * columns ``(k,j)`` all share ``B_j``  -> one factor ``1/w_j``, and the row
+          maximum over ``k != i`` is ``offA[i]·|W_j|/w_j`` as before;
+        * columns ``(i,l)`` run over ``B_l``   -> the max over ``l != j`` must be
+          taken of ``|C_B[j,l]|/w_l``, which is a **different vector** from
+          ``offB``, not a rescaling of it;
+        * the overlap at ``(i,j)`` divides by ``w_j``.
+
+        The two BC row-blocks each have all their entries at a single ``B`` index
+        (``apply`` sets ``out[0,:] = V[0,:]`` and ``out[-1,:] = DA1[-1,:] @ V`` or
+        ``V[-1,:]``), so there they *are* the ``v`` scales over ``w_j``.  At ``m = 0``
+        ``w ≡ 1`` and this returns :meth:`row_scales` exactly, which is what keeps
+        the axisymmetric reduction independent of the norm.
+
+        Gated against the dense definition by
+        ``tests/test_solver_3d_fast.py::test_separable_row_scales_u`` — the only
+        thing tying this shortcut to ``operators_3d.u_row_scales``, so keep it.
+        """
+        key = float(b)
+        if key in self._scales_u:
+            self._scales_u.move_to_end(key)
+            return self._scales_u[key]
+        pref = self._pref_at(b)
+        scales_u = []
+        for mi, m in enumerate(self.m_vals):
+            L_A, C_B, W = self.L_A[mi], self.C_B[mi], self.W[mi]
+            wR = np.asarray(self.w_nodes[mi]).reshape(self.Na1, self.Nb1)
+            wB = wR[0, :]
+            assert np.array_equal(wR, np.broadcast_to(wB, wR.shape)), (
+                "row_scales_u assumes w depends on the B index alone (bc_factor(Bf, m)); "
+                "it does not on this grid, so the O(Na·Nb) shortcut is invalid here")
+            wB = np.where(np.abs(wB) > 0.0, np.abs(wB), 1.0)
+            offA = np.max(np.abs(L_A - np.diag(np.diag(L_A))), axis=1)        # (Na+1,)
+            CB_off = np.abs(C_B - np.diag(np.diag(C_B)))                      # (Nb, Nb)
+            offB_u = np.max(CB_off / wB[None, :], axis=1)                     # (Nb,)
+            both = np.abs(np.diag(L_A)[:, None] * W[None, :] + np.diag(C_B)[None, :])
+            s = np.maximum(np.maximum(offA[:, None] * np.abs(W)[None, :] / wB[None, :],
+                                      offB_u[None, :]), both / wB[None, :]) * pref
+            # the two BC row-blocks: every entry of each sits at one B index, so
+            # the v scale simply divides by w there
+            s[0, :] = 1.0 / wB
+            s[-1, :] = (np.max(np.abs(self.DA1[-1, :])) if int(m) == 0 else 1.0) / wB
+            s = s.ravel()
+            scales_u.append(np.where(s > 0.0, s, 1.0))
+        self._scales_u[key] = scales_u
+        while len(self._scales_u) > _PER_B_MEMO_MAX:
+            self._scales_u.popitem(last=False)
+        return scales_u
 
 
 _SEPARABLE_CACHE = collections.OrderedDict()
