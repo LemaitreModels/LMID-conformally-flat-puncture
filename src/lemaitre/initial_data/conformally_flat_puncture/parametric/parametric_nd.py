@@ -43,7 +43,7 @@ import jax.numpy as jnp
 
 from .parametric import cheb_param_nodes   # reused verbatim (the 1-D CGL layer)
 from .certification import (                # the residual gate + shared polish (one place)
-    CERT_TOL,
+    CERT_TOL_U,
     CertifiedEvaluateMixin,
 )
 
@@ -390,7 +390,7 @@ def load_parametric(path) -> "ParametricSolutionND":
 def attach_solve_fn_3d(sol, prob, axis_names, *, M_tot: float = 1.0, fixed=None,
                        use_cache: bool = True, solver: str = "nk",
                        gmres_rtol: float = 1e-4,
-                       retry_tol: Optional[float] = CERT_TOL):
+                       retry_tol: Optional[float] = CERT_TOL_U):
     """Attach a 3-D ``solve_fn`` to a loaded surrogate so ``evaluate_polished``
     works (certified ``‖R‖∞ ≤ 1e-10``).
 

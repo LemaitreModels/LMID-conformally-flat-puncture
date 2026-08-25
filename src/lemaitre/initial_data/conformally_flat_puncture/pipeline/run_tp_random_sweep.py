@@ -108,6 +108,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric import parametri
 from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as pbox
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3, solver_3d_nk as s3nk, source
 from lemaitre.initial_data.conformally_flat_puncture.validation import twopunctures as tp
+from lemaitre.initial_data.conformally_flat_puncture.parametric.certification import CERT_TOL_U
 
 REPDIR = os.path.join(reports_root(), "3D_parametric", "qc")
 
@@ -118,7 +119,11 @@ LO = np.array([a["min"] for a in AXES])
 HI = np.array([a["max"] for a in AXES])
 
 FIXED_QC = dict(pbox.FIXED_QC)          # {"qc": 1.0} -- deterministic PN momenta
-CERT_TOL = 1e-10                        # certification gate (equilibrated); 2.8
+# The certification gate is IMPORTED, never restated -- the leaf's CLAUDE.md rule
+# ("it lives in exactly one place ... never restate the number elsewhere"), which
+# this module had been violating with its own `CERT_TOL = 1e-10` literal since
+# before the constant moved.  Restated, it would have kept the v-norm value
+# through the 2026-08-25 norm flip and silently certified against the wrong ruler.
 
 # The resolution ladder: MERIDIONAL refinement at FIXED Nphi=8.  Measured against a
 # (72,72,20) oracle on three configurations, raising Nphi alongside (Na,Nb) changes the
@@ -316,7 +321,7 @@ def _one(job):
                 M_ADM_rel_diff=float(abs(M_adm - ref.E) / abs(ref.E)),
                 residual=float(info.residual_norm),      # EQUILIBRATED (2.1)
                 raw_residual=float(info.raw_residual_norm),
-                certified=bool(info.residual_norm <= CERT_TOL),
+                certified=bool(info.residual_norm <= CERT_TOL_U),
                 iters=int(info.iters), converged=bool(info.converged),
                 spectrum=[float(a / a0) for a in amps]))
         out.update(ok=True, tp_E=float(ref.E), rungs=rungs)
@@ -519,7 +524,7 @@ def main():
                                  seed=args.seed, ladder=[list(g) for g in ladder],
                                  tp_res=list(args.tp_res), selfconv=args.selfconv,
                                  selfconv_nphi=args.selfconv_nphi, tol=args.tol,
-                                 cert_tol=CERT_TOL, fixed=FIXED_QC,
+                                 cert_tol=CERT_TOL_U, fixed=FIXED_QC,
                                  box="spin8_qc_chi_prod", code=run_stamp()),
                       summary=summary, rows=rows, axisym=ax_rows), f, indent=1)
 

@@ -62,7 +62,7 @@ from ..solver import solver_3d_nk as nk
 from ..parametric import parametric_nd_smolyak as sm
 from ..parametric.parametric_nd import attach_solve_fn_3d
 from ..parametric.parametric_nd_3d import theta_to_slice3d
-from ..parametric.certification import CERT_TOL, certified_return
+from ..parametric.certification import CERT_TOL_U, certified_return
 
 NAMES = ("b", "q", "chi_Ay", "chi_By")
 FIXED = {"qc": 1.0}
@@ -272,7 +272,7 @@ def _certified_solve(model, prob, theta, guess, tol, max_iter):
 
 
 def broyden_target(model, prob, target, theta0, target_names, box, *,
-                   mode="interp", active=(0, 1), tol_ctrl=1e-8, tol_inner=CERT_TOL,
+                   mode="interp", active=(0, 1), tol_ctrl=1e-8, tol_inner=CERT_TOL_U,
                    max_steps=40, fd_h=1e-4, max_inner=25, max_step_frac=0.35,
                    budget=None):
     """Mendes-style Broyden on ``G(θ)=F(θ)−target`` over the ``active`` knobs.
@@ -391,7 +391,7 @@ def _nudge(theta, node_sets, box, trigger=1e-8, shift_frac=2e-3):
 def gauss_newton_target(model, prob, target, theta0, target_names, box, *,
                         active=(0, 1), tol_ctrl=1e-8, max_steps=60,
                         lm_init=1e-3, lm_down=0.5, lm_up=4.0, lm_max=1e10,
-                        polish_steps=2, polish_tol=CERT_TOL, correction_steps=3,
+                        polish_steps=2, polish_tol=CERT_TOL_U, correction_steps=3,
                         budget=None):
     """Hit ``F(θ)=target`` by damped Gauss–Newton on the **free** surrogate, then a
     certified last-mile.

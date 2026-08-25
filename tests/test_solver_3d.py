@@ -26,6 +26,7 @@ import jax
 jax.config.update("jax_enable_x64", True)
 
 import numpy as np
+from lemaitre.initial_data.conformally_flat_puncture.parametric.certification import CERT_TOL_U
 
 from lemaitre.initial_data.conformally_flat_puncture.solver import operators_3d as ops3
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
@@ -444,7 +445,7 @@ def test_nk_certified_polish():
     Up = np.asarray(Ustar).reshape(prob.Ntot2d, prob.Nphi) * 1.001
     e0 = nk.equil_residual_inf(asm, Up)
     Upol, ipol = nk.evaluate_polished_nk(prob, sl, Up, newton_steps=2,
-                                         tol=1e-10, asm=asm)
+                                         tol=CERT_TOL_U, asm=asm)
     print(f"\n[NK-E] polish: start equilR={e0:.2e} -> 2 steps "
           f"equilR={ipol.residual_norm:.2e} gmres={ipol.gmres_iters}")
     assert e0 > 1e-5, f"warm start too close to be a real test ({e0:.2e})"

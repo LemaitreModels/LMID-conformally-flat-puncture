@@ -348,6 +348,13 @@ def make_solve_fn(prob: Problem3D, active_names: Sequence[str], M_tot: float = 1
         return s3.newton_solve(prob, sl, U0=guess, tol=tol,
                                max_iter=int(max_iter), asm=asm)
 
+    # Declare which norm this solver's residual is in, so `evaluate_polished` reads
+    # it against the right threshold.  This is the 3-D NK path, whose monitor is
+    # `operators_3d.EQUIL_NORM_DEFAULT` ("u" since 2026-08-25) -- unlike the
+    # axisymmetric ABT path, where the two norms coincide and the gate must NOT move.
+    # See `certification.gate_for`.
+    from .certification import CERT_TOL_U, SOLVE_FN_GATE_ATTR
+    setattr(solve_fn, SOLVE_FN_GATE_ATTR, CERT_TOL_U)
     return solve_fn, cache
 
 

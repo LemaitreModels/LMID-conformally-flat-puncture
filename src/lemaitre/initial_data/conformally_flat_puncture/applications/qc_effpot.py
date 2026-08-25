@@ -45,7 +45,6 @@ import jax.numpy as jnp
 from scipy.optimize import brentq
 
 from ..parametric.parametric_nd import load_parametric, attach_solve_fn_3d
-from ..parametric.certification import CERT_TOL
 from . import qc_targeting as qt
 
 NAMES = ("b", "P_x")
@@ -89,7 +88,7 @@ def binding_energy(prob, U, b):
     return M_ADM - (M_A + M_B)
 
 
-def Eb_certified(model, prob, b, P_t, newton_steps=2, tol=CERT_TOL):
+def Eb_certified(model, prob, b, P_t, newton_steps=2, tol=None):
     """One CERTIFIED binding energy: polish at (b,P_t), then E_b on the certified U.
 
     ``strict``: E_b is differenced across neighbouring separations to locate the

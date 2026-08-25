@@ -33,7 +33,8 @@ from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as
 from lemaitre.initial_data.conformally_flat_puncture.solver.solver_3d import Slice3D
 from lemaitre.initial_data.conformally_flat_puncture.solver.solver_abt import Slice
 from lemaitre.initial_data.conformally_flat_puncture.applications import sensitivity_3d as s3d
-from lemaitre.initial_data.conformally_flat_puncture.parametric.certification import CERT_TOL
+from lemaitre.initial_data.conformally_flat_puncture.parametric.certification import (
+    CERT_TOL, CERT_TOL_U)
 
 
 # A grid small enough to run in seconds, large enough that Na != Nb != Nφ so an
@@ -549,7 +550,7 @@ def test_equil_residual_inf_honours_the_norm_argument():
     closed = ops3.inv_wmin(prob.B, GRID["Nphi"])
     for sep in (False, True):
         asm = s3.assemble(prob, sl, separable=sep)
-        U, _ = nk.newton_solve_nk(prob, sl, asm=asm, tol=1e-10, max_iter=10)
+        U, _ = nk.newton_solve_nk(prob, sl, asm=asm, tol=CERT_TOL_U, max_iter=10)
         Uf = np.asarray(U).reshape(asm.interior.size, GRID["Nphi"])
         rv = nk.equil_residual_inf(asm, Uf, norm="v")
         ru = nk.equil_residual_inf(asm, Uf, norm="u")
@@ -564,7 +565,7 @@ def test_equil_residual_inf_honours_the_norm_argument():
     sl1 = Slice3D(b=4.0, m_A=0.5, m_B=0.5, P_A_vec=(0.0, 0.0, -0.2),
                   P_B_vec=(0.0, 0.0, 0.2))
     asm1 = s3.assemble(prob1, sl1, separable=False)
-    U1, _ = nk.newton_solve_nk(prob1, sl1, asm=asm1, tol=1e-10, max_iter=10)
+    U1, _ = nk.newton_solve_nk(prob1, sl1, asm=asm1, tol=CERT_TOL_U, max_iter=10)
     U1f = np.asarray(U1).reshape(asm1.interior.size, 1)
     a = nk.equil_residual_inf(asm1, U1f, norm="v")
     c = nk.equil_residual_inf(asm1, U1f, norm="u")
@@ -572,29 +573,58 @@ def test_equil_residual_inf_honours_the_norm_argument():
     assert a == c, "at Nphi=1 (w == 1) the two norms must be bit-identical"
 
 
-def test_default_monitor_norm_is_still_v():
-    """The default norm is ``"v"``, and flipping it is NOT a one-line change.
+def test_default_monitor_norm_is_u_and_the_gate_moved_with_it():
+    """The default norm is ``"u"`` and the threshold read against it is ``CERT_TOL_U``.
 
-    Frederik's 2026-08-24 ruling adopts the ``u`` norm in both leaves, but the flip
-    is not separable from re-deriving the threshold it is read against: under ``u``
-    every recorded residual reads ``1/w_min`` smaller — ``3.3e+04`` at the production
-    grid — for reasons that have nothing to do with the solve being better.  So a
-    ``u`` residual checked against the ``v``-calibrated ``CERT_TOL = 1e-10`` would
-    read as a four-order improvement that is purely a change of units, which is the
-    *mixing* failure mode the ruling's reversibility constraint exists to prevent.
+    **This gate replaces ``test_default_monitor_norm_is_still_v``, which was a
+    tripwire against flipping the default alone.**  The flip happened on 2026-08-25,
+    in one commit with the new threshold and the re-pointing of every gate, which is
+    exactly what that tripwire demanded.  It is kept — inverted — rather than
+    deleted, because the failure it guards against is unchanged and silent: a
+    ``u`` residual read against the ``v``-calibrated ``1e-10`` reads as a four-order
+    improvement that is purely a change of units.
 
-    This gate is deliberately a tripwire rather than a claim about which norm is
-    right: when the threshold is re-derived, change this test **in the same commit**
-    that flips the default and re-points the gates.  A default flipped on its own
-    silently reinterprets every published number in ``paper/``.
+    So this asserts the two halves **together**, and that is the point: the norm is
+    ``"u"``, the live gate is a ``u``-norm number, and the ``v``-norm gate still
+    exists under its own name at its published value so no submitted number is
+    orphaned.  Changing any one of the three without the others re-opens the mixing
+    failure from a different side.
+
+    ``CERT_TOL_U`` is **not a tightening** of ``CERT_TOL`` — at the production grid
+    it is ``≈1.7e-08`` in ``v``-equivalent terms, ~170× looser.  The value is
+    Frederik's, from the measured window ``[6.30e-13, 4.56e-07]``.
     """
     print(f"\n[norm-default] EQUIL_NORM_DEFAULT={ops3.EQUIL_NORM_DEFAULT!r} "
-          f"CERT_TOL={CERT_TOL:.1e}")
-    assert ops3.EQUIL_NORM_DEFAULT == "v", (
-        "the monitor's default norm changed; the threshold it is read against must "
-        "change in the same commit — see the docstring")
+          f"CERT_TOL_U={CERT_TOL_U:.1e} (u, live)  "
+          f"CERT_TOL={CERT_TOL:.1e} (v, historical)")
+    assert ops3.EQUIL_NORM_DEFAULT == "u", (
+        "the monitor's default norm is no longer 'u'; the threshold it is read "
+        "against must change in the same commit — see the docstring")
     assert nk.EQUIL_NORM_DEFAULT == ops3.EQUIL_NORM_DEFAULT, (
         "solver_3d_nk's re-export drifted from operators_3d's definition")
+    assert CERT_TOL_U == 1e-11, (
+        f"the live u-norm gate moved to {CERT_TOL_U:.3e}; every gate asserting "
+        f"against it has to be re-measured AT ITS OWN GRID — no single factor "
+        f"converts a threshold between the two norms")
+    assert CERT_TOL == 1e-10, (
+        f"CERT_TOL is {CERT_TOL:.3e}, not the published 1e-10. It is the v-norm "
+        f"constant the SUBMITTED flat paper's eleven residual numbers were measured "
+        f"against and it must not be re-tuned; the live gate is CERT_TOL_U")
+    assert CERT_TOL_U != CERT_TOL, (
+        "the two thresholds have collapsed onto one value; they are in different "
+        "norms and are not comparable — keeping them distinct is the reversibility "
+        "constraint")
+
+    # The solver's own stopping tolerance has to be in the norm its monitor uses,
+    # or the loop drives the residual to a target four orders from the intended one.
+    import inspect
+    for fn, what in ((nk.newton_solve_nk, "newton_solve_nk"),
+                     (nk.evaluate_polished_nk, "evaluate_polished_nk")):
+        got = inspect.signature(fn).parameters["tol"].default
+        print(f"[norm-default] {what} tol default = {got:.1e}")
+        assert got == CERT_TOL_U, (
+            f"{what}'s default tol is {got:.1e}, not the u-norm gate "
+            f"{CERT_TOL_U:.1e} — the monitor is in 'u' but the stopping test is not")
 
 
 def test_separable_factors_do_not_depend_on_b():
@@ -614,8 +644,9 @@ def test_separable_factors_do_not_depend_on_b():
 def test_separable_polish_certifies_and_matches_the_dense_one():
     """GATE 4 — a warm-started polish certifies under the EXISTING monitor.
 
-    Same ``equil_residual_inf``, same ``CERT_TOL`` imported from the one place it
-    lives; only the linear algebra inside the Newton step differs.  The field must
+    Same ``equil_residual_inf``, same ``CERT_TOL_U`` imported from the one place it
+    lives — the **u**-norm gate, since 2026-08-25; only the linear algebra inside
+    the Newton step differs.  The field must
     match an independently converged iterate, and the iteration count must not
     blow up — the separable preconditioner drops the nonlinear diagonal, which is
     measured to cost one or two GMRES iterations per step, not a Newton step.
@@ -632,7 +663,7 @@ def test_separable_polish_certifies_and_matches_the_dense_one():
     out = {}
     for label, kw in (("dense", {}), ("separable", dict(separable=True))):
         U, info = nk.evaluate_polished_nk(prob, sl, U0, newton_steps=4,
-                                          tol=CERT_TOL, **kw)
+                                          tol=CERT_TOL_U, **kw)
         out[label] = (np.asarray(U).reshape(prob.Ntot2d, prob.Nphi), info)
         print(f"\n[sep-polish] {label}: steps={info.iters} gmres={info.gmres_iters} "
               f"equilR={info.residual_norm:.3e} certified={info.converged}")

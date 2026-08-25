@@ -19,7 +19,7 @@ Newton step?
 Every point is solved TWICE from the SAME warm start — once with each linear
 algebra — through the shipped forward map ``parametric_nd_3d.make_solve_fn``, not
 a reimplementation, so what is measured is what production runs.  The gate is
-``parametric.certification.CERT_TOL``, imported rather than restated.
+``parametric.certification.CERT_TOL_U``, imported rather than restated.
 
 What "pass" means
 -----------------
@@ -40,7 +40,7 @@ sits at or above the 90th percentile of total spin ``|χ_A|+|χ_B|``, including 
 single highest-spin point in the sweep, which is exactly where dropping the
 nonlinear diagonal from the preconditioner should first show.  At two of the three
 the extra step lands a residual 5–8× *deeper* than the dense route reached, since
-both routes stop the moment they cross ``CERT_TOL`` and the separable one was
+both routes stop the moment they cross ``CERT_TOL_U`` and the separable one was
 still above the line a step earlier.
 
 So the honest gate is a rate, not an absolute: one extra step, rarely, at the
@@ -68,7 +68,7 @@ import time
 import numpy as np
 
 from ..parametric import parametric_nd_3d as p3
-from ..parametric.certification import CERT_TOL
+from ..parametric.certification import CERT_TOL_U
 from ..solver import operators_3d as ops3
 from ..solver import solver_3d as s3
 from . import production_box as pb
@@ -111,7 +111,7 @@ def sweep(n=24, grid=None, seed=20260813, newton_steps=4, verbose=True):
 
     if verbose:
         print(f"host   : {platform.node()}  {platform.machine()}")
-        print(f"grid   : ({Na}, {Nb}, {Nphi})   CERT_TOL = {CERT_TOL:.0e}   "
+        print(f"grid   : ({Na}, {Nb}, {Nphi})   CERT_TOL_U = {CERT_TOL_U:.0e}   "
               f"FIELD_TOL = {FIELD_TOL:.0e}")
         print(f"box    : b in [{lo[0]:g}, {hi[0]:g}], q in [{lo[1]:g}, {hi[1]:g}], "
               f"chi_* in [{lo[2]:g}, {hi[2]:g}]  (3PN quasi-circular momenta)")
@@ -155,7 +155,7 @@ def sweep(n=24, grid=None, seed=20260813, newton_steps=4, verbose=True):
 
         th_near = th.copy()
         th_near[0] = min(th[0] * WARM_B_FACTOR, hi[0])
-        U0, _ = fns["dense"](th_near, None, CERT_TOL, 8)
+        U0, _ = fns["dense"](th_near, None, CERT_TOL_U, 8)
         U0 = np.asarray(U0)
 
         out = {}
@@ -164,7 +164,7 @@ def sweep(n=24, grid=None, seed=20260813, newton_steps=4, verbose=True):
                 c.clear()
             ops3.clear_block_cache()
             t0 = time.perf_counter()
-            U, info = fns[label](th, U0, CERT_TOL, newton_steps)
+            U, info = fns[label](th, U0, CERT_TOL_U, newton_steps)
             out[label] = (np.asarray(U), info, time.perf_counter() - t0)
 
         Ud, id_, td = out["dense"]
@@ -177,7 +177,7 @@ def sweep(n=24, grid=None, seed=20260813, newton_steps=4, verbose=True):
         for label, (_, info, t) in out.items():
             row[label] = dict(steps=int(info.iters), gmres=list(info.gmres_iters),
                               equilR=float(info.residual_norm),
-                              certified=bool(info.residual_norm <= CERT_TOL),
+                              certified=bool(info.residual_norm <= CERT_TOL_U),
                               seconds=float(t))
         rows.append(row)
         if verbose:
@@ -273,7 +273,7 @@ def main():
     if args.out:
         with open(args.out, "w") as f:
             json.dump(dict(meta=dict(grid=[args.Na, args.Nb, args.Nphi],
-                                     seed=args.seed, cert_tol=CERT_TOL,
+                                     seed=args.seed, cert_tol=CERT_TOL_U,
                                      field_tol=FIELD_TOL, host=platform.node()),
                            summary=summary, rows=rows, verdict=bool(ok)), f, indent=2)
         print(f"wrote {args.out}")

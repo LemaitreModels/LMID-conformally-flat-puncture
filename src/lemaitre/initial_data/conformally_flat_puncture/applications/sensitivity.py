@@ -327,6 +327,15 @@ def gauss_newton_target(ps: ParametricSolutionND, control_names: Sequence[str],
     tolerance it was reported against was unreachable, contradicting this
     docstring's own ‖R‖∞ ≤ 1e-10 claim.
 
+    **This is the ``v``-norm ``CERT_TOL``, deliberately, and it did NOT move with the
+    2026-08-25 norm flip.**  This module is the axisymmetric ABT cousin: it runs
+    ``solver_abt.newton_solve``, which has no ``Nφ`` and therefore no
+    ``(1 − B²)^{−m/2}`` factor — it *is* the ``Nφ = 1`` case, where the ``u`` and ``v``
+    norms are bit-identical.  The flip is a no-op here, so moving the threshold to
+    ``CERT_TOL_U = 1e-11`` would not be a change of units but a genuine ``10×``
+    tightening against a solver whose floor is ``~1e-11``.  See
+    ``certification.gate_for``.
+
     The **value** of ``F`` is read through the node-safe numpy interpolant
     (``ps.evaluate`` + B2's ``control.evaluate_observables`` — byte-identical to
     ``F_jax`` off-node, but with the exact-node guard so a round-number start does

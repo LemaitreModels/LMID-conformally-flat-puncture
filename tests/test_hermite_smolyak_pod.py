@@ -165,7 +165,7 @@ def test_certified_polish(model, holdout):
     pod, _ = build_pod_hermite_smolyak(model, tail=1e-8, solve_fn=model._solve_fn)
     worst = 0.0
     for th in holdout[:3]:
-        U, info = pod.evaluate_polished(th, newton_steps=3, tol=1e-10)
+        U, info = pod.evaluate_polished(th, newton_steps=3)
         worst = max(worst, info.residual_norm)
     assert worst <= 1e-10, worst
 

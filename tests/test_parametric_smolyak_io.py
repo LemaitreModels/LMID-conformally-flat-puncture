@@ -271,6 +271,6 @@ def test_attach_solve_fn_certifies_both(tmp_path):
         with pytest.raises(RuntimeError):
             model.evaluate_polished(hold[0])          # no solver yet
         attach_solve_fn_3d(model, prob, names, solver="nk")
-        worst = max(float(model.evaluate_polished(th, newton_steps=2, tol=1e-10)[1].residual_norm)
+        worst = max(float(model.evaluate_polished(th, newton_steps=2)[1].residual_norm)
                     for th in hold)
         assert worst <= 1e-10, f"{loader.__name__}: certified ‖R‖ {worst:.2e} > 1e-10"

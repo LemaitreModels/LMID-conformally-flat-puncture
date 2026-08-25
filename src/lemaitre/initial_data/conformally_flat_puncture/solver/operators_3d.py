@@ -391,22 +391,39 @@ _U_SCALE_CACHE_MAX = 2    # Nm vectors of length Na·Nb — kilobytes, not the b
 
 #: The norm ``equil_residual_inf`` uses when a caller does not name one.
 #:
-#: ``"v"`` is the shipped row norm — ``max|M0_m row|``, the divisor
-#: ``operators_abt.solve_equilibrated`` applies inside the solve — and every
-#: published residual in either leaf's ``paper/`` and every constant in the
-#: quasi-circular box was calibrated against it.  ``"u"`` is the same row norm taken in the physical field.
+#: ``"u"`` is the row norm taken in the **physical** field ``u`` — the residual
+#: divided by :func:`u_row_scales` rather than by the ``v``-space ``scales`` the
+#: solve equilibrates with.  ``"v"`` is the shipped row norm ``max|M0_m row|``, the
+#: divisor ``operators_abt.solve_equilibrated`` applies inside the solve.
 #:
-#: **This default is deliberately still ``"v"``.**  Frederik's 2026-08-24 ruling
-#: adopts the ``u`` norm in both leaves, but flipping the default is not separable
-#: from re-deriving the threshold it is read against: under ``u`` every recorded
-#: residual reads ``1/w_min`` (``3.3e+04`` at the production grid) smaller for
-#: reasons that have nothing to do with the solve being better, so a ``u`` residual
-#: quoted against the ``v``-calibrated ``1e-10`` would read as a 4-order improvement
-#: that is purely a change of units.  The flip therefore lands together with the new
-#: threshold value and the re-pointing of every gate that asserts against it — see
-#: ``context/Lemaitre/LM-initial-data/LMID-curved-puncture/PLAN.md``.  Until then
-#: both norms are computable, which is the reversibility the ruling requires.
-EQUIL_NORM_DEFAULT = "v"
+#: **This default became ``"u"`` on 2026-08-25, together with the threshold it is
+#: read against** (:data:`~...parametric.certification.CERT_TOL_U`).  The two had to
+#: land in one commit and the argument for that is kept here rather than deleted,
+#: because it is the record of why the flip was not separable: under ``u`` every
+#: recorded residual reads up to ``1/w_min`` (``3.3e+04`` at the production grid)
+#: smaller for reasons that have nothing to do with the solve being better, so a
+#: ``u`` residual quoted against the ``v``-calibrated ``CERT_TOL = 1e-10`` would read
+#: as a four-order improvement that is purely a change of units.  That argument was
+#: **discharged, not falsified** — it is why ``CERT_TOL`` was not overwritten and why
+#: every gate now names its norm at the assert.
+#:
+#: **Why ``"v"`` had to go, in one sentence a referee can check without a
+#: threshold:** the ``v`` monitor inverts an ordering that is true by construction.
+#: At fixed meridional resolution the finer azimuthal expansion contains the coarser,
+#: yet ``v`` rises eight orders across rungs whose field is constant to ``1.002×``
+#: — measured on four sound ladders in both leaves, eleven inverted pairs.  ``v``
+#: carries the ``(1 − B²)^{−m/2}`` boundary factor of the *factoring*, not of the
+#: solve, and that factor grows without bound in ``Nφ``.
+#:
+#: **This is a change of ruler and of value together, and it is not a tightening.**
+#: ``CERT_TOL_U = 1e-11`` in ``u`` is ``≈1.7e−08`` in ``v``-equivalent terms at the
+#: production grid, i.e. **~170× LOOSER** than the old ``1e-10``-in-``v``.  No value
+#: in the derived window ``[6.30e−13, 4.56e−07]`` is as tight as the old gate; that
+#: is the same fact as the six field-converged solves the old gate rejected, seen
+#: from the other side.  Both norms remain computable by name, which is the
+#: reversibility Frederik's ruling requires — see
+#: ``context/Lemaitre/LM-initial-data/LMID-curved-puncture/PLAN.md``.
+EQUIL_NORM_DEFAULT = "u"
 
 
 def u_row_scales(M0_list, w_list):

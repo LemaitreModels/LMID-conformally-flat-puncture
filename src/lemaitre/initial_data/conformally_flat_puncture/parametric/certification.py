@@ -10,12 +10,17 @@ message exist once rather than nine times.
 
 Two deliberate asymmetries:
 
-* **The tolerance lives here, not in each signature.**  :data:`CERT_TOL` is the
-  paper's gate.  Before it existed, every ``evaluate_polished`` defaulted to
-  ``1e-12`` — below the equilibrated residual's roundoff floor (~2e-12 on the
-  production grid), so ``info.converged`` was False on every default-tol query
-  and the solver's own ``if rn < tol: break`` was dead code.  The status flag
-  reported nothing and cost an extra Newton step to not report it.
+* **The tolerance lives here, not in each signature.**  :data:`CERT_TOL_U` is the
+  live gate and the default ``tol`` everywhere; :data:`CERT_TOL` is its
+  ``v``-norm predecessor, kept at its published value and no longer the default.
+  **Which norm a threshold is in is part of the threshold** — since 2026-08-25
+  ``operators_3d.EQUIL_NORM_DEFAULT`` is ``"u"``, so a bare ``1e-10`` here would
+  silently be four orders looser than the number it looks like.  Before either
+  constant existed, every ``evaluate_polished`` defaulted to ``1e-12`` — below the
+  equilibrated residual's roundoff floor (~2e-12 on the production grid), so
+  ``info.converged`` was False on every default-tol query and the solver's own
+  ``if rn < tol: break`` was dead code.  The status flag reported nothing and cost
+  an extra Newton step to not report it.
 
 * **The gate is opt-in (``strict=True``), not the default.**  A raise inside the
   library would be wrong for the callers that legitimately query *below* the
@@ -41,13 +46,98 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import jax.numpy as jnp
 
-# The paper's certification threshold on the *equilibrated* discrete constraint
-# residual.  Chosen as the default `tol` of every `evaluate_polished`, so that
-# `info.converged` means what the paper says it means.  It sits ~1.5 decades
-# above the equilibrated roundoff floor and ~0.5 decades above the Newton-Krylov
-# floor observed at the extreme corners of the 8-D box (~4e-11), which is the
-# margin that keeps the gate from firing on arithmetic rather than on physics.
+#: **The historical ``v``-norm gate.  NOT the live threshold — see
+#: :data:`CERT_TOL_U`.**
+#:
+#: ``1e-10`` on the *equilibrated* discrete constraint residual measured in the
+#: ``v`` norm, i.e. against ``operators_3d``'s ``scales``.  It sits ~1.5 decades
+#: above the equilibrated roundoff floor and ~0.5 decades above the Newton–Krylov
+#: floor observed at the extreme corners of the 8-D box (~4e-11), which was the
+#: margin that kept it from firing on arithmetic rather than on physics.
+#:
+#: **It is kept, with its value and its name unchanged, because it is what the
+#: submitted paper's eleven residual numbers were measured against.**  Frederik's
+#: 2026-08-25 reversibility constraint is that an old constant keeps a distinct name
+#: so no published number is orphaned.  Reading a ``u``-norm residual against this
+#: number is the *mixing* failure the two-norm design exists to prevent: the two are
+#: **not comparable**, and no single factor converts between them (the measured
+#: ``v/u`` ratio on field-converged solves runs ``1×`` at ``Nφ = 1`` to ``6.6e+08``
+#: at ``36×24×20``, because ``1/w_min`` bounds the ratio but is attained by the *row
+#: scale*, not by any particular residual).
+#:
+#: Anything still comparing against this constant must say ``norm="v"`` at the
+#: comparison and must be measuring a pre-2026-08-25 claim.
 CERT_TOL = 1e-10
+
+#: **The live certification gate: ``1e-11`` on the equilibrated residual in the
+#: ``u`` norm.**  Frederik's value, 2026-08-25.
+#:
+#: The default ``tol`` of every ``evaluate_polished``, so ``info.converged`` means
+#: what the papers say it means — now that :data:`~...solver.operators_3d.
+#: EQUIL_NORM_DEFAULT` is ``"u"``, a ``tol`` in this module must be a ``u``-norm
+#: number or the solve's own stopping test is read in the wrong units.
+#:
+#: **How the value was derived, and its window.**  The gate remains a
+#: *constraint-residual bound*; truncation error justifies its VALUE and does not
+#: become the claim.  A datum is worth certifying when its iteration error is
+#: negligible against the error the grid itself carries, which bounds the gate from
+#: **above**; what the solve attains bounds it from below.  Measured, that window is
+#: ``[6.30e−13, 4.56e−07]`` — the ceiling is the *curved* leaf's, at the
+#: quasi-circular box's best-resolved point ``(b, q, χ) = (10, 1, 0.9)`` where
+#: ``e_trunc = [5.16e−07, 8.53e−07]`` at the shipped ``44×32×8``.  ``1e-11`` sits
+#: ``16×`` above the worst achieved field-converged residual, ``4.6e+03×`` below the
+#: conservative ceiling, and rejects the diverging population (``u ≈ 2.7e−02``) by
+#: ``2.7e+09×``.
+#:
+#: **⚠ This is NOT a tightening of :data:`CERT_TOL`, and the sentence has to travel
+#: with the number.**  At the production grid ``1e-11`` in ``u`` is ``≈1.7e−08`` in
+#: ``v``-equivalent terms — **~170× LOOSER** than the old ``1e-10``-in-``v``.  No
+#: value in the derived window is as tight as the old gate.  That is not a
+#: weakening of the claim but a correction of the ruler: the ``v`` monitor was
+#: rejecting six *field-converged* solves and certifying coarser ones, because it
+#: carries a boundary factor that grows without bound in ``Nφ``.
+#:
+#: **What it does NOT say.**  It bounds the constraint violation, not the distance
+#: to the continuum solution.  The curved leaf's shipped grid carries ``8.3–52 %``
+#: field error at its laddered configuration and ``0.11 %`` at its best-resolved
+#: corner, all of it certified.  Certification is not a field-accuracy claim.
+CERT_TOL_U = 1e-11
+
+
+#: Attribute a ``solve_fn`` carries to declare which norm its residual is in, and
+#: therefore which threshold it must be read against.  Set by
+#: :func:`parametric_nd_3d.make_solve_fn`, read by :func:`gate_for`.
+SOLVE_FN_GATE_ATTR = "cert_tol"
+
+
+def gate_for(solve_fn) -> float:
+    """The certification gate appropriate to ``solve_fn``'s residual norm.
+
+    **Why this is not a constant.**  Until 2026-08-25 there was one threshold
+    because there was one norm.  There are now two, and which applies is decided by
+    the *solver*, not by the caller or the container:
+
+    * the **3-D Newton–Krylov** path reports the equilibrated residual in the ``u``
+      norm (``operators_3d.EQUIL_NORM_DEFAULT``), so its gate is :data:`CERT_TOL_U`;
+    * the **axisymmetric 2-D ABT** path (``solver_abt.newton_solve``) has no ``Nφ``
+      and therefore no ``(1 − B²)^{−m/2}`` boundary factor at all — it *is* the
+      ``Nφ = 1`` case, where the two norms are **bit-identical**.  The norm change is
+      a no-op there, so its gate must not move either: it stays :data:`CERT_TOL`.
+
+    **That second point cost a test, and it is the subtle half.**  The invariance
+    that protects the axisymmetric sector protects the *comparison*; it says nothing
+    about the *threshold* underneath it.  Applying the ``u`` gate ``1e-11`` there is
+    not a change of units — it is a genuine, unjustified ``10×`` tightening, and it
+    showed up as ``test_certified_polish_4d`` spending a third Newton step to reach
+    an internal target a decade below where it was calibrated.
+
+    A ``solve_fn`` declares its norm by carrying :data:`SOLVE_FN_GATE_ATTR`; one that
+    does not is assumed axisymmetric, because that is the norm-invariant case and the
+    conservative one — a solver whose residual really is in ``u`` and forgets to
+    declare it gets a gate ``170×`` too *tight* in ``v``-equivalent terms and fails
+    loudly, rather than one four orders too loose and passing silently.
+    """
+    return float(getattr(solve_fn, SOLVE_FN_GATE_ATTR, CERT_TOL))
 
 
 class CertificationError(RuntimeError):
@@ -110,7 +200,7 @@ class CertifiedEvaluateMixin:
     def _solve_theta(theta):
         return np.asarray(theta, dtype=float)
 
-    def evaluate_polished(self, theta, newton_steps: int = 2, tol: float = CERT_TOL,
+    def evaluate_polished(self, theta, newton_steps: int = 2, tol: Optional[float] = None,
                           strict: bool = False):
         """Interpolated prediction + 1–2 Newton steps → certified ``‖R‖≤tol`` at θ.
 
@@ -119,9 +209,17 @@ class CertifiedEvaluateMixin:
         ``info.residual_norm`` the certified constraint residual at θ,
         independent of any interpolation error.  ``strict=True`` closes the
         gate: a datum that misses ``tol`` raises :class:`CertificationError`
-        instead of being returned."""
+        instead of being returned.
+
+        **``tol=None`` means "this solver's gate", which is not one number** — see
+        :func:`gate_for`.  A container is generic: the same class carries a 2-D ABT
+        solve_fn or a 3-D Newton–Krylov one, and since 2026-08-25 those two report
+        residuals in *different norms*.  So the threshold is a property of the
+        attached solver, not of the container and not of this module.
+        """
         if self._solve_fn is None:
             raise RuntimeError(f"no solve_fn attached; {self._solve_fn_hint}")
+        tol = gate_for(self._solve_fn) if tol is None else tol
         guess = jnp.asarray(self.evaluate(theta))
         U, info = self._solve_fn(self._solve_theta(theta), guess, tol, newton_steps)
         return certified_return(U, info, theta, tol, strict)

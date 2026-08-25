@@ -313,13 +313,26 @@ def test_the_anchor_is_still_certified():
 
     The anchor is only quotable as a certified result; if the residual drifts
     above the gate the sentence needs rewriting, not renumbering.
+
+    **This one is deliberately still in the ``v`` norm, and that is a decision.**
+    ``a["residual"]`` is read from fig08's *stored* figdata, produced before the
+    2026-08-25 flip and therefore a ``v``-norm number; the anchor is quoted in the
+    **submitted** paper, whose eleven residual numbers were all measured against
+    ``CERT_TOL = 1e-10`` in ``v``.  Comparing a recorded ``v`` residual against the
+    live ``u`` gate would be the *mixing* failure in its purest form, and it cannot
+    be repaired by arithmetic here: no single factor converts a residual between
+    the norms (measured ``v/u`` spans ``1×`` to ``6.6e+08``), so it would have to be
+    RE-MEASURED at its own grid.  Re-measuring the figdata is step (c) of the norm
+    sweep and re-quoting the paper is step (d) — see ``PLAN.md``.  When the artifact
+    is regenerated in ``u``, this assert moves to ``CERT_TOL_U`` in the same commit.
     """
     a = _anchor()
     from lemaitre.initial_data.conformally_flat_puncture.parametric import certification
     assert a.get("certified") is True, "fig08's anchor is no longer marked certified"
     assert a["residual"] < certification.CERT_TOL, (
-        f"the anchor residual {a['residual']:.2e} is no longer below CERT_TOL "
-        f"{certification.CERT_TOL:.0e}")
+        f"the anchor residual {a['residual']:.2e} (v norm, as stored) is no longer "
+        f"below the v-norm CERT_TOL {certification.CERT_TOL:.0e}. This gate is "
+        f"deliberately NOT on the live u-norm gate — see the docstring.")
 
 
 # ==========================================================================
@@ -434,11 +447,20 @@ def test_the_slow_test_count_is_stated_identically_in_both_places():
 
 
 def test_cert_tol_is_stated_once_and_correctly_in_the_docs():
-    """The paper's threshold, in the two docs that name it.
+    """The thresholds, in the docs that name them — **both**, with their norms.
 
-    Pinned as a rendered string so a doc cannot keep 1e-10 after the module moves.
+    Pinned as rendered strings so a doc cannot keep a stale value after the module
+    moves.  Since 2026-08-25 there are two constants and the docs have to
+    distinguish them, because the live gate is a smaller NUMBER in a different NORM
+    and reads as a tightening if the norm is dropped — it is ~170x looser.
     """
     from lemaitre.initial_data.conformally_flat_puncture.parametric import certification
-    want = f"CERT_TOL = {certification.CERT_TOL:.0e}"
-    assert want in _text(STRUCTURE_MD), (
-        f"STRUCTURE.md should state {want} (read from parametric.certification)")
+    want_u = f"CERT_TOL_U = {certification.CERT_TOL_U:.0e}"
+    want_v = f"CERT_TOL = {certification.CERT_TOL:.0e}"
+    txt = _text(STRUCTURE_MD)
+    assert want_u in txt, (
+        f"STRUCTURE.md should state the live gate {want_u} (read from "
+        f"parametric.certification)")
+    assert want_v in txt, (
+        f"STRUCTURE.md should still state the historical v-norm gate {want_v} — it "
+        f"is the submitted paper's number and is kept, not replaced")

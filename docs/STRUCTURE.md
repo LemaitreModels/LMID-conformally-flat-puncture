@@ -85,17 +85,57 @@ than letting a degraded install pass silently.
 
 ## The certification gate
 
-`parametric/certification.py` owns the one number the paper's central claim rests
-on — `CERT_TOL = 1e-10`, the threshold on the *equilibrated* discrete constraint
-residual — plus the comparison that enforces it. It is the default `tol` of every
-`evaluate_polished` in the package, and it is the only place the *library* states it.
+`parametric/certification.py` owns the number the paper's central claim rests on,
+plus the comparison that enforces it. **Since 2026-08-25 there are two constants,
+and which norm a threshold is in is part of the threshold:**
+
+- **`CERT_TOL_U = 1e-11` — the live gate**, on the *equilibrated* discrete
+  constraint residual measured in the **`u`** norm (the physical field). It is the
+  default `tol` of every `evaluate_polished`, and it matches
+  `solver/operators_3d.py`'s `EQUIL_NORM_DEFAULT`, which is now `"u"`.
+- **`CERT_TOL = 1e-10` — its `v`-norm predecessor**, kept at its published value
+  under a distinct name because the *submitted* paper's eleven residual numbers were
+  measured against it. No longer the default of anything.
+
+**They are not comparable, and `CERT_TOL_U` is not a tightening.** At the production
+grid `1e-11` in `u` is `≈1.7e-08` in `v`-equivalent terms — **~170× looser** than the
+old gate. No single factor converts a residual between the norms either: the measured
+`v/u` ratio on field-converged solves runs `1×` at `Nφ = 1` to `6.6e+08` at
+`36×24×20`, so a threshold moved between norms has to be **re-measured at its own
+grid**. The reason the ruler changed is that the `v` monitor inverted an ordering
+true by construction — it rose eight orders across azimuthal rungs whose field was
+constant to `1.002×`, because it carries the `(1 − B²)^{−m/2}` factor of the
+*factoring* rather than of the solve.
+
+**Which one applies is decided by the solver, through `certification.gate_for`.** A
+model container is generic — the same class carries a 2-D ABT `solve_fn` or a 3-D
+Newton–Krylov one — so the threshold cannot live in `evaluate_polished`'s signature.
+`parametric_nd_3d.make_solve_fn` tags the `solve_fn` it builds with its norm,
+`gate_for` reads the tag, and `evaluate_polished(tol=None)` resolves through it. An
+**undeclared** solver is assumed axisymmetric: that is the norm-invariant case, and it
+is the conservative fallback, because a `u`-norm solver that forgets to declare itself
+then gets a gate 170× too *tight* and fails loudly rather than one four orders too
+loose that passes silently.
+
+The **axisymmetric sector did not move.** `solver_abt.newton_solve` has no `Nφ` and so
+no `(1 − B²)^{−m/2}` factor: it is the `Nφ = 1` case where the norms are bit-identical,
+the flip is a no-op there, and its gate stays `CERT_TOL`. `applications/sensitivity.py`
+is on that path. Putting `CERT_TOL_U` under it is a plain 10× tightening against a
+solver whose floor is `~1e-11`, not a change of units.
+
+Both constants are the only places the *library* states a gate value.
 
 **It is restated in the producers, and those copies are not wired to it.** `1e-10`
 appears as a literal in gate comparisons in `pipeline/run_polish_table.py` (`r <=
 1e-10`, and the `frac_certified_le_1e-10` block), `pipeline/run_cross_fielderror_chi.py`
 (three `<= 1e-10` fractions under the same key name), and as a printed gate in
-`pipeline/run_qc_effpot.py` and `pipeline/run_tp_random_sweep.py`. Moving `CERT_TOL`
-would not move any of them. They are measurement bookkeeping rather than the
+`pipeline/run_qc_effpot.py`. Moving `CERT_TOL` would not move any of them. **These are
+still `v`-calibrated and are now reading `u` residuals**, which is a bookkeeping
+inconsistency scheduled with the figdata regeneration (step (c) of the norm sweep, see
+the private plan) rather than left unrecorded — no shipped datum passes through them.
+`run_tp_random_sweep.py`'s own `CERT_TOL = 1e-10` copy, which this paragraph used to
+list, **was removed on 2026-08-25**: it imports the constant now, and had it not, it
+would have kept the `v` value silently through the norm flip. They are measurement bookkeeping rather than the
 certified return path, so no shipped datum escapes the gate — but do not read "single
 source" as "grep finds one hit".
 
@@ -113,7 +153,7 @@ The split to know:
   makes the paper's "a gate checked before the datum is returned" true of the
   package rather than only of its bookkeeping. **The third one closes it
   differently**, so grepping for `strict=True` will make it look absent: the export
-  driver takes `--tol` defaulting to `CERT_TOL` (imported, not restated) and exits
+  driver takes `--tol` defaulting to `CERT_TOL_U` (imported, not restated) and exits
   non-zero on `not info.converged` before it writes anything.
 
 Historical note, because the failure mode was silent: before 2026-08-13 the
@@ -124,7 +164,7 @@ caller compared the residual to anything. `tests/test_certification.py` pins all
 of it, including that the `1e-12` default cannot creep back.
 
 `attach_solve_fn_3d` (the loader-side wiring that makes a *shipped* model
-queryable) defaults `retry_tol=CERT_TOL`, enabling the damped-Newton
+queryable) defaults `retry_tol=CERT_TOL_U`, enabling the damped-Newton
 globalization that `make_solve_fn` leaves off by default. The asymmetry is
 deliberate: build-time behaviour stays bit-for-bit unchanged, while the query
 path — the one the certification claim is about, and the one that meets the

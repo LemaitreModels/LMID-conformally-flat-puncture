@@ -314,7 +314,7 @@ def test_certified_prediction_sparse():
     p3.assert_off_node(hold, [dict(a, Q=8) for a in box])
     worst = 0.0
     for th in hold:
-        _U, info = sp.evaluate_polished(th, newton_steps=2, tol=1e-10)
+        _U, info = sp.evaluate_polished(th, newton_steps=2)
         worst = max(worst, float(info.residual_norm))
     print(f"\n[smolyak-3d] worst certified ‖R‖ over {len(hold)} off-node θ = {worst:.2e}")
     assert worst <= 1e-10, f"certified residual {worst:.2e} > 1e-10"

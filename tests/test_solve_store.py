@@ -293,7 +293,7 @@ def test_solver_cross_reuse_certifies(tmp_path):
     p3.assert_off_node(hold, [dict(a, Q=8) for a in box])
     worst = 0.0
     for th in hold:
-        _U, info = sol_nk.evaluate_polished(th, newton_steps=2, tol=1e-10)
+        _U, info = sol_nk.evaluate_polished(th, newton_steps=2)
         worst = max(worst, float(info.residual_norm))
     print(f"[solve-store cross] worst certified ‖R‖ = {worst:.2e}")
     assert worst <= 1e-10

@@ -219,8 +219,11 @@ the 90th percentile of total spin `|χ_A|+|χ_B|` — exactly where dropping the
 nonlinear diagonal from the preconditioner should first show. Do not re-tighten
 it to zero without re-reading that reasoning.
 
-The certification threshold is imported from `parametric.certification.CERT_TOL`,
-never restated — see the single-source rule in `CLAUDE.md`.
+The certification threshold is imported from
+`parametric.certification.CERT_TOL_U`, never restated — see the single-source rule in
+`CLAUDE.md`. Since 2026-08-25 that is the **`u`**-norm gate `1e-11`; the `v`-norm
+`CERT_TOL = 1e-10` this line used to name is kept beside it as the submitted paper's
+number and is no longer any default.
 
 ## The eccentricity family (fig07)
 

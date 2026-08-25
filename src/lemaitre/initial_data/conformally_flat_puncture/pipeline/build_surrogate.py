@@ -328,7 +328,7 @@ def main():
         t0 = time.time()
         guess = model.evaluate(th)                 # ~10 ms standalone prediction
         t_eval = time.time() - t0
-        _U, info = model.evaluate_polished(th, newton_steps=2, tol=1e-10)
+        _U, info = model.evaluate_polished(th, newton_steps=2)
         worst = max(worst, float(info.residual_norm))
         _t(f"   θ={[round(float(x), 3) for x in th]}  eval={t_eval*1e3:.1f} ms  "
            f"certified‖R‖={info.residual_norm:.2e}")

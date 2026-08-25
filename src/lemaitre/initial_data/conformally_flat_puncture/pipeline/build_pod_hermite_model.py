@@ -257,7 +257,7 @@ def main():
         t0 = time.time()
         _ = pod.evaluate(th)
         t_eval = (time.time() - t0) * 1e3
-        _U, info = pod.evaluate_polished(th, newton_steps=3, tol=1e-10)
+        _U, info = pod.evaluate_polished(th, newton_steps=3)
         worst = max(worst, float(info.residual_norm))
         _t(f"   θ={[round(float(x),3) for x in th]}  eval={t_eval:.1f} ms  "
            f"certified‖R‖={info.residual_norm:.2e}")

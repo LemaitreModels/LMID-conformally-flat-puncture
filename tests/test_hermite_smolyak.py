@@ -160,7 +160,7 @@ def test_value_only_level0_axis_is_interpolated(he):
 def test_certified_polish(he, holdout):
     worst = 0.0
     for th in holdout[:4]:
-        U, info = he.evaluate_polished(th, newton_steps=2, tol=1e-10)
+        U, info = he.evaluate_polished(th, newton_steps=2)
         worst = max(worst, info.residual_norm)
     assert worst <= 1e-10, worst
 
@@ -193,7 +193,7 @@ def test_anisotropic_build(prob):
         tangent_jac="nk").build_anisotropic(3.0, weights=[1.0, 2.0], tol=1e-12, max_iter=20)
     assert her.n_solver_nodes > 0 and her.enhanced == (0,)
     th = p3d.holdout_points_nd([dict(a, Q=8) for a in AXES], n_points=1)[0]
-    U, info = her.evaluate_polished(th, newton_steps=3, tol=1e-10)
+    U, info = her.evaluate_polished(th, newton_steps=3)
     assert info.residual_norm <= 1e-10
 
 

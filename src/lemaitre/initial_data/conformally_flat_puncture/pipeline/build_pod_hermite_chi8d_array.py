@@ -214,7 +214,7 @@ def run_merge(args):
     worst = 0.0
     for th in hold:
         _ = pod.evaluate(th)
-        _U, info = pod.evaluate_polished(th, newton_steps=args.newton_steps, tol=1e-10)
+        _U, info = pod.evaluate_polished(th, newton_steps=args.newton_steps)
         worst = max(worst, float(info.residual_norm))
         _t(f"   θ={[round(float(x),3) for x in th]}  certified‖R‖={info.residual_norm:.2e}")
     ok = worst <= 1e-10
@@ -265,7 +265,7 @@ def run_pod(args):
     worst = 0.0
     for th in hold:
         _ = pod.evaluate(th)
-        _U, info = pod.evaluate_polished(th, newton_steps=args.newton_steps, tol=1e-10)
+        _U, info = pod.evaluate_polished(th, newton_steps=args.newton_steps)
         worst = max(worst, float(info.residual_norm))
         _t(f"   θ={[round(float(x),3) for x in th]}  certified‖R‖={info.residual_norm:.2e}")
     ok = worst <= 1e-10

@@ -37,8 +37,26 @@ one canonical version of each model. Normal engineering hygiene applies.
 >
 > **The certification gate lives in exactly one place:**
 > `src/lemaitre/initial_data/conformally_flat_puncture/parametric/certification.py`.
-> `CERT_TOL = 1e-10` is the paper's threshold and the default `tol` of every
-> `evaluate_polished`; never restate the number elsewhere. The gate is **opt-in**
+> `CERT_TOL_U = 1e-11` is the live threshold and the default `tol` of every
+> `evaluate_polished`; `CERT_TOL = 1e-10` is its `v`-norm predecessor, kept at the
+> submitted paper's published value and no longer the default of anything. Never
+> restate either number elsewhere — `run_tp_random_sweep.py` did, and that copy would
+> have survived the 2026-08-25 norm flip with the wrong value.
+>
+> **Always name the norm at the comparison.** `EQUIL_NORM_DEFAULT` is `"u"`, the two
+> thresholds are in different norms, and they are not comparable — `CERT_TOL_U` is
+> **~170× looser** than `CERT_TOL`, not tighter, and no single factor converts a
+> residual between the norms. A gate moved between them must be re-measured at its
+> own grid.
+>
+> **Which of the two applies is a property of the SOLVER, not of the caller.** Ask
+> `certification.gate_for(solve_fn)`; do not hard-code either constant at a call
+> site, and pass `tol=None` to `evaluate_polished` so it resolves for you. The 3-D
+> Newton–Krylov path is in `u`; the **axisymmetric 2-D ABT path is not affected by
+> the flip at all** — `solver_abt` has no `Nφ`, so it *is* the `Nφ = 1` case where the
+> norms are bit-identical, and its gate stays `CERT_TOL`. Putting the `u` gate under
+> it is a plain 10× tightening, not a re-norming; that mistake cost
+> `test_certified_polish_4d` on 2026-08-25. The gate is **opt-in**
 > (`strict=True`) because the polish-history producers query below it on purpose —
 > but it is **closed at every point where a datum leaves the package** (`qc_targeting`,
 > `qc_effpot`, the GRTeclyn export). If you add such an exit, close it there too.

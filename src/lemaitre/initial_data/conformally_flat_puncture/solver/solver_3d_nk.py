@@ -66,6 +66,11 @@ from . import solver_3d as s3
 from .newton_loop import newton_loop
 from .solver_3d import Assembly3D, Problem3D, Slice3D  # noqa: F401  (re-export)
 from .operators_3d import EQUIL_NORM_DEFAULT  # noqa: F401  (re-export)
+# The gate is imported, never restated -- one home for the number, and since
+# 2026-08-25 a `tol` here is a U-NORM number (EQUIL_NORM_DEFAULT == "u").
+# `parametric/__init__` and `certification` import nothing from `solver`, so
+# this is not circular.
+from ..parametric.certification import CERT_TOL_U
 
 
 # --------------------------------------------------------------------------
@@ -403,7 +408,7 @@ class NKInfo:
 
 
 def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = None,
-                    tol: float = 1e-10, max_iter: int = 20,
+                    tol: float = CERT_TOL_U, max_iter: int = 20,
                     asm: Optional[Assembly3D] = None,
                     n_warmup: int = 0,
                     gmres_rtol: float = 1e-4,
@@ -448,11 +453,14 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
     replicating this loop.
 
     ``norm`` selects the space the monitor's row scale is taken in and so **what
-    ``tol`` means** — see :func:`equil_residual_inf` and :data:`EQUIL_NORM_DEFAULT`.
-    A returned residual carries no record of its own norm, so a caller that changes
-    this must also change the threshold it compares against: the two differ by
-    ``1/w_min``, ``3.3e+04`` at the production grid.  This is why the default is not
-    flipped independently of the threshold.
+    ``tol`` means** — see :func:`equil_residual_inf` and :data:`EQUIL_NORM_DEFAULT`,
+    which has been ``"u"`` since 2026-08-25.  A returned residual carries no record
+    of its own norm, so **a caller that overrides ``norm`` must also override
+    ``tol``**: the two differ by up to ``1/w_min`` (``3.3e+04`` at the production
+    grid), and the default ``tol`` here is :data:`CERT_TOL_U`, a ``u``-norm number.
+    Passing ``norm="v"`` and leaving ``tol`` alone asks the loop to drive a ``v``
+    residual to ``1e-11``, which is ~10× *tighter* than the old ``v`` gate rather
+    than looser — the mixing failure in the other direction.
     """
     if asm is None:
         asm = s3.assemble(prob, sl,
@@ -532,7 +540,7 @@ def newton_solve_nk(prob: Problem3D, sl: Slice3D, U0: Optional[np.ndarray] = Non
 # Certified polish (3-D analog of parametric.evaluate_polished)
 # --------------------------------------------------------------------------
 def evaluate_polished_nk(prob: Problem3D, sl: Slice3D, U_guess: np.ndarray,
-                         newton_steps: int = 2, tol: float = 1e-10,
+                         newton_steps: int = 2, tol: float = CERT_TOL_U,
                          asm: Optional[Assembly3D] = None,
                          separable: Optional[bool] = None):
     """Warm guess + NK-Newton polish → certified ``‖R‖∞`` ≤ tol.
