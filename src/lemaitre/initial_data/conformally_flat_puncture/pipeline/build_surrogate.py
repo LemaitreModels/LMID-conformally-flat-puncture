@@ -12,8 +12,9 @@ single numpy ``.npz`` (numpy-only, no pickle):
     (default 5 → 1296 nodes at d=4), one full tensor.
 
 Both reload as standalone predictors: ``evaluate`` needs only numpy + the
-parametric modules (~10 ms); ``evaluate_polished`` reaches certified ‖R‖∞≤1e-10
-after reattaching a solver (``parametric_nd.attach_solve_fn_3d``).
+parametric modules (~10 ms); ``evaluate_polished`` reaches the solver's certified
+gate (``CERT_TOL_U = 1e-11`` in the ``u`` norm since 2026-08-25) after reattaching
+a solver (``parametric_nd.attach_solve_fn_3d``).
 
 The default box is ``d4`` = the §5b production family ``(b, |S|, θ_S, q)``.
 
@@ -46,6 +47,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd im
 )
 from lemaitre.initial_data.conformally_flat_puncture.parametric import solve_store as ss
 from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as pb
+from lemaitre.initial_data.conformally_flat_puncture.parametric.certification import CERT_TOL_U
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
@@ -332,8 +334,11 @@ def main():
         worst = max(worst, float(info.residual_norm))
         _t(f"   θ={[round(float(x), 3) for x in th]}  eval={t_eval*1e3:.1f} ms  "
            f"certified‖R‖={info.residual_norm:.2e}")
+    # the polished residual is in the SOLVER's norm (u since 2026-08-25); the bar
+    # is the live gate, imported, not the old v-norm 1e-10 literal.
     _t(f"   worst certified ‖R‖ over {len(hold)} off-node θ = {worst:.2e}"
-       + ("  ✓ ≤ 1e-10" if worst <= 1e-10 else "  ✗ > 1e-10"))
+       + (f"  ✓ ≤ {CERT_TOL_U:.0e} (u)" if worst <= CERT_TOL_U
+          else f"  ✗ > {CERT_TOL_U:.0e} (u)"))
 
     _t(f"\nTOTAL {time.time() - t_start:.0f}s")
     _t("Artifacts:")

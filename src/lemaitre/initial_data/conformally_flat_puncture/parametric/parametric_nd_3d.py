@@ -12,7 +12,9 @@ maps a parameter point ``θ`` onto a misaligned-spin / off-axis-momentum
 
 The forward map is the committed **certified Newton–Krylov** solver
 (``solver_3d_nk.newton_solve_nk`` / ``evaluate_polished_nk``), so every
-interpolant prediction can be certified to ``‖R‖∞ ≤ 1e-10`` at any θ — the
+interpolant prediction can be certified to the solver's gate at any θ
+(``CERT_TOL_U = 1e-11`` in the ``u`` norm since 2026-08-25; ``1e-10`` was the
+``v``-norm gate this module was written against) — the
 "cannot be silently wrong" gate, now over the 3-D family.  The cheaper
 modified-Newton solver (``solver_3d.newton_solve``) is offered as the production
 sweep option: its converged FIELD is bit-identical (the NK report's headline —
@@ -304,7 +306,8 @@ def make_solve_fn(prob: Problem3D, active_names: Sequence[str], M_tot: float = 1
     (warm OR cold), while the damped modified-Newton reaches the basin. When an NK
     solve returns ``residual_norm > retry_tol``, we reach the basin with a cold
     modified-Newton solve and then NK-polish from that field, which certifies to
-    the NK floor (~4e-11 in ~2 steps — the exact Newton converges *locally* once
+    the NK floor (~4e-11 in ~2 steps, a ``v``-norm pre-2026-08-25 measurement —
+    the exact Newton converges *locally* once
     near the solution); the better iterate is kept. Only fires on stagnation, so
     well-converged builds are untouched. (The modified step is used purely as a
     globalization — like a line search / trust region — not as a separate build

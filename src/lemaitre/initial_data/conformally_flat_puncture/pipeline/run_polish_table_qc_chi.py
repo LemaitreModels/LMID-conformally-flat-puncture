@@ -156,6 +156,9 @@ def main(n_points=1000, seed=0, level=5):
     CERT = np.array(CERT); STC = np.array(STC)
     keys = ["guess"] + [f"after{k}" for k in range(1, MAXSTEPS + 1)]
     rows = {keys[k]: _stats(R[k]) for k in range(MAXSTEPS + 1)}
+    # 1e-10 is a fixed REPORT threshold (the v-era gate value), kept so the
+    # `frac_certified_le_1e-10` key stays comparable across runs; the residuals
+    # are in the solver's norm (u since 2026-08-25) and the live gate is CERT_TOL_U.
     frac_cert = {k: float(np.mean(R[k] <= 1e-10)) for k in range(MAXSTEPS + 1)}
 
     res = {"config": {"model": "smolyak_isotropic_chi", "level": level, "box": BOX,

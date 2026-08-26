@@ -25,7 +25,8 @@ Modes
       Combines every partial into the full ``key -> (U, dU, iters, resid)`` pool,
       finalizes the HermiteSmolyakSolutionND (bit-for-bit the from-scratch build —
       same index_set/nodes/deterministic tangents), saves it, POD-compresses,
-      and runs the certified spot-check (worst ‖R‖ must be ≤ 1e-10).
+      and runs the certified spot-check (worst ‖R‖ must be ≤ the live gate,
+      ``CERT_TOL_U = 1e-11`` in the ``u`` norm since 2026-08-25).
 
 Smoke (end-to-end, tiny): build a small 8-D value corpus first, e.g.
   python build_surrogate_chi.py --Na 16 --Nb 12 --Nphi 6 --box spin8_qc_chi_prod \
@@ -59,6 +60,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric import hermite_s
 from lemaitre.initial_data.conformally_flat_puncture.parametric import hermite_smolyak_pod as hpod
 from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_3d import make_solve_fn
 from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd import _git_commit
+from lemaitre.initial_data.conformally_flat_puncture.parametric.certification import CERT_TOL_U
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 
@@ -217,12 +219,16 @@ def run_merge(args):
         _U, info = pod.evaluate_polished(th, newton_steps=args.newton_steps)
         worst = max(worst, float(info.residual_norm))
         _t(f"   θ={[round(float(x),3) for x in th]}  certified‖R‖={info.residual_norm:.2e}")
-    ok = worst <= 1e-10
+    # the polished residual is in the SOLVER's norm (u since 2026-08-25), so the
+    # bar is the live gate, imported -- a literal 1e-10 here would be the old v
+    # number read against a u residual, 10x looser than the gate intends.
+    ok = worst <= CERT_TOL_U
     _t(f"   worst certified ‖R‖ over {len(hold)} off-node θ = {worst:.2e}"
-       + ("  ✓ ≤ 1e-10" if ok else "  ✗ > 1e-10"))
+       + (f"  ✓ ≤ {CERT_TOL_U:.0e} (u)" if ok else f"  ✗ > {CERT_TOL_U:.0e} (u)"))
     _t(f"[S7-merge] TOTAL {time.time()-t_start:.0f}s\n   raw: {m_path}\n   pod: {p_path}")
     if not ok:
-        raise SystemExit(f"CERTIFICATION FAILED: worst ‖R‖={worst:.2e} > 1e-10")
+        raise SystemExit(f"CERTIFICATION FAILED: worst ‖R‖={worst:.2e} > "
+                         f"{CERT_TOL_U:.0e} (the u gate)")
 
 
 def run_pod(args):
@@ -268,11 +274,15 @@ def run_pod(args):
         _U, info = pod.evaluate_polished(th, newton_steps=args.newton_steps)
         worst = max(worst, float(info.residual_norm))
         _t(f"   θ={[round(float(x),3) for x in th]}  certified‖R‖={info.residual_norm:.2e}")
-    ok = worst <= 1e-10
+    # the polished residual is in the SOLVER's norm (u since 2026-08-25), so the
+    # bar is the live gate, imported -- a literal 1e-10 here would be the old v
+    # number read against a u residual, 10x looser than the gate intends.
+    ok = worst <= CERT_TOL_U
     _t(f"   worst certified ‖R‖ over {len(hold)} off-node θ = {worst:.2e}"
-       + ("  ✓ ≤ 1e-10" if ok else "  ✗ > 1e-10"))
+       + (f"  ✓ ≤ {CERT_TOL_U:.0e} (u)" if ok else f"  ✗ > {CERT_TOL_U:.0e} (u)"))
     if not ok:
-        raise SystemExit(f"CERTIFICATION FAILED: worst ‖R‖={worst:.2e} > 1e-10")
+        raise SystemExit(f"CERTIFICATION FAILED: worst ‖R‖={worst:.2e} > "
+                         f"{CERT_TOL_U:.0e} (the u gate)")
     _t(f"[S7-pod] DONE\n   pod: {p_path}")
 
 

@@ -4,7 +4,8 @@ Companion to ``run_polish_table.py``: instead of warm-starting the Newton polish
 from the barycentric surrogate guess, this runs the genuine elliptic solver
 **cold** — i.e. from the solver's own zero-field initial iterate (``U0=None``, the
 same cold start the paper's ``tab:timing`` cold Newton--Krylov solve uses,
-``run_qc_timing.py``: ``solve_nk(theta, None, 1e-10, 30)``).  No surrogate, no
+``run_qc_timing.py``: ``solve_nk(theta, None, 1e-10, 30)`` — the ``v``-era gate;
+``CERT_TOL_U`` is the live one since 2026-08-25).  No surrogate, no
 interpolant.  It records the equilibrated constraint residual ``||R||_inf`` of the
 zero-field guess (step 0) and after 1..K Newton--Krylov steps, over the IDENTICAL
 1000 seed-0 off-node points as ``run_polish_table.py`` (same box / grid / gap
@@ -144,6 +145,9 @@ def run_dim(dim, n_points, steps, seed):
     keys = ["guess"] + [f"after{k}" for k in range(1, steps + 1)]
     rows = {keys[k]: _stats(R[k]) for k in range(steps + 1)}
     residuals = {keys[k]: [float(x) for x in R[k]] for k in range(steps + 1)}
+    # 1e-10 is a fixed REPORT threshold (the v-era gate value), kept so the
+    # `frac_certified_le_1e-10` key stays comparable across runs; the residuals
+    # are in the solver's norm (u since 2026-08-25) and the live gate is CERT_TOL_U.
     frac_cert = {keys[k]: float(np.mean(R[k] <= 1e-10)) for k in range(steps + 1)}
     certified = STC[STC < 99]
 

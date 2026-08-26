@@ -52,7 +52,8 @@ import jax.numpy as jnp
 #: ``1e-10`` on the *equilibrated* discrete constraint residual measured in the
 #: ``v`` norm, i.e. against ``operators_3d``'s ``scales``.  It sits ~1.5 decades
 #: above the equilibrated roundoff floor and ~0.5 decades above the Newton–Krylov
-#: floor observed at the extreme corners of the 8-D box (~4e-11), which was the
+#: floor observed at the extreme corners of the 8-D box (~4e-11 — a ``v``-norm,
+#: pre-2026-08-25 measurement, like every number in this paragraph), which was the
 #: margin that kept it from firing on arithmetic rather than on physics.
 #:
 #: **It is kept, with its value and its name unchanged, because it is what the

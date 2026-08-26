@@ -152,6 +152,31 @@ figure→producer→artifact graph). Those producers are the heavy tier below.
   disk**, so on a clone (where all ten are committed) it does nothing at all.
   `python paper/figures/make_figdata.py --all --force` is what actually rebuilds.
 
+### Residual provenance of the committed figdata (ruled 2026-08-25, document-only)
+
+**Every residual or residual threshold inside a committed `figdata/*.json` that
+predates the norm flip (`1eec8c7`, 2026-08-25) is a `v`-norm number by
+construction** — the artifacts were produced when the certified monitor was the
+`v`-norm `CERT_TOL = 1e-10`, and each one's last commit predates the flip. The
+artifacts stay **byte-stable**: they are the submitted paper's record, and the
+ruling of 2026-08-25 is to document their ruler here rather than restamp or
+rebuild them. The instances that motivated this note:
+
+- `fig04_polish_staircase.json` — explicit `meta.certify_tol = 1e-10` (`v`), with
+  `steps_to_certify` keyed on it;
+- `fig08_tp_validation.json` — explicit `meta.cert_tol = 1e-10` (`v`); its values
+  clear both rulers;
+- `fig06_targeting.json` — `meta.worst_certified_residual` = `9.88e-11` /
+  `5.64e-11` / `3.64e-11` with **no tol or norm field qualifying "certified"**.
+  These are `v`-certified (at 0.99× that gate in the cold arm). **Do not read
+  them against the `u` gate `CERT_TOL_U = 1e-11`** — they would misread as
+  3.6–9.9× misses, and no single factor converts between the norms (the measured
+  `v/u` ratio is grid-dependent, `1×` to `6.6e+08`).
+
+A figdata regenerated after `1eec8c7` carries the live `u` gate and should stamp
+its norm explicitly (the curved leaf's fig04 producer writes `gate_norm`; new
+producers here should do the same).
+
 ## Model-artifact location convention
 
 **One setting: `$LM_REPORTS`.** Every producer in `src/lemaitre/initial_data/conformally_flat_puncture/pipeline/`
@@ -290,7 +315,9 @@ Two diagnostics that no longer have a panel of their own:
   appendix text — the most stringent TwoPunctures number in the paper, and not obtainable
   from a quasi-circular configuration, which is never axisymmetric. It is measured by this
   same producer and read out of fig08's committed figdata meta (`anchor`): ψ to 2.5e-10 in
-  the supremum norm, `M_ADM` to 1.2e-11 relative, certified residual 9.3e-15. The older
+  the supremum norm, `M_ADM` to 1.2e-11 relative, certified residual 9.3e-15 (against the
+  `v`-norm `1e-10` stamp the artifact carries — pre-`1eec8c7`, see the provenance note
+  above; the value clears both rulers). The older
   4.7e-12 / 1.0e-11 pair came from the superseded `tp_validation` source and no longer
   appears anywhere in the manuscript.
 - the **ADM-`J` tilt against the spin tilt** (measured, θ_J tracked θ_S to ~1e-14 deg for

@@ -231,7 +231,8 @@ def equil_residual_inf(asm: Assembly3D, U: np.ndarray, scales=None,
     from the same norm, and with both available the pairing can be named rather than
     assumed.  ``max(scales_u/scales) = 1/w_min = (1 − max B²)^{−m_max/2}``, so the
     two differ by ``3.3e+04`` at the production grid and coincide exactly at
-    ``Nφ = 1``.  See :data:`EQUIL_NORM_DEFAULT` for why the default is still ``"v"``.
+    ``Nφ = 1``.  The default has been ``"u"`` since 2026-08-25 — see
+    :data:`EQUIL_NORM_DEFAULT` for the flip and the gate that moved with it.
     An explicit ``scales`` still wins over ``norm``, unchanged, for a caller that
     has already built the divisor it wants.
     """

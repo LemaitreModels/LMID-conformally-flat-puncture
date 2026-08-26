@@ -28,7 +28,9 @@ ways, over ``N`` random known-answer targets, and tabulate the honest cost metri
   * ``gradient`` — Gauss–Newton on the *free* differentiable surrogate (analytic
                    ∂F/∂θ, no solve per step) + a certified last-mile.
 
-Every emitted configuration is certified to ``‖R‖∞ ≤ 1e-10``.  Writes
+Every emitted configuration is certified to the solver's gate (``CERT_TOL_U``,
+``u`` norm since 2026-08-25; the runs recorded before that date were against the
+``v``-norm ``1e-10``).  Writes
 ``reports/P3/qc_targeting_chi_prod_<N>.json`` and the figure
 ``figures/fig_qc_targeting.png``.
 

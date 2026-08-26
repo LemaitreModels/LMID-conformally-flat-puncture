@@ -499,7 +499,7 @@ def gauss_newton_target(model, prob, target, theta0, target_names, box, *,
 # ==========================================================================
 # Known-answer targets (draw θ*, forward-map to (M_ADM, J) via a certified solve)
 # ==========================================================================
-def make_target(model, prob, theta_star, target_names, tol=1e-10, max_iter=25):
+def make_target(model, prob, theta_star, target_names, tol=CERT_TOL_U, max_iter=25):
     """Forward map: certified-solve at ``θ*`` and return its observable vector."""
     U, _ = _certified_solve(model, prob, theta_star, None, tol, max_iter)
     return observe(prob, np.asarray(U), theta_star, target_names)

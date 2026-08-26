@@ -39,7 +39,8 @@ Design decisions
   must not be hand-rolled: it goes through the canonical mapping
   ``parametric_nd_3d.theta_to_slice3d``.
 * **The residual is the EQUILIBRATED one** (``info.residual_norm``), never the raw nodal
-  norm.  Certification gate: ``<= 1e-10``.
+  norm.  Certification gate: ``cert_tol`` (``CERT_TOL_U`` since 2026-08-25; the
+  recorded sweeps below predate the flip and were gated at ``1e-10`` in ``v``).
 * **One oracle call per configuration, shared by every rung.**  The oracle is ~95% of the
   per-sample cost, which is what makes a whole ladder per configuration affordable.
 * **The reference must out-resolve the test in EVERY direction, phi included.**  The
@@ -64,7 +65,8 @@ Three measured facts to read the output with
   grows ~100x from ``q=1`` to ``q=3`` and a further ~10x from ``b=3`` to ``b=10``.
 * **The certified residual RISES with resolution, and the DIRECTION decides how much.**
   Along this meridional ladder the rise is mild (~33x) and every rung stays under the
-  ``1e-10`` gate; raising ``Nphi`` instead makes it rise by ~6e6 (to ``3.2e-7``) and breach
+  ``1e-10`` gate (``v`` norm, the gate these sweeps were recorded against pre-2026-08-25);
+  raising ``Nphi`` instead makes it rise by ~6e6 (to ``3.2e-7``) and breach
   the gate, because the mechanism is roundoff amplification in unpopulated high-``m``
   azimuthal modes.  Either way it is not a loss of convergence -- the field difference
   keeps falling.  ``certified`` is recorded per rung; never quote a certificate from a rung
@@ -131,7 +133,7 @@ FIXED_QC = dict(pbox.FIXED_QC)          # {"qc": 1.0} -- deterministic PN moment
 # fixed Nphi=8 versus 1.446e-4 -> 4.568e-7 (317x) rising, agreeing to three digits at every
 # rung -- so (Na,Nb), not Nphi, is what limits the agreement with TwoPunctures.  What DOES
 # depend on the direction is the certified residual: it rises 33x along this ladder and
-# stays under the 1e-10 gate at every rung, whereas raising Nphi makes it rise by ~6e6 (to
+# stays under the 1e-10 gate (v norm, pre-2026-08-25) at every rung, whereas raising Nphi makes it rise by ~6e6 (to
 # 3.2e-7) and breach the gate from the third rung on, because the mechanism is roundoff
 # amplification in unpopulated high-m azimuthal modes.  Refining the meridian therefore
 # keeps every rung certified at no cost in convergence.  (This is also the ladder the

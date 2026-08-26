@@ -148,7 +148,11 @@ def _meta(cfgs):
         # The route the residual staircases ran.  fig04's field-error producers used to
         # assemble dense while the residuals they reproduce ran separable (review 5.4).
         route={str(d): cfgs[d].get("route") for d in (4, 8)},
-        certify_tol=1e-10,                       # the dotted line; CERT_TOL is certification.py's
+        certify_tol=1e-10,                       # the dotted line; CERT_TOL (v norm) is certification.py's
+                                                 # -- the committed artifact is a pre-1eec8c7 v-era
+                                                 # measurement kept byte-stable per the 2026-08-25
+                                                 # [D2] ruling (see docs/DATA.md); a rebuild under the
+                                                 # u regime would re-price a submitted figure
         n_points=c4.get("n_points"), seed=c4.get("seed"),
         smolyak_level=c4.get("level"),
         grid={str(d): [cfgs[d].get("Na"), cfgs[d].get("Nb"), cfgs[d].get("Nphi")]

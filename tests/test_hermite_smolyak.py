@@ -8,7 +8,9 @@ Gates:
   * **node-exact for values** everywhere, and **for the enhanced-axis tangent at
     the genuinely Hermite-resolved nodes** (level ≥1 on the enhanced axis) — the
     level-0 (value-only) nodes for that axis are interpolated by design (R7/R4);
-  * ``evaluate_polished`` certifies random off-node points to ``‖R‖∞ ≤ 1e-10``
+  * ``evaluate_polished`` certifies random off-node points to the 3-D solver's
+    gate (``CERT_TOL_U = 1e-11``, ``u`` norm, since 2026-08-25 — resolved through
+    ``gate_for``, not restated here)
     (unchanged, with the NK solver);
   * ``save``/``load`` round-trips **bit-for-bit** (value + tangent + enhanced set).
 

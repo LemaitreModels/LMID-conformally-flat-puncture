@@ -204,6 +204,10 @@ def main(cross_path, n_points=1000, seed=0, n_peraxis=60,
                         "value+grad+cross": stats(EC)},
         "constraint_residual": {"value": stats(RV), "value+grad": stats(RG),
                                 "value+grad+cross": stats(RC),
+                                # 1e-10 is a fixed REPORT threshold (v-era gate
+                                # value), kept for cross-run comparability; the
+                                # residuals are in the solver's norm (u since
+                                # 2026-08-25), live gate CERT_TOL_U.
                                 "frac_certified_le_1e-10": {
                                     "value": float(np.mean(RV <= 1e-10)),
                                     "value+grad": float(np.mean(RG <= 1e-10)),

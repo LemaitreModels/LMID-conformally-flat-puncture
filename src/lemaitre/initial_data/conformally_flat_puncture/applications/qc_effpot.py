@@ -24,7 +24,11 @@ The demonstrator: the differentiable surrogate exposes ``∂E_b/∂b|_J`` analyt
 (``jax.grad``), so a Newton root-find locates the circular orbit on the FREE
 interpolant (no solve per step), certifying only at the end — versus the classical
 certified-solve scan.  The honest metric is the number of certified elliptic
-solves; every emitted configuration is certified ``‖R‖∞ ≤ 1e-10``.
+solves; every emitted configuration is certified against the solver's own gate
+(``certification.gate_for`` — ``CERT_TOL_U = 1e-11`` in the ``u`` norm since
+2026-08-25; the ``1e-10`` this module was written against is the ``v``-norm
+``CERT_TOL``, kept for history).  ``tol`` defaults to ``None`` everywhere here so
+the gate resolves through the solver rather than being restated.
 
 Standalone: imports ``parametric_nd`` / ``certification`` and reuses
 ``qc_targeting.M_ADM``; defines no new physics.  numpy + jax + scipy only.
@@ -263,7 +267,7 @@ def _bracket_dV(dV, model, J, box_b, n_probe=33):
     return None
 
 
-def circular_gradient(model, prob, J, b0, box_b, *, tol=1e-10, max_newton=30,
+def circular_gradient(model, prob, J, b0, box_b, *, tol=None, max_newton=30,
                       verify_h=0.05):
     """Locate the circular orbit at fixed ``J`` by Newton on ``dV/db|_J`` on the
     FREE surrogate (no solve per step), then certify.
@@ -326,7 +330,7 @@ def circular_gradient(model, prob, J, b0, box_b, *, tol=1e-10, max_newton=30,
                       dEb_db_certified=slope, wall_s=time.perf_counter() - t0)
 
 
-def circular_scan(model, prob, J, box_b, *, n_scan=13, tol=1e-10):
+def circular_scan(model, prob, J, box_b, *, n_scan=13, tol=None):
     """Classical effective-potential SCAN: certified E_b at ``n_scan`` separations
     on a fixed-J apsis sequence, parabola-fit the minimum.  Cost: n_scan solves."""
     t0 = time.perf_counter()

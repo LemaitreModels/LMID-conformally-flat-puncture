@@ -13,7 +13,8 @@ Gates (the brief):
   * held-out interpolation error drops geometrically with Q in each axis
     (b, |S|/θ_S, S_x) and jointly — exponential parametric convergence;
   * certified prediction (headline) — at generic off-node θ,
-    ``evaluate_polished`` reaches certified ``‖R‖∞ ≤ 1e-10`` from the interpolant
+    ``evaluate_polished`` reaches the 3-D solver's certified gate
+    (``CERT_TOL_U = 1e-11`` in ``u`` since 2026-08-25) from the interpolant
     warm start in ≤2 NK steps, the "cannot be silently wrong" gate over 3-D;
   * analyticity walls — the b→0 merger wall reproduces the P1 / b=0 Bernstein
     rate; the spin-tilt wall is soft/far;
@@ -109,12 +110,13 @@ def test_held_out_b_convergence():
 
 
 # --------------------------------------------------------------------------
-# Certified prediction (headline) — ≤1e-10 at off-node θ in ≤2 NK steps
+# Certified prediction (headline) — the 3-D gate at off-node θ in ≤2 NK steps
 # --------------------------------------------------------------------------
 def test_certified_prediction_3d():
     """At a generic OFF-node θ over the 3-D family, the interpolant warm start +
-    ≤2 certified NK steps reaches ``‖R‖∞ ≤ 1e-10`` — independent of any
-    interpolation error.  The "cannot be silently wrong" gate in 3-D."""
+    ≤2 certified NK steps reaches the solver's gate (``CERT_TOL_U = 1e-11`` in
+    ``u`` since 2026-08-25) — independent of any interpolation error.  The
+    "cannot be silently wrong" gate in 3-D."""
     prob = s3.make_problem(Na=28, Nb=20, Nphi=6)
     axes = [{"name": "b", "min": 1.5, "max": 4.0, "Q": 5},
             {"name": "theta_S", "min": 0.0, "max": 90.0, "Q": 5}]

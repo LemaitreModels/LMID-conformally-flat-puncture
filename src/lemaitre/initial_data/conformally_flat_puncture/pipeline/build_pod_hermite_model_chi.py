@@ -37,7 +37,7 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_
 CHI_MAX = pb.CHI_MAX
 
 # swap the module-level box to the chi box (main() reads BOX/FIXED as globals).
-# derisk_b27.py certified every hard corner of the FORMER b in [2,7] to <= 7.2e-12;
+# derisk_b27.py certified every hard corner of the FORMER b in [2,7] to <= 7.2e-12 (v norm, pre-2026-08-25);
 # the current upper edge b = B_MAX lies OUTSIDE that study and is uncertified,
 # though wider separation reduces puncture coupling so it is expected easier.
 # Must match the value corpus box for --reuse-value, which is why

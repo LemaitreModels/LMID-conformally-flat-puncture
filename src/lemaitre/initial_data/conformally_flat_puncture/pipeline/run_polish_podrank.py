@@ -92,6 +92,9 @@ def run(dim, rank, n_points=1000, seed=0):
     keys = ["guess"] + [f"after{k}" for k in range(1, MAXSTEPS + 1)]
     rows = {keys[k]: _stats(R[k]) for k in range(MAXSTEPS + 1)}
     residuals = {keys[k]: [float(x) for x in R[k]] for k in range(MAXSTEPS + 1)}
+    # 1e-10 is a fixed REPORT threshold (the v-era gate value), kept so the
+    # `frac_certified_le_1e-10` key stays comparable across runs; the residuals
+    # are in the solver's norm (u since 2026-08-25) and the live gate is CERT_TOL_U.
     frac_cert = {keys[k]: float(np.mean(R[k] <= 1e-10)) for k in range(MAXSTEPS + 1)}
     certified = STC[STC < 99]
 

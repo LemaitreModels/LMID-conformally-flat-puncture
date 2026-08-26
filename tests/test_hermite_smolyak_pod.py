@@ -12,7 +12,9 @@ chain-rule tangent).  Gates:
     full rank (interp floor) and to the **truncation tail** at a gradient-safe rank;
   * the **exposed gradient is preserved to ~1e-6** (the full sparse gradient
     projected onto ``Φ``);
-  * ``evaluate_polished`` still **certifies to ‖R‖∞ ≤ 1e-10** (unchanged);
+  * ``evaluate_polished`` still **certifies to the 3-D solver's gate** (unchanged
+    in structure; the gate is ``CERT_TOL_U = 1e-11`` in ``u`` since 2026-08-25,
+    resolved through ``gate_for``);
   * ``save``/``load`` round-trips **bit-for-bit**;
   * the derivative fields' POD rank **barely grows** over the value-only basis (R5).
 

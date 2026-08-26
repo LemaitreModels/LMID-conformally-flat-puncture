@@ -392,7 +392,8 @@ def attach_solve_fn_3d(sol, prob, axis_names, *, M_tot: float = 1.0, fixed=None,
                        gmres_rtol: float = 1e-4,
                        retry_tol: Optional[float] = CERT_TOL_U):
     """Attach a 3-D ``solve_fn`` to a loaded surrogate so ``evaluate_polished``
-    works (certified ``‖R‖∞ ≤ 1e-10``).
+    works (certified against the solver's own gate — ``CERT_TOL_U = 1e-11`` in
+    the ``u`` norm since 2026-08-25, resolved through ``certification.gate_for``).
 
     Works for **both** :class:`ParametricSolutionND` and
     ``parametric_nd_smolyak.SmolyakSolutionND`` (both expose the same

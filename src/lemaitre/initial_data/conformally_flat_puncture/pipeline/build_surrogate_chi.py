@@ -54,7 +54,7 @@ bs.FIXED["d4_qc_chi"] = dict(pb.FIXED_QC)
 bs.FIXED["spin8_qc_chi"] = dict(pb.FIXED_QC)
 
 # --- production wide-separation variants ---
-# derisk_b27.py certified every hard corner of the FORMER b in [2,7] to <= 7.2e-12;
+# derisk_b27.py certified every hard corner of the FORMER b in [2,7] to <= 7.2e-12 (v norm, pre-2026-08-25);
 # the current upper edge b = B_MAX lies OUTSIDE that study and is uncertified,
 # though wider separation reduces puncture coupling so it is expected easier.
 bs.BOXES["d4_qc_chi_prod"] = pb.aligned_box()
