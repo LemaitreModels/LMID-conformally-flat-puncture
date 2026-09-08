@@ -59,7 +59,7 @@
 Constraint-satisfying initial data for binary black holes require the repeated solution of a nonlinear elliptic boundary-value problem throughout the physical parameter space.
 We present a para\-metric, differentiable initial-data model that combines sparse-grid spectral interpolation with Newton refinement over a family of binary configurations.
 Interpolation is used only to provide warm starts for the underlying elliptic solver, rather than to replace it.
-A small number of Newton iterations refines each interpolated solution to a discrete constraint residual $\|R\|_\infty\le10^{-10}$, independent of the interpolation error, so that every returned initial-data set satisfies the discretized constraint to that tolerance.
+A small number of Newton iterations refines each interpolated solution to a discrete, row-equilibrated constraint residual $\|R\|_\infty\le10^{-10}$, independent of the interpolation error, so that every returned initial-data set satisfies the discretized constraint to that tolerance.
 Our JAX implementation provides analytic derivatives with respect to the physical parameters, enabling gradient-based parameter targeting, optimization, and sensitivity analysis.
 We demonstrate the method for quasi-circular binary-black-hole initial data using conformally flat Bowen--York punctures by constructing four-dimensional aligned-spin and eight-dimensional general-spin models.
 The resulting initial data are validated against TwoPunctures, and the method is applied to certified targeting of the physical Arnowitt--Deser--Misner mass and angular momentum and to effective-potential eccentricity reduction using a dedicated separation--tangential-momentum model.
@@ -110,7 +110,7 @@ We demonstrate the approach for both a four-dimensional aligned-spin model and a
 The proposed solver is \emph{parametric} and \emph{analytically differentiable} with respect to the physical parameters, a combination that, to our knowledge, has not previously been demonstrated for binary-black-hole initial data.
 The entire construction is implemented in JAX~\cite{Jax2018}, so the resulting parameter-to-solution map is differentiable with respect to the physical parameters, and these derivatives are obtained automatically through algorithmic differentiation rather than by finite differencing.
 Neither property is bought at the cost of accuracy.
-Every queried parameter is refined by Newton iterations of the genuine elliptic solver until the discrete constraint residual satisfies $\|R\|_\infty \le 10^{-10}$, a gate checked before the datum is returned; the corresponding continuum constraint violation is verified independently on an evolution grid (App.~\ref{sec:validation:constraints}).
+Every queried parameter is refined by Newton iterations of the genuine elliptic solver until the discrete, row-equilibrated constraint residual (Sec.~\ref{sec:solve:newton}) satisfies $\|R\|_\infty \le 10^{-10}$, a gate checked before the datum is returned; the corresponding continuum constraint violation is verified independently on an evolution grid (App.~\ref{sec:validation:constraints}).
 The sparse interpolant therefore accelerates the computation but does not replace the underlying elliptic solver.
 
 
@@ -504,7 +504,30 @@ operator row,
 \end{align}
 Because row equilibration is only a left scaling, it does not change the root of
 the discrete system. We therefore monitor Eq.~\eqref{eq:equil_residual} and
-abbreviate it as $\|R\|_\infty$ throughout.
+abbreviate it as $\|R\|^{(v)}_\infty$ throughout, the superscript naming the
+row-equilibrated normalization of Eq.~\eqref{eq:row_scale} and distinguishing it
+from the raw nodal norm of the preceding paragraph. Every residual and every
+tolerance quoted in this paper is in that normalization.\footnote{The row scale of
+Eq.~\eqref{eq:row_scale} is not the only defensible choice, and the distinction
+matters quantitatively. A normalization that divides each equation by the
+magnitude of its own \emph{column} rather than by the maximum over its row --
+denoted $\|R\|^{(u)}_\infty$ -- removes a boundary factor that grows without bound
+with the number of azimuthal modes, and which causes
+Eq.~\eqref{eq:equil_residual} to reject field-converged solutions at high
+$N_\phi$ while accepting coarser ones. The implementation accompanying this work
+has since adopted that normalization as its default monitor and certifies against
+$\|R\|^{(u)}_\infty\le10^{-11}$. \emph{This is not a tightening of the gate used
+here; it is substantially looser.} The two normalizations are not related by a
+fixed factor: their ratio is bounded by the grid-dependent quantity
+$(1-\max_j B_j^2)^{-m_{\max}/2}$, which equals $3.3\times10^{4}$ at the
+production grid $44\times32\times8$ of this paper and grows without bound with
+$N_\phi$, while the ratio attained on an individual converged solve is smaller
+and configuration-dependent. Either way the newer gate admits residuals orders of
+magnitude larger when expressed in $\|R\|^{(v)}_\infty$, so no number in this
+paper should be compared with one quoted against
+$\|R\|^{(u)}_\infty\le10^{-11}$ without that conversion. Every value reported
+here is the measured $\|R\|^{(v)}_\infty$ and is unchanged by that later
+choice.}
 
 The nonlinear iteration drives the residual to an internal target one decade
 below the requested tolerance, and terminates when that target is reached, when
@@ -625,7 +648,7 @@ solver of Sec.~\ref{sec:solve:newton}. Taking the barycentric prediction as the
 initial iterate, $U^{(0)} = \mathcal{I}[u](\theta)$, we then apply the Newton
 iteration of Eq.~\eqref{eq:newton}, with the residual $R$ and analytic Jacobian $J$ of
 Eqs.~(\ref{eq:residual}, \ref{eq:jacobian}). Because the guess is already close,
-a few steps drive the constraint residual to $\|R\|_\infty \le 10^{-10}$,
+a few steps drive the constraint residual to $\|R\|^{(v)}_\infty \le 10^{-10}$,
 \emph{independent} of the interpolation error, and that residual is checked before
 the datum is returned, so a query cannot be silently wrong.
 Section~\ref{sec:model:joint} makes this quantitative for the
@@ -642,9 +665,9 @@ high-derivative content that the field norm barely registers, i.e.\ a guess can 
 excellent in field-norm yet violate the constraint by orders of magnitude more.
 Concretely, projecting the \emph{exact} solution onto a smooth low-dimensional
 subspace leaves a field error $\sim\!10^{-4}$ but a residual
-$\|R\|_\infty\sim\mathcal{O}(1)$, and it certifies in no fewer Newton steps than
+$\|R\|^{(v)}_\infty\sim\mathcal{O}(1)$, and it certifies in no fewer Newton steps than
 the crude barycentric guess. The step count is therefore set by
-$\|R(U^{(0)})\|_\infty$, not by field accuracy, with two consequences. First,
+$\|R(U^{(0)})\|^{(v)}_\infty$, not by field accuracy, with two consequences. First,
 refining the interpolant's field accuracy is a weak lever on the online cost, so
 the certified polish, which drives $\|R\|_{\infty}\to0$ regardless of the guess, is the
 correct instrument. Second, one may discard the high-derivative content of the
@@ -1240,7 +1263,7 @@ the reference implementation against which the default path is tested.
   \centering
   \includegraphics[width=\textwidth]{fig04_polish_staircase.pdf}
   \caption{\label{fig:polish}%
-    \textbf{Certified refinement.} Constraint residual $\|R\|_\infty$ (top row)
+    \textbf{Certified refinement.} Row-equilibrated constraint residual $\|R\|^{(v)}_\infty$ (top row)
     and relative field error $\|U-U_{\rm true}\|_2/\|U_{\rm true}\|_2$ (bottom
     row) over $1000$ uniformly-random off-node points of the quasi-circular models
     (left column four-dimensional
@@ -1248,9 +1271,10 @@ the reference implementation against which the default path is tested.
     (``guess'') and after each Newton step. Each curve is the median with
     min--max whiskers over the $1000$ points, the field error measured against the
     converged certified iterate. \emph{Dotted:} the certification threshold
-    $10^{-10}$. Both value-only and gradient-enhanced models are POD-compressed onto the
+    $10^{-10}$ in the row-equilibrated norm $\|R\|^{(v)}_\infty$ of
+    Eq.~\eqref{eq:equil_residual}. Both value-only and gradient-enhanced models are POD-compressed onto the
     same reduced basis at the same rank. In both dimensions, both
-    warm starts certify \emph{every} point to $\|R\|_\infty\le10^{-10}$ in at most
+    warm starts certify \emph{every} point to $\|R\|^{(v)}_\infty\le10^{-10}$ in at most
     three Newton steps.}
 \end{figure*}
 
@@ -1301,7 +1325,7 @@ verified $\dID$ (Sec.~\ref{sec:param:diff}) are all preserved.
   \includegraphics[width=\textwidth]{fig05_guess_vs_memory.pdf}
   \caption{\label{fig:pod}%
     \textbf{Reduced-basis (POD) compression versus stored memory.} Constraint
-    residual $\|R\|_\infty$ (top row) and
+    residual $\|R\|^{(v)}_\infty$ (top row) and
     relative field error $\|U-U_{\rm true}\|_2/\|U_{\rm true}\|_2$ (bottom row), as the POD
     truncation rank $r$ is swept. Median line with min--max whiskers over $1000$
     uniformly-random off-node query points; each point is labeled by $r$ and
@@ -1332,7 +1356,7 @@ four-dimensional quasi-circular model, and eccentricity reduction on a
 purpose-built two-dimensional $(b,P_{\rm t})$ model. Each targets
 a standard numerical-relativity initial-data workflow, and in each the honest cost
 metric is the number of \emph{certified} elliptic solves, i.e.\ full nonlinear solves
-whose returned field has passed the $\|R\|_\infty\le10^{-10}$ gate. This is the unit used in every cost statement and figure
+whose returned field has passed the $\|R\|^{(v)}_\infty\le10^{-10}$ gate. This is the unit used in every cost statement and figure
 below; the Newton steps and linear solves inside one such solve are not counted
 separately.
 
@@ -1489,7 +1513,7 @@ is quantitative only within the physical range ($\chi_{\max}\lesssim0.8$): pushi
 the sampling interval toward and past extremal spin mixes the genuine (complex,
 far) singularity with pre-asymptotic and spatial-floor effects, so the clean
 single-$\chi_\ast$ characterization is reported for the physical regime, not
-extrapolated beyond it. Second, the certified $\|R\|_\infty\le10^{-10}$ gate is
+extrapolated beyond it. Second, the certified $\|R\|^{(v)}_\infty\le10^{-10}$ gate is
 verified at the production grid ($44\times32\times8$); at higher meridian
 resolution the whole-field equilibrated residual floors higher, because the stiff
 $m^2/\rho^2$ term amplifies roundoff in the azimuthal modes that carry no source
@@ -1547,7 +1571,8 @@ axi\-symmetric limit the two codes agree to near machine precision.
     The panels are, from top to bottom, the certified residual; the pointwise field difference; and
     the ADM mass comparison. The field difference falls with resolution while the residual rises: the rise is
     roundoff amplification in unpopulated high-$m$ modes, not a loss of convergence, and every
-    configuration stays below the certification gate $10^{-10}$ (dotted) at
+    configuration stays below the certification gate $10^{-10}$ (dotted), in the
+    row-equilibrated norm $\|R\|^{(v)}_\infty$, at
     every resolution.}
 \end{figure}
 
@@ -1592,7 +1617,7 @@ three digits at every resolution.
 
 The certified residual behaves in the opposite direction
 (Fig.~\ref{fig:tpval}). Its median rises along the same
-sequence, while remaining below the certification tolerance $10^{-10}$ for every one of the $100$ configurations
+sequence, while remaining below the certification tolerance $10^{-10}$ in $\|R\|^{(v)}_\infty$ for every one of the $100$ configurations
 at every resolution. That the field difference falls while the residual grows
 identifies the rise as roundoff amplification in unpopulated high-$m$ modes
 rather than a loss of convergence. The direction of refinement decides the size
