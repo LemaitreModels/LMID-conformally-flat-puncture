@@ -49,7 +49,7 @@ def _prod(module, *argv, dim=None, note=""):
     nothing in this package produces the source).  ``dim`` is the model dimension
     the source measures, and it is what resolves the argv placeholders below, so
     the shipped rank and the shipped artifact names are never restated here —
-    ``production_model`` remains their single source (CLAUDE.md).
+    ``production_model`` remains their single source (AGENTS.md).
 
     Placeholders, substituted by :func:`producer_cmd`:
 

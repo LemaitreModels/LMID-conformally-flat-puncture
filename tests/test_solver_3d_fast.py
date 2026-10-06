@@ -764,7 +764,7 @@ def test_axisym_blocks_still_exists_for_the_curved_leaf():
     returns the coordinates without assembling a dense operator to discard — but
     ``lemaitre.initial_data.curved_puncture.operators.make_chart`` unpacks this
     exact 8-tuple, and the family's dependency direction is
-    ``curved_puncture -> conformally_flat_puncture`` (see ``Lemaitre/CLAUDE.md``).
+    ``curved_puncture -> conformally_flat_puncture`` (see ``Lemaitre/AGENTS.md``).
 
     This test exists because deleting the function as "unused" made the entire
     curved leaf unimportable, and NOTHING in this leaf's 611-test suite noticed:

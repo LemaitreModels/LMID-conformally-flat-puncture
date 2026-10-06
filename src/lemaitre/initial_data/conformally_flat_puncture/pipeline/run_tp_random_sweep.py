@@ -121,7 +121,7 @@ LO = np.array([a["min"] for a in AXES])
 HI = np.array([a["max"] for a in AXES])
 
 FIXED_QC = dict(pbox.FIXED_QC)          # {"qc": 1.0} -- deterministic PN momenta
-# The certification gate is IMPORTED, never restated -- the leaf's CLAUDE.md rule
+# The certification gate is IMPORTED, never restated -- the leaf's AGENTS.md rule
 # ("it lives in exactly one place ... never restate the number elsewhere"), which
 # this module had been violating with its own `CERT_TOL = 1e-10` literal since
 # before the constant moved.  Restated, it would have kept the v-norm value

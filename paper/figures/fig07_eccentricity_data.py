@@ -36,7 +36,7 @@ from lemaitre.initial_data.conformally_flat_puncture.applications import qc_effp
 def _model_meta(path):
     """The shipped model's own provenance blob (``build_surrogate`` writes it).
 
-    The leaf CLAUDE.md rule: a figure that evaluates a model artifact records WHICH
+    The leaf AGENTS.md rule: a figure that evaluates a model artifact records WHICH
     artifact, because the artifact is gitignored and a re-distill against a different
     one is otherwise invisible.  fig06 is the worked example of that going wrong.
     ``build_surrogate`` stores ``meta_json`` on every ``.npz`` it writes; the dense

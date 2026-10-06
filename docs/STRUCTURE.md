@@ -339,7 +339,7 @@ its pass criteria. Also kept: `validation/constraints.py`,
   `notes/qc_extension_plan.md` in one) went on 2026-08-19. The short milestone
   labels themselves (`B2`, `P3`, `risk R7`) are still used in `tests/` docstrings —
   same open question as the runtime tags below. Deliberate survivors, and there are more than the two this line used to
-  claim: this file's, `CLAUDE.md`'s and `tests/test_self_containment.py`'s references
+  claim: this file's, `AGENTS.md`'s and `tests/test_self_containment.py`'s references
   to the BBHFM monorepo, which are migration *history*; the `bbhfm` entries in the
   self-containment pattern lists of a dozen test files, which are *enforcement*; and
   four commit SHAs cited in `src/`/`tests/` docstrings (`fb4f07f`, `25d120e`,

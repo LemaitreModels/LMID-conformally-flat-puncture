@@ -119,7 +119,7 @@ def test_producer_module_exists_and_ranks_match_the_shipped_model(key):
         assert int(r) == pm.SHIPPED_RANK[p["dim"]], (
             f"{key}: producer passes --rank {r} but production_model.SHIPPED_RANK"
             f"[{p['dim']}] is {pm.SHIPPED_RANK[p['dim']]}.  The shipped rank is defined "
-            f"there and nowhere else (CLAUDE.md); use the '{{rank}}' placeholder.")
+            f"there and nowhere else (AGENTS.md); use the '{{rank}}' placeholder.")
 
 
 def test_producer_ranks_are_not_hard_coded():
@@ -140,7 +140,7 @@ def test_producer_ranks_are_not_hard_coded():
                 offenders.append((key, a))
     assert not offenders, (
         f"producer argv restates a shipped rank literally: {offenders}.  Use '{{rank}}' / "
-        f"'{{pod_stem}}' so production_model stays the single source (CLAUDE.md).")
+        f"'{{pod_stem}}' so production_model stays the single source (AGENTS.md).")
 
 
 # --------------------------------------------------------------------------- fig07 numerals ---

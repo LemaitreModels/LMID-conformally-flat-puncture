@@ -106,7 +106,7 @@ def _check_rank(dim, r):
 
 
 # --------------------------------------------------------------------- provenance -----
-# The leaf CLAUDE.md rule: a figure whose caption states the box writes a meta block, so
+# The leaf AGENTS.md rule: a figure whose caption states the box writes a meta block, so
 # a staircase measured on a superseded route or model cannot go unnoticed (fig06 did).
 # Here it carries more than the box, because this figure's caption states a *step count*
 # and the numbers moved once already: the campaign below re-ran all eight producers.
