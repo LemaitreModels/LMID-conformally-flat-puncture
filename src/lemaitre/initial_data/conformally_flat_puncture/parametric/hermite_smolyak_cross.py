@@ -135,7 +135,8 @@ class HermiteCrossSolutionND(HermiteSolutionND):
         c = self.__dict__.get("_jax_consts_cross_cache")
         if c is None:
             base = super()._jax_consts()
-            cross = jnp.asarray(self.cross_nodes) if len(self.cross_pairs) else None
+            with jax.ensure_compile_time_eval():      # see parametric_nd._jax_consts
+                cross = jnp.asarray(self.cross_nodes) if len(self.cross_pairs) else None
             c = base + (cross,)
             self.__dict__["_jax_consts_cross_cache"] = c
         return c

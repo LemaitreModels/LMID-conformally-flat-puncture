@@ -151,9 +151,13 @@ class ParametricSolutionND(CertifiedEvaluateMixin):
         copy replaces the per-call transient one."""
         c = self.__dict__.get("_jax_consts_cache")
         if c is None:
-            c = (jnp.asarray(self.U_nodes),
-                 [jnp.asarray(n) for n in self.nodes],
-                 [jnp.asarray(w) for w in self.weights])
+            # Concrete arrays even when the FIRST call happens inside a jax.jit
+            # trace: otherwise the cache keeps that trace's tracers and the next
+            # jitted function dies with UnexpectedTracerError (qc_effpot's d2V did).
+            with jax.ensure_compile_time_eval():
+                c = (jnp.asarray(self.U_nodes),
+                     [jnp.asarray(n) for n in self.nodes],
+                     [jnp.asarray(w) for w in self.weights])
             self.__dict__["_jax_consts_cache"] = c
         return c
 

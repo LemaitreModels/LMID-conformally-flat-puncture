@@ -285,9 +285,13 @@ class PooledEvaluator:
     def _jax_consts(self):
         c = self._jax_consts_cache
         if c is None:
-            c = (jnp.asarray(self._V),
-                 None if self._dU is None else jnp.asarray(self._dU),
-                 None if self._cross is None else jnp.asarray(self._cross))
+            # Concrete arrays even when the FIRST call happens inside a jax.jit
+            # trace: otherwise the cache keeps that trace's tracers and the next
+            # jitted function dies with UnexpectedTracerError (qc_effpot's d2V did).
+            with jax.ensure_compile_time_eval():
+                c = (jnp.asarray(self._V),
+                     None if self._dU is None else jnp.asarray(self._dU),
+                     None if self._cross is None else jnp.asarray(self._cross))
             self._jax_consts_cache = c
         return c
 

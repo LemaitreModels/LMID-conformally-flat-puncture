@@ -288,6 +288,75 @@ def test_evaluate_pooled_methods(hermite_model, pod_cross_model):
     assert np.allclose(a, b, rtol=0, atol=1e-12 * _scale(pod_cross_model))
 
 
+# --------------------------------------------------------------------------
+# the device-constant caches must survive a first use under jax.jit
+# --------------------------------------------------------------------------
+def _fresh(name):
+    """A NEW instance of a family member: the module fixtures are shared, so
+    their caches may already have been filled eagerly by an earlier test."""
+    value = smol.SmolyakSolverND(_solve_fn, AXES).build_isotropic(2)
+    herm = hsm.HermiteSmolyakSolverND(_solve_fn, AXES, _tangent_fn,
+                                      enhanced_axes=ENH).build_isotropic(2)
+    if name == "value_model":
+        return value
+    if name == "hermite_model":
+        return herm
+    pool = {}
+    for key, (theta, U, dU, it, rs) in herm._dedup_pool().items():
+        cross = np.stack([_cross_pair(theta, e0, e1) for (e0, e1) in hsc._global_pairs(ENH)])
+        pool[key] = (theta, U, dU, cross, it, rs)
+    cross = hsc.build_cross_from_pool(AXES, herm.index_set, ENH, pool)
+    if name == "cross_model":
+        return cross
+    if name == "pod_model":
+        return hsp.build_pod_hermite_smolyak(herm, r=5)[0]
+    return hspc.build_pod_hermite_smolyak_cross(cross, r=5)[0]
+
+
+@pytest.mark.parametrize("name", ALL)
+@pytest.mark.parametrize("route", ["evaluate_jax", "evaluate_jax_subgrid_sum"])
+def test_jax_constants_cached_under_jit_are_concrete(name, route):
+    """First use INSIDE a jit trace, then a second jitted function.
+
+    The containers upload their node tensors once and cache them (``_jax_consts``).
+    If that first upload happened while a ``jax.jit`` was tracing, the cache kept the
+    trace's tracers, and the next jitted function died with ``UnexpectedTracerError``
+    — which is how ``qc_effpot.circular_gradient`` (``dV`` traced first, then
+    ``d2V``) failed on every freshly loaded model.  Nothing caught it because every
+    test reached the cache eagerly first.
+    """
+    model = _fresh(name)
+    f = getattr(model, route)
+    th = jnp.asarray(_rng_thetas(1, seed=11)[0])
+    val = jax.jit(lambda t: jnp.sum(f(t)))
+    grad = jax.jit(jax.grad(lambda t: jnp.sum(f(t))))
+    v = float(val(th))                       # fills the cache inside a trace
+    g = np.asarray(grad(th))                 # a second trace reads it
+    assert np.isfinite(v) and np.all(np.isfinite(g))
+    assert np.isclose(v, float(np.sum(np.asarray(f(th)))), rtol=1e-12, atol=0)
+
+
+def test_dense_and_1d_hermite_caches_under_jit():
+    """The same contract for the dense container (``qc_effpot``'s model type) and the
+    1-D Hermite one, which the Smolyak family does not exercise."""
+    from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd as pnd
+    from lemaitre.initial_data.conformally_flat_puncture.parametric import hermite as h1
+    from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric import (
+        cheb_param_nodes)
+    nodes, weights = cheb_param_nodes(1.0, 2.0, 6)
+    dense = pnd.ParametricSolutionND(
+        axes=[(1.0, 2.0, 6)], nodes=[nodes], weights=[weights],
+        U_nodes=np.stack([np.sin(x) * np.ones((3, 2)) for x in nodes]),
+        iters=np.zeros(nodes.size, dtype=int), residuals=np.zeros(nodes.size))
+    herm1 = h1.HermiteSolution1D.from_nodes(
+        1.0, 2.0, 6, np.stack([np.sin(x) * np.ones((3, 2)) for x in nodes]),
+        np.stack([np.cos(x) * np.ones((3, 2)) for x in nodes]))
+    for f, th in ((dense.evaluate_jax, jnp.asarray([1.37])), (herm1.evaluate_jax, 1.37)):
+        v = float(jax.jit(lambda t: jnp.sum(f(t)))(th))
+        g = jax.jit(jax.grad(lambda t: jnp.sum(f(t))))(th)
+        assert np.isfinite(v) and np.all(np.isfinite(np.asarray(g)))
+
+
 def test_standalone_imports():
     import importlib
     m = importlib.import_module(

@@ -347,9 +347,13 @@ class HermiteSolution1D(CertifiedEvaluateMixin):
         per-call ``jnp.asarray`` conversion is pure overhead on read-only data)."""
         c = self.__dict__.get("_jax_consts_cache")
         if c is None:
-            c = (jnp.asarray(self.U_nodes), jnp.asarray(self.dU_nodes),
-                 jnp.asarray(self.nodes), jnp.asarray(self.weights),
-                 jnp.asarray(self.cvec))
+            # Concrete arrays even when the FIRST call happens inside a jax.jit
+            # trace: otherwise the cache keeps that trace's tracers and the next
+            # jitted function dies with UnexpectedTracerError (qc_effpot's d2V did).
+            with jax.ensure_compile_time_eval():
+                c = (jnp.asarray(self.U_nodes), jnp.asarray(self.dU_nodes),
+                     jnp.asarray(self.nodes), jnp.asarray(self.weights),
+                     jnp.asarray(self.cvec))
             self.__dict__["_jax_consts_cache"] = c
         return c
 
