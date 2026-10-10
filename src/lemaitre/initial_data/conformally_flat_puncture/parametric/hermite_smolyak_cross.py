@@ -55,7 +55,7 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import jax.numpy as jnp
 
-from .parametric_nd import _git_commit, _load_model_npz, _save_npz
+from .parametric_nd import _git_commit, _load_model_npz, _save_npz, _save_npz_owned
 from .parametric_nd_smolyak import combination_coeffs, _node_key   # _node_key is sibling API
 from .hermite_nd import HermiteSolutionND
 from .hermite_smolyak import HermiteSmolyakSolutionND, HermiteSmolyakSolverND
@@ -221,7 +221,7 @@ class HermiteSmolyakCrossSolutionND(HermiteSmolyakSolutionND):
             cross_pairs=np.array([[int(a), int(b)] for (a, b) in self.cross_pairs_global],
                                  dtype=np.int64).reshape(-1, 2),
             field_shape=np.asarray(self.field_shape, dtype=np.int64))
-        return _save_npz(path, arrays,
+        return _save_npz_owned(self, path, arrays,
                          {"d": int(self.d), "n_solver_nodes": int(self.n_solver_nodes),
                           "git_commit": _git_commit()},
                          meta, kind="hermite_smolyak_cross")

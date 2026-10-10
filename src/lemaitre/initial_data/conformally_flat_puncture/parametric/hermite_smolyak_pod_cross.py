@@ -51,7 +51,7 @@ jax.config.update("jax_enable_x64", True)
 
 import numpy as np
 
-from .parametric_nd import _git_commit, _load_model_npz, _save_npz
+from .parametric_nd import _git_commit, _load_model_npz, _save_npz, _save_npz_owned
 from .parametric_nd_smolyak import _node_key
 from .hermite_nd import HermiteSolutionND
 from .hermite_pod import pod_basis
@@ -166,7 +166,7 @@ class PODHermiteSmolyakCross(_PODSmolyakBase):
                                  dtype=np.int64).reshape(-1, 2),
             field_shape=np.asarray(self.field_shape, dtype=np.int64),
             r=np.asarray(self.r, dtype=np.int64))
-        return _save_npz(path, arrays,
+        return _save_npz_owned(self, path, arrays,
                          {"d": int(self.d), "r": int(self.r),
                           "n_solver_nodes": int(cm.n_solver_nodes),
                           "git_commit": _git_commit()},

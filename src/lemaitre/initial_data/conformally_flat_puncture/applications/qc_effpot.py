@@ -66,7 +66,7 @@ def load_model(path, prob, *, solver="nk"):
 # Individual (Brandt–Brügmann) ADM masses and the binding energy — numpy
 # ==========================================================================
 def _bary_wB(prob):
-    B = np.asarray(prob.B)
+    B = np.asarray(prob.Bs)          # the grid map's interpolation coordinate
     w = np.ones_like(B)
     for j in range(B.size):
         d = B[j] - B; d[j] = 1.0
@@ -79,7 +79,7 @@ def _u_at_puncture(prob, U, which, wB=None):
     wB = _bary_wB(prob) if wB is None else wB
     Um = np.asarray(U).reshape(prob.shape).mean(axis=2)     # (Na+1, Nb), m=0
     Bq = 1.0 if which == "A" else -1.0
-    t = wB / (Bq - np.asarray(prob.B))
+    t = wB / (Bq - np.asarray(prob.Bs))    # B=±1 is s=±1 under every grid map
     return float((t @ Um[-1, :]) / t.sum())                 # A=0 (inner-axis) row
 
 
@@ -111,7 +111,7 @@ def Eb_certified(model, prob, b, P_t, newton_steps=2, tol=None):
 def build_Eb_jax(model, prob):
     """``E_b(θ)`` on the surrogate field (θ=(b,P_t)); jax-differentiable."""
     DA1 = jnp.asarray(prob.DA1)
-    B = jnp.asarray(prob.B)
+    B = jnp.asarray(prob.Bs)                # the grid map's interpolation coordinate
     shape = prob.shape
     wB = jnp.asarray(_bary_wB(prob))
 

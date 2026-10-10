@@ -100,20 +100,33 @@ class Problem3D:
     DB1: np.ndarray
     phi: np.ndarray
     m_vals: np.ndarray
+    # The angular node map the B nodes were laid with (``operators_abt.B_MAPS``).
+    # It is part of the grid's identity: a field on one map is not a field on the
+    # other, and interpolation must be done in its coordinate (``Bs``).
+    bmap: str = "cos"
 
     @property
     def shape(self):
         return (self.A.size, self.B.size, self.Nphi)
 
     @property
+    def Bs(self) -> np.ndarray:
+        """The B nodes in the map's interpolation coordinate — what a barycentric
+        rule in the angular direction must use (``B`` itself for ``"cos"``)."""
+        return ops.s_nodes(self.Nb, self.bmap) if self.bmap != "cos" else self.B
+
+    @property
     def Ntot2d(self) -> int:
         return self.A.size * self.B.size
 
 
-def make_problem(Na: int = 36, Nb: int = 24, Nphi: int = 8) -> Problem3D:
-    A, B, DA1, DB1, phi = ops3.build_grid_3d(Na, Nb, Nphi)
+def make_problem(Na: int = 36, Nb: int = 24, Nphi: int = 8, bmap=None) -> Problem3D:
+    """The grid.  ``bmap`` is the angular node map (``operators_abt.B_MAPS``);
+    ``None`` is ``operators_abt.DEFAULT_BMAP``."""
+    bmap = ops.check_bmap(bmap)
+    A, B, DA1, DB1, phi = ops3.build_grid_3d(Na, Nb, Nphi, bmap)
     return Problem3D(Na=Na, Nb=Nb, Nphi=Nphi, A=A, B=B, DA1=DA1, DB1=DB1,
-                     phi=phi, m_vals=ops3.fourier_modes(Nphi))
+                     phi=phi, m_vals=ops3.fourier_modes(Nphi), bmap=bmap)
 
 
 # --------------------------------------------------------------------------
@@ -163,7 +176,12 @@ def assemble(prob: Problem3D, sl: Slice3D, separable: bool = False,
     rho, z, Af, Bf, inv_rho2 = ops3.meridian_geometry(prob.A, prob.B, sl.b)
     if separable:
         from . import separable as sepmod
-        sep = sepmod.get_separable(prob.Na, prob.Nb, prob.Nphi)
+        sep = sepmod.get_separable(prob.Na, prob.Nb, prob.Nphi, prob.bmap)
+        if not np.array_equal(np.asarray(sep.B), np.asarray(prob.B)):
+            # A hand-built Problem3D whose nodes are not the canonical grid of its
+            # declared map would otherwise be preconditioned on someone else's grid.
+            raise ValueError("separable assembly: prob.B is not the canonical "
+                             f"{prob.bmap!r} grid for (Na, Nb) = ({prob.Na}, {prob.Nb})")
         M0_list = None
         # grid-only, so carried by the SeparableModes (shared, read-only) rather
         # than rebuilt per slice; only the row scales depend on b, and those are
@@ -629,18 +647,40 @@ def evaluate_field(prob: Problem3D, U, rho, z, phi, b):
     ``w_m`` is restored analytically at the query point, and the Fourier series
     is summed there.  Exact — not an approximation — for any field in the
     discrete approximation space.
+
+    That is the ``"cos"`` grid.  On a mapped grid (``prob.bmap != "cos"``, see
+    ``operators_abt.B_MAPS``) the angular rule is barycentric in the map's
+    coordinate ``s`` and acts on ``û_m`` directly — there ``u_m`` is analytic in
+    ``s`` including its ``w_m``, so there is nothing to divide out.
     """
     U = np.asarray(U).reshape(prob.shape)
     rho = np.atleast_1d(np.asarray(rho, dtype=float))
     z = np.atleast_1d(np.asarray(z, dtype=float))
     phi = np.atleast_1d(np.asarray(phi, dtype=float))
     A_q, B_q = ops.inverse_map(rho, z, b)
+    bmap = getattr(prob, "bmap", "cos")
 
     MA = _bary_matrix(A_q, prob.A, _bary_weights(prob.A))     # (M, Na+1)
-    MB = _bary_matrix(B_q, prob.B, _bary_weights(prob.B))     # (M, Nb)
     Uhat = np.fft.rfft(U, axis=2)                             # (Na+1, Nb, Nm)
     wt = _mode_weights(prob.Nphi, prob.m_vals)
 
+    if bmap != "cos":
+        # On a mapped grid every mode u_m = w_m·v_m is itself analytic in the
+        # interpolation coordinate s (w_m = sin^m η is rational in s), so û_m is
+        # interpolated directly, with nothing divided out.  Dividing by w_m at the
+        # nodes would be lossy here: the nodes nearest the axis have w_m ~ (1−s)^m,
+        # far smaller than on the "cos" grid, and rfft roundoff / w_m measured
+        # ~4e-9 in ψ at the production grid — above the truncation it was hiding.
+        Bs = prob.Bs
+        _, s_q = ops.inverse_map_s(rho, z, b, bmap)       # accurate near the axis
+        MS = _bary_matrix(s_q, Bs, _bary_weights(Bs))     # (M, Nb)
+        out = np.zeros(A_q.shape[0])
+        for mi, m in enumerate(prob.m_vals):
+            vq = np.einsum("qi,qi->q", MA, np.einsum("qj,ij->qi", MS, Uhat[:, :, mi]))
+            out += wt[mi] * np.real(vq * np.exp(1j * int(m) * phi))
+        return out
+
+    MB = _bary_matrix(B_q, prob.B, _bary_weights(prob.B))     # (M, Nb)
     out = np.zeros(A_q.shape[0])
     for mi, m in enumerate(prob.m_vals):
         m = int(m)

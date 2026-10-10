@@ -61,10 +61,17 @@ def evaluate_u_vec(prob, U, rho, z, b):
     A_q, B_q = ops.inverse_map(np.asarray(rho, float), np.asarray(z, float), b)
     A_q = np.atleast_1d(A_q).ravel()
     B_q = np.atleast_1d(B_q).ravel()
+    # the angular rule is barycentric in the grid map's coordinate (B on "cos"),
+    # recovered from the physical point so it stays accurate next to the axis
+    bmap = getattr(prob, "bmap", "cos")
+    Bs = getattr(prob, "Bs", prob.B)
+    if bmap != "cos":
+        _, s_q = ops.inverse_map_s(np.asarray(rho, float), np.asarray(z, float), b, bmap)
+        B_q = np.atleast_1d(s_q).ravel()
     wA = sa._bary_weights(prob.A)
-    wB = sa._bary_weights(prob.B)
+    wB = sa._bary_weights(Bs)
     BA = _bary_matrix_vec(A_q, prob.A, wA)                     # (M, Na+1)
-    BB = _bary_matrix_vec(B_q, prob.B, wB)                     # (M, Nb)
+    BB = _bary_matrix_vec(B_q, Bs, wB)                         # (M, Nb)
     Umat = np.asarray(U).reshape(prob.shape)
     return np.einsum("mi,mj,ij->m", BA, BB, Umat)
 

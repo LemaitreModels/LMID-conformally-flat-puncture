@@ -358,6 +358,10 @@ def make_solve_fn(prob: Problem3D, active_names: Sequence[str], M_tot: float = 1
     # See `certification.gate_for`.
     from .certification import CERT_TOL_U, SOLVE_FN_GATE_ATTR
     setattr(solve_fn, SOLVE_FN_GATE_ATTR, CERT_TOL_U)
+    # ...and which grid its fields live on: a model saved with this solver records
+    # the angular node map (parametric_nd._save_npz_owned), and attaching a solver
+    # to a model checks it (parametric_nd.attach_solve_fn_3d).
+    solve_fn.bmap = getattr(prob, "bmap", "cos")
     return solve_fn, cache
 
 

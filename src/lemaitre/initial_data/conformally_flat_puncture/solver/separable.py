@@ -276,9 +276,10 @@ class SeparableModes:
     at the production grid (44, 32, 8) that is ~0.1 MiB against ~79 MiB.
     """
 
-    def __init__(self, Na: int, Nb: int, Nphi: int):
-        A, B, DA1, DB1 = ops.build_grid(Na, Nb)
-        self.Na, self.Nb, self.Nphi = Na, Nb, Nphi
+    def __init__(self, Na: int, Nb: int, Nphi: int, bmap=None):
+        bmap = ops.check_bmap(bmap)
+        A, B, DA1, DB1 = ops.build_grid(Na, Nb, bmap)
+        self.Na, self.Nb, self.Nphi, self.bmap = Na, Nb, Nphi, bmap
         self.A, self.B, self.DA1, self.DB1 = A, B, DA1, DB1
         self.Na1, self.Nb1 = A.size, B.size
         self.m_vals = ops3.fourier_modes(Nphi)
@@ -455,9 +456,14 @@ _SEPARABLE_CACHE = collections.OrderedDict()
 _SEPARABLE_CACHE_MAX = 4      # ~0.1 MiB each at the production grid
 
 
-def get_separable(Na: int, Nb: int, Nphi: int) -> SeparableModes:
-    """The :class:`SeparableModes` for one grid, built at most once per process."""
-    key = (int(Na), int(Nb), int(Nphi))
+def get_separable(Na: int, Nb: int, Nphi: int, bmap=None) -> SeparableModes:
+    """The :class:`SeparableModes` for one grid, built at most once per process.
+
+    ``bmap`` is the angular node map (``operators_abt.B_MAPS``); it is part of the
+    grid, so two maps at the same sizes are two cache entries.
+    """
+    bmap = ops.check_bmap(bmap)
+    key = (int(Na), int(Nb), int(Nphi), bmap)
     hit = _SEPARABLE_CACHE.get(key)
     if hit is not None:
         _SEPARABLE_CACHE.move_to_end(key)

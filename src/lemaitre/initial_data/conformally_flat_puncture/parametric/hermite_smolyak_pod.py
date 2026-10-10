@@ -72,6 +72,7 @@ from .parametric_nd import (              # persistence helpers, reused verbatim
     _git_commit,
     _load_model_npz,
     _save_npz,
+    _save_npz_owned,
 )
 from .parametric_nd_smolyak import _node_key           # node keying (verbatim)
 from .certification import CertifiedEvaluateMixin   # the residual gate (one place)
@@ -281,7 +282,7 @@ class PODHermiteSmolyak(_PODSmolyakBase):
             enhanced=np.asarray(sorted(int(e) for e in cm.enhanced), dtype=np.int64),
             field_shape=np.asarray(self.field_shape, dtype=np.int64),
             r=np.asarray(self.r, dtype=np.int64))
-        return _save_npz(path, arrays,
+        return _save_npz_owned(self, path, arrays,
                          {"d": int(self.d), "r": int(self.r),
                           "n_solver_nodes": int(cm.n_solver_nodes),
                           "git_commit": _git_commit()},

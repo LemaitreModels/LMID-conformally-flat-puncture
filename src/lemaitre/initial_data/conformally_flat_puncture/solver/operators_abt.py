@@ -25,6 +25,11 @@ Laplacian has **no cross term**:
 
 This is a single dense 2-D collocation operator (no mortar), spectrally
 convergent for both punctures simultaneously.  Standalone: numpy + jax only.
+
+Where the B nodes sit is a separate choice from the operator, which is written in
+``B`` throughout: :data:`B_MAPS` offers the original Gauss–Legendre-in-``B`` grid
+(``"cos"``, the default) and Ansorg–Brügmann–Tichy's angular coordinate
+(``"abt"``), which resolves the punctures far better — see the note there.
 """
 
 from __future__ import annotations
@@ -106,15 +111,155 @@ def inverse_map(rho, z, b):
 # --------------------------------------------------------------------------
 # the prolate-spheroidal axisymmetric Laplacian (dense 2-D collocation matrix)
 # --------------------------------------------------------------------------
-def build_grid(Na, Nb):
-    """Return ``(A, B, DA1, DB1)``: Lobatto A on [0,1], GL interior B on [-1,1].
+def build_grid(Na, Nb, bmap=None):
+    """Return ``(A, B, DA1, DB1)``: Lobatto A on [0,1], interior B nodes on [-1,1].
 
-    ``A`` has Na+1 nodes (A[0]=1 infinity, A[Na]=0 inner axis); ``B`` has Nb GL
-    nodes (interior).  ``DA1, DB1`` are the 1-D differentiation matrices.
+    ``A`` has Na+1 nodes (A[0]=1 infinity, A[Na]=0 inner axis); ``B`` has Nb
+    interior nodes, placed by the angular node map ``bmap`` (see
+    :data:`B_MAPS`; ``None`` means :data:`DEFAULT_BMAP`).  ``DA1, DB1`` are the
+    1-D differentiation matrices, ``DB1`` always being ``d/dB`` — so every
+    operator coefficient, written in ``B``, is unchanged by the choice of map.
+
+    ``bmap="cos"`` is the original grid, bit-for-bit: Gauss–Legendre nodes in
+    ``B = cos η``.  ``bmap="abt"`` puts the Gauss–Legendre nodes in the
+    interpolation coordinate ``s`` of :func:`b_of_s` instead.
     """
+    bmap = check_bmap(bmap)
     A, DA1 = cheb01(Na)
-    B, DB1 = gl_nodes_diffmat(Nb)
+    if bmap == "cos":
+        B, DB1 = gl_nodes_diffmat(Nb)
+        return A, B, DA1, DB1
+    s, Ds = gl_nodes_diffmat(Nb)
+    B = b_of_s(s, bmap)
+    DB1 = (1.0 / dB_ds(s, bmap))[:, None] * np.asarray(Ds)    # chain rule, row-scaled
     return A, B, DA1, DB1
+
+
+# --------------------------------------------------------------------------
+# The angular node map: where the B nodes sit, and in which coordinate the
+# discrete field is a polynomial
+# --------------------------------------------------------------------------
+#: The angular node maps.  ``B`` is always ``cos η`` of the prolate angle η (the
+#: operator is written in it); the map decides the coordinate ``s`` in which the
+#: unknown is represented as a polynomial and the Gauss–Legendre nodes are laid:
+#:
+#: * ``"cos"`` — ``s = B``.  The original grid.  At a puncture (η → 0) it has
+#:   ``1 − B ≈ η²/2``: the puncture's neighbourhood, whose analytic structure has
+#:   scale ``η² ~ m/b`` (the nearest complex singularity of the solution sits
+#:   where ``ψ_BL + u`` vanishes, a distance ~m from the hole), is squeezed into an
+#:   interval of width ~m/b at the end of ``[-1, 1]``, so Chebyshev/Legendre
+#:   convergence in ``B`` goes like ``exp(−N_B √(m/b))`` and degrades with the
+#:   separation.
+#: * ``"abt"`` — ``B = 2s/(1+s²)``, i.e. ``η = π/2 − 2 arctan s``: the angular
+#:   coordinate of Ansorg, Brügmann & Tichy, Phys. Rev. D 70, 064011 (2004),
+#:   eq. (61) (their ``B`` is our ``s`` up to orientation).  Now ``1 − B =
+#:   (1 − s)²/(1 + s²)``, so η is LINEAR in ``1 − s`` at a puncture and the same
+#:   singularity sits ~√(m/b) from the end of the interval: convergence like
+#:   ``exp(−N_B (m/b)^{1/4})``.  ``sin η = (1 − s²)/(1 + s²)`` is rational in
+#:   ``s``, so the azimuthal modes ``u_m ∝ sin^m η`` are analytic in ``s`` without
+#:   dividing anything out.
+#:
+#: The radial coordinate ``A`` is the same in both (ξ = 2 artanh A is ABT's too).
+B_MAPS = ("cos", "abt")
+
+#: The map a grid gets when none is named.  ``"cos"`` keeps every existing grid,
+#: stored model, cache key and export bit-for-bit what it was; the conformally
+#: curved sibling builds its chart through :func:`build_grid` with the default.
+DEFAULT_BMAP = "cos"
+
+
+def check_bmap(bmap):
+    """Resolve ``None`` to :data:`DEFAULT_BMAP` and reject an unknown map loudly."""
+    bmap = DEFAULT_BMAP if bmap is None else str(bmap)
+    if bmap not in B_MAPS:
+        raise ValueError(f"unknown angular node map {bmap!r}; expected one of {B_MAPS}")
+    return bmap
+
+
+def b_of_s(s, bmap):
+    """``B`` (= cos η) at interpolation coordinate ``s``."""
+    s = np.asarray(s, dtype=float)
+    if check_bmap(bmap) == "cos":
+        return s
+    return 2.0 * s / (1.0 + s * s)
+
+
+def dB_ds(s, bmap):
+    """``dB/ds`` — zero at ``s = ±1`` for ``"abt"``, never at an interior node."""
+    s = np.asarray(s, dtype=float)
+    if check_bmap(bmap) == "cos":
+        return np.ones_like(s)
+    return 2.0 * (1.0 - s * s) / (1.0 + s * s) ** 2
+
+
+def s_of_b(B, bmap, one_minus_B=None, one_plus_B=None):
+    """The interpolation coordinate ``s`` at ``B`` — the inverse of :func:`b_of_s`.
+
+    Barycentric interpolation of a field on a ``bmap`` grid must be done in ``s``,
+    not in ``B``: the discrete field is a polynomial in ``s``.  For ``"cos"`` this
+    returns ``B`` itself (same values), so the original interpolation is unchanged.
+    For ``"abt"`` the form ``B / (1 + √((1 − B)(1 + B)))`` is used rather than
+    ``(1 − √(1 − B²)) / B``: equal, but finite at ``B = 0``.  It maps ``±1`` to
+    ``±1``, so a puncture readout at ``B = ±1`` is a readout at ``s = ±1`` under
+    either map.
+
+    **Near the axis ``s`` is ill-conditioned in ``B``** (``ds/dB → ∞`` at ``B = ±1``:
+    ``1 − s ≈ √(2(1 − B))``), so a ``B`` rounded to float64 fixes ``s`` only to
+    ~``eps/(1 − |s|)``.  Pass ``one_minus_B``/``one_plus_B`` computed without
+    cancellation (as :func:`inverse_map_s` does from the physical point) to keep
+    ``s`` accurate to ~eps everywhere.
+    """
+    B = np.asarray(B, dtype=float)
+    if check_bmap(bmap) == "cos":
+        return B
+    om = 1.0 - B if one_minus_B is None else np.asarray(one_minus_B, dtype=float)
+    op = 1.0 + B if one_plus_B is None else np.asarray(one_plus_B, dtype=float)
+    return B / (1.0 + np.sqrt(np.clip(om * op, 0.0, None)))
+
+
+def s_nodes(Nb, bmap):
+    """The angular nodes in the interpolation coordinate, exactly as laid.
+
+    ``"cos"``: the B nodes.  ``"abt"``: the Gauss–Legendre nodes in ``s`` that
+    :func:`build_grid` mapped to B — returned as laid, not recovered from B (which
+    near the ends would cost the conditioning described in :func:`s_of_b`).
+    """
+    check_bmap(bmap)
+    s, _ = gl_nodes_diffmat(Nb)
+    return np.asarray(s, dtype=float)
+
+
+def inverse_map_s(rho, z, b, bmap):
+    """``(rho, z) -> (A, s)``: :func:`inverse_map`, with the angle in the map's
+    interpolation coordinate and computed without cancellation near the axis.
+
+    For ``"cos"`` it IS :func:`inverse_map`.  Otherwise ``B = 2z/(r₁+r₂)`` (equal to
+    ``(r₂ − r₁)/2b`` because ``r₂² − r₁² = 4bz``) and ``1 ∓ B`` are formed from
+    ``r − c`` terms rationalised where they would cancel, so a point a hair off
+    the outer axis still gets an ``s`` accurate to ~eps.
+    """
+    if check_bmap(bmap) == "cos":
+        return inverse_map(rho, z, b)
+    rho = np.asarray(rho, dtype=float)
+    z = np.asarray(z, dtype=float)
+    A, _ = inverse_map(rho, z, b)
+    c1, c2 = z - b, z + b                       # r1 = |(rho, c1)|, r2 = |(rho, c2)|
+    r1, r2 = np.hypot(rho, c1), np.hypot(rho, c2)
+    rho2 = rho * rho
+
+    def r_minus_c(r, c):                        # r - c, stable for c > 0
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return np.where(c > 0.0, rho2 / (r + c), r - c)
+
+    def r_plus_c(r, c):                         # r + c, stable for c < 0
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return np.where(c < 0.0, rho2 / (r - c), r + c)
+
+    S = r1 + r2
+    B = np.clip(2.0 * z / S, -1.0, 1.0)
+    om = (r_minus_c(r1, c1) + r_minus_c(r2, c2)) / S        # 1 - B
+    op = (r_plus_c(r1, c1) + r_plus_c(r2, c2)) / S          # 1 + B
+    return A, s_of_b(B, bmap, om, op)
 
 
 def _coeffs(Af, Bf, b):

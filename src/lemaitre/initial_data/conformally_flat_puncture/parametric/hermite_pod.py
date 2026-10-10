@@ -113,6 +113,7 @@ from .parametric_nd import (              # persistence helpers, reused verbatim
     _git_commit,
     _load_model_npz,
     _save_npz,
+    _save_npz_owned,
 )
 from .hermite import cardinal_deriv_at_nodes           # node-set primitive (verbatim)
 from .hermite_nd import HermiteSolutionND               # the H2 interpolant (verbatim)
@@ -365,7 +366,7 @@ class PODHermiteND(CertifiedEvaluateMixin):
         arrays["enhanced"] = np.asarray(sorted(int(e) for e in ch.enhanced), dtype=np.int64)
         arrays["field_shape"] = np.asarray(self.field_shape, dtype=np.int64)
         arrays["r"] = np.asarray(self.r, dtype=np.int64)
-        return _save_npz(path, arrays,
+        return _save_npz_owned(self, path, arrays,
                          {"d": int(d), "r": int(self.r), "git_commit": _git_commit()},
                          meta, kind="pod_hermite_nd")
 

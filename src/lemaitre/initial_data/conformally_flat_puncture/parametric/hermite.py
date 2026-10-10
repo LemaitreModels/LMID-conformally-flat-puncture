@@ -51,6 +51,7 @@ from .parametric_nd import (                        # persistence helpers, reuse
     _git_commit,
     _load_model_npz,
     _save_npz,
+    _save_npz_owned,
 )
 
 
@@ -384,7 +385,7 @@ class HermiteSolution1D(CertifiedEvaluateMixin):
             arrays["iters"] = np.asarray(self.iters, dtype=np.int64)
         if self.residuals is not None:
             arrays["residuals"] = np.asarray(self.residuals, dtype=float)
-        return _save_npz(path, arrays, {"git_commit": _git_commit()},
+        return _save_npz_owned(self, path, arrays, {"git_commit": _git_commit()},
                          meta, kind="hermite1d")
 
 

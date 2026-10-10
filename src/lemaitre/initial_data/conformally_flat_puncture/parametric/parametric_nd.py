@@ -200,7 +200,7 @@ class ParametricSolutionND(CertifiedEvaluateMixin):
         arrays["axes"] = np.array([[float(lo), float(hi), float(Q)]
                                    for (lo, hi, Q) in self.axes], dtype=float)
         arrays["field_shape"] = np.asarray(self.field_shape, dtype=np.int64)
-        return _save_npz(path, arrays, {"d": int(d), "git_commit": _git_commit()},
+        return _save_npz_owned(self, path, arrays, {"d": int(d), "git_commit": _git_commit()},
                          meta, kind="dense")
 
 
@@ -341,6 +341,36 @@ def _save_npz(path, arrays: dict, base_meta: dict, meta, *, kind: str,
     return path
 
 
+def grid_bmap_of(obj) -> Optional[str]:
+    """The angular node map of the grid ``obj``'s attached solver runs on, if known.
+
+    ``make_solve_fn`` stamps its ``solve_fn`` with the problem's ``bmap``; a model
+    carries that solve_fn as ``_solve_fn``.  ``None`` when there is no solver.
+    """
+    return getattr(getattr(obj, "_solve_fn", None), "bmap", None)
+
+
+def _save_npz_owned(owner, path, arrays: dict, base_meta: dict, meta, **kw) -> str:
+    """:func:`_save_npz` for a model object: records its grid's angular node map.
+
+    A model's stored fields are nodal values on ONE grid, and the ``(Na, Nb, Nφ)``
+    every builder records does not identify it once the B nodes can be mapped
+    (``operators_abt.B_MAPS``).  So the map is written into the metadata — but only
+    when it is not the original ``"cos"`` map, so every artifact that existed before
+    maps did stays byte-identical, and a file with no ``bmap`` key means ``"cos"``.
+    A caller-supplied ``meta["bmap"]`` that contradicts the solver's is refused.
+    """
+    bmap = grid_bmap_of(owner)
+    given = (meta or {}).get("bmap")
+    if given is not None and bmap is not None and str(given) != str(bmap):
+        raise ValueError(f"meta says bmap={given!r} but the model's solver runs on "
+                         f"{bmap!r}")
+    if bmap is not None and bmap != "cos" and given is None:
+        meta = dict(meta or {})
+        meta["bmap"] = bmap
+    return _save_npz(path, arrays, base_meta, meta, **kw)
+
+
 def _load_model_npz(path, kind: str, build, *, label: Optional[str] = None):
     """The one load skeleton behind every loader in the parametric family.
 
@@ -416,6 +446,15 @@ def attach_solve_fn_3d(sol, prob, axis_names, *, M_tot: float = 1.0, fixed=None,
     only when the NK solve misses the gate, so a well-converged query pays
     nothing.  Pass ``retry_tol=None`` to reproduce the pre-2026-08 behaviour.
     """
+    # A model's stored fields are nodal values on the grid it was built on; a file
+    # without ``bmap`` predates angular node maps and is "cos" (_save_npz_owned).
+    model_bmap = str((getattr(sol, "meta", None) or {}).get("bmap", "cos"))
+    prob_bmap = getattr(prob, "bmap", "cos")
+    if model_bmap != prob_bmap:
+        raise ValueError(
+            f"this model's fields live on the {model_bmap!r} angular grid but the "
+            f"problem uses {prob_bmap!r}; build the problem with "
+            f"make_problem(..., bmap={model_bmap!r})")
     from .parametric_nd_3d import make_solve_fn
     solve_fn, _ = make_solve_fn(prob, list(axis_names), M_tot=M_tot, fixed=fixed,
                                 use_cache=use_cache, solver=solver, gmres_rtol=gmres_rtol,

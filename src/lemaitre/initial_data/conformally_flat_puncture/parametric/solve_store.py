@@ -105,7 +105,8 @@ def _round12(x) -> float:
     return round(float(x), 12) + 0.0
 
 
-def slice_payload(sl: Slice3D, grid_meta: Sequence[int], code_tag: str) -> dict:
+def slice_payload(sl: Slice3D, grid_meta: Sequence[int], code_tag: str,
+                  bmap: str = "cos") -> dict:
     """The canonical (JSON-serialisable) content of the key + audit record.
 
     The 15 physical scalars of the slice (b, m_A, m_B, and the four 3-vectors),
@@ -116,20 +117,27 @@ def slice_payload(sl: Slice3D, grid_meta: Sequence[int], code_tag: str) -> dict:
     fields = [_round12(sl.b), _round12(sl.m_A), _round12(sl.m_B)]
     for vec in (sl.P_A_vec, sl.P_B_vec, sl.S_A_vec, sl.S_B_vec):
         fields.extend(_round12(c) for c in vec)
-    return {
+    out = {
         "fields": fields,
         "grid": [int(g) for g in grid_meta],
         "code_tag": str(code_tag),
     }
+    # The angular node map is part of the grid.  It is added only when it is not
+    # the original "cos" map, so every key written before maps existed is unchanged.
+    if bmap != "cos":
+        out["bmap"] = str(bmap)
+    return out
 
 
 def _canonical_bytes(payload: dict) -> bytes:
     return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
-def slice_key(sl: Slice3D, grid_meta: Sequence[int], code_tag: str) -> str:
+def slice_key(sl: Slice3D, grid_meta: Sequence[int], code_tag: str,
+              bmap: str = "cos") -> str:
     """SHA-1 of the canonical bytes of ``slice_payload`` (a 40-hex-char string)."""
-    return hashlib.sha1(_canonical_bytes(slice_payload(sl, grid_meta, code_tag))).hexdigest()
+    return hashlib.sha1(_canonical_bytes(
+        slice_payload(sl, grid_meta, code_tag, bmap))).hexdigest()
 
 
 # --------------------------------------------------------------------------
@@ -147,12 +155,18 @@ class SolveStore:
     code_tag
         Provenance tag folded into the key; defaults to the git short hash
         (``"unknown"`` if git is unavailable).  A different tag ⇒ a genuine miss.
+    bmap
+        The angular node map of the grid (``operators_abt.B_MAPS``) — part of the
+        key when it is not ``"cos"``, so a store never serves a field from the
+        other map.
     """
 
     def __init__(self, root_dir, grid_meta: Sequence[int],
-                 code_tag: Optional[str] = None, reuse_tol: float = 1e-6):
+                 code_tag: Optional[str] = None, reuse_tol: float = 1e-6,
+                 bmap: str = "cos"):
         self.root_dir = str(root_dir)
         self.grid_meta = tuple(int(g) for g in grid_meta)
+        self.bmap = str(bmap)
         self.code_tag = _git_commit() if code_tag is None else str(code_tag)
         # Reuse-admission threshold, DECOUPLED from any caller solve tol: a stored
         # entry is reusable iff its achieved residual ≤ reuse_tol.  Loose enough to
@@ -165,7 +179,7 @@ class SolveStore:
 
     # ----- keys / paths -----
     def key(self, sl: Slice3D) -> str:
-        return slice_key(sl, self.grid_meta, self.code_tag)
+        return slice_key(sl, self.grid_meta, self.code_tag, self.bmap)
 
     def _path(self, key: str) -> str:
         return os.path.join(self.root_dir, key + ".npz")
@@ -236,7 +250,7 @@ class SolveStore:
         """
         key = self.key(sl)
         path = self._path(key)
-        meta = slice_payload(sl, self.grid_meta, self.code_tag)
+        meta = slice_payload(sl, self.grid_meta, self.code_tag, self.bmap)
         meta["resid"] = float(resid)
         meta["iters"] = int(iters)
         meta["solver"] = None if solver is None else str(solver)
@@ -307,13 +321,17 @@ def _as_store(store, prob, code_tag: Optional[str] = None,
     For an existing store, ``reuse_tol`` (if given) overrides its threshold; for a
     freshly-built store it sets the threshold (default ``1e-6``).
     """
+    bmap = getattr(prob, "bmap", "cos")
     if isinstance(store, SolveStore):
+        if store.bmap != bmap:
+            raise ValueError(f"solve store is keyed for the {store.bmap!r} angular grid "
+                             f"but the problem uses {bmap!r}")
         if reuse_tol is not None:
             store.reuse_tol = float(reuse_tol)
         return store
     kw = {} if reuse_tol is None else {"reuse_tol": float(reuse_tol)}
     return SolveStore(store, grid_meta=(prob.Na, prob.Nb, prob.Nphi),
-                      code_tag=code_tag, **kw)
+                      code_tag=code_tag, bmap=bmap, **kw)
 
 
 # --------------------------------------------------------------------------

@@ -180,7 +180,8 @@ def _u_at_puncture_jax(U, prob: sa.Problem, wB, which: str):
     is never a GL node, so the quotient is finite).  Matches
     ``validation.adm.puncture_adm_mass``'s field evaluation."""
     Umat = jnp.asarray(U).reshape(prob.shape)
-    B = jnp.asarray(prob.B)
+    # in the grid map's interpolation coordinate; B=±1 is s=±1 under every map
+    B = jnp.asarray(getattr(prob, "Bs", prob.B))
     Bq = 1.0 if which == "A" else -1.0
     t = jnp.asarray(wB) / (Bq - B)
     row = Umat[-1, :]                                  # A=0 (inner-axis edge) row
@@ -192,7 +193,7 @@ def _make_observables_jax(prob: sa.Problem):
     (``validation.adm``), but as differentiable jnp functions of the field ``U``
     and the slice params ``sp`` (from :func:`_slice_params_jax`)."""
     DA1 = jnp.asarray(prob.DA1)
-    wB = sa._bary_weights(prob.B)
+    wB = sa._bary_weights(getattr(prob, "Bs", prob.B))
 
     def M_ADM(U, sp):
         # adm.adm_mass_spectral:  M_ADM = M − 2 b ⟨∂_A u⟩_{A=1}   (linear in U)

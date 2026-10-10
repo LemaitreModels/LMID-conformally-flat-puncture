@@ -60,6 +60,7 @@ from .parametric_nd import (                       # the dense layer + IO (verba
     snake_order,
     _load_model_npz,
     _save_npz,
+    _save_npz_owned,
 )
 
 
@@ -316,7 +317,7 @@ class SmolyakSolutionND(CertifiedEvaluateMixin):
             axes=np.array([[float(lo), float(hi)] for (lo, hi) in self.axes],
                           dtype=float),
             field_shape=np.asarray(self.field_shape, dtype=np.int64))
-        return _save_npz(path, arrays,
+        return _save_npz_owned(self, path, arrays,
                          {"d": int(self.d), "n_solver_nodes": int(self.n_solver_nodes),
                           "git_commit": _git_commit()},
                          meta, kind="smolyak")

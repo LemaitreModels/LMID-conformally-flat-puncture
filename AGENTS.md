@@ -172,6 +172,25 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   > only to ~1e-16: taking it needs the same change in `operators_abt` in the same
   > commit, and that is a maintainer decision.
 
+  > **The angular node map is part of the grid.** `operators_abt.B_MAPS` offers
+  > `"cos"` (the original Gauss–Legendre-in-`B` grid, `B = cos η`) and `"abt"`
+  > (Ansorg–Brügmann–Tichy's angle, `B = 2s/(1+s²)`, Gauss–Legendre in `s`). The
+  > operator is written in `B` either way; the map decides where the nodes sit and
+  > in which coordinate the field is a polynomial. `"abt"` resolves the punctures
+  > far better — at the production grid and `b = 8`, ψ within half a mass of a hole
+  > moves from 6e-4 to 2e-6 off a converged reference
+  > (`tests/test_bmap_abt.py`) — because `"cos"` is quadratic in η there and
+  > squeezes each puncture into a sliver at `B = ±1`. **`"cos"` is still the
+  > default everywhere**, so every shipped model, figure, solve-store key and the
+  > GRTeclyn export (which refuses `"abt"`: the format assumes polynomials in `B`)
+  > are untouched, and so is the curved sibling, which builds its chart through the
+  > default. Opt in with `make_problem(..., bmap="abt")`; a model built that way
+  > records `bmap` in its metadata, and `attach_solve_fn_3d` refuses a problem on
+  > the other map. Interpolate in `prob.Bs` (the nodes as laid), and get a query
+  > point's `s` from `operators_abt.inverse_map_s`, not from `B` — `s` is
+  > ill-conditioned in `B` next to the axis. Making `"abt"` the production grid
+  > re-prices every shipped number and is a maintainer decision.
+
   > **The separable preconditioner IS the default.** `newton_solve_nk` resolves
   > `separable=None` through `choose_separable`, which picks separable because it
   > is much cheaper — the operator is built once per grid rather than per

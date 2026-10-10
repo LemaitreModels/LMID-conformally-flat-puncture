@@ -68,6 +68,7 @@ from .parametric_nd import (              # reused verbatim (the N-D primitives 
     _git_commit,
     _load_model_npz,
     _save_npz,
+    _save_npz_owned,
 )
 from .hermite import (                    # reused verbatim (the H1 1-D primitives)
     cardinal_deriv_at_nodes,
@@ -236,7 +237,7 @@ class HermiteSolutionND(CertifiedEvaluateMixin):
         arrays["enhanced"] = np.asarray(sorted(int(e) for e in self.enhanced),
                                         dtype=np.int64)
         arrays["field_shape"] = np.asarray(self.field_shape, dtype=np.int64)
-        return _save_npz(path, arrays, {"d": int(d), "git_commit": _git_commit()},
+        return _save_npz_owned(self, path, arrays, {"d": int(d), "git_commit": _git_commit()},
                          meta, kind="hermite_nd")
 
 

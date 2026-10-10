@@ -54,7 +54,7 @@ jax.config.update("jax_enable_x64", True)
 
 import numpy as np
 
-from .parametric_nd import _git_commit, _load_model_npz, _save_npz
+from .parametric_nd import _git_commit, _load_model_npz, _save_npz, _save_npz_owned
 from .parametric_nd_smolyak import (
     # the two committed sparse bases this module subclasses, plus the sparse
     # primitives — the primitives are re-exports kept for existing importers
@@ -127,7 +127,7 @@ class HermiteSmolyakSolutionND(SmolyakSolutionND):
                           dtype=float),
             enhanced=np.asarray(sorted(int(e) for e in self.enhanced), dtype=np.int64),
             field_shape=np.asarray(self.field_shape, dtype=np.int64))
-        return _save_npz(path, arrays,
+        return _save_npz_owned(self, path, arrays,
                          {"d": int(self.d), "n_solver_nodes": int(self.n_solver_nodes),
                           "git_commit": _git_commit()},
                          meta, kind="hermite_smolyak")

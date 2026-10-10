@@ -94,13 +94,14 @@ def fourier_modes(Nphi: int) -> np.ndarray:
     return np.arange(Nphi // 2 + 1)
 
 
-def build_grid_3d(Na: int, Nb: int, Nphi: int):
+def build_grid_3d(Na: int, Nb: int, Nphi: int, bmap=None):
     """Return ``(A, B, DA1, DB1, phi)``: the frozen ABT (A,B) grid + φ nodes.
 
-    ``A, B, DA1, DB1`` come verbatim from ``operators_abt.build_grid`` so the
-    meridian discretisation is identical to the 2-D code.
+    ``A, B, DA1, DB1`` come verbatim from ``operators_abt.build_grid`` (with the
+    same angular node map ``bmap``) so the meridian discretisation is identical to
+    the 2-D code.
     """
-    A, B, DA1, DB1 = ops.build_grid(Na, Nb)
+    A, B, DA1, DB1 = ops.build_grid(Na, Nb, bmap)
     return A, B, DA1, DB1, phi_grid(Nphi)
 
 
@@ -329,20 +330,25 @@ _CANON_GRID_MEMO: dict = {}
 
 
 def _canonical_grid(A, B, DA1, DB1):
-    """True if this is the grid ``operators_abt.build_grid`` builds for its size.
+    """The angular node map whose canonical grid this is, or ``None``.
 
-    The cache is keyed on ``(Na, Nb, Nφ, b)``, so it may only serve a caller whose
-    1-D grid is the canonical one for that size.  A caller experimenting with a
-    hand-built grid gets a fresh, uncached build rather than someone else's nodes.
+    The cache is keyed on ``(Na, Nb, Nφ, b, bmap)``, so it may only serve a caller
+    whose 1-D grid is exactly what ``operators_abt.build_grid`` builds for that size
+    and map.  A caller experimenting with a hand-built grid gets a fresh, uncached
+    build rather than someone else's nodes.  Returns the map name (truthy) so the
+    callers can key on it; ``None`` means "not canonical, do not cache".
     """
-    key = (A.size - 1, B.size)
-    canon = _CANON_GRID_MEMO.get(key)
-    if canon is None:
-        canon = ops.build_grid(*key)
-        _CANON_GRID_MEMO[key] = canon
-    Ac, Bc, DA1c, DB1c = canon
-    return all(np.array_equal(np.asarray(x), np.asarray(y)) for x, y in
-               ((A, Ac), (B, Bc), (DA1, DA1c), (DB1, DB1c)))
+    for bmap in ops.B_MAPS:
+        key = (A.size - 1, B.size, bmap)
+        canon = _CANON_GRID_MEMO.get(key)
+        if canon is None:
+            canon = ops.build_grid(*key)
+            _CANON_GRID_MEMO[key] = canon
+        Ac, Bc, DA1c, DB1c = canon
+        if all(np.array_equal(np.asarray(x), np.asarray(y)) for x, y in
+               ((A, Ac), (B, Bc), (DA1, DA1c), (DB1, DB1c))):
+            return bmap
+    return None
 
 
 def _readonly(arrs):
@@ -367,9 +373,11 @@ def mode_operators_cached(A, B, DA1, DB1, b, m_vals):
     order rather than growing without bound.
     """
     m_vals = np.asarray(m_vals)
-    key = (A.size - 1, B.size, int(m_vals.size), float(b), tuple(int(m) for m in m_vals))
+    bmap = _canonical_grid(A, B, DA1, DB1)
+    key = (A.size - 1, B.size, int(m_vals.size), float(b), tuple(int(m) for m in m_vals),
+           bmap)
     hit = _BLOCK_CACHE.get(key)
-    if hit is not None and _canonical_grid(A, B, DA1, DB1):
+    if hit is not None and bmap is not None:
         _BLOCK_CACHE.move_to_end(key)
         return hit
     M0_list, w_list, interior = mode_operators(A, B, DA1, DB1, b, m_vals)
@@ -378,7 +386,7 @@ def mode_operators_cached(A, B, DA1, DB1, b, m_vals):
         s = np.max(np.abs(M0), axis=1)
         scales.append(np.where(s > 0.0, s, 1.0))
     out = (_readonly(M0_list), _readonly(w_list), interior, _readonly(scales))
-    if _canonical_grid(A, B, DA1, DB1):
+    if bmap is not None:
         _BLOCK_CACHE[key] = out
         while len(_BLOCK_CACHE) > _BLOCK_CACHE_MAX:
             _BLOCK_CACHE.popitem(last=False)
@@ -478,15 +486,16 @@ def u_row_scales_cached(A, B, DA1, DB1, b, m_vals):
     iteration — and the cached value is kilobytes.
     """
     m_vals = np.asarray(m_vals)
+    bmap = _canonical_grid(A, B, DA1, DB1)
     key = (A.size - 1, B.size, int(m_vals.size), float(b),
-           tuple(int(m) for m in m_vals))
+           tuple(int(m) for m in m_vals), bmap)
     hit = _U_SCALE_CACHE.get(key)
-    if hit is not None and _canonical_grid(A, B, DA1, DB1):
+    if hit is not None and bmap is not None:
         _U_SCALE_CACHE.move_to_end(key)
         return hit
     M0_list, w_list, _, _ = mode_operators_cached(A, B, DA1, DB1, b, m_vals)
     out = _readonly(u_row_scales(M0_list, w_list))
-    if _canonical_grid(A, B, DA1, DB1):
+    if bmap is not None:
         _U_SCALE_CACHE[key] = out
         while len(_U_SCALE_CACHE) > _U_SCALE_CACHE_MAX:
             _U_SCALE_CACHE.popitem(last=False)

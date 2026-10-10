@@ -71,19 +71,27 @@ class Problem:
     B: np.ndarray
     DA1: np.ndarray
     DB1: np.ndarray
+    # angular node map (``operators_abt.B_MAPS``); see ``solver_3d.Problem3D.bmap``
+    bmap: str = "cos"
 
     @property
     def shape(self):
         return (self.A.size, self.B.size)
 
     @property
+    def Bs(self) -> np.ndarray:
+        """The B nodes in the map's interpolation coordinate (``B`` for ``"cos"``)."""
+        return ops.s_nodes(self.Nb, self.bmap) if self.bmap != "cos" else self.B
+
+    @property
     def Ntot(self) -> int:
         return self.A.size * self.B.size
 
 
-def make_problem(Na: int = 36, Nb: int = 24, P: float = 0.5) -> Problem:
-    A, B, DA1, DB1 = ops.build_grid(Na, Nb)
-    return Problem(Na=Na, Nb=Nb, P=P, A=A, B=B, DA1=DA1, DB1=DB1)
+def make_problem(Na: int = 36, Nb: int = 24, P: float = 0.5, bmap=None) -> Problem:
+    bmap = ops.check_bmap(bmap)
+    A, B, DA1, DB1 = ops.build_grid(Na, Nb, bmap)
+    return Problem(Na=Na, Nb=Nb, P=P, A=A, B=B, DA1=DA1, DB1=DB1, bmap=bmap)
 
 
 # --------------------------------------------------------------------------
@@ -245,12 +253,22 @@ def _bary_weights(x):
     return w
 
 
-def evaluate_field_AB(prob: Problem, U, A_q, B_q):
-    """Interpolate nodal U to query (A_q, B_q) arrays via 2-D barycentric."""
+def evaluate_field_AB(prob: Problem, U, A_q, B_q, s_q=None):
+    """Interpolate nodal U to query (A_q, B_q) arrays via 2-D barycentric.
+
+    On a mapped grid (``prob.bmap != "cos"``) the angular rule is barycentric in the
+    map's coordinate ``s``; pass ``s_q`` (from ``operators_abt.inverse_map_s``) to
+    avoid recovering it from ``B_q``, which loses accuracy next to the axis.
+    """
     U = np.asarray(U).reshape(prob.shape)
     A_q = np.atleast_1d(np.asarray(A_q, dtype=float))
     B_q = np.atleast_1d(np.asarray(B_q, dtype=float))
-    wA, wB = _bary_weights(prob.A), _bary_weights(prob.B)
+    bmap = getattr(prob, "bmap", "cos")
+    Bs = getattr(prob, "Bs", prob.B)
+    if bmap != "cos":
+        B_q = (ops.s_of_b(B_q, bmap) if s_q is None
+               else np.atleast_1d(np.asarray(s_q, dtype=float)))
+    wA, wB = _bary_weights(prob.A), _bary_weights(Bs)
 
     def interp1(xq, x, w, vals):
         d = xq - x
@@ -262,14 +280,18 @@ def evaluate_field_AB(prob: Problem, U, A_q, B_q):
 
     out = np.empty(A_q.shape[0])
     for k in range(A_q.shape[0]):
-        col = np.array([interp1(B_q[k], prob.B, wB, U[i, :]) for i in range(prob.A.size)])
+        col = np.array([interp1(B_q[k], Bs, wB, U[i, :]) for i in range(prob.A.size)])
         out[k] = interp1(A_q[k], prob.A, wA, col)
     return out
 
 
 def evaluate_field_phys(prob: Problem, U, rho, z, b):
     """Interpolate nodal U to physical (rho, z) points (via the inverse map)."""
-    A_q, B_q = ops.inverse_map(rho, z, b)
-    return evaluate_field_AB(prob, U, A_q, B_q)
+    bmap = getattr(prob, "bmap", "cos")
+    if bmap == "cos":
+        A_q, B_q = ops.inverse_map(rho, z, b)
+        return evaluate_field_AB(prob, U, A_q, B_q)
+    A_q, s_q = ops.inverse_map_s(rho, z, b, bmap)
+    return evaluate_field_AB(prob, U, A_q, ops.b_of_s(s_q, bmap), s_q=s_q)
 
 

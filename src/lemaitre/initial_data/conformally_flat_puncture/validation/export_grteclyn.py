@@ -418,7 +418,18 @@ def from_solution(prob, sl, U, *, residual: Optional[float] = None,
     ``residual`` should be the **equilibrated** residual (``NKInfo.residual_norm``
     — the certified number the solve controls), ``raw_residual`` the raw nodal
     inf-norm; both are recorded so the provenance is unambiguous.
+
+    Only the ``"cos"`` angular node map can be exported: the format's consumer
+    interpolates a polynomial in ``B``, which a mapped grid's field is not (it is a
+    polynomial in ``operators_abt.s_of_b(B)``).  Exporting one needs a new format
+    version on both sides, so it is refused rather than written wrong.
     """
+    bmap = getattr(prob, "bmap", "cos")
+    if bmap != "cos":
+        raise NotImplementedError(
+            f"export format {FORMAT_VERSION} assumes the 'cos' angular node map; this "
+            f"grid uses {bmap!r}. Exporting it needs a format bump on both the writer "
+            "and the GRTeclyn reader.")
     U = np.asarray(U, dtype=float).reshape(prob.shape)
     C, S = phi_modes(U)
     cos_m, sin_m = phi_mode_layout(prob.Nphi)
