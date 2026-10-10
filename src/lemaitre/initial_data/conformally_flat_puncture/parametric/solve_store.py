@@ -126,6 +126,11 @@ def slice_payload(sl: Slice3D, grid_meta: Sequence[int], code_tag: str,
     # the original "cos" map, so every key written before maps existed is unchanged.
     if bmap != "cos":
         out["bmap"] = str(bmap)
+        # The mapped grid's d²/dB² changed from the nested DB @ DB to the exact chain
+        # rule (operators_abt.d2_dB2_1d), which changes every mapped-grid solution.
+        # Tagging it makes a store written under the old form miss rather than serve
+        # a field from a different discretisation; "cos" keys are untouched.
+        out["angular_d2"] = "exact"
     return out
 
 

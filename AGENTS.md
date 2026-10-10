@@ -178,9 +178,17 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   > operator is written in `B` either way; the map decides where the nodes sit and
   > in which coordinate the field is a polynomial. `"abt"` resolves the punctures
   > far better — at the production grid and `b = 8`, ψ within half a mass of a hole
-  > moves from 6e-4 to 2e-6 off a converged reference
+  > moves from 6e-4 to 1.2e-6 off a converged reference
   > (`tests/test_bmap_abt.py`) — because `"cos"` is quadratic in η there and
-  > squeezes each puncture into a sliver at `B = ±1`. **`"cos"` is still the
+  > squeezes each puncture into a sliver at `B = ±1`. **On a mapped grid `d²/dB²` is
+  > the exact chain rule, `operators_abt.d2_dB2_1d`, not `DB1 @ DB1`**: the square
+  > re-interpolates `(1/B′) D_s u`, whose `1/B′` has poles at `s = ±1`, and is O(1)
+  > wrong on the grid's own polynomials. All three operator constructions
+  > (`operators_abt.laplacian_matrix`, `operators_3d._mode_independent_pieces`,
+  > `separable.kron_factors`) take it from `operators_abt.angular_d2`, which returns
+  > `None` — the original squaring — on `"cos"` and on any hand-built grid. A new
+  > construction of the B-operator must go through it too, or the dense and separable
+  > routes stop agreeing. **`"cos"` is still the
   > default everywhere**, so every shipped model, figure, solve-store key and the
   > GRTeclyn export (which refuses `"abt"`: the format assumes polynomials in `B`)
   > are untouched, and so is the curved sibling, which builds its chart through the

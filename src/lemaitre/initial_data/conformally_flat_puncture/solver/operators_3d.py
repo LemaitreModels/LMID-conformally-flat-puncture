@@ -212,6 +212,11 @@ def _mode_independent_pieces(A, B, DA1, DB1, b):
     the two Newton paths at the residual floor.  It can only be taken in BOTH
     modules at once — see the note in ``mode_operators`` — and the payoff is
     small once the operator is built per model rather than per parameter point.
+
+    That is the ``"cos"`` grid.  On a mapped angular grid the B-squaring is replaced
+    outright, here and in ``operators_abt.laplacian_matrix`` together, by the exact
+    chain-rule matrix ``operators_abt.angular_d2`` (``DB @ DB`` re-interpolates a
+    product with poles at the axis — see ``operators_abt.d2_dB2_1d``).
     """
     Na1, Nb1 = A.size, B.size
     IA, IB = np.eye(Na1), np.eye(Nb1)
@@ -220,7 +225,10 @@ def _mode_independent_pieces(A, B, DA1, DB1, b):
     DA = np.kron(DA1, IB)
     DB = np.kron(IA, DB1)
     DAA = DA @ DA
-    DBB = DB @ DB
+    # Mapped grid: the exact chain rule, the same matrix operators_abt.laplacian_matrix
+    # uses (so the m=0 block stays its bit-for-bit copy); "cos": DB @ DB as before.
+    DBB1 = ops.angular_d2(B, DB1)
+    DBB = DB @ DB if DBB1 is None else np.kron(IA, DBB1)
     AA, BB = np.meshgrid(A, B, indexing="ij")
     Af, Bf = AA.ravel(), BB.ravel()
     rho, _ = ops.abt_map(Af, Bf, b)

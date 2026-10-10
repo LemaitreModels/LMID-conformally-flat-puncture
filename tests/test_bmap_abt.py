@@ -73,6 +73,8 @@ def test_solve_store_keys_unchanged_for_cos_and_distinct_for_abt():
     assert ss.slice_key(sl, (20, 14, 6), "t", "cos") == old
     assert ss.slice_key(sl, (20, 14, 6), "t", "abt") != old
     assert "bmap" not in ss.slice_payload(sl, (20, 14, 6), "t")
+    # an abt store written before d²/dB² became the exact chain rule must miss
+    assert ss.slice_payload(sl, (20, 14, 6), "t", "abt")["angular_d2"] == "exact"
 
 
 def _tiny_model(bmap):
@@ -155,6 +157,50 @@ def test_abt_DB1_is_the_chain_rule_derivative():
     err = np.max(np.abs(DB1 @ f - want)) / np.max(np.abs(want))
     print(f"\n[abt DB1] rel err {err:.2e}")
     assert err < 1e-10
+
+
+def test_abt_second_derivative_is_exact_on_polynomials_in_s():
+    """d²/dB² on the abt grid is the exact chain rule, not DB1 @ DB1.
+
+    ``DB1 @ DB1`` re-interpolates ``(1/B′) D_s f``, and ``1/B′`` has poles at
+    ``s = ±1``: on a random polynomial of degree < Nb it is wrong at O(1) (measured
+    0.67 at Nb = 14).  The exact form is right to roundoff.
+    """
+    Nb = GRID["Nb"]
+    _, B, _, DB1 = ops.build_grid(GRID["Na"], Nb, "abt")
+    s = ops.s_nodes(Nb, "abt")
+    leg = np.polynomial.legendre
+    c = np.random.default_rng(1).standard_normal(Nb)
+    f1 = leg.legval(s, leg.legder(c))
+    f2 = leg.legval(s, leg.legder(c, 2))
+    Bp, Bpp = ops.dB_ds(s, "abt"), ops.d2B_ds2(s, "abt")
+    want = (f2 - Bpp / Bp * f1) / Bp ** 2
+    f = leg.legval(s, c)
+    DBB1 = ops.d2_dB2_1d(Nb, "abt")
+    err = np.max(np.abs(DBB1 @ f - want)) / np.max(np.abs(want))
+    err_nested = np.max(np.abs(DB1 @ DB1 @ f - want)) / np.max(np.abs(want))
+    print(f"\n[abt d2/dB2] exact {err:.1e}, nested DB1@DB1 {err_nested:.1e}")
+    assert err < 1e-12
+    assert err_nested > 1e-2, "the nested square should NOT be exact; the test is not biting"
+
+
+def test_every_operator_uses_the_exact_second_derivative_on_abt_only():
+    """The dense 2-D, dense 3-D and separable operators all take ``angular_d2``: the
+    exact matrix on the canonical abt grid, ``None`` (the original squaring) on
+    "cos" and on a hand-built grid."""
+    Na, Nb = GRID["Na"], GRID["Nb"]
+    A, B, DA1, DB1 = ops.build_grid(Na, Nb, "abt")
+    DBB1 = ops.d2_dB2_1d(Nb, "abt")
+    assert np.array_equal(ops.angular_d2(B, DB1), DBB1)
+    assert ops.angular_d2(*ops.build_grid(Na, Nb, "cos")[1::2]) is None
+    assert ops.d2_dB2_1d(Nb, "cos") is None
+    assert ops.angular_d2(B * (1 + 1e-15), DB1) is None
+    # separable, m = 0: C_B = (1 − B²) d²/dB² − 2B d/dB with exactly that matrix
+    _, C_B, _ = separable.kron_factors(A, B, DA1, DB1, 0)
+    assert np.array_equal(C_B, (1.0 - B ** 2)[:, None] * DBB1 + (-2.0 * B)[:, None] * DB1)
+    # dense 3-D pieces and the 2-D operator carry the same B-squaring
+    p = ops3._mode_independent_pieces(A, B, DA1, DB1, 3.0)
+    assert np.array_equal(p["DBB"], np.kron(np.eye(Na + 1), DBB1))
 
 
 def test_m0_block_is_the_2d_operator_on_the_abt_grid():
@@ -308,6 +354,33 @@ def test_abt_resolves_the_punctures_at_the_production_grid():
     assert agree < 1e-7, "the two references disagree: the comparison is not valid"
     assert e_abt * 50.0 < e_cos
     assert e_abt < 1e-5
+
+
+def test_abt_midfield_converges_with_the_exact_second_derivative():
+    """Head-on, b = 3, 24×24×8: mid-field (0.3–3 b) ψ within 2e-7 of a 64×64×8 reference.
+
+    With the nested ``DB1 @ DB1`` this grid gave 4.7e-7 against TwoPunctures 72²×8
+    (TwoPunctures itself, on the same 24×24×8: 1.1e-7); with the exact chain rule
+    7.2e-8.  The reference is on the same map, so this pins our convergence, not the
+    agreement with an external code.
+    """
+    sl = Slice3D(b=3.0, m_A=0.5, m_B=0.5, P_A_vec=(0.0, 0.0, -0.2), P_B_vec=(0.0, 0.0, 0.2))
+    rng = np.random.default_rng(0)
+    r = np.exp(rng.uniform(np.log(0.3 * sl.b), np.log(3.0 * sl.b), 60))
+    ct, ph = rng.uniform(-1, 1, 60), rng.uniform(0, 2 * np.pi, 60)
+    rho, z = r * np.sqrt(1 - ct ** 2), r * ct
+
+    def run(n):
+        prob = s3.make_problem(Na=n, Nb=n, Nphi=8, bmap="abt")
+        U, info = nk.newton_solve_nk(prob, sl, tol=1e-12, max_iter=40)
+        assert info.converged
+        return _psi(prob, U, sl, rho, z, ph)
+
+    ref = run(64)
+    e24, e32 = (float(np.max(np.abs(run(n) - ref))) for n in (24, 32))
+    print(f"\n[abt mid-field, head-on b=3] 24^2: {e24:.1e}, 32^2: {e32:.1e} (vs 64^2)")
+    assert e24 < 2e-7
+    assert e32 < e24 / 10
 
 
 def test_inverse_map_s_is_accurate_next_to_the_axis():

@@ -142,7 +142,12 @@ def kron_factors(A, B, DA1, DB1, m: int):
     # analytically in W and numerically in v (operators_3d.bc_factor).
     W, Wp, Wpp = ops3.bc_factor(B, m)
     ob2 = 1.0 - B ** 2
-    C_B = (ob2[:, None] * (np.diag(Wpp) + 2.0 * Wp[:, None] * DB1 + W[:, None] * (DB1 @ DB1))
+    # d²/dB²: the exact chain rule on a mapped grid (operators_abt.d2_dB2_1d), the
+    # same matrix the dense blocks use; on "cos" DB1 @ DB1 as before.
+    DBB1 = ops.angular_d2(B, DB1)
+    if DBB1 is None:
+        DBB1 = DB1 @ DB1
+    C_B = (ob2[:, None] * (np.diag(Wpp) + 2.0 * Wp[:, None] * DB1 + W[:, None] * DBB1)
            + (-2.0 * B)[:, None] * (np.diag(Wp) + W[:, None] * DB1))
 
     # --- centrifugal: exactly separable, so it folds into the two factors above
