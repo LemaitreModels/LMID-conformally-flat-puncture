@@ -83,9 +83,10 @@ class Problem:
     B: np.ndarray
     DA1: np.ndarray
     DB1: np.ndarray
-    # angular node map (``operators_abt.B_MAPS``); see ``solver_3d.Problem3D.bmap``
+    # angular node map (``operators_abt.B_MAPS``) and radial map
+    # (``operators_abt.RADIAL_MAPS``); see ``solver_3d.Problem3D`` — the defaults are
+    # identity (a hand-built Problem is the original grid), not the grid default
     bmap: str = "cos"
-    # radial map (``operators_abt.RADIAL_MAPS``); see ``solver_3d.Problem3D.radial``
     radial: str = "lobatto"
 
     @property

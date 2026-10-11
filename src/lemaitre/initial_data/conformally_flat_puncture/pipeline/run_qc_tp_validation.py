@@ -28,6 +28,7 @@ from lemaitre.initial_data.conformally_flat_puncture.validation import twopunctu
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REPDIR = os.path.join(REPORTS, "3D_parametric", "qc")
 os.makedirs(REPDIR, exist_ok=True)
@@ -128,7 +129,7 @@ def block_C(b=4.0, q=1.0, tp_res=(64, 64, 12)):
        f"(reference nφ-converged); TP.E = {ref.E:.10f}")
     rows = []
     for (Na, Nb) in [(28, 20), (36, 24), (44, 30), (52, 36), (64, 44)]:
-        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=8)
+        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=8, scheme=pm.SCHEME)
         t0 = time.time()
         U, info = s3nk.newton_solve_nk(prob, sl, tol=1e-12, max_iter=30)
         u = np.asarray(s3.evaluate_field(prob, U, rho, z, phi, b))

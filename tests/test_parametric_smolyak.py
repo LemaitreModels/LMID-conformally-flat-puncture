@@ -263,7 +263,7 @@ def test_sparse_beats_dense_solver_family_d4():
     from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
     from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_3d as p3
 
-    prob = s3.make_problem(Na=16, Nb=14, Nphi=4)
+    prob = s3.make_problem(Na=16, Nb=14, Nphi=4, scheme="paper-v1")
     box = [{"name": "b", "min": 1.5, "max": 4.0},
            {"name": "S_mag", "min": 0.0, "max": 0.4},
            {"name": "theta_S", "min": 0.0, "max": 90.0},
@@ -305,7 +305,7 @@ def test_certified_prediction_sparse():
     from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
     from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_3d as p3
 
-    prob = s3.make_problem(Na=24, Nb=18, Nphi=6)
+    prob = s3.make_problem(Na=24, Nb=18, Nphi=6, scheme="paper-v1")
     box = [{"name": "b", "min": 1.5, "max": 4.0},
            {"name": "theta_S", "min": 0.0, "max": 90.0}]
     sp = sm.from_problem_smolyak_3d(prob, box, solver="nk").build_isotropic(3, max_iter=20)

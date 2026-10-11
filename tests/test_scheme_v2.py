@@ -14,6 +14,10 @@
     of it at the production grid: the ADM mass, and ψ not worse anywhere.
   * The radial choice is part of the grid's identity wherever the angular map is: the
     fourth group checks solve-store keys, saved models, attaching and the export.
+  * Milestone 2 made ``"v2"`` the default.  The fifth group gates that, the refusal of
+    one axis named alone, the paper-v1 constant ``pipeline.production_model.SCHEME``,
+    and a source scan that no producer, figure, table or oracle script builds a grid
+    without naming one.  Everything above that means the paper's grid names it.
 """
 
 import dataclasses
@@ -37,6 +41,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric import solve_sto
 from lemaitre.initial_data.conformally_flat_puncture.validation import adm
 from lemaitre.initial_data.conformally_flat_puncture.validation import constraints
 from lemaitre.initial_data.conformally_flat_puncture.validation import export_grteclyn as ex
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 
 GRID = dict(Na=20, Nb=14, Nphi=6)
 
@@ -132,8 +137,11 @@ def _frozen_kron_factors(A, B, DA1, DB1, m):
     return L_A, C_B, W
 
 
-@pytest.mark.parametrize("kw", [{}, {"scheme": "paper-v1"}, {"bmap": "abt"}],
-                         ids=["default", "paper-v1", "abt-lobatto"])
+# The "default" case of milestone 1 is now the paper-v1 constant: the grid every shipped
+# number is on, by the name the producers use.
+@pytest.mark.parametrize("kw", [{"scheme": pm.SCHEME}, {"scheme": "paper-v1"},
+                                {"bmap": "abt", "radial": "lobatto"}],
+                         ids=["production_model.SCHEME", "paper-v1", "abt-lobatto"])
 @pytest.mark.parametrize("Na,Nb", [(12, 10), (20, 14), (44, 32)])
 def test_lobatto_operators_are_bit_identical_to_the_frozen_assembly(kw, Na, Nb):
     """paper-v1 (and the 2026-10-10 abt+lobatto grid) build exactly the old operator."""
@@ -160,13 +168,16 @@ def test_lobatto_operators_are_bit_identical_to_the_frozen_assembly(kw, Na, Nb):
 
 def test_schemes_and_their_resolution():
     assert ops.SCHEMES == {"paper-v1": ("cos", "lobatto"), "v2": ("abt", "gauss")}
-    # milestone 1: v2 is implemented and opt-in; the default is still the paper's grid
-    assert ops.DEFAULT_SCHEME == "paper-v1"
+    # milestone 2: v2 is the default (milestone 1 asserted "paper-v1" here)
+    assert ops.DEFAULT_SCHEME == "v2"
     assert (ops.DEFAULT_BMAP, ops.DEFAULT_RADIAL) == ops.SCHEMES[ops.DEFAULT_SCHEME]
-    assert ops.resolve_scheme() == ("cos", "lobatto")
+    assert ops.resolve_scheme() == ("abt", "gauss")
     assert ops.resolve_scheme("v2") == ("abt", "gauss")
     assert ops.resolve_scheme("v2", bmap="abt", radial="gauss") == ("abt", "gauss")
-    assert ops.resolve_scheme(bmap="abt") == ("abt", "lobatto")          # today's opt-in
+    assert ops.resolve_scheme("paper-v1", bmap="cos") == ("cos", "lobatto")   # agreeing axis
+    # the 2026-10-10 opt-in is now spelled with both axes (bmap="abt" alone is refused,
+    # test_a_lone_axis_is_refused_at_every_entry_point)
+    assert ops.resolve_scheme(bmap="abt", radial="lobatto") == ("abt", "lobatto")
     assert ops.resolve_scheme(bmap="cos", radial="gauss") == ("cos", "gauss")  # mixed
     with pytest.raises(ValueError, match="scheme 'v2' has bmap"):
         ops.resolve_scheme("v2", bmap="cos")
@@ -175,11 +186,12 @@ def test_schemes_and_their_resolution():
     with pytest.raises(ValueError, match="unknown scheme"):
         s3.make_problem(10, 8, 4, scheme="v3")
     with pytest.raises(ValueError, match="unknown radial map"):
-        ops.build_grid(10, 8, None, "radau")
+        ops.build_grid(10, 8, "cos", "radau")
     p = s3.make_problem(10, 8, 4, scheme="v2")
     assert (p.bmap, p.radial, p.scheme) == ("abt", "gauss", "v2")
-    assert s3.make_problem(10, 8, 4).scheme == "paper-v1"
-    assert s3.make_problem(10, 8, 4, bmap="abt").scheme is None
+    assert s3.make_problem(10, 8, 4).scheme == "v2"
+    assert s3.make_problem(10, 8, 4, scheme="paper-v1").scheme == "paper-v1"
+    assert s3.make_problem(10, 8, 4, bmap="abt", radial="lobatto").scheme is None
     p2 = sa.make_problem(10, 8, scheme="v2")
     assert (p2.bmap, p2.radial, p2.scheme) == ("abt", "gauss", "v2")
 
@@ -475,7 +487,7 @@ def production_qc10():
     # the references name their axes, so they do not move if a scheme's definition does
     return dict(ref=run(64, 96, bmap="abt", radial="gauss"),
                 ref_lob=run(80, 96, bmap="abt", radial="lobatto"),
-                v1=run(44, 32, scheme="paper-v1"), abt_lob=run(44, 32, bmap="abt"),
+                v1=run(44, 32, scheme="paper-v1"), abt_lob=run(44, 32, bmap="abt", radial="lobatto"),
                 v2=run(44, 32, scheme="v2"))
 
 
@@ -601,3 +613,138 @@ def test_separable_assembly_refuses_a_hand_built_radial_grid():
     bad = dataclasses.replace(prob, A=A, DA1=DA1)          # lobatto nodes, says gauss
     with pytest.raises(ValueError, match="canonical"):
         s3.assemble(bad, _slice(), separable=True)
+
+
+# ==========================================================================
+# 5.  Milestone 2: "v2" is the default; the paper's grid is named, never defaulted
+# ==========================================================================
+_ENTRY_POINTS = {
+    "build_grid": lambda **kw: ops.build_grid(10, 8, **kw),
+    "build_grid_3d": lambda **kw: ops3.build_grid_3d(10, 8, 4, **kw),
+    "get_separable": lambda **kw: separable.get_separable(10, 8, 4, **kw),
+    "SeparableModes": lambda **kw: separable.SeparableModes(10, 8, 4, **kw),
+    "solver_3d.make_problem": lambda **kw: s3.make_problem(10, 8, 4, **kw),
+    "solver_abt.make_problem": lambda **kw: sa.make_problem(10, 8, **kw),
+}
+
+
+def _grid_arrays(obj):
+    if isinstance(obj, tuple):
+        return [np.asarray(x) for x in obj]
+    return [np.asarray(getattr(obj, k)) for k in ("A", "B", "DA1", "DB1")]
+
+
+@pytest.mark.parametrize("name", list(_ENTRY_POINTS))
+def test_the_default_is_v2_at_every_entry_point(name):
+    """Nothing named builds exactly what ``scheme="v2"`` builds — and not paper-v1."""
+    f = _ENTRY_POINTS[name]
+    got, v2, v1 = f(), f(scheme="v2"), f(scheme="paper-v1")
+    assert all(np.array_equal(x, y) for x, y in zip(_grid_arrays(got), _grid_arrays(v2)))
+    assert not np.array_equal(_grid_arrays(got)[0], _grid_arrays(v1)[0])     # A nodes
+    assert not np.array_equal(_grid_arrays(got)[1], _grid_arrays(v1)[1])     # B nodes
+    if hasattr(got, "radial"):
+        assert (got.bmap, got.radial) == ("abt", "gauss")
+    if name == "get_separable":                     # one cache entry per resolved pair
+        assert got is v2 is separable.get_separable(10, 8, 4, bmap="abt", radial="gauss")
+
+
+def test_the_default_is_read_when_the_grid_is_built(monkeypatch):
+    """``resolve_scheme`` reads ``DEFAULT_SCHEME`` at call time, so a caller that names
+    no grid follows it — which is why everything meaning the paper's grid names it."""
+    monkeypatch.setattr(ops, "DEFAULT_SCHEME", "paper-v1")
+    assert s3.make_problem(10, 8, 4).scheme == "paper-v1"
+    monkeypatch.setattr(ops, "DEFAULT_SCHEME", "v2")
+    assert s3.make_problem(10, 8, 4).scheme == "v2"
+
+
+@pytest.mark.parametrize("name", list(_ENTRY_POINTS) + ["resolve_scheme"])
+@pytest.mark.parametrize("lone", [dict(bmap="cos"), dict(bmap="abt"),
+                                  dict(radial="lobatto"), dict(radial="gauss")],
+                         ids=["bmap=cos", "bmap=abt", "radial=lobatto", "radial=gauss"])
+def test_a_lone_axis_is_refused_at_every_entry_point(name, lone):
+    """Decided 2026-10-11: name ``scheme=`` or both axes.  Without it,
+    ``bmap="cos"`` alone would silently build cos + gauss under the v2 default."""
+    f = ops.resolve_scheme if name == "resolve_scheme" else _ENTRY_POINTS[name]
+    with pytest.raises(ValueError, match="alone is ambiguous"):
+        f(**lone)
+
+
+def test_a_single_axis_has_no_default_of_its_own():
+    """``check_bmap``/``check_radial`` validate a name; ``None`` is refused there, so no
+    code path can default one half of a grid behind ``resolve_scheme``'s back."""
+    with pytest.raises(ValueError, match="no default on its own"):
+        ops.check_bmap(None)
+    with pytest.raises(ValueError, match="no default on its own"):
+        ops.check_radial(None)
+    assert ops.check_bmap("abt") == "abt" and ops.check_radial("gauss") == "gauss"
+
+
+def test_the_paper_constant_is_paper_v1():
+    """One constant names the grid every shipped model, figure, table and the GRTeclyn
+    export is on; the export's own format constant agrees; the module stays stdlib."""
+    import ast
+    assert pm.SCHEME == "paper-v1" and pm.SCHEME in ops.SCHEMES
+    assert pm.SCHEME != ops.DEFAULT_SCHEME
+    assert ex.SCHEME == "paper-v1"
+    tree = ast.parse(open(pm.__file__).read())
+    mods = [n.module or "" for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)]
+    mods += [a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names]
+    assert not any("solver" in m or m.split(".")[0] in ("jax", "numpy") for m in mods), mods
+
+
+# (name -> positional index of bmap, radial, scheme), as in the signatures
+_GRID_CALLS = {"make_problem": (3, 4, 5), "build_grid": (2, 3, 4), "build_grid_3d": (3, 4, 5),
+               "get_separable": (3, 4, 5), "SeparableModes": (3, 4, 5)}
+
+
+def _calls_relying_on_the_default(path):
+    """Every grid-building call in ``path`` that names neither ``scheme=`` nor both axes
+    (a ``**kwargs`` or ``*args`` call cannot be verified and is reported too)."""
+    import ast
+    bad, n = [], 0
+    for node in ast.walk(ast.parse(open(path).read())):
+        if not isinstance(node, ast.Call):
+            continue
+        f = node.func
+        name = f.attr if isinstance(f, ast.Attribute) else getattr(f, "id", None)
+        if name not in _GRID_CALLS:
+            continue
+        n += 1
+        bi, ri, si = _GRID_CALLS[name]
+        kws = {k.arg for k in node.keywords}
+        npos = len(node.args)
+        starred = None in kws or any(isinstance(a, ast.Starred) for a in node.args)
+        named = ("scheme" in kws or npos > si
+                 or (("bmap" in kws or npos > bi) and ("radial" in kws or npos > ri)))
+        if starred and path.endswith(("operators_3d.py", "separable.py")) and name in (
+                "build_grid", "SeparableModes"):
+            named = True          # the two memo keys: (Na, Nb[, Nphi], bmap, radial) tuples
+        if not named:
+            bad.append(f"{path}:{node.lineno} {name}(...)")
+    return bad, n
+
+
+def test_no_producer_figure_table_or_oracle_relies_on_the_default():
+    """Source scan: in the package (``pipeline/`` included), ``paper/`` and ``oracle/``,
+    every ``make_problem``/``build_grid``/``build_grid_3d``/``get_separable``/
+    ``SeparableModes`` call names its grid.  A producer that relied on the default
+    would silently move from the paper's grid to v2 — and a figure, table or the export
+    would follow — so this is checked on the source, not by running them."""
+    import os
+    import lemaitre.initial_data.conformally_flat_puncture as pkg
+    pkg_dir = os.path.dirname(pkg.__file__)
+    leaf = os.path.abspath(os.path.join(pkg_dir, *[".."] * 4))
+    roots = [pkg_dir, os.path.join(leaf, "paper"), os.path.join(leaf, "oracle")]
+    assert all(os.path.isdir(r) for r in roots), roots
+    bad, n, files = [], 0, 0
+    for root in roots:
+        for d, _, fs in os.walk(root):
+            for fn in fs:
+                if fn.endswith(".py"):
+                    b, k = _calls_relying_on_the_default(os.path.join(d, fn))
+                    bad += b
+                    n += k
+                    files += 1
+    print(f"\n[source scan] {files} files, {n} grid-building calls, {len(bad)} unnamed")
+    assert n >= 40, f"the scan saw only {n} calls: it is not looking where the producers are"
+    assert not bad, "grid built on the default (name scheme= or both axes):\n" + "\n".join(bad)

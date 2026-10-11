@@ -68,6 +68,7 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_hermite_fielde
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REP3 = os.path.join(REPORTS, "P3")
 
@@ -86,7 +87,7 @@ def main(n_points=1000, seed=0, model=None):
     box = [(float(a[0]), float(a[1])) for a in meta["box"]]
     fixed = meta.get("fixed", {}) or {}
     Na, Nb, Nphi = int(meta["Na"]), int(meta["Nb"]), int(meta["Nphi"])
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
     print(f"[vpod4d] box={dict(zip(names, box))} fixed={fixed} "
           f"grid={Na}x{Nb}x{Nphi}", flush=True)
 

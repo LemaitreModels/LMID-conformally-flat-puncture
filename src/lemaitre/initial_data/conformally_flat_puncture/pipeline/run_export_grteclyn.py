@@ -48,6 +48,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.certification im
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d_nk as nk
 from lemaitre.initial_data.conformally_flat_puncture.validation import export_grteclyn as eg
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 
 # The anchor's spectral grid, matching paper/figures/fig10_constraints_data.py.
 SPECTRAL = (52, 36)
@@ -190,7 +191,7 @@ def main():
             nphi = args.nphi
         name = name + args.suffix
         t0 = time.time()
-        prob = s3.make_problem(Na=args.na, Nb=args.nb, Nphi=nphi)
+        prob = s3.make_problem(Na=args.na, Nb=args.nb, Nphi=nphi, scheme=pm.SCHEME)
         U, info = nk.newton_solve_nk(prob, sl, tol=args.tol, verbose=True)
         dt = time.time() - t0
         if not info.converged:

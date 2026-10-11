@@ -40,6 +40,7 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REPDIR = os.path.join(REPORTS, "3D_parametric", "qc_chi")
 STORE = os.path.join(REPORTS, "3D_parametric", "solve_store_chi")
@@ -245,7 +246,8 @@ def block_C(prob):
 # ==========================================================================
 def block_D(prob, blockA):
     _t("\n########## D: joint 4-D Smolyak convergence + cost model (chi) ##########")
-    store = ss.SolveStore(STORE, grid_meta=(NA, NB, NPHI), code_tag=CODE_TAG, reuse_tol=1e-6)
+    store = ss.SolveStore(STORE, grid_meta=(NA, NB, NPHI), code_tag=CODE_TAG, reuse_tol=1e-6,
+                          bmap=prob.bmap, radial=prob.radial)
     _t(f"   store: {store.n_entries} entries, code_tag={store.code_tag}")
     hold = p3.holdout_points_nd(BOX, n_points=6)
     p3.assert_off_node(hold, [dict(a, Q=8) for a in BOX])
@@ -337,7 +339,7 @@ def make_figures(results):
 
 def main():
     t0 = time.time()
-    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
+    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme=pm.SCHEME)
     results = {"meta": dict(Na=NA, Nb=NB, Nphi=NPHI, box=[[a["min"], a["max"]] for a in BOX],
                             axes=[a["name"] for a in BOX], chi_rep=CHI_REP, code_tag=CODE_TAG)}
     results["A_per_axis"] = block_A(prob)

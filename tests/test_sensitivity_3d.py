@@ -42,13 +42,13 @@ NA, NB, NPHI = 18, 14, 6
 # --------------------------------------------------------------------------
 @pytest.fixture(scope="module")
 def prob():
-    return s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
+    return s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme="paper-v1")
 
 
 @pytest.fixture(scope="module")
 def prob2():
     """Matched 2-D meridian grid (same Na,Nb) — the axisymmetric-reduction oracle."""
-    return sa.make_problem(Na=NA, Nb=NB, P=0.5)
+    return sa.make_problem(Na=NA, Nb=NB, P=0.5, scheme="paper-v1")
 
 
 def _slice(b=2.4, q=1.7, P=0.5, S_A=(0.0, 0.0, 0.0), M_tot=M_TOT):

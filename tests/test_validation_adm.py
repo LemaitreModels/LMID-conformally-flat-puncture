@@ -75,7 +75,7 @@ def test_gauss_momentum_radius_independent():
 # --------------------------------------------------------------------------
 @pytest.fixture(scope="module")
 def solved():
-    prob = sa.make_problem(Na=44, Nb=30, P=P)
+    prob = sa.make_problem(Na=44, Nb=30, P=P, scheme="paper-v1")
     sl = sa.Slice(B, MA, MB)
     U, info = sa.newton_solve(prob, sl, tol=1e-11, max_iter=25)
     assert info.residual_norm < 1e-9
@@ -108,7 +108,7 @@ def test_adm_mass_spectral_converges():
     sl = sa.Slice(B, MA, MB)
     errs = []
     for (Na, Nb) in [(44, 30), (52, 36), (64, 44)]:
-        prob = sa.make_problem(Na=Na, Nb=Nb, P=P)
+        prob = sa.make_problem(Na=Na, Nb=Nb, P=P, scheme="paper-v1")
         U, _ = sa.newton_solve(prob, sl, tol=1e-12, max_iter=30)
         errs.append(abs(adm.adm_mass_spectral(prob, U, sl) - Eref))
     assert errs[-1] < 1e-9, errs           # ~1e-11 at 64x44

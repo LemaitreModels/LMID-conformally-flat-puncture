@@ -47,6 +47,7 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 STORE = os.path.join(REPORTS, "3D_parametric", "solve_store_chi")
 NA, NB, NPHI = 44, 32, 8
@@ -87,8 +88,9 @@ def main():
                     help="smoke: solve only the first N nodes of this task's stride")
     args = ap.parse_args()
 
-    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
-    store = ss.SolveStore(STORE, grid_meta=(NA, NB, NPHI), code_tag=CODE_TAG, reuse_tol=1e-6)
+    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme=pm.SCHEME)
+    store = ss.SolveStore(STORE, grid_meta=(NA, NB, NPHI), code_tag=CODE_TAG, reuse_tol=1e-6,
+                          bmap=prob.bmap, radial=prob.radial)
     solver = ss.from_problem_smolyak_3d_cached(prob, BOX, store=store, fixed=FIXED,
                                                solver="modified", retry_tol=1e-6)
 

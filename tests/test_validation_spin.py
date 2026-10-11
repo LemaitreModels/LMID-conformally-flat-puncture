@@ -69,7 +69,7 @@ def test_spin_psi_agreement_vs_tp():
     head-on 1e-12 (risk R7); both spectral codes converge to the same
     analytic solution at the well-resolved interior probes.
     """
-    prob = sa.make_problem(Na=64, Nb=44, P=P)
+    prob = sa.make_problem(Na=64, Nb=44, P=P, scheme="paper-v1")
     sl = sa.Slice(B, MA, MB, S_A=SA, S_B=SB)
     U, info = sa.newton_solve(prob, sl, tol=1e-9, max_iter=30)
     assert info.residual_norm < 1e-7, f"LM-initial-data spin solve ‖R‖={info.residual_norm:.2e}"

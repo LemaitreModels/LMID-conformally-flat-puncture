@@ -23,7 +23,7 @@ def _order(hs, errs):
 
 def _vec_evaluator_consistency():
     """The vectorized field evaluator must match solver_abt.evaluate_field_phys."""
-    prob = sa.make_problem(Na=28, Nb=20, P=0.5)
+    prob = sa.make_problem(Na=28, Nb=20, P=0.5, scheme="paper-v1")
     sl = sa.Slice(3.0, 0.5, 0.5)
     U, _ = sa.newton_solve(prob, sl, tol=1e-10, max_iter=20)
     rho = np.array([0.5, 1.2, 2.0, 4.0])
@@ -126,7 +126,7 @@ def test_momentum_conformal_closed_form_small():
 @pytest.mark.slow
 def test_binary_constraints_converge():
     b, mA, mB, P, L = 3.0, 0.5, 0.5, 0.5, 9.0
-    prob = sa.make_problem(Na=52, Nb=36, P=P)
+    prob = sa.make_problem(Na=52, Nb=36, P=P, scheme="paper-v1")
     sl = sa.Slice(b, mA, mB)
     U, info = sa.newton_solve(prob, sl, tol=1e-12, max_iter=25)
     assert info.residual_norm < 1e-9

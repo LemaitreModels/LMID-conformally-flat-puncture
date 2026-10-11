@@ -32,7 +32,7 @@ from lemaitre.initial_data.conformally_flat_puncture.solver import source_3d
 from lemaitre.initial_data.conformally_flat_puncture.solver.solver_3d import Slice3D
 
 
-GRID = dict(Na=16, Nb=12, Nphi=6)
+GRID = dict(Na=16, Nb=12, Nphi=6, scheme="paper-v1")
 
 
 def _slice(b=2.5):

@@ -40,6 +40,20 @@ The names are the same in both boxes and the indices are **not** — the six spi
 components sit between `q` and the aligned pair in 8-D. Use
 `production_model.enhanced_indices(dim)`, never a literal.
 
+### The grid it is built on: `production_model.SCHEME = "paper-v1"`
+
+Both models were solved on the production grid `44 × 32 × 8`
+(`production_box.PROD_GRID`) under the `"paper-v1"` discretisation
+(`solver.operators_abt.SCHEMES`): Gauss–Legendre nodes in `B = cos η` (`"cos"`) and
+Chebyshev–Gauss–Lobatto `A` with a boundary row at each edge (`"lobatto"`) — what the
+first version of the paper used. **It is not the solver's default.** The solver
+defaults to `"v2"` (Ansorg–Brügmann–Tichy's angle and radial form), so every
+producer, figure-data script, table, model loader and the GRTeclyn export driver
+passes `scheme=production_model.SCHEME`, and `tests/test_scheme_v2.py` scans the
+source for any grid built there without a name. Loading a shipped model onto a
+problem built on another grid is refused (`attach_solve_fn_3d`); the model files do
+not record `"paper-v1"` because "no key" has always meant it.
+
 ---
 
 ## 2. What a node stores, and what that costs
@@ -143,7 +157,10 @@ the cross POD bases from the full Hermite corpora.
 
 ## 5. If you change the model
 
-1. Change `production_model.py` — nothing else defines the model.
+1. Change `production_model.py` — nothing else defines the model. Moving `SCHEME`
+   off `"paper-v1"` moves every producer, figure, table and the export with it, and
+   the shipped `.npz` models (built on `"paper-v1"`) stop loading: it means rebuilding
+   them, and the GRTeclyn format only carries `"paper-v1"`.
 2. `pytest tests/test_production_model.py` (identity, accounting, slim losslessness).
 3. Rebuild the affected figdata — `python paper/figures/make_figdata.py --fig <stem>
    --force`; most sources are cluster-side, see [`DATA.md`](DATA.md). **Do not wait for

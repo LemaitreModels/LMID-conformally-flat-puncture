@@ -30,7 +30,7 @@ THETAS = [np.array([2.5, 1.8, 0.4, -0.3]),
 
 @pytest.fixture(scope="module")
 def prob():
-    return s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
+    return s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme="paper-v1")
 
 
 def test_wrapper_is_passthrough(prob):

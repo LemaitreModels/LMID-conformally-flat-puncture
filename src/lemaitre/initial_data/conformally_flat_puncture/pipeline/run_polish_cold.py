@@ -48,6 +48,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_3d
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REPDIR = os.path.join(REPORTS, "P3")
 GAP_MIN = 1e-4
@@ -116,7 +117,7 @@ def run_dim(dim, n_points, steps, seed):
     print(f"[{tag}] d={len(box)} grid={Na}x{Nb}x{Nphi} box={dict(zip(names, box))} "
           f"fixed={fixed}  (cold NK from zeros; NO surrogate)", flush=True)
 
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
     # plain cold NK solve_fn (retry_tol=None) — matches run_qc_timing's cold solve
     solve_fn, _ = make_solve_fn(prob, names, M_tot=1.0, fixed=fixed,
                                 use_cache=True, solver="nk")

@@ -31,6 +31,7 @@ SANDBOX = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 from _figdata import load_source, source, dump
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
 from lemaitre.initial_data.conformally_flat_puncture.applications import qc_effpot as E
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 
 
 def _model_meta(path):
@@ -66,7 +67,7 @@ def build():
             f"fig07: {os.path.basename(model_path)} was built on Na,Nb,Nphi={built} "
             f"but this script evaluates on {grid}. Rebuild the model on {grid}, or "
             f"change `grid` here if the model really moved.")
-    prob = s3.make_problem(Na=grid[0], Nb=grid[1], Nphi=grid[2])
+    prob = s3.make_problem(Na=grid[0], Nb=grid[1], Nphi=grid[2], scheme=pm.SCHEME)
     model = E.load_model(model_path, prob)
     V, _ = E.build_effpot_jax(model, prob)
 

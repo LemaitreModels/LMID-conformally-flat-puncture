@@ -102,7 +102,7 @@ def tp_misaligned():
 
 @pytest.fixture(scope="module")
 def lm_initial_data_misaligned_fine():
-    prob = s3.make_problem(Na=56, Nb=40, Nphi=10)
+    prob = s3.make_problem(Na=56, Nb=40, Nphi=10, scheme="paper-v1")
     sl = Slice3D(b=B, m_A=MA, m_B=MB, P_A_vec=P_A_VEC, P_B_vec=P_B_VEC,
                  S_A_vec=S_A_VEC, S_B_vec=S_B_VEC)
     U, info = s3.newton_solve(prob, sl, tol=1e-11, max_iter=50)
@@ -124,7 +124,7 @@ def test_psi_agreement_misaligned_spin_spectral(tp_misaligned):
                  S_A_vec=S_A_VEC, S_B_vec=S_B_VEC)
     errs = []
     for (Na, Nb, Nphi) in [(40, 28, 8), (48, 34, 8), (56, 40, 10)]:
-        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme="paper-v1")
         U, info = s3.newton_solve(prob, sl, tol=1e-11, max_iter=50)
         u = np.asarray(s3.evaluate_field(prob, U, QR, QZ, QP, B))
         psi = np.asarray(source.psi_BL_2c(QR, QZ, B, MA, MB)) + u
@@ -174,7 +174,7 @@ def test_aligned_spin_axisymmetric_regression():
     S_A, S_B = (0.0, 0.0, Sz), (0.0, 0.0, 0.0)
     sl = Slice3D(b=B, m_A=MA, m_B=MB, P_A_vec=P_A_VEC, P_B_vec=P_B_VEC,
                  S_A_vec=S_A, S_B_vec=S_B)
-    prob = s3.make_problem(Na=56, Nb=40, Nphi=8)
+    prob = s3.make_problem(Na=56, Nb=40, Nphi=8, scheme="paper-v1")
     U, info = s3.newton_solve(prob, sl, tol=1e-11, max_iter=50)
     Uarr = np.asarray(U)
     # aligned spin -> axisymmetric: φ-variation at the spectral floor

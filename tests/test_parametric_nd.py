@@ -101,7 +101,7 @@ def test_snake_single_axis_matches_argsort():
 # P3-U2 — bit-for-bit reduction of a single active axis to the P1 1-D sweep
 # ==========================================================================
 def test_b_axis_reduces_bit_for_bit():
-    prob = sa.make_problem(Na=24, Nb=18, P=0.5)
+    prob = sa.make_problem(Na=24, Nb=18, P=0.5, scheme="paper-v1")
     Q = 8
     ps1d = _oracle_b(prob, 0.5, 0.5, 3.0, 12.0, Q).build(tol=1e-12, max_iter=20)
     psnd = p3.from_problem_nd(prob, [{"name": "b", "min": 3.0, "max": 12.0, "Q": Q}],
@@ -115,7 +115,7 @@ def test_b_axis_reduces_bit_for_bit():
 
 
 def test_q_axis_reduces_bit_for_bit():
-    prob = sa.make_problem(Na=24, Nb=18, P=0.5)
+    prob = sa.make_problem(Na=24, Nb=18, P=0.5, scheme="paper-v1")
     Q = 8
     ps1d = _oracle_q(prob, b=4.0, M_tot=1.0, q_min=1.0, q_max=3.0, Q=Q).build(
         tol=1e-12, max_iter=20)
@@ -131,7 +131,7 @@ def test_q_axis_reduces_bit_for_bit():
 # P3-U3 — the per-b cache is byte-identical to solver_abt.assemble
 # ==========================================================================
 def test_cache_assembly_byte_identical():
-    prob = sa.make_problem(Na=20, Nb=16, P=0.5)
+    prob = sa.make_problem(Na=20, Nb=16, P=0.5, scheme="paper-v1")
     cache = {}
     for sl in [sa.Slice(4.0, 0.6, 0.4, 0.1, 0.0), sa.Slice(4.0, 0.5, 0.5, 0.2, 0.2),
                sa.Slice(7.3, 0.5, 0.5, 0.0, 0.0)]:
@@ -143,7 +143,7 @@ def test_cache_assembly_byte_identical():
 
 
 def test_build_cache_on_equals_off():
-    prob = sa.make_problem(Na=20, Nb=16, P=0.5)
+    prob = sa.make_problem(Na=20, Nb=16, P=0.5, scheme="paper-v1")
     axes = [{"name": "b", "min": 3.0, "max": 12.0, "Q": 5},
             {"name": "chi_A", "min": 0.0, "max": 0.6, "Q": 4}]
     off = p3.from_problem_nd(prob, axes, use_cache=False).build(tol=1e-12, max_iter=20)
@@ -155,7 +155,7 @@ def test_build_cache_on_equals_off():
 # P3-U4 — N-D tensor-product barycentric: exact at nodes; reduces to 1-D
 # ==========================================================================
 def test_nd_barycentric_exact_at_nodes():
-    prob = sa.make_problem(Na=20, Nb=16, P=0.5)
+    prob = sa.make_problem(Na=20, Nb=16, P=0.5, scheme="paper-v1")
     ps = p3.from_problem_nd(prob, [{"name": "b", "min": 3, "max": 12, "Q": 5},
                                    {"name": "chi_A", "min": 0, "max": 0.6, "Q": 4},
                                    {"name": "chi_B", "min": 0, "max": 0.6, "Q": 3}],
@@ -205,7 +205,7 @@ def test_offnode_guard():
 # P3-U7 — JAX differentiability of the interpolant (the B3 hook) vs FD
 # ==========================================================================
 def test_evaluate_jax_grad_vs_fd():
-    prob = sa.make_problem(Na=20, Nb=16, P=0.5)
+    prob = sa.make_problem(Na=20, Nb=16, P=0.5, scheme="paper-v1")
     ps = p3.from_problem_nd(prob, [{"name": "b", "min": 3, "max": 12, "Q": 6},
                                    {"name": "chi_A", "min": 0, "max": 0.6, "Q": 5}],
                             use_cache=True).build(tol=1e-12, max_iter=20)
@@ -227,7 +227,7 @@ def test_evaluate_jax_grad_vs_fd():
 # P3-T1 — per-axis held-out convergence + the merger b-wall (reproduces P1)
 # ==========================================================================
 def test_per_axis_convergence_and_b_wall():
-    prob = sa.make_problem(Na=36, Nb=24, P=0.5)
+    prob = sa.make_problem(Na=36, Nb=24, P=0.5, scheme="paper-v1")
     Qs = [4, 8, 12, 16]
     # b axis reproduces the P1 headline numbers exactly
     rows_b, _ = p3.held_out_convergence_1axis(prob, "b", 3.0, 12.0, Qs)
@@ -256,7 +256,7 @@ def test_per_axis_convergence_and_b_wall():
 # P3-T2 — the spin χ-wall: a soft, far wall (single χ* ≈ 1.5, beyond extremal)
 # ==========================================================================
 def test_chi_wall_soft_and_bernstein_consistent():
-    prob = sa.make_problem(Na=36, Nb=24, P=0.5)
+    prob = sa.make_problem(Na=36, Nb=24, P=0.5, scheme="paper-v1")
     Qs = [4, 8, 12, 16]
     wall = p3.analyticity_wall_chi(prob, [0.4, 0.6, 0.8], Qs, b=4.0, fit_window=(4, 12))
     # spin converges much faster than the merger (rate >> b's ~0.49)
@@ -282,7 +282,7 @@ def test_chi_wall_soft_and_bernstein_consistent():
 # P3-T3 — certified evaluation at arbitrary off-node 4-D θ (≤1e-10)
 # ==========================================================================
 def test_certified_polish_4d():
-    prob = sa.make_problem(Na=28, Nb=20, P=0.5)
+    prob = sa.make_problem(Na=28, Nb=20, P=0.5, scheme="paper-v1")
     axes = [{"name": "b", "min": 3.0, "max": 12.0, "Q": 10},
             {"name": "q", "min": 1.0, "max": 3.0, "Q": 8},
             {"name": "chi_A", "min": 0.0, "max": 0.6, "Q": 6},
@@ -303,7 +303,7 @@ def test_certified_polish_4d():
 # P3-T4 — warm-start "handful of solves": boustrophedon march keeps iters low
 # ==========================================================================
 def test_warm_start_handful():
-    prob = sa.make_problem(Na=28, Nb=20, P=0.5)
+    prob = sa.make_problem(Na=28, Nb=20, P=0.5, scheme="paper-v1")
     axes = [{"name": "b", "min": 3.0, "max": 12.0, "Q": 6},
             {"name": "chi_A", "min": 0.0, "max": 0.6, "Q": 5}]
     ps = p3.from_problem_nd(prob, axes).build(tol=1e-12, max_iter=20)
@@ -325,7 +325,7 @@ def test_warm_start_handful():
 # ==========================================================================
 @pytest.mark.slow
 def test_joint_held_out_below_1e8():
-    prob = sa.make_problem(Na=28, Nb=20, P=0.5)
+    prob = sa.make_problem(Na=28, Nb=20, P=0.5, scheme="paper-v1")
     axes_tmpl = [{"name": "b", "min": 3.0, "max": 12.0},
                  {"name": "q", "min": 1.0, "max": 3.0},
                  {"name": "chi_A", "min": 0.0, "max": 0.6},

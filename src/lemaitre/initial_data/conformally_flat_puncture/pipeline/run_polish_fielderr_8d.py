@@ -153,7 +153,7 @@ def main():
     box = [(float(a[0]), float(a[1])) for a in meta["box"]]
     fixed = meta.get("fixed", {}) or {}
     Na, Nb, Nphi = int(meta["Na"]), int(meta["Nb"]), int(meta["Nphi"])
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
 
     print(f"[fielderr] 8-D spin qc  d={len(box)}  grid={Na}x{Nb}x{Nphi}  "
           f"box={dict(zip(names, box))}  fixed={fixed}", flush=True)

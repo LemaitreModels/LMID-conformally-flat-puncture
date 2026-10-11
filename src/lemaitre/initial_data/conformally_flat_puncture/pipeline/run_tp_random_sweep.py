@@ -111,6 +111,7 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3, solver_3d_nk as s3nk, source
 from lemaitre.initial_data.conformally_flat_puncture.validation import twopunctures as tp
 from lemaitre.initial_data.conformally_flat_puncture.parametric.certification import CERT_TOL_U
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 
 REPDIR = os.path.join(reports_root(), "3D_parametric", "qc")
 
@@ -311,7 +312,7 @@ def _one(job):
         psiBL = np.asarray(source.psi_BL_2c(rho, z, sl.b, sl.m_A, sl.m_B))
         rungs = []
         for g in ladder:
-            prob = s3.make_problem(Na=g[0], Nb=g[1], Nphi=g[2])
+            prob = s3.make_problem(Na=g[0], Nb=g[1], Nphi=g[2], scheme=pm.SCHEME)
             U, info = s3nk.newton_solve_nk(prob, sl, tol=tol, max_iter=40, gmres_rtol=1e-8)
             u = np.asarray(s3.evaluate_field(prob, U, rho, z, phi, sl.b))
             M_adm = _adm_mass_3d(prob, U, sl)
@@ -344,7 +345,7 @@ def _one_axisym(job):
                b=float(theta[0]), q=float(theta[1]), **_chi_fields(theta))
     try:
         sl = p3.theta_to_slice3d(theta, NAMES, M_tot=1.0, fixed=None)   # head-on, not QC
-        prob = s3.make_problem(Na=grid[0], Nb=grid[1], Nphi=grid[2])
+        prob = s3.make_problem(Na=grid[0], Nb=grid[1], Nphi=grid[2], scheme=pm.SCHEME)
         U, info = s3nk.newton_solve_nk(prob, sl, tol=tol, max_iter=40, gmres_rtol=1e-8)
         amps = _phi_spectrum(U)
         a0 = float(amps[0]) if amps[0] > 0 else 1.0

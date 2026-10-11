@@ -33,7 +33,7 @@ FIXED = {"qc": 1.0}
 
 @pytest.fixture(scope="module")
 def prob():
-    return s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
+    return s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme="paper-v1")
 
 
 # ==========================================================================

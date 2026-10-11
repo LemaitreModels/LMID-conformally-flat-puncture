@@ -160,7 +160,7 @@ def sweep_dimension(dim, n_points, seed):
     print(f"[{dim}D] loading POD ({os.path.getsize(cfg['pod'])/1e6:.0f} MB) "
           f"r_ship={r_ship} N={N} nfeat={nfeat} d={d} ...", flush=True)
     full = load_pod_hermite_smolyak(cfg["pod"])
-    prob = s3.make_problem(Na=fs[0] - 1, Nb=fs[1], Nphi=fs[2])
+    prob = s3.make_problem(Na=fs[0] - 1, Nb=fs[1], Nphi=fs[2], scheme=pm.SCHEME)
     pts = offnode_points(box, n_points, seed)
 
     res = {r: [] for r in ranks}

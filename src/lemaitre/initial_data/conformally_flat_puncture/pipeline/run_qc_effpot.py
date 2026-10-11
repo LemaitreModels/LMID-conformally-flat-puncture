@@ -37,6 +37,7 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 MODEL = os.path.join(REPORTS, "3D_parametric", "models", "surrogate_bpt_ecc.npz")
 REPDIR = os.path.join(REPORTS, "P3")
@@ -64,7 +65,7 @@ def main(Jlist=None, n_scan=13):
     Jlist = list(JLIST_DEFAULT if Jlist is None else Jlist)
     os.makedirs(REPDIR, exist_ok=True); os.makedirs(FIGDIR, exist_ok=True)
     t0 = time.time()
-    prob = s3.make_problem(Na=44, Nb=32, Nphi=8)
+    prob = s3.make_problem(Na=44, Nb=32, Nphi=8, scheme=pm.SCHEME)
     model = E.load_model(MODEL, prob)
     print(f"[effpot] model {model.n_nodes} nodes; J sweep {Jlist}", flush=True)
 
@@ -179,7 +180,7 @@ if __name__ == "__main__":
                         scan_b=np.asarray(d["per_J"][f"{J:.2f}"]["scan_curve"]["b"], float),
                         scan_Eb=np.asarray(d["per_J"][f"{J:.2f}"]["scan_curve"]["Eb"], float))
                 for J in Jlist}
-        prob = s3.make_problem(Na=44, Nb=32, Nphi=8)
+        prob = s3.make_problem(Na=44, Nb=32, Nphi=8, scheme=pm.SCHEME)
         model = E.load_model(MODEL, prob)
         _figure(model, prob, Jlist, data, n_scan, n_grad,
                 os.path.join(FIGDIR, "fig_qc_eccentricity.png"))

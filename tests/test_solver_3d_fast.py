@@ -39,7 +39,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.certification im
 
 # A grid small enough to run in seconds, large enough that Na != Nb != Nφ so an
 # index transposition cannot pass by coincidence.
-GRID = dict(Na=20, Nb=14, Nphi=6)
+GRID = dict(Na=20, Nb=14, Nphi=6, scheme="paper-v1")
 
 
 def _slice(b=2.5):
@@ -108,7 +108,7 @@ def test_kron_mixed_product_identity():
     The tolerance is on the RELATIVE error: the entries of a spectral
     second-derivative matrix scale like N⁴, so an absolute one is meaningless.
     """
-    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"])
+    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], scheme="paper-v1")
     IA, IB = np.eye(A.size), np.eye(B.size)
     for D1, big, ident, left in ((DA1, np.kron(DA1, IB), IB, True),
                                  (DB1, np.kron(IA, DB1), IA, False)):
@@ -134,7 +134,7 @@ def test_mode_operators_match_dense_assembly():
     the solve actually sees (``operators_abt.solve_equilibrated`` divides each row
     by its own max modulus, and the raw rows span ~13 decades).
     """
-    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"])
+    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], scheme="paper-v1")
     m_vals = ops3.fourier_modes(GRID["Nphi"])
     for b in (2.5, 7.0):
         ref, w_ref, int_ref = _reference_mode_operators(A, B, DA1, DB1, b, m_vals)
@@ -164,7 +164,7 @@ def test_m0_block_is_the_frozen_axisymmetric_operator():
     equality, not closeness: "close" here would mean the two solvers had silently
     stopped being the same code.
     """
-    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"])
+    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], scheme="paper-v1")
     b = 2.5
     Lap, _, _, _, _, DA, _ = ops.laplacian_matrix(A, B, DA1, DB1, b)
     M_2d, int_2d = ops.apply_bcs(Lap, A, B, DA)
@@ -183,7 +183,7 @@ def test_meridian_geometry_matches_the_operator_route():
     to hand back four coordinate arrays.  The coordinates themselves must be
     bit-identical: they feed ψ_BL and Â², so any drift here is a physics change.
     """
-    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"])
+    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], scheme="paper-v1")
     b = 2.5
     _, rho_ref, z_ref, Af_ref, Bf_ref, _, _ = ops.laplacian_matrix(A, B, DA1, DB1, b)
     rho, z, Af, Bf, inv_rho2 = ops3.meridian_geometry(A, B, b)
@@ -262,7 +262,7 @@ def test_solve_mode_block_matches_solve_equilibrated():
     the equilibrated block supports, and BIT-for-bit for a real right-hand side
     (that is the path the Nφ=1 axisymmetric reduction takes).
     """
-    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"])
+    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], scheme="paper-v1")
     M0, _, _ = ops3.mode_operators(A, B, DA1, DB1, 2.5,
                                    ops3.fourier_modes(GRID["Nphi"]))
     rng = np.random.default_rng(1)
@@ -333,7 +333,7 @@ def test_operator_cache_returns_the_same_blocks():
     depend on b.
     """
     ops3.clear_block_cache()
-    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"])
+    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], scheme="paper-v1")
     m_vals = ops3.fourier_modes(GRID["Nphi"])
     first = ops3.mode_operators_cached(A, B, DA1, DB1, 2.5, m_vals)
     again = ops3.mode_operators_cached(A, B, DA1, DB1, 2.5, m_vals)
@@ -353,7 +353,7 @@ def test_cached_blocks_equal_a_fresh_build_and_are_read_only():
     caller that forgets fail loudly instead of silently.
     """
     ops3.clear_block_cache()
-    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"])
+    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], scheme="paper-v1")
     m_vals = ops3.fourier_modes(GRID["Nphi"])
     ref, w_ref, int_ref = ops3.mode_operators(A, B, DA1, DB1, 2.5, m_vals)
     got, w_got, int_got, scales = ops3.mode_operators_cached(A, B, DA1, DB1, 2.5, m_vals)
@@ -373,7 +373,7 @@ def test_cache_ignores_a_non_canonical_grid():
     result must follow the grid, not the key.
     """
     ops3.clear_block_cache()
-    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"])
+    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], scheme="paper-v1")
     m_vals = ops3.fourier_modes(GRID["Nphi"])
     canon = ops3.mode_operators_cached(A, B, DA1, DB1, 2.5, m_vals)[0]
     DB1_odd = np.asarray(DB1) * 1.000001
@@ -561,7 +561,7 @@ def test_equil_residual_inf_honours_the_norm_argument():
     with pytest.raises(ValueError):
         nk.equil_residual_inf(asm, Uf, norm="w")
 
-    prob1 = s3.make_problem(Na=GRID["Na"], Nb=GRID["Nb"], Nphi=1)
+    prob1 = s3.make_problem(Na=GRID["Na"], Nb=GRID["Nb"], Nphi=1, scheme="paper-v1")
     sl1 = Slice3D(b=4.0, m_A=0.5, m_B=0.5, P_A_vec=(0.0, 0.0, -0.2),
                   P_B_vec=(0.0, 0.0, 0.2))
     asm1 = s3.assemble(prob1, sl1, separable=False)
@@ -694,10 +694,10 @@ def test_separable_axisym_reduction_reproduces_2d():
     """
     P = 0.5
     for (b, mA, mB) in [(1.0, 0.5, 0.5), (1.5, 0.7, 0.3)]:
-        prob2 = sa.make_problem(Na=28, Nb=20, P=P)
+        prob2 = sa.make_problem(Na=28, Nb=20, P=P, scheme="paper-v1")
         U2, i2 = sa.newton_solve(prob2, Slice(b=b, m_A=mA, m_B=mB),
                                  tol=1e-12, max_iter=25)
-        prob3 = s3.make_problem(Na=28, Nb=20, Nphi=1)
+        prob3 = s3.make_problem(Na=28, Nb=20, Nphi=1, scheme="paper-v1")
         sl3 = Slice3D.head_on(b=b, m_A=mA, m_B=mB, P=P)
         U3, i3 = nk.newton_solve_nk(prob3, sl3, tol=1e-12, max_iter=25, separable=True)
         d = float(np.max(np.abs(np.asarray(U3)[:, :, 0] - np.asarray(U2))))
@@ -736,7 +736,7 @@ def test_separable_tangent_matches_the_dense_tangent():
     alone — not on b, not on θ, not on the iterate — so no gradient is ever taken
     through an eigendecomposition, and the action itself is plain matmuls.
     """
-    prob = s3.make_problem(Na=20, Nb=14, Nphi=6)
+    prob = s3.make_problem(Na=20, Nb=14, Nphi=6, scheme="paper-v1")
     sl = Slice3D(b=2.5, m_A=0.6, m_B=0.4, P_A_vec=(0.05, 0.11, -0.02),
                  P_B_vec=(-0.05, -0.11, 0.02), S_A_vec=(0.05, 0.0, 0.03),
                  S_B_vec=(0.0, 0.04, -0.01))
@@ -776,7 +776,7 @@ def test_axisym_blocks_still_exists_for_the_curved_leaf():
     agree with the routes that replaced it — a stub returning eight ``None``s
     would satisfy a mere ``hasattr``.
     """
-    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"])
+    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], scheme="paper-v1")
     b = 2.5
     out = ops3.axisym_blocks(A, B, DA1, DB1, b)
     assert len(out) == 8, f"axisym_blocks arity changed: {len(out)}"
@@ -865,7 +865,7 @@ def test_w_factor_matches_the_operator_assembly():
     B-derivatives diverge for odd m, so it carries its own expression.  Two
     expressions for one quantity is exactly how a factor drifts, so pin them.
     """
-    _, B, _, _ = ops.build_grid(GRID["Na"], GRID["Nb"])
+    _, B, _, _ = ops.build_grid(GRID["Na"], GRID["Nb"], scheme="paper-v1")
     for m in range(0, 5):
         assert np.array_equal(s3._w_factor(B, m), ops3.bc_factor(B, m)[0]), \
             f"_w_factor disagrees with bc_factor at m={m}"
@@ -880,7 +880,7 @@ def test_evaluate_field_reproduces_the_truncated_expansion(Nphi):
     gate fails by orders of magnitude near the outer axis.
     """
     Na, Nb, b = GRID["Na"], GRID["Nb"], 2.5
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme="paper-v1")
     coeffs = _random_basis_coeffs(Na, Nb, Nphi)
 
     AA, BB, PP = np.meshgrid(prob.A, prob.B, prob.phi, indexing="ij")
@@ -914,7 +914,7 @@ def test_evaluate_field_recovers_the_nodal_values():
     still round-trip.
     """
     Na, Nb, Nphi, b = GRID["Na"], GRID["Nb"], GRID["Nphi"], 2.5
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme="paper-v1")
     rng = np.random.default_rng(9)
     U = rng.normal(size=prob.shape) * 1e-2
 
@@ -932,7 +932,7 @@ def test_evaluate_field_recovers_the_nodal_values():
 def test_evaluate_field_axisymmetric_matches_the_2d_solver():
     """At Nφ=1 the evaluator is the frozen axisymmetric one (w≡1, m=0 only)."""
     Na, Nb, b = GRID["Na"], GRID["Nb"], 2.5
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=1)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=1, scheme="paper-v1")
     rng = np.random.default_rng(4)
     U = rng.normal(size=prob.shape) * 1e-2
 
@@ -940,6 +940,6 @@ def test_evaluate_field_axisymmetric_matches_the_2d_solver():
     z_q = np.array([0.3, -1.1, 2.0, -0.4])
     got = s3.evaluate_field(prob, U, rho_q, z_q, np.zeros(4), b)
 
-    prob2 = sa.make_problem(Na=Na, Nb=Nb)
+    prob2 = sa.make_problem(Na=Na, Nb=Nb, scheme="paper-v1")
     want = np.asarray(sa.evaluate_field_phys(prob2, U[:, :, 0], rho_q, z_q, b))
     assert np.max(np.abs(got - want)) < 1e-13, f"Nφ=1 drifted from 2-D: {got - want}"

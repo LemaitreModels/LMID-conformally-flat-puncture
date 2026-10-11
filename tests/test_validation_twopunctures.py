@@ -23,7 +23,7 @@ B, MA, MB, P = 3.0, 0.5, 0.5, 0.5
 
 @pytest.fixture(scope="module")
 def lm_initial_data_solve():
-    prob = sa.make_problem(Na=64, Nb=44, P=P)
+    prob = sa.make_problem(Na=64, Nb=44, P=P, scheme="paper-v1")
     sl = sa.Slice(B, MA, MB)
     U, info = sa.newton_solve(prob, sl, tol=1e-12, max_iter=30)
     assert info.residual_norm < 1e-9

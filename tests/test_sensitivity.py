@@ -49,7 +49,7 @@ START_CHI = np.array([0.40, 0.15])       # B2's documented sensible start
 # --------------------------------------------------------------------------
 @pytest.fixture(scope="module")
 def prob():
-    return sa.make_problem(Na=28, Nb=20, P=P)
+    return sa.make_problem(Na=28, Nb=20, P=P, scheme="paper-v1")
 
 
 @pytest.fixture(scope="module")

@@ -69,6 +69,14 @@ import numpy as np
 
 FORMAT_VERSION = 2
 
+#: The one discretisation (``solver.operators_abt.SCHEMES``) this format carries: the
+#: consumer interpolates a polynomial in ``B`` on Chebyshev–Gauss–Lobatto ``A`` nodes,
+#: i.e. ``"cos"`` + ``"lobatto"``.  A property of the FORMAT, not of the shipped model
+#: (which happens to be on the same grid): :func:`from_solution` refuses any other
+#: grid, and :func:`solve_and_export` builds this one by name — the solver's default
+#: is ``"v2"``, which the format cannot hold.
+SCHEME = "paper-v1"
+
 
 # --------------------------------------------------------------------------
 # phi: nodal samples <-> real cosine/sine coefficients
@@ -480,7 +488,7 @@ def solve_and_export(b: float, m_A: float, m_B: float, *,
     from ..solver import solver_3d as s3
     from ..solver import solver_3d_nk as nk
 
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=SCHEME)
     sl = s3.Slice3D(b=b, m_A=m_A, m_B=m_B, P_A_vec=tuple(P_A),
                     P_B_vec=tuple(P_B), S_A_vec=tuple(S_A),
                     S_B_vec=tuple(S_B))

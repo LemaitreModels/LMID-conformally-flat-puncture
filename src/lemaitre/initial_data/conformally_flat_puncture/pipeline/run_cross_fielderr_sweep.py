@@ -93,7 +93,7 @@ def main(n_points=1000, seed=0, u_tol=1e-11, u_steps=12, flavours=FLAVOURS):
     box = [(float(a[0]), float(a[1])) for a in meta["box"]]
     fixed = meta.get("fixed", {}) or {}
     Na, Nb, Nphi = int(meta["Na"]), int(meta["Nb"]), int(meta["Nphi"])
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
 
     print(f"[xfield] loading cross model + building full-rank cross POD ...", flush=True)
     mc = load_hermite_smolyak_cross(CROSS)

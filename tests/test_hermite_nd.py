@@ -328,7 +328,7 @@ def test_held_out_rate_beats_value_only_b():
     error vs a direct same-grid solve.  Hermite's geometric rate must materially
     beat value-only, and Hermite must be no worse at every Q."""
     from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as sa
-    prob = sa.make_problem(Na=44, Nb=32, P=P_MOM)
+    prob = sa.make_problem(Na=44, Nb=32, P=P_MOM, scheme="paper-v1")
 
     hold = _holdout_b(n=15)
     from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_2c import theta_to_slice
@@ -373,7 +373,7 @@ def test_evaluate_polished_certifies():
     only a guess; ``evaluate_polished`` (Newton on the real solver) drives random
     off-node points to ``‖R‖∞ ≤ 1e-10``."""
     from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as sa
-    prob = sa.make_problem(Na=44, Nb=32, P=P_MOM)
+    prob = sa.make_problem(Na=44, Nb=32, P=P_MOM, scheme="paper-v1")
     axes = [{"name": "b", "min": _AXIS_B["lo"], "max": _AXIS_B["hi"], "Q": 6}]
     her = from_problem_nd_hermite(prob, axes, enhanced=["b"], M_tot=M_TOT,
                                   fixed=_AXIS_B["fixed"], use_cache=True).build(

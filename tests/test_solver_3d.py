@@ -44,10 +44,10 @@ def test_axisym_reduction_reproduces_2d():
     """Nφ=1, on-axis P, zero spin -> the frozen 2-D solver, to ~1e-12."""
     P = 0.5
     for (b, mA, mB) in [(1.0, 0.5, 0.5), (1.5, 0.7, 0.3)]:
-        prob2 = sa.make_problem(Na=28, Nb=20, P=P)
+        prob2 = sa.make_problem(Na=28, Nb=20, P=P, scheme="paper-v1")
         U2, i2 = sa.newton_solve(prob2, Slice(b=b, m_A=mA, m_B=mB),
                                  tol=1e-12, max_iter=25)
-        prob3 = s3.make_problem(Na=28, Nb=20, Nphi=1)
+        prob3 = s3.make_problem(Na=28, Nb=20, Nphi=1, scheme="paper-v1")
         sl3 = Slice3D.head_on(b=b, m_A=mA, m_B=mB, P=P)
         U3, i3 = s3.newton_solve(prob3, sl3, tol=1e-12, max_iter=25)
         d = float(np.max(np.abs(np.asarray(U3)[:, :, 0] - np.asarray(U2))))
@@ -70,7 +70,7 @@ def test_axisym_reduction_reproduces_2d():
 def test_axisym_P0_zero_spin_exact_fixed_point():
     """P=0, zero spin: u ≡ 0 to machine zero on the 3-D grid (any Nφ)."""
     for Nphi in (1, 4, 8):
-        prob = s3.make_problem(Na=28, Nb=20, Nphi=Nphi)
+        prob = s3.make_problem(Na=28, Nb=20, Nphi=Nphi, scheme="paper-v1")
         sl = Slice3D(b=1.0, m_A=0.5, m_B=0.5)        # no momentum, no spin
         U, info = s3.newton_solve(prob, sl, tol=1e-13, max_iter=8)
         assert float(np.max(np.abs(U))) == 0.0, f"P=0 nonzero u (Nphi={Nphi})"
@@ -170,7 +170,7 @@ def test_manufactured_all_modes_spectral():
     b = 1.0
     rows, errs = [], []
     for (Na, Nb, Nphi) in [(20, 16, 6), (28, 20, 8), (36, 24, 10), (44, 30, 12)]:
-        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme="paper-v1")
         u, S, interior, Af, Bf = _manufactured(prob, b, [_M0, _M1, _M2])
         U = s3.solve_poisson(prob, b, S).reshape(prob.Ntot2d, prob.Nphi)
         e = float(np.max(np.abs((U - u)[interior])))
@@ -198,7 +198,7 @@ def test_manufactured_odd_m1_spectral():
     b = 1.0
     rows, errs = [], []
     for (Na, Nb, Nphi) in [(28, 20, 8), (40, 28, 10), (52, 36, 12)]:
-        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme="paper-v1")
         u, S, interior, Af, Bf = _manufactured(prob, b, [_M1])
         U = s3.solve_poisson(prob, b, S).reshape(prob.Ntot2d, prob.Nphi)
         e = float(np.max(np.abs((U - u)[interior])))
@@ -243,7 +243,7 @@ def test_phi_spectral_convergence_misaligned_spin():
     sl = Slice3D(b=b, m_A=mA, m_B=mB, P_A_vec=(0, 0, -P), P_B_vec=(0, 0, P),
                  S_A_vec=(0.3, 0.0, 0.2), S_B_vec=(0.0, 0.0, 0.0))
     Na, Nb = 52, 36
-    pref = s3.make_problem(Na=Na, Nb=Nb, Nphi=16)
+    pref = s3.make_problem(Na=Na, Nb=Nb, Nphi=16, scheme="paper-v1")
     Uref, iref = s3.newton_solve(pref, sl, tol=1e-9, max_iter=40)
     assert iref.residual_norm < 1e-6, f"ref ‖R‖={iref.residual_norm:.2e}"
     qr = np.array([0.4, 0.8, 0.6, 1.2]); qz = np.array([0.6, 0.0, -0.5, 0.3])
@@ -252,7 +252,7 @@ def test_phi_spectral_convergence_misaligned_spin():
 
     rows, errs = [], []
     for Nphi in (4, 6, 8, 12):
-        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme="paper-v1")
         U, info = s3.newton_solve(prob, sl, tol=1e-9, max_iter=40)
         uq = s3.evaluate_field(prob, U, qr, qz, qp, b)
         e = float(np.max(np.abs(uq - uref)))
@@ -272,7 +272,7 @@ def test_misaligned_spin_breaks_axisymmetry():
     b, mA, mB, P = 1.0, 0.5, 0.5, 0.3
     sl = Slice3D(b=b, m_A=mA, m_B=mB, P_A_vec=(0, 0, -P), P_B_vec=(0, 0, P),
                  S_A_vec=(0.3, 0.0, 0.2), S_B_vec=(0.0, 0.0, 0.0))
-    prob = s3.make_problem(Na=36, Nb=24, Nphi=12)
+    prob = s3.make_problem(Na=36, Nb=24, Nphi=12, scheme="paper-v1")
     U, info = s3.newton_solve(prob, sl, tol=1e-9, max_iter=40)
     U = np.asarray(U)
     # φ-variation of the field, relative to its magnitude
@@ -327,10 +327,10 @@ def test_nk_axisym_reduction_reproduces_2d():
     """
     P = 0.5
     for (b, mA, mB) in [(1.0, 0.5, 0.5), (1.5, 0.7, 0.3)]:
-        prob2 = sa.make_problem(Na=28, Nb=20, P=P)
+        prob2 = sa.make_problem(Na=28, Nb=20, P=P, scheme="paper-v1")
         U2, i2 = sa.newton_solve(prob2, Slice(b=b, m_A=mA, m_B=mB),
                                  tol=1e-12, max_iter=25)
-        prob3 = s3.make_problem(Na=28, Nb=20, Nphi=1)
+        prob3 = s3.make_problem(Na=28, Nb=20, Nphi=1, scheme="paper-v1")
         sl3 = Slice3D.head_on(b=b, m_A=mA, m_B=mB, P=P)
         U3, i3 = nk.newton_solve_nk(prob3, sl3, tol=1e-12, max_iter=25)
         d = float(np.max(np.abs(np.asarray(U3)[:, :, 0] - np.asarray(U2))))
@@ -345,7 +345,7 @@ def test_nk_axisym_reduction_reproduces_2d():
 def test_nk_P0_exact_fixed_point():
     """P=0, zero spin: NK leaves u ≡ 0 to machine zero (any Nφ)."""
     for Nphi in (1, 4, 8):
-        prob = s3.make_problem(Na=28, Nb=20, Nphi=Nphi)
+        prob = s3.make_problem(Na=28, Nb=20, Nphi=Nphi, scheme="paper-v1")
         sl = Slice3D(b=1.0, m_A=0.5, m_B=0.5)
         U, info = nk.newton_solve_nk(prob, sl, tol=1e-13, max_iter=8)
         assert float(np.max(np.abs(U))) == 0.0, f"P=0 nonzero u (Nphi={Nphi})"
@@ -362,7 +362,7 @@ def test_nk_quadratic_convergence():
     """
     sl = Slice3D(b=1.5, m_A=0.5, m_B=0.5, P_A_vec=(0, 0, -0.5), P_B_vec=(0, 0, 0.5),
                  S_A_vec=(0.3, 0.0, 0.2), S_B_vec=(0.0, 0.0, 0.0))
-    prob = s3.make_problem(Na=36, Nb=24, Nphi=8)
+    prob = s3.make_problem(Na=36, Nb=24, Nphi=8, scheme="paper-v1")
     U, info = nk.newton_solve_nk(prob, sl, tol=1e-12, max_iter=15)
     h = np.array(info.history)
     ratios = h[1:] / h[:-1]
@@ -386,7 +386,7 @@ def test_nk_certified_physical_modes_machine_precision():
                  S_A_vec=(0.3, 0.0, 0.2), S_B_vec=(0.0, 0.0, 0.0))
     rows = []
     for (Na, Nb, Nphi) in [(28, 20, 6), (36, 24, 8), (44, 30, 10)]:
-        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme="paper-v1")
         asm = s3.assemble(prob, sl)
         Um, im = s3.newton_solve(prob, sl, tol=1e-12, max_iter=40, asm=asm)
         Uk, ik = nk.newton_solve_nk(prob, sl, tol=1e-12, max_iter=15, asm=asm)
@@ -420,7 +420,7 @@ def test_nk_preconditioner_quality():
                  S_A_vec=(0.3, 0.0, 0.2), S_B_vec=(0.0, 0.0, 0.0))
     worst = 0
     for (Na, Nb, Nphi) in [(28, 20, 6), (36, 24, 8), (44, 30, 10)]:
-        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme="paper-v1")
         U, info = nk.newton_solve_nk(prob, sl, tol=1e-12, max_iter=15)
         gi = info.gmres_iters
         print(f"\n[NK-D] Na={Na} Nphi={Nphi}: gmres/step={gi}")
@@ -438,7 +438,7 @@ def test_nk_certified_polish():
     """
     sl = Slice3D(b=1.5, m_A=0.5, m_B=0.5, P_A_vec=(0, 0, -0.5), P_B_vec=(0, 0, 0.5),
                  S_A_vec=(0.3, 0.0, 0.2), S_B_vec=(0.0, 0.0, 0.0))
-    prob = s3.make_problem(Na=36, Nb=24, Nphi=8)
+    prob = s3.make_problem(Na=36, Nb=24, Nphi=8, scheme="paper-v1")
     asm = s3.assemble(prob, sl)
     Ustar, _ = nk.newton_solve_nk(prob, sl, tol=1e-12, max_iter=15, asm=asm)
     # a representative interpolation-error warm start: solution + ~0.1% smooth bump
@@ -464,7 +464,7 @@ def test_nk_matches_modified_newton_field():
     """
     sl = Slice3D(b=1.5, m_A=0.5, m_B=0.5, P_A_vec=(0, 0, -0.5), P_B_vec=(0, 0, 0.5),
                  S_A_vec=(0.3, 0.0, 0.2), S_B_vec=(0.0, 0.0, 0.0))
-    prob = s3.make_problem(Na=44, Nb=30, Nphi=10)
+    prob = s3.make_problem(Na=44, Nb=30, Nphi=10, scheme="paper-v1")
     asm = s3.assemble(prob, sl)
     Um, _ = s3.newton_solve(prob, sl, tol=1e-12, max_iter=40, asm=asm)
     Uk, _ = nk.newton_solve_nk(prob, sl, tol=1e-12, max_iter=15, asm=asm)

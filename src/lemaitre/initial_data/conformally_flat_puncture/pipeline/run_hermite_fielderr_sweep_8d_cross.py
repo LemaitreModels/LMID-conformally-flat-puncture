@@ -307,7 +307,7 @@ def main(n_points=1000, seed=0, u_tol=1e-11, u_steps=12, with_value=False):
     box = [(float(a[0]), float(a[1])) for a in meta["box"]]
     fixed = meta.get("fixed", {}) or {}
     Na, Nb, Nphi = int(meta["Na"]), int(meta["Nb"]), int(meta["Nphi"])
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
     print(f"[hf8dx] 8-D qc  d={len(box)}  grid={Na}x{Nb}x{Nphi}  axes={names}  "
           f"fixed={fixed}", flush=True)
 

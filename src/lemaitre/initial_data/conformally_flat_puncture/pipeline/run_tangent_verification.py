@@ -55,6 +55,7 @@ from ..solver import solver_3d_nk as s3nk                   # noqa: E402
 from ..parametric import parametric_nd_2c as p3             # noqa: E402
 from ..applications import sensitivity as sen               # noqa: E402
 from ..applications import sensitivity_3d as s3d            # noqa: E402
+from . import production_model as pm                         # noqa: E402
 
 # --------------------------------------------------------------------------
 # Panel (a) — Eq. (tangent) vs finite differences of the certified 3-D solve
@@ -90,10 +91,11 @@ def _rel(a, b) -> float:
 def operator_tangents(*, grid: Dict = None, slice_: Dict = None,
                       axes=OP_AXES, h: float = OP_H, verbose: bool = True) -> Dict:
     """Panel (a): Eq. (tangent) against central FD of the certified 3-D solve."""
-    grid = dict(OP_GRID if grid is None else grid)
+    # the paper's grid unless the caller names another; recorded in "config"
+    grid = {"scheme": pm.SCHEME, **(OP_GRID if grid is None else grid)}
     cfg = dict(OP_SLICE if slice_ is None else slice_)
     t0 = time.time()
-    prob = s3.make_problem(**grid)
+    prob = s3.make_problem(grid["Na"], grid["Nb"], grid["Nphi"], scheme=grid["scheme"])
     M, q = cfg["M_tot"], cfg["q"]
     m_A = M * q / (1.0 + q)
     m_B = M / (1.0 + q)
@@ -120,9 +122,9 @@ def operator_tangents(*, grid: Dict = None, slice_: Dict = None,
 def surrogate_tangents(*, grid: Dict = None, h: float = SUR_H,
                        verbose: bool = True) -> Dict:
     """Panel (b): jacfwd of the surrogate vs FD of the surrogate and vs Eq. (tangent)."""
-    grid = dict(SUR_GRID if grid is None else grid)
+    grid = {"scheme": pm.SCHEME, **(SUR_GRID if grid is None else grid)}
     t0 = time.time()
-    prob = sa.make_problem(**grid)
+    prob = sa.make_problem(grid["Na"], grid["Nb"], grid["P"], scheme=grid["scheme"])
     if verbose:
         print("  building (b,q) interpolant ...", flush=True)
     ps_bq = p3.from_problem_nd(prob, SPEC_BQ, M_tot=SUR_M_TOT).build(tol=1e-12, max_iter=20)

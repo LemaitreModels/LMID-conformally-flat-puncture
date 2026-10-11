@@ -103,9 +103,12 @@ class Problem3D:
     # The angular node map the B nodes were laid with (``operators_abt.B_MAPS``).
     # It is part of the grid's identity: a field on one map is not a field on the
     # other, and interpolation must be done in its coordinate (``Bs``).
-    bmap: str = "cos"
     # The radial representation (``operators_abt.RADIAL_MAPS``) — part of the grid's
     # identity in the same way: on "gauss" the A nodes differ and u = (A − 1)·V.
+    # These defaults are IDENTITY, not the grid default: they describe a Problem3D
+    # built by hand from arrays or by code that predates the two fields, i.e. the
+    # original grid.  ``make_problem`` always sets both, from the resolved scheme.
+    bmap: str = "cos"
     radial: str = "lobatto"
 
     @property
@@ -133,8 +136,11 @@ def make_problem(Na: int = 36, Nb: int = 24, Nphi: int = 8, bmap=None,
                  radial=None, scheme=None) -> Problem3D:
     """The grid.  ``scheme`` names a discretisation (``operators_abt.SCHEMES``:
     ``"paper-v1"`` or ``"v2"``); ``bmap`` (``operators_abt.B_MAPS``) and ``radial``
-    (``operators_abt.RADIAL_MAPS``) select the two axes separately.  Unnamed axes
-    come from ``operators_abt.DEFAULT_SCHEME`` (see ``operators_abt.resolve_scheme``)."""
+    (``operators_abt.RADIAL_MAPS``) select the two axes separately and must then
+    BOTH be named — one alone is refused.  Nothing named is
+    ``operators_abt.DEFAULT_SCHEME``, which is ``"v2"``; the first paper's numbers
+    are on ``"paper-v1"`` (``pipeline.production_model.SCHEME``).  See
+    ``operators_abt.resolve_scheme``."""
     bmap, radial = ops.resolve_scheme(scheme, bmap, radial)
     A, B, DA1, DB1, phi = ops3.build_grid_3d(Na, Nb, Nphi, bmap, radial)
     return Problem3D(Na=Na, Nb=Nb, Nphi=Nphi, A=A, B=B, DA1=DA1, DB1=DB1,

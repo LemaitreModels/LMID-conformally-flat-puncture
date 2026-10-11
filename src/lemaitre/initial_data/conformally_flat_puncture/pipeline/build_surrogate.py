@@ -51,6 +51,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.certification im
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 DEFAULT_OUTDIR = os.path.join(REPORTS, "3D_parametric", "models")
 DEFAULT_STORE = os.path.join(REPORTS, "3D_parametric", "solve_store")
@@ -253,11 +254,12 @@ def main():
     _t(f"git HEAD: {commit}   store code_tag: {code_tag}"
        + ("  (pinned)" if args.code_tag is not None else "  (= HEAD)"))
 
-    prob = s3.make_problem(Na=args.Na, Nb=args.Nb, Nphi=args.Nphi)
+    prob = s3.make_problem(Na=args.Na, Nb=args.Nb, Nphi=args.Nphi, scheme=pm.SCHEME)
     store = None
     if args.store is not None:
         store = ss.SolveStore(args.store, grid_meta=(args.Na, args.Nb, args.Nphi),
-                              code_tag=code_tag, reuse_tol=args.reuse_tol)
+                              code_tag=code_tag, reuse_tol=args.reuse_tol,
+                              bmap=prob.bmap, radial=prob.radial)
         _t(f"solve store: {store.root_dir}  (code_tag={store.code_tag}, "
            f"reuse_tol={store.reuse_tol:.0e}, {store.n_entries} existing entries)"
            "  — nested/shared nodes reused")

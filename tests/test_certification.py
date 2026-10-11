@@ -170,7 +170,7 @@ def test_the_gate_follows_the_solver_not_the_container():
         "an undeclared solve_fn must fall back to the v-norm gate, which is the "
         "norm-invariant axisymmetric case and the conservative choice")
 
-    sf, _ = p3d.make_solve_fn(s3.make_problem(Na=20, Nb=16, Nphi=4), ["b"])
+    sf, _ = p3d.make_solve_fn(s3.make_problem(Na=20, Nb=16, Nphi=4, scheme="paper-v1"), ["b"])
     got = gate_for(sf)
     print(f"\n[gate-for] 3-D NK solve_fn -> {got:.1e} (u)   "
           f"undeclared -> {gate_for(undeclared):.1e} (v)")
@@ -256,7 +256,7 @@ def test_attach_solve_fn_3d_defaults_the_globalization_on():
 # A solve is stubbed out, but `prob` is real: the observables (M_ADM, the binding
 # energy) differentiate the field against the actual spectral operators, so a
 # shape or convention slip still shows up here.
-_SMALL_GRID = dict(Na=8, Nb=6, Nphi=4)
+_SMALL_GRID = dict(Na=8, Nb=6, Nphi=4, scheme="paper-v1")
 
 # The 4-D χ box of `qc_targeting` (b, q, chi_Ay, chi_By) — the shipped axis order.
 _BOX_QC = (np.array([6.0, 1.0, -0.6, -0.6]), np.array([12.0, 3.0, 0.6, 0.6]))

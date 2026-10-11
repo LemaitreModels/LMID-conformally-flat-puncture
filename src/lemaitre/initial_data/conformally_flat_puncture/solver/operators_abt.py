@@ -28,16 +28,19 @@ convergent for both punctures simultaneously.  Standalone: numpy + jax only.
 
 Where the B nodes sit is a separate choice from the operator, which is written in
 ``B`` throughout: :data:`B_MAPS` offers the original Gauss–Legendre-in-``B`` grid
-(``"cos"``, the default) and Ansorg–Brügmann–Tichy's angular coordinate
-(``"abt"``), which resolves the punctures far better — see the note there.
+(``"cos"``) and Ansorg–Brügmann–Tichy's angular coordinate (``"abt"``), which
+resolves the punctures far better — see the note there.
 
 How the field is represented in ``A`` is a second, independent choice,
 :data:`RADIAL_MAPS`: the original Chebyshev–Gauss–Lobatto grid with boundary rows
-at both edges (``"lobatto"``, the default), or Ansorg–Brügmann–Tichy's own
-``u = (A − 1) V`` on Chebyshev–Gauss nodes with no boundary row at all
-(``"gauss"``), which reads the ADM mass far more accurately — see the note there.
+at both edges (``"lobatto"``), or Ansorg–Brügmann–Tichy's own ``u = (A − 1) V`` on
+Chebyshev–Gauss nodes with no boundary row at all (``"gauss"``), which reads the
+ADM mass far more accurately — see the note there.
+
 The two named combinations a caller is expected to pick between are the
-:data:`SCHEMES`.
+:data:`SCHEMES`; :data:`DEFAULT_SCHEME` (``"v2"``) is what a grid gets when none is
+named.  A grid is named by ``scheme=`` or by BOTH axes — one axis alone is refused
+(:func:`resolve_scheme`).
 """
 
 from __future__ import annotations
@@ -145,24 +148,25 @@ def inverse_map(rho, z, b):
 # --------------------------------------------------------------------------
 # the prolate-spheroidal axisymmetric Laplacian (dense 2-D collocation matrix)
 # --------------------------------------------------------------------------
-def build_grid(Na, Nb, bmap=None, radial=None):
+def build_grid(Na, Nb, bmap=None, radial=None, scheme=None):
     """Return ``(A, B, DA1, DB1)``: Na+1 A nodes on [0,1], Nb interior B nodes on [-1,1].
 
-    ``A`` is laid by the radial map ``radial`` (see :data:`RADIAL_MAPS`; ``None``
-    means :data:`DEFAULT_RADIAL`): ``"lobatto"`` has A[0]=1 (infinity) and
-    A[Na]=0 (inner axis), ``"gauss"`` has both edges strictly outside the node
-    set.  ``B`` is placed by the angular node map ``bmap`` (see :data:`B_MAPS`;
-    ``None`` means :data:`DEFAULT_BMAP`).  ``DA1, DB1`` are the 1-D
-    differentiation matrices, ``DA1`` always being ``d/dA`` and ``DB1`` always
-    ``d/dB`` — so every operator coefficient, written in ``(A, B)``, is unchanged
-    by either choice.
+    The grid is named by ``scheme`` (:data:`SCHEMES`) or by both axes, and resolved
+    by :func:`resolve_scheme`: nothing named is :data:`DEFAULT_SCHEME`, one axis
+    alone is refused.  ``A`` is laid by the radial map ``radial`` (see
+    :data:`RADIAL_MAPS`): ``"lobatto"`` has A[0]=1 (infinity) and A[Na]=0 (inner
+    axis), ``"gauss"`` has both edges strictly outside the node set.  ``B`` is
+    placed by the angular node map ``bmap`` (see :data:`B_MAPS`).  ``DA1, DB1`` are
+    the 1-D differentiation matrices, ``DA1`` always being ``d/dA`` and ``DB1``
+    always ``d/dB`` — so every operator coefficient, written in ``(A, B)``, is
+    unchanged by either choice.
 
     ``bmap="cos"``, ``radial="lobatto"`` is the original grid, bit-for-bit:
     Chebyshev–Gauss–Lobatto in ``A``, Gauss–Legendre nodes in ``B = cos η``.
     ``bmap="abt"`` puts the Gauss–Legendre nodes in the interpolation coordinate
     ``s`` of :func:`b_of_s` instead; ``radial="gauss"`` is :func:`cheb_gauss01`.
     """
-    bmap = check_bmap(bmap)
+    bmap, radial = resolve_scheme(scheme, bmap, radial)
     A, DA1 = radial_nodes(Na, radial)
     if bmap == "cos":
         B, DB1 = gl_nodes_diffmat(Nb)
@@ -240,29 +244,43 @@ RADIAL_MAPS = ("lobatto", "gauss")
 #: The two discretisations a caller chooses between, as ``(bmap, radial)``:
 #:
 #: * ``"paper-v1"`` — ``("cos", "lobatto")``, exactly what the first version of the
-#:   paper used: every shipped model, figure, table and the GRTeclyn export.
+#:   paper used.  Every shipped model, figure, table and the GRTeclyn export is built
+#:   on it, and names it through ``pipeline.production_model.SCHEME``.
 #: * ``"v2"`` — ``("abt", "gauss")``, the angular and radial representations of
 #:   Ansorg, Brügmann & Tichy (with Gauss–Legendre rather than Chebyshev nodes in the
 #:   angle, and the exact chain-rule ``d²/dB²``).  Better near the punctures (the
 #:   angle) and in the ADM mass (the radius), and level elsewhere.
 #:
-#: The axes stay separately selectable (``bmap=``, ``radial=``), so the mixed
-#: combinations can be built too; ``scheme=`` names the two that are meant.
+#: The axes stay separately selectable (``bmap=``, ``radial=``, both named), so the
+#: mixed combinations can be built too; ``scheme=`` names the two that are meant.
 SCHEMES = {"paper-v1": ("cos", "lobatto"), "v2": ("abt", "gauss")}
 
-#: The scheme a grid gets when none is named.  ``"paper-v1"`` keeps every existing
-#: grid, stored model, cache key and export bit-for-bit what it was; the conformally
-#: curved sibling builds its chart through :func:`build_grid` with the default.
-DEFAULT_SCHEME = "paper-v1"
+#: The scheme a grid gets when none is named.  ``"v2"`` since milestone 2 of the v2
+#: work: at the production grid 44×32×8 and ``b = 10`` it reads the ADM mass to 2.2e-9
+#: where ``"paper-v1"`` is off by 6.7e-5, at the same cost.  Everything whose numbers
+#: are the first paper's — shipped models, figures, tables, the GRTeclyn export, the
+#: conformally curved sibling's chart — names ``"paper-v1"`` explicitly, so this
+#: default changes only grids nobody named.
+DEFAULT_SCHEME = "v2"
 
-#: The map and the radial representation a grid gets when none is named — the two
-#: halves of :data:`DEFAULT_SCHEME`, so there is one place to change.
+#: The two halves of :data:`DEFAULT_SCHEME`, for reading.  They are not a per-axis
+#: default: an axis is only ever defaulted together with the other one
+#: (:func:`resolve_scheme`).
 DEFAULT_BMAP, DEFAULT_RADIAL = SCHEMES[DEFAULT_SCHEME]
 
 
 def check_radial(radial):
-    """Resolve ``None`` to :data:`DEFAULT_RADIAL` and reject an unknown map loudly."""
-    radial = DEFAULT_RADIAL if radial is None else str(radial)
+    """Validate a radial map name; ``None`` is refused.
+
+    A single axis has no default of its own: defaulting one half of a grid while
+    the caller named the other half builds a mixed grid nobody asked for.  Resolve
+    a possibly-unnamed grid through :func:`resolve_scheme`, which defaults both
+    halves together or neither.
+    """
+    if radial is None:
+        raise ValueError("radial=None: a radial map has no default on its own; name "
+                         "scheme= or both axes (operators_abt.resolve_scheme)")
+    radial = str(radial)
     if radial not in RADIAL_MAPS:
         raise ValueError(f"unknown radial map {radial!r}; expected one of {RADIAL_MAPS}")
     return radial
@@ -271,10 +289,14 @@ def check_radial(radial):
 def resolve_scheme(scheme=None, bmap=None, radial=None):
     """``(bmap, radial)`` from a named scheme and/or the two axes.
 
-    With ``scheme`` given, its pair is returned, and an axis passed alongside it
-    must agree with it (a contradiction is refused, never silently resolved).
-    Without it, each axis resolves on its own — ``None`` to its half of
-    :data:`DEFAULT_SCHEME`.
+    * ``scheme`` given: its pair is returned, and an axis passed alongside it must
+      agree with it (a contradiction is refused, never silently resolved).
+    * both axes given, no ``scheme``: that pair, which may be a mixed grid.
+    * nothing given: :data:`DEFAULT_SCHEME` (read at call time).
+    * **one axis alone is refused.**  With the default ``"v2"``, ``bmap="cos"``
+      alone would otherwise silently build the mixed cos + gauss grid, and
+      ``bmap="abt"`` (the 2026-10-10 abt + lobatto opt-in) would silently change
+      its radial half.  Name ``scheme=`` or both axes.
     """
     if scheme is not None:
         if str(scheme) not in SCHEMES:
@@ -285,6 +307,14 @@ def resolve_scheme(scheme=None, bmap=None, radial=None):
         if radial is not None and check_radial(radial) != sr:
             raise ValueError(f"scheme {scheme!r} has radial={sr!r}, not {radial!r}")
         return sb, sr
+    if bmap is None and radial is None:
+        return SCHEMES[DEFAULT_SCHEME]
+    if bmap is None or radial is None:
+        given = f"bmap={bmap!r}" if radial is None else f"radial={radial!r}"
+        raise ValueError(
+            f"{given} alone is ambiguous: name scheme= (one of {tuple(SCHEMES)}) or both "
+            f"bmap= and radial=; the default scheme is {DEFAULT_SCHEME!r}, so the other "
+            "axis would silently come from it")
     return check_bmap(bmap), check_radial(radial)
 
 
@@ -296,7 +326,7 @@ def scheme_of(bmap, radial):
     return None
 
 
-def radial_nodes(Na, radial=None):
+def radial_nodes(Na, radial):
     """``(A, DA1)``: the Na+1 radial nodes, descending, and ``d/dA`` on them."""
     if check_radial(radial) == "lobatto":
         return cheb01(Na)
@@ -406,8 +436,12 @@ def radial_edge_rows(A):
 
 
 def check_bmap(bmap):
-    """Resolve ``None`` to :data:`DEFAULT_BMAP` and reject an unknown map loudly."""
-    bmap = DEFAULT_BMAP if bmap is None else str(bmap)
+    """Validate an angular node map name; ``None`` is refused, as in
+    :func:`check_radial` (resolve an unnamed grid through :func:`resolve_scheme`)."""
+    if bmap is None:
+        raise ValueError("bmap=None: an angular node map has no default on its own; name "
+                         "scheme= or both axes (operators_abt.resolve_scheme)")
+    bmap = str(bmap)
     if bmap not in B_MAPS:
         raise ValueError(f"unknown angular node map {bmap!r}; expected one of {B_MAPS}")
     return bmap
@@ -498,7 +532,9 @@ def angular_d2(B, DB1):
         key = (Nb, bmap)
         hit = _ANGULAR_D2_MEMO.get(key)
         if hit is None:
-            _, Bc, _, DB1c = build_grid(1, Nb, bmap)
+            # the angular half does not depend on the radial one; "lobatto" is just
+            # a name for build_grid, which refuses one axis alone
+            _, Bc, _, DB1c = build_grid(1, Nb, bmap, "lobatto")
             hit = (Bc, DB1c, d2_dB2_1d(Nb, bmap))
             for a in hit:
                 a.setflags(write=False)

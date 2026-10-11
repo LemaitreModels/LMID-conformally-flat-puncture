@@ -39,6 +39,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_3d
 from lemaitre.initial_data.conformally_flat_puncture.applications import sensitivity_3d_cross as cross
 from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak_cross import (
     build_cross_from_pool, _global_pairs)
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 
 
 def main(model_path, out_path, jac="nk", checkpoint=50, M_tot=1.0, enhanced_names=None,
@@ -90,7 +91,7 @@ def main(model_path, out_path, jac="nk", checkpoint=50, M_tot=1.0, enhanced_name
           f"pairs={[(names[a], names[b]) for (a, b) in gp]} (n_pairs={npair}) "
           f"jac={jac} grid Na={Na},Nb={Nb},Nphi={Nphi}", flush=True)
 
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
 
     ckpt = out_path + ".cross.partial.npy"
     node_cross = np.full((N, len(gp)) + fs, np.nan)

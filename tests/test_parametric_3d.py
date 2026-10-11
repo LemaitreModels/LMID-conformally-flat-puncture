@@ -51,7 +51,7 @@ def _geom_rate(rows):
 # D7 cache — byte-identical to a fresh solver_3d.assemble
 # --------------------------------------------------------------------------
 def test_assemble_cached_byte_identical():
-    prob = s3.make_problem(Na=28, Nb=20, Nphi=6)
+    prob = s3.make_problem(Na=28, Nb=20, Nphi=6, scheme="paper-v1")
     cache = {}
     for theta in ([1.8, 0.3, 50.0], [1.8, 0.2, 30.0], [3.0, 0.3, 50.0]):
         sl = p3.theta_to_slice3d(theta, ["b", "S_mag", "theta_S"])
@@ -74,11 +74,11 @@ def test_nk_reduction_to_2d_parametric():
     the committed 2-D ``parametric_nd_2c`` b-sweep to ~1e-12 — the 3-D layer
     contains the validated 2-D layer."""
     Na, Nb = 28, 20
-    prob3 = s3.make_problem(Na=Na, Nb=Nb, Nphi=1)
+    prob3 = s3.make_problem(Na=Na, Nb=Nb, Nphi=1, scheme="paper-v1")
     ps3 = p3.from_problem_nd_3d(
         prob3, [{"name": "b", "min": 3.0, "max": 12.0, "Q": 8}],
         fixed={"S_mag": 0.0, "P": 0.5}, solver="nk").build()
-    probA = sa.make_problem(Na=Na, Nb=Nb, P=0.5)
+    probA = sa.make_problem(Na=Na, Nb=Nb, P=0.5, scheme="paper-v1")
     ps2 = p2c.from_problem_nd(probA, [{"name": "b", "min": 3.0, "max": 12.0, "Q": 8}]).build()
     dmax = 0.0
     for b in p3.holdout_points_1axis(3.0, 12.0):
@@ -93,7 +93,7 @@ def test_nk_reduction_to_2d_parametric():
 # Held-out spectral convergence in b (misaligned-spin 3-D family)
 # --------------------------------------------------------------------------
 def test_held_out_b_convergence():
-    prob = s3.make_problem(Na=28, Nb=20, Nphi=6)
+    prob = s3.make_problem(Na=28, Nb=20, Nphi=6, scheme="paper-v1")
     Qs = [4, 8, 12]
     rows, hold = p3.held_out_convergence_1axis(
         prob, "b", 3.0, 12.0, Qs, fixed={"S_mag": 0.3, "theta_S": 50.0})
@@ -117,7 +117,7 @@ def test_certified_prediction_3d():
     ≤2 certified NK steps reaches the solver's gate (``CERT_TOL_U = 1e-11`` in
     ``u`` since 2026-08-25) — independent of any interpolation error.  The
     "cannot be silently wrong" gate in 3-D."""
-    prob = s3.make_problem(Na=28, Nb=20, Nphi=6)
+    prob = s3.make_problem(Na=28, Nb=20, Nphi=6, scheme="paper-v1")
     axes = [{"name": "b", "min": 1.5, "max": 4.0, "Q": 5},
             {"name": "theta_S", "min": 0.0, "max": 90.0, "Q": 5}]
     ps = p3.from_problem_nd_3d(prob, axes, fixed={"S_mag": 0.3}, solver="nk").build()
@@ -144,7 +144,7 @@ def test_certified_prediction_3d():
 # --------------------------------------------------------------------------
 def test_frozen_topology_and_exact_nodes():
     Na, Nb, Nphi = 28, 20, 6
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme="paper-v1")
     axes = [{"name": "b", "min": 1.5, "max": 4.0, "Q": 4},
             {"name": "theta_S", "min": 0.0, "max": 90.0, "Q": 4}]
     ps = p3.from_problem_nd_3d(prob, axes, fixed={"S_mag": 0.3}, solver="modified").build()
@@ -168,7 +168,7 @@ def test_spin_tilt_parametrisation_convergence():
     misaligned spin converge geometrically (the open-question study).  θ_S is the
     naturally bounded coordinate (|S| fixed, direction varies) and measures a
     (marginally) steeper rate — the recommended choice."""
-    prob = s3.make_problem(Na=28, Nb=20, Nphi=8)
+    prob = s3.make_problem(Na=28, Nb=20, Nphi=8, scheme="paper-v1")
     Qs = [4, 6, 8, 10]
     rows_th, _ = p3.held_out_convergence_1axis(
         prob, "theta_S", 0.0, 90.0, Qs, fixed={"b": 2.0, "S_mag": 0.3})
@@ -192,7 +192,7 @@ def test_spin_tilt_parametrisation_convergence():
 # --------------------------------------------------------------------------
 @pytest.mark.slow
 def test_joint_convergence():
-    prob = s3.make_problem(Na=28, Nb=20, Nphi=6)
+    prob = s3.make_problem(Na=28, Nb=20, Nphi=6, scheme="paper-v1")
     rows, _ = p3.held_out_convergence_joint(
         prob, [{"name": "b", "min": 1.5, "max": 4.0},
                {"name": "theta_S", "min": 0.0, "max": 90.0}],
@@ -210,7 +210,7 @@ def test_joint_convergence():
 # --------------------------------------------------------------------------
 @pytest.mark.slow
 def test_analyticity_wall_b():
-    prob = s3.make_problem(Na=28, Nb=20, Nphi=6)
+    prob = s3.make_problem(Na=28, Nb=20, Nphi=6, scheme="paper-v1")
     wall = p3.analyticity_wall_b(prob, [3.0, 1.5], 12.0, [4, 8, 12, 16],
                                  fixed={"S_mag": 0.3, "theta_S": 50.0})
     for w in wall:
@@ -232,7 +232,7 @@ def test_spin_wall_softer_than_merger():
     """The spin-tilt wall is SOFT/FAR — its geometric rate vastly exceeds the
     near-merger b wall, i.e. the nearest singularity in the tilt axis is far
     outside the physical range (no spin "wall" at moderate separation)."""
-    prob = s3.make_problem(Na=28, Nb=20, Nphi=8)
+    prob = s3.make_problem(Na=28, Nb=20, Nphi=8, scheme="paper-v1")
     spin = p3.analyticity_wall_spin(prob, "theta_S", 90.0, [4, 6, 8, 10],
                                     b=2.0, fixed={"S_mag": 0.3})
     w = spin[0]
@@ -255,7 +255,7 @@ def test_tp_cross_check_3d():
     from lemaitre.initial_data.conformally_flat_puncture.solver import source
     b, S_mag = 1.5, 0.3
     Na, Nb, Nphi = 56, 40, 10
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme="paper-v1")
     axes = [{"name": "b", "min": 1.3, "max": 2.0, "Q": 4},
             {"name": "theta_S", "min": 30.0, "max": 70.0, "Q": 4}]
     ps = p3.from_problem_nd_3d(prob, axes, fixed={"S_mag": S_mag}, solver="nk").build()

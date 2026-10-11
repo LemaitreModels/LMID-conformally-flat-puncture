@@ -44,6 +44,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd im
 from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_table import (
     random_offnode_points, step_residuals, _stats, REPDIR)
 from lemaitre.initial_data.conformally_flat_puncture.pipeline.fielderr_shared import MODELS, load_pod_truncated
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 
 
 def run(dim, rank, n_points=1000, seed=0):
@@ -63,7 +64,7 @@ def run(dim, rank, n_points=1000, seed=0):
           f"enhanced={meta.get('enhanced')}", flush=True)
     print(f"[{tag}] box={dict(zip(names, box))} fixed={fixed}", flush=True)
 
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
     print(f"[{tag}] loading + truncating POD ({os.path.getsize(path)/1e6:.0f} MB) ...",
           flush=True)
     model = load_pod_truncated(path, rank)

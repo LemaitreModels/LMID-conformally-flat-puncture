@@ -253,7 +253,7 @@ def test_attach_solve_fn_certifies_both(tmp_path):
     from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
     from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_3d as p3
 
-    prob = s3.make_problem(Na=24, Nb=18, Nphi=6)
+    prob = s3.make_problem(Na=24, Nb=18, Nphi=6, scheme="paper-v1")
     box = [{"name": "b", "min": 1.5, "max": 4.0},
            {"name": "theta_S", "min": 0.0, "max": 90.0}]
     names = [a["name"] for a in box]

@@ -57,6 +57,7 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REPDIR = os.path.join(REPORTS, "3D_parametric", "qc_chi")
 PARTDIR = os.path.join(REPDIR, "peraxis_dist_chi_parts")
@@ -340,7 +341,7 @@ def main():
 
     t0 = time.time()
     pts = base_points()
-    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
+    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme=pm.SCHEME)
 
     if args.smoke:
         # 1 axis (chi_Ay), 2 samples, Q=[4,6]; time value-solve vs tangent -> ETA.

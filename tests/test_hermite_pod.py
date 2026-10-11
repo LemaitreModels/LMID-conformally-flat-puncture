@@ -398,7 +398,7 @@ def test_pod_real_corpus_solver_backed():
     from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as sa
     from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_2c import theta_to_slice
 
-    prob = sa.make_problem(Na=44, Nb=32, P=P_MOM)
+    prob = sa.make_problem(Na=44, Nb=32, P=P_MOM, scheme="paper-v1")
     axes = [{"name": "b", "min": 1.5, "max": 4.0, "Q": 6},
             {"name": "chi_B", "min": -0.4, "max": 0.4, "Q": 5}]
     her = from_problem_nd_hermite(prob, axes, enhanced=["b", "chi_B"], M_tot=M_TOT,

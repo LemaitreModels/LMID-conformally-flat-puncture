@@ -38,7 +38,7 @@ NEW_PAIRS = [("b", "q"), ("b", "chi_Ay"), ("b", "chi_By"),
 
 @pytest.fixture(scope="module")
 def setup():
-    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
+    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme="paper-v1")
     sl = theta_to_slice3d(THETA, ACTIVE, M_TOT, FIXED)
     U, _ = s3nk.newton_solve_nk(prob, sl, tol=1e-12, max_iter=40)
     U = np.asarray(U).reshape(prob.Ntot2d, prob.Nphi)

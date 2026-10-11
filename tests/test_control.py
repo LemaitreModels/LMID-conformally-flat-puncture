@@ -47,7 +47,7 @@ TOL_CTRL = 1e-9            # outer control-loop convergence
 # --------------------------------------------------------------------------
 @pytest.fixture(scope="module")
 def prob():
-    return sa.make_problem(Na=36, Nb=24, P=P)
+    return sa.make_problem(Na=36, Nb=24, P=P, scheme="paper-v1")
 
 
 @pytest.fixture(scope="module")

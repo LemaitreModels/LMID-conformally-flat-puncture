@@ -42,6 +42,25 @@ from . import production_box as pb
 # ---------------------------------------------------------------------------
 # 1.  Identity of the shipped model
 # ---------------------------------------------------------------------------
+SCHEME = "paper-v1"
+"""The discretisation every shipped model, figure, table and the GRTeclyn export is
+built on: a name in ``solver.operators_abt.SCHEMES`` (``"paper-v1"`` = the ``"cos"``
+angular node map with the ``"lobatto"`` radial grid, what the first version of the
+paper used).
+
+It is deliberately NOT the solver's default.  The solver defaults to ``"v2"``
+(``operators_abt.DEFAULT_SCHEME``), so every producer, figure-data script, table,
+model loader and the GRTeclyn export driver passes ``scheme=SCHEME`` to
+``make_problem``/``build_grid``/``get_separable``; a source scan in
+``tests/test_scheme_v2.py`` fails on any such call there that names no grid.  The
+shipped ``.npz`` models were built on this grid, and ``attach_solve_fn_3d`` refuses
+a problem on another one, so changing it means rebuilding them.
+
+A string, not an import of the solver's table, so this module stays stdlib-only;
+the same test asserts it is a key of ``operators_abt.SCHEMES``.  The dependency
+runs one way: pipeline, paper and test code read it, ``solver/`` never does.
+"""
+
 ENHANCED_AXES = pb.ALIGNED_SPIN_AXES
 """The enhanced axis set E: the two spin components carrying certified tangents.
 
@@ -257,5 +276,6 @@ def table() -> str:
 if __name__ == "__main__":                                    # pragma: no cover
     for _dim in (4, 8):
         print(describe(_dim))
-    print(f"\nPOD ranks: {SHIPPED_RANK}   (4-D and 8-D at their Fig. 5 saturation knee)\n")
+    print(f"\nPOD ranks: {SHIPPED_RANK}   (4-D and 8-D at their Fig. 5 saturation knee)")
+    print(f"grid: scheme={SCHEME!r} (solver default is 'v2'; see SCHEME)\n")
     print(table())

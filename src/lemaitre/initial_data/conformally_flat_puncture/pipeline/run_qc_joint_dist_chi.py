@@ -42,6 +42,7 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REPDIR = os.path.join(REPORTS, "3D_parametric", "qc_chi")
 STORE = os.path.join(REPORTS, "3D_parametric", "solve_store_chi")
@@ -137,8 +138,9 @@ def main():
     # -- assemble: load array truth partials -> distribution + figure --
     if args.assemble:
         _t(f"=== joint dist ASSEMBLE  box={args.box}  n_points={n_pts} ===")
-        prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
-        store = ss.SolveStore(STORE, grid_meta=(NA, NB, NPHI), code_tag=CODE_TAG, reuse_tol=1e-6)
+        prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme=pm.SCHEME)
+        store = ss.SolveStore(STORE, grid_meta=(NA, NB, NPHI), code_tag=CODE_TAG, reuse_tol=1e-6,
+                          bmap=prob.bmap, radial=prob.radial)
         U_dir = [None] * n_pts
         parts = sorted(glob.glob(os.path.join(PARTDIR, f"truth_{part_tag}_task*.npz")))
         got = 0
@@ -159,7 +161,7 @@ def main():
     _t(f"=== joint held-out distribution {'(SMOKE)' if args.smoke else ''} "
        f"{'(truth array %d/%d)'%(args.taskid,args.ntasks) if array_mode else ''} ===")
     _t(f"    box={args.box} axes={names}  n_points={n_pts}  levels={levels}")
-    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
+    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme=pm.SCHEME)
     solve_fn, _ = p3.make_solve_fn(prob, names, fixed=QC, solver="modified")
 
     # -- array mode: solve a stride of truth points -> npz partial (no models) --
@@ -180,7 +182,8 @@ def main():
         return
 
     # -- single-node (or smoke): all truth + distribution + figure --
-    store = ss.SolveStore(STORE, grid_meta=(NA, NB, NPHI), code_tag=CODE_TAG, reuse_tol=1e-6)
+    store = ss.SolveStore(STORE, grid_meta=(NA, NB, NPHI), code_tag=CODE_TAG, reuse_tol=1e-6,
+                          bmap=prob.bmap, radial=prob.radial)
     _t(f"    store: {store.n_entries} entries, code_tag={store.code_tag}")
     _t(f"    computing {n_pts} reference solves ...")
     U_dir = []; t0 = time.time()

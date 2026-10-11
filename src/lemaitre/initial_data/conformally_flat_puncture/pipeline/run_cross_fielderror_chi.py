@@ -43,6 +43,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak_
 GAP_MIN = 1e-4
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REPDIR = os.path.join(REPORTS, "P2", "cross")
 
@@ -137,7 +138,7 @@ def main(cross_path, n_points=1000, seed=0, n_peraxis=60,
     print(f"[m4] names={names} box={box} enhanced={enhanced_names} "
           f"grid Na={Na},Nb={Nb},Nphi={Nphi} fixed={fixed}", flush=True)
 
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
     print(f"[m4] loading cross model + deriving value/gradient baselines ...", flush=True)
     mc = load_hermite_smolyak_cross(cross_path)          # value+gradient+cross
     enh = tuple(mc.enhanced)

@@ -42,6 +42,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak_
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REPDIR = os.path.join(REPORTS, "3D_parametric", "qc_chi")
 CKDIR = os.path.join(REPDIR, "joint_dist_cross_parts")
@@ -88,7 +89,7 @@ def main():
     _t(f"=== joint held-out distribution (VALUE+GRAD+CROSS) {'(SMOKE)' if args.smoke else ''} ===")
     _t(f"    box=d4_qc_chi_prod axes={names}  n_points={n_pts}  levels={levels}")
 
-    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
+    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme=pm.SCHEME)
     solve_fn, _ = p3.make_solve_fn(prob, names, fixed=QC, solver="modified")
 
     # -- load the committed L=5 cross corpus; build per-level sub-models (no solves) --

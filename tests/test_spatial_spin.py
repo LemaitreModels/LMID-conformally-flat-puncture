@@ -25,7 +25,7 @@ from lemaitre.initial_data.conformally_flat_puncture.solver.solver_abt import Sl
 # P2-X.0 — S=0 reproduces P1 bit-for-bit (assembly + solved field)
 # --------------------------------------------------------------------------
 def test_S0_reduces_to_P1_bit_for_bit():
-    prob = sa.make_problem(Na=32, Nb=22, P=0.5)
+    prob = sa.make_problem(Na=32, Nb=22, P=0.5, scheme="paper-v1")
     sl_nospin = Slice(b=1.0, m_A=0.5, m_B=0.5)                 # P1-style ctor
     sl_zero = Slice(b=1.0, m_A=0.5, m_B=0.5, S_A=0.0, S_B=0.0)  # explicit zero spin
     # the assembled source A2 is byte-identical
@@ -49,7 +49,7 @@ def test_newton_converges_spin_only():
     the nonlinear-source residual floor sits a little above the single-centre
     1e-10 — exactly the documented "floor grows with source content").
     """
-    prob = sa.make_problem(Na=36, Nb=24, P=0.0)
+    prob = sa.make_problem(Na=36, Nb=24, P=0.0, scheme="paper-v1")
     sl = Slice(b=1.0, m_A=0.5, m_B=0.5, S_A=0.4, S_B=0.4)
     U, info = sa.newton_solve(prob, sl, tol=1e-9, max_iter=20)
     assert info.converged, f"spin-only Newton ‖R‖={info.residual_norm:.2e}"
@@ -62,7 +62,7 @@ def test_newton_converges_spin_only():
 
 def test_newton_converges_momentum_and_spin():
     """P≠0 and S≠0 (the full aligned head-on+spin slice) converges to the floor."""
-    prob = sa.make_problem(Na=36, Nb=24, P=0.5)
+    prob = sa.make_problem(Na=36, Nb=24, P=0.5, scheme="paper-v1")
     sl = Slice(b=1.0, m_A=0.5, m_B=0.5, S_A=0.3, S_B=0.3)
     U, info = sa.newton_solve(prob, sl, tol=1e-9, max_iter=20)
     assert info.converged, f"mom+spin Newton ‖R‖={info.residual_norm:.2e}"
@@ -89,7 +89,7 @@ def test_spin_spatial_spectral_convergence():
     """
     b, m_A, m_B, P, S = 1.0, 0.5, 0.5, 0.5, 0.3
     slc = Slice(b=b, m_A=m_A, m_B=m_B, S_A=S, S_B=S)
-    pref = sa.make_problem(Na=72, Nb=48, P=P)
+    pref = sa.make_problem(Na=72, Nb=48, P=P, scheme="paper-v1")
     Uref, iref = sa.newton_solve(pref, slc, tol=1e-9, max_iter=30)
     assert iref.residual_norm < 1e-7, f"reference ‖R‖={iref.residual_norm:.2e}"
     qpts = [(0.3, 0.7), (0.6, 0.0), (0.3, -0.7), (1.2, 0.4), (3.0, 0.0)]
@@ -98,7 +98,7 @@ def test_spin_spatial_spectral_convergence():
 
     rows, errs = [], []
     for (Na, Nb) in [(24, 16), (32, 22), (40, 28), (56, 38)]:
-        prob = sa.make_problem(Na=Na, Nb=Nb, P=P)
+        prob = sa.make_problem(Na=Na, Nb=Nb, P=P, scheme="paper-v1")
         U, info = sa.newton_solve(prob, slc, tol=1e-9, max_iter=30)
         uq = sa.evaluate_field_phys(prob, U, rq, zq, b)
         e = float(np.max(np.abs(uq - uref)))
@@ -124,7 +124,7 @@ def _z_asymmetry(U):
 
 def test_equal_spin_is_z_even():
     """Equal mass + EQUAL-magnitude aligned spin ⇒ z-even (modes at roundoff)."""
-    prob = sa.make_problem(Na=40, Nb=28, P=0.5)
+    prob = sa.make_problem(Na=40, Nb=28, P=0.5, scheme="paper-v1")
     sl = Slice(b=1.0, m_A=0.5, m_B=0.5, S_A=0.4, S_B=0.4)
     U, info = sa.newton_solve(prob, sl, tol=1e-9, max_iter=25)
     assert info.residual_norm < 1e-8
@@ -137,7 +137,7 @@ def test_antialigned_equal_spin_is_z_even():
     """Anti-aligned but EQUAL-magnitude spin (S_A=+S, S_B=−S) is STILL z-even:
     Â² depends on spin only through S_A², S_B², S_A S_B, all even under the
     reflection+swap when |S_A|=|S_B| (the subtle parity result)."""
-    prob = sa.make_problem(Na=40, Nb=28, P=0.5)
+    prob = sa.make_problem(Na=40, Nb=28, P=0.5, scheme="paper-v1")
     sl = Slice(b=1.0, m_A=0.5, m_B=0.5, S_A=0.4, S_B=-0.4)
     U, info = sa.newton_solve(prob, sl, tol=1e-9, max_iter=25)
     assert info.residual_norm < 1e-8
@@ -156,7 +156,7 @@ def test_single_spinning_puncture_breaks_parity():
     odd modes.  Equal-mass momentum is z-even, so the asymmetry here is purely
     the spin's doing.
     """
-    prob = sa.make_problem(Na=40, Nb=28, P=0.5)
+    prob = sa.make_problem(Na=40, Nb=28, P=0.5, scheme="paper-v1")
     sl = Slice(b=1.0, m_A=0.5, m_B=0.5, S_A=0.4, S_B=0.0)
     U, info = sa.newton_solve(prob, sl, tol=1e-9, max_iter=25)
     assert info.residual_norm < 1e-8
@@ -169,7 +169,7 @@ def test_odd_modes_genuinely_populated():
     """Project the single-spin solution onto odd Legendre modes in B and confirm
     the odd content is >> roundoff (not numerical noise)."""
     from lemaitre.initial_data.conformally_flat_puncture.solver import spectral
-    prob = sa.make_problem(Na=40, Nb=28, P=0.5)
+    prob = sa.make_problem(Na=40, Nb=28, P=0.5, scheme="paper-v1")
     sl = Slice(b=1.0, m_A=0.5, m_B=0.5, S_A=0.4, S_B=0.0)
     U, info = sa.newton_solve(prob, sl, tol=1e-9, max_iter=25)
     assert info.residual_norm < 1e-8

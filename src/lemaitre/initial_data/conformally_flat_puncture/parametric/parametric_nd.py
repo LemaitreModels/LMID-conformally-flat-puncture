@@ -476,19 +476,23 @@ def attach_solve_fn_3d(sol, prob, axis_names, *, M_tot: float = 1.0, fixed=None,
     # without ``bmap`` predates angular node maps and is "cos" (_save_npz_owned).
     model_bmap = str((getattr(sol, "meta", None) or {}).get("bmap", "cos"))
     prob_bmap = getattr(prob, "bmap", "cos")
-    if model_bmap != prob_bmap:
-        raise ValueError(
-            f"this model's fields live on the {model_bmap!r} angular grid but the "
-            f"problem uses {prob_bmap!r}; build the problem with "
-            f"make_problem(..., bmap={model_bmap!r})")
     # ...and the same for the radial map: a file without ``radial`` is "lobatto".
     model_radial = str((getattr(sol, "meta", None) or {}).get("radial", "lobatto"))
     prob_radial = getattr(prob, "radial", "lobatto")
+    # the grid to build, named the way make_problem accepts it (one axis alone is
+    # refused, so the hint names the scheme or both axes)
+    from ..solver.operators_abt import scheme_of
+    name = scheme_of(model_bmap, model_radial)
+    hint = (f"make_problem(..., scheme={name!r})" if name is not None else
+            f"make_problem(..., bmap={model_bmap!r}, radial={model_radial!r})")
+    if model_bmap != prob_bmap:
+        raise ValueError(
+            f"this model's fields live on the {model_bmap!r} angular grid but the "
+            f"problem uses {prob_bmap!r}; build the problem with {hint}")
     if model_radial != prob_radial:
         raise ValueError(
             f"this model's fields live on the {model_radial!r} radial grid but the "
-            f"problem uses {prob_radial!r}; build the problem with "
-            f"make_problem(..., radial={model_radial!r})")
+            f"problem uses {prob_radial!r}; build the problem with {hint}")
     from .parametric_nd_3d import make_solve_fn
     solve_fn, _ = make_solve_fn(prob, list(axis_names), M_tot=M_tot, fixed=fixed,
                                 use_cache=use_cache, solver=solver, gmres_rtol=gmres_rtol,

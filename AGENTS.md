@@ -26,7 +26,11 @@ one canonical version of each model. Normal engineering hygiene applies.
 > **Which model is shipped is defined in exactly one place:**
 > `src/lemaitre/initial_data/conformally_flat_puncture/pipeline/production_model.py` (narrative: `docs/MODELS.md`).
 > Never restate the enhanced axes, POD ranks or stored-memory numbers anywhere else
-> — producers, figures, tests and the paper all read them from there.
+> — producers, figures, tests and the paper all read them from there. The same module
+> names the grid the shipped model is on, `production_model.SCHEME = "paper-v1"`,
+> which is **not** the solver's default (`"v2"`): every producer, figure, table, model
+> loader and the GRTeclyn export driver passes `scheme=production_model.SCHEME`, and
+> `tests/test_scheme_v2.py` fails on a grid built there without a name.
 >
 > **Several design choices here were learned the hard way** — the equilibrated
 > (not raw) residual as the certification metric, field error as a metric separate
@@ -193,16 +197,16 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   > `separable.kron_factors`) take it from `operators_abt.angular_d2`, which returns
   > `None` — the original squaring — on `"cos"` and on any hand-built grid. A new
   > construction of the B-operator must go through it too, or the dense and separable
-  > routes stop agreeing. **`"cos"` is still the
-  > default everywhere**, so every shipped model, figure, solve-store key and the
-  > GRTeclyn export (which refuses `"abt"`: the format assumes polynomials in `B`)
-  > are untouched, and so is the curved sibling, which builds its chart through the
-  > default. Opt in with `make_problem(..., bmap="abt")`; a model built that way
-  > records `bmap` in its metadata, and `attach_solve_fn_3d` refuses a problem on
-  > the other map. Interpolate in `prob.Bs` (the nodes as laid), and get a query
-  > point's `s` from `operators_abt.inverse_map_s`, not from `B` — `s` is
-  > ill-conditioned in `B` next to the axis. Making `"abt"` the production grid
-  > re-prices every shipped number and is a maintainer decision.
+  > routes stop agreeing. **`"abt"` is the angular half of the default scheme
+  > `"v2"`** (below); `"cos"` is the angular half of `"paper-v1"`, which every shipped
+  > model, figure, solve-store key and the GRTeclyn export (which refuses `"abt"`: the
+  > format assumes polynomials in `B`) is on, by name, and so is the curved sibling's
+  > chart. A model built on `"abt"` records `bmap` in its metadata, and
+  > `attach_solve_fn_3d` refuses a problem on the other map. Interpolate in `prob.Bs`
+  > (the nodes as laid), and get a query point's `s` from
+  > `operators_abt.inverse_map_s`, not from `B` — `s` is ill-conditioned in `B` next
+  > to the axis. Moving the shipped models onto `"abt"` re-prices every shipped number
+  > and is a maintainer decision.
 
   > **The radial representation is part of the grid too, and the two schemes name
   > the pairs.** `operators_abt.RADIAL_MAPS` offers `"lobatto"` (the original:
@@ -211,17 +215,29 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   > `A` nodes, no node and no boundary row at either edge, every row a PDE row).
   > `operators_abt.SCHEMES` names the two intended combinations: `"paper-v1"` =
   > `("cos", "lobatto")`, what the submitted paper used, and `"v2"` = `("abt",
-  > "gauss")`. `make_problem(..., scheme=)` selects one; `bmap=`/`radial=` select the
-  > axes separately (mixed grids are buildable); a contradiction is refused. On
+  > "gauss")`. Every grid entry point (`build_grid`, `build_grid_3d`,
+  > `get_separable`/`SeparableModes`, both `make_problem`s) takes `scheme=`, or
+  > `bmap=` and `radial=` **both** (mixed grids are buildable); one axis alone is
+  > refused — under the `"v2"` default, `bmap="cos"` alone would otherwise build
+  > cos + gauss — and so is a contradiction (`operators_abt.resolve_scheme`;
+  > `check_bmap`/`check_radial` refuse `None`). On
   > `"gauss"` the factor `A − 1` folds into the nodal factor `w` (so `u = w·v` holds
   > everywhere and `w ≡ A − 1` at m = 0), the 2-D solver carries `v` too, and the edge
   > readouts have no node to read: the ADM-mass slope is `V(1, B)` and the puncture
   > values extrapolate `V` to `A = 0` — take both from `operators_abt.radial_edge_rows`,
   > never from `(DA1 @ U)[0]` or `U[-1]`. The operator constructors recognise the
   > canonical Gauss grid from bare arrays (`operators_abt.radial_of`), as the angular
-  > map is recognised by `angular_d2`. **`DEFAULT_SCHEME` is still `"paper-v1"`**, and
-  > every `"lobatto"` operator, solve, readout and store key is bit-for-bit what it was
-  > (`tests/test_scheme_v2.py`, against a verbatim copy of the old assembly). On
+  > map is recognised by `angular_d2`. **`DEFAULT_SCHEME` is `"v2"`** (since
+  > 2026-10-11): at the production grid 44×32×8 and `b = 10` it reads the ADM mass to
+  > 2.2e-9 where `"paper-v1"` is off by 6.7e-5, at the same cost. The paper's numbers
+  > stay on `"paper-v1"` by name: pipeline, paper and export code pass
+  > `production_model.SCHEME`; tests that pin a paper-v1 number pass
+  > `scheme="paper-v1"`; never let a paper number ride on the default. Every
+  > `"lobatto"` operator, solve, readout and store key is bit-for-bit what it was
+  > (`tests/test_scheme_v2.py`, against a verbatim copy of the old assembly). The
+  > identity defaults are not the grid default and stay the original grid: the
+  > `Problem3D`/`Problem` dataclass fields, `SolveStore`/`slice_payload`, and a saved
+  > model's metadata all read "no key" as `"cos"`/`"lobatto"`. On
   > `"gauss"` the 2-D solver's raw `max|R|` floors at 3e-9 – 3e-8 (the innermost row
   > sits at `A ≈ 3e-4`–`7e-4` with coefficients ~1e9–1e11), so there it monitors the
   > equilibrated `u` norm and certifies against `CERT_TOL_U` (`NewtonInfo.norm` says

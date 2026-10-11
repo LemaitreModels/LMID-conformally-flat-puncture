@@ -53,6 +53,7 @@ from lemaitre.initial_data.conformally_flat_puncture.applications import sensiti
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 DEFAULT_OUTDIR = os.path.join(REPORTS, "P2", "models")
 
@@ -190,7 +191,7 @@ def main():
        f"tangent_jac={args.tangent_jac}  level={args.level}")
     _t(f"outdir: {args.outdir}  (gitignored)   git HEAD: {commit}")
 
-    prob = s3.make_problem(Na=args.Na, Nb=args.Nb, Nphi=args.Nphi)
+    prob = s3.make_problem(Na=args.Na, Nb=args.Nb, Nphi=args.Nphi, scheme=pm.SCHEME)
 
     # ----- build the gradient-enhanced sparse model -----
     # The enhanced-only tangent (halves back-solves) — only the enhanced axes'

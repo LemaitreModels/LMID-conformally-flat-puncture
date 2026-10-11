@@ -55,7 +55,7 @@ LEVEL = 3
 
 @pytest.fixture(scope="module")
 def prob():
-    return s3.make_problem(Na=16, Nb=12, Nphi=6)
+    return s3.make_problem(Na=16, Nb=12, Nphi=6, scheme="paper-v1")
 
 
 @pytest.fixture(scope="module")

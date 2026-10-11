@@ -38,7 +38,7 @@ M_A = M_B = 0.5
 
 def _manufactured(Na=20, Nb=14, Nphi=8, seed=3):
     """A small problem plus a smooth random nodal ``U`` (not a solution)."""
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme="paper-v1")
     rng = np.random.default_rng(seed)
     U = rng.normal(size=prob.shape) * 1e-2
     sl = s3.Slice3D(b=B_ANCHOR, m_A=M_A, m_B=M_B,

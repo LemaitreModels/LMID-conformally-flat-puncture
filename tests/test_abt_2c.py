@@ -38,7 +38,7 @@ def test_geometry_and_inverse():
     rinf, zinf = ops.abt_map(1.0 - 1e-7, 0.3, b)
     assert rinf > 1e5
     # inverse round-trip at generic interior points
-    A, B, _, _ = ops.build_grid(20, 14)
+    A, B, _, _ = ops.build_grid(20, 14, scheme="paper-v1")
     AA, BB = np.meshgrid(A, B, indexing="ij")
     interior = (AA > 0.05) & (AA < 0.95)
     rho, z = ops.abt_map(AA[interior], BB[interior], b)
@@ -54,7 +54,7 @@ def test_laplacian_closed_form():
     b = 1.0
     errs = []
     for (Na, Nb) in [(16, 12), (24, 16), (32, 20), (40, 28), (48, 32)]:
-        A, B, DA1, DB1 = ops.build_grid(Na, Nb)
+        A, B, DA1, DB1 = ops.build_grid(Na, Nb, scheme="paper-v1")
         Lap, rho, z, Af, Bf, DA, DB = ops.laplacian_matrix(A, B, DA1, DB1, b)
         r2 = rho ** 2 + z ** 2
         r2s = np.where(np.isfinite(r2), r2, 0.0)
@@ -77,7 +77,7 @@ def test_manufactured_poisson():
     b = 1.0
     rows, errs = [], []
     for (Na, Nb) in [(16, 12), (24, 16), (32, 20), (40, 28)]:
-        A, B, DA1, DB1 = ops.build_grid(Na, Nb)
+        A, B, DA1, DB1 = ops.build_grid(Na, Nb, scheme="paper-v1")
         Lap, rho, z, Af, Bf, DA, DB = ops.laplacian_matrix(A, B, DA1, DB1, b)
         M0, interior = ops.apply_bcs(Lap, A, B, DA)
         r2 = rho ** 2 + z ** 2
@@ -111,7 +111,7 @@ def test_manufactured_poisson_one_over_r():
     b = 1.0
     rows, errs = [], []
     for (Na, Nb) in [(16, 12), (24, 16), (32, 20), (40, 28), (48, 32)]:
-        A, B, DA1, DB1 = ops.build_grid(Na, Nb)
+        A, B, DA1, DB1 = ops.build_grid(Na, Nb, scheme="paper-v1")
         Lap, rho, z, Af, Bf, DA, DB = ops.laplacian_matrix(A, B, DA1, DB1, b)
         M0, interior = ops.apply_bcs(Lap, A, B, DA)
         r2 = rho ** 2 + z ** 2
@@ -133,7 +133,7 @@ def test_manufactured_poisson_one_over_r():
 # M2-A.2 — PRIMARY GATE: P=0 is an EXACT fixed point on the ABT grid
 # --------------------------------------------------------------------------
 def test_P0_exact_fixed_point_abt():
-    prob = sa.make_problem(Na=32, Nb=22, P=0.0)
+    prob = sa.make_problem(Na=32, Nb=22, P=0.0, scheme="paper-v1")
     for sl in (Slice(b=1.0, m_A=0.5, m_B=0.5), Slice(b=1.5, m_A=0.7, m_B=0.3)):
         U, info = sa.newton_solve(prob, sl, tol=1e-13, max_iter=8)
         assert float(np.max(np.abs(U))) == 0.0, f"P=0 nonzero u, b={sl.b}"
@@ -146,7 +146,7 @@ def test_P0_exact_fixed_point_abt():
 def test_spatial_spectral_convergence():
     b, m_A, m_B, P = 1.0, 0.5, 0.5, 0.5
     # high-resolution reference
-    pref = sa.make_problem(Na=52, Nb=36, P=P)
+    pref = sa.make_problem(Na=52, Nb=36, P=P, scheme="paper-v1")
     slc = Slice(b=b, m_A=m_A, m_B=m_B)
     Uref, iref = sa.newton_solve(pref, slc, tol=1e-9, max_iter=25)
     assert iref.residual_norm < 1e-8, f"reference ||R||={iref.residual_norm:.2e}"
@@ -157,7 +157,7 @@ def test_spatial_spectral_convergence():
 
     rows, errs = [], []
     for (Na, Nb) in [(20, 16), (28, 20), (36, 24), (44, 30)]:
-        prob = sa.make_problem(Na=Na, Nb=Nb, P=P)
+        prob = sa.make_problem(Na=Na, Nb=Nb, P=P, scheme="paper-v1")
         U, info = sa.newton_solve(prob, slc, tol=1e-9, max_iter=25)
         uq = sa.evaluate_field_phys(prob, U, rq, zq, b)
         e = float(np.max(np.abs(uq - uref)))
@@ -182,7 +182,7 @@ def test_equal_mass_B_even():
     near machine precision — the clean B-as-mirror proof (vs the single
     A-centred grid's 39% z-asymmetry).
     """
-    prob = sa.make_problem(Na=40, Nb=28, P=0.5)
+    prob = sa.make_problem(Na=40, Nb=28, P=0.5, scheme="paper-v1")
     sl = Slice(b=1.0, m_A=0.5, m_B=0.5)
     U, info = sa.newton_solve(prob, sl, tol=1e-9, max_iter=25)
     assert info.residual_norm < 1e-8
@@ -196,7 +196,7 @@ def test_equal_mass_B_even():
 
 def test_unequal_mass_not_B_even():
     """Sanity: unequal mass is NOT B-even (the test above has teeth)."""
-    prob = sa.make_problem(Na=40, Nb=28, P=0.5)
+    prob = sa.make_problem(Na=40, Nb=28, P=0.5, scheme="paper-v1")
     sl = Slice(b=1.0, m_A=0.7, m_B=0.3)
     U, info = sa.newton_solve(prob, sl, tol=1e-9, max_iter=25)
     U = np.asarray(U)
@@ -208,7 +208,7 @@ def test_unequal_mass_not_B_even():
 # M2-A.5 — parameter tangents consistent with finite differences
 # --------------------------------------------------------------------------
 def test_tangent_b_consistent():
-    prob = sa.make_problem(Na=28, Nb=20, P=0.5)
+    prob = sa.make_problem(Na=28, Nb=20, P=0.5, scheme="paper-v1")
     b0 = 1.2
     sl = Slice(b=b0, m_A=0.5, m_B=0.5)
     U, _ = sa.newton_solve(prob, sl, tol=1e-10, max_iter=25)
@@ -222,7 +222,7 @@ def test_tangent_b_consistent():
 
 
 def test_tangent_q_consistent():
-    prob = sa.make_problem(Na=28, Nb=20, P=0.5)
+    prob = sa.make_problem(Na=28, Nb=20, P=0.5, scheme="paper-v1")
     b0, M = 1.2, 1.0
     q0 = 1.4
     mA = M * q0 / (1 + q0); mB = M / (1 + q0)

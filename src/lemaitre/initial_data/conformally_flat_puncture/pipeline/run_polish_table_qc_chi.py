@@ -52,6 +52,7 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REPDIR = os.path.join(REPORTS, "P3")
 MODELDIR = os.path.join(REPORTS, "3D_parametric", "models_chi")
@@ -131,7 +132,7 @@ def main(n_points=1000, seed=0, level=5):
     boxstr = ", ".join(f"{a['name']}:[{a['min']:g},{a['max']:g}]" for a in BOX)
     print(f"[qc-chi] model: Smolyak L={level} over box {{{boxstr}}} "
           f"(fixed {FIXED})  grid Na={NA},Nb={NB},Nphi={NPHI}", flush=True)
-    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
+    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme=pm.SCHEME)
     model = build_or_load(prob, level)
 
     print(f"[qc-chi] drawing {n_points} uniform off-node points (seed={seed}) ...",

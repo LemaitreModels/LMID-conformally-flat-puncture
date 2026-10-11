@@ -72,6 +72,7 @@ from ..parametric.certification import CERT_TOL_U
 from ..solver import operators_3d as ops3
 from ..solver import solver_3d as s3
 from . import production_box as pb
+from . import production_model as pm
 
 # The quasi-circular branch of ``theta_to_slice3d``: a flag, not an axis.  Without
 # it the momenta are a free scan rather than the 3PN quasi-circular series, and the
@@ -107,7 +108,7 @@ def sweep(n=24, grid=None, seed=20260813, newton_steps=4, verbose=True):
     names = [a["name"] for a in box]
     lo = np.array([a["min"] for a in box])
     hi = np.array([a["max"] for a in box])
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
 
     if verbose:
         print(f"host   : {platform.node()}  {platform.machine()}")

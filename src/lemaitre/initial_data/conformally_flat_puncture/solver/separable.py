@@ -322,9 +322,9 @@ class SeparableModes:
     at the production grid (44, 32, 8) that is ~0.1 MiB against ~79 MiB.
     """
 
-    def __init__(self, Na: int, Nb: int, Nphi: int, bmap=None, radial=None):
-        bmap = ops.check_bmap(bmap)
-        radial = ops.check_radial(radial)
+    def __init__(self, Na: int, Nb: int, Nphi: int, bmap=None, radial=None,
+                 scheme=None):
+        bmap, radial = ops.resolve_scheme(scheme, bmap, radial)
         A, B, DA1, DB1 = ops.build_grid(Na, Nb, bmap, radial)
         self.Na, self.Nb, self.Nphi, self.bmap, self.radial = Na, Nb, Nphi, bmap, radial
         self.A, self.B, self.DA1, self.DB1 = A, B, DA1, DB1
@@ -562,15 +562,19 @@ _SEPARABLE_CACHE = collections.OrderedDict()
 _SEPARABLE_CACHE_MAX = 4      # ~0.1 MiB each at the production grid
 
 
-def get_separable(Na: int, Nb: int, Nphi: int, bmap=None, radial=None) -> SeparableModes:
+def get_separable(Na: int, Nb: int, Nphi: int, bmap=None, radial=None,
+                  scheme=None) -> SeparableModes:
     """The :class:`SeparableModes` for one grid, built at most once per process.
 
-    ``bmap`` is the angular node map (``operators_abt.B_MAPS``) and ``radial`` the
-    radial map (``operators_abt.RADIAL_MAPS``); both are part of the grid, so two
-    maps at the same sizes are two cache entries.
+    The grid is named as in ``operators_abt.build_grid``: ``scheme``
+    (``operators_abt.SCHEMES``), or both the angular node map ``bmap``
+    (``operators_abt.B_MAPS``) and the radial map ``radial``
+    (``operators_abt.RADIAL_MAPS``); nothing named is the default scheme, one axis
+    alone is refused (``operators_abt.resolve_scheme``).  The cache is keyed on the
+    resolved pair, so two maps at the same sizes are two entries and a scheme name
+    and its pair share one.
     """
-    bmap = ops.check_bmap(bmap)
-    radial = ops.check_radial(radial)
+    bmap, radial = ops.resolve_scheme(scheme, bmap, radial)
     key = (int(Na), int(Nb), int(Nphi), bmap, radial)
     hit = _SEPARABLE_CACHE.get(key)
     if hit is not None:

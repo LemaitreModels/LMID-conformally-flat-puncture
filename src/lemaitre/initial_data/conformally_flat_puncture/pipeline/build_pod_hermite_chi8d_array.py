@@ -62,6 +62,7 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_3d
 from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd import _git_commit
 from lemaitre.initial_data.conformally_flat_puncture.parametric.certification import CERT_TOL_U
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 
 _node_key = sm._node_key
@@ -99,7 +100,7 @@ def _setup(args):
     for e in enhanced:
         if e not in names:
             raise ValueError(f"enhanced axis {e!r} not in 8-D box {names}")
-    prob = s3.make_problem(Na=args.Na, Nb=args.Nb, Nphi=args.Nphi)
+    prob = s3.make_problem(Na=args.Na, Nb=args.Nb, Nphi=args.Nphi, scheme=pm.SCHEME)
     vm = sm.load_smolyak(args.reuse_value)
     if list(vm.axes) and len(vm.axes) != len(names):
         raise ValueError(f"value model dim {len(vm.axes)} != 8-D box dim {len(names)} "
@@ -238,7 +239,7 @@ def run_pod(args):
     commit = _git_commit()
     names = [a["name"] for a in bh.BOX]
     enhanced = [s for s in (x.strip() for x in args.enhanced.split(",")) if s]
-    prob = s3.make_problem(Na=args.Na, Nb=args.Nb, Nphi=args.Nphi)
+    prob = s3.make_problem(Na=args.Na, Nb=args.Nb, Nphi=args.Nphi, scheme=pm.SCHEME)
     _t(f"[S7-pod] loading raw model {os.path.basename(args.raw_model)} ...")
     model = hsm.load_hermite_smolyak(args.raw_model)
     solve_fn, _ = make_solve_fn(prob, names, M_tot=bh.M_TOT, fixed=bh.FIXED,

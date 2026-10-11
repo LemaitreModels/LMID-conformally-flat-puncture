@@ -32,7 +32,7 @@ def main():
     meta = _unpack_meta(_load_npz(a.cross_model)); names = list(meta["axis_names"])
     box = [(float(x[0]), float(x[1])) for x in meta["box"]]; fixed = meta.get("fixed", {}) or {}
     Na, Nb, Nphi = int(meta["Na"]), int(meta["Nb"]), int(meta["Nphi"])
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
     print("[resid8d] load cross + build full-rank POD ...", flush=True)
     mc = load_hermite_smolyak_cross(a.cross_model)
     N = int(mc.n_solver_nodes); nfeat = int(np.prod(mc.field_shape)); d = int(mc.d)

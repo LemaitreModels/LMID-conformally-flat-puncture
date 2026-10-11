@@ -384,6 +384,18 @@ def test_models_md_headline_numbers_come_from_production_model():
             "literal that disagrees with production_model.enhanced_indices")
 
 
+def test_models_md_names_the_grid_the_model_is_built_on():
+    """The shipped grid is ``production_model.SCHEME``; the page must say which, and
+    that it is not the solver's default (which became ``"v2"`` in milestone 2)."""
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+    from lemaitre.initial_data.conformally_flat_puncture.solver import operators_abt as ops
+    doc = _text(MODELS_MD)
+    assert f'`production_model.SCHEME = "{pm.SCHEME}"`' in doc, (
+        f"MODELS.md must name the shipped grid, {pm.SCHEME!r}")
+    assert f'defaults to `"{ops.DEFAULT_SCHEME}"`' in doc, (
+        f"MODELS.md must say the solver's default is {ops.DEFAULT_SCHEME!r}")
+
+
 def test_models_md_pod_artifact_name_is_exactly_what_pod_stem_emits():
     """The example filename, pinned to the function the doc credits for it.
 

@@ -3,10 +3,13 @@
 The operator is written in ``B = cos η`` throughout; the map only decides where the
 B nodes sit and in which coordinate ``s`` the discrete field is a polynomial.
 
-  * ``"cos"`` (default): ``s = B``, the original grid.  Every existing number is
-    pinned to it, so the first group of tests asserts that it is BIT-FOR-BIT what
-    it was — nodes, differentiation matrix, evaluator, solve-store keys, saved
-    artifacts.
+  * ``"cos"``: ``s = B``, the original grid and the angular half of ``"paper-v1"``.
+    Every existing number is pinned to it, so the first group of tests asserts that
+    it is BIT-FOR-BIT what it was — nodes, differentiation matrix, evaluator,
+    solve-store keys, saved artifacts.  It is no longer the default (the default
+    scheme is ``"v2"``, ``tests/test_scheme_v2.py``), so every grid here is named:
+    ``scheme="paper-v1"``, or both axes — ``bmap="abt", radial="lobatto"`` is the
+    abt-angle grid of 2026-10-10 this file was written for.
   * ``"abt"``: ``B = 2s/(1+s²)``, the angular coordinate of Ansorg, Brügmann &
     Tichy, PRD 70, 064011 (2004), eq. (61).  It is linear in η at a puncture where
     ``"cos"`` is quadratic, so it resolves the punctures far better.  The second
@@ -45,25 +48,27 @@ def _slice(b=2.5):
 # ==========================================================================
 # 1.  "cos" is the original grid, bit-for-bit
 # ==========================================================================
-def test_cos_is_the_default_and_the_original_grid():
-    assert ops.DEFAULT_BMAP == "cos"
+def test_cos_is_paper_v1s_angle_and_the_original_grid():
+    # was test_cos_is_the_default_and_the_original_grid (asserted DEFAULT_BMAP ==
+    # "cos" and build_grid(Na, Nb) / build_grid(Na, Nb, None)); the default moved to
+    # "v2" in milestone 2, and what the default is now is gated in test_scheme_v2.py
+    assert ops.SCHEMES["paper-v1"][0] == "cos"
     A0, DA0 = ops.cheb01(GRID["Na"])
     B0, DB0 = ops.gl_nodes_diffmat(GRID["Nb"])
-    for got in (ops.build_grid(GRID["Na"], GRID["Nb"]),
-                ops.build_grid(GRID["Na"], GRID["Nb"], "cos"),
-                ops.build_grid(GRID["Na"], GRID["Nb"], None)):
+    for got in (ops.build_grid(GRID["Na"], GRID["Nb"], scheme="paper-v1"),
+                ops.build_grid(GRID["Na"], GRID["Nb"], "cos", radial="lobatto")):
         for x, y in zip(got, (A0, B0, DA0, DB0)):
             assert np.array_equal(np.asarray(x), np.asarray(y))
-    prob = s3.make_problem(**GRID)
+    prob = s3.make_problem(**GRID, scheme="paper-v1")
     assert prob.bmap == "cos" and np.array_equal(prob.Bs, prob.B)
-    assert sa.make_problem(Na=20, Nb=14).bmap == "cos"
+    assert sa.make_problem(Na=20, Nb=14, scheme="paper-v1").bmap == "cos"
 
 
 def test_unknown_map_is_refused():
     with pytest.raises(ValueError, match="unknown angular node map"):
-        ops.build_grid(10, 8, "chebyshev")
+        ops.build_grid(10, 8, "chebyshev", radial="lobatto")
     with pytest.raises(ValueError, match="unknown angular node map"):
-        s3.make_problem(10, 8, 4, bmap="tan")
+        s3.make_problem(10, 8, 4, bmap="tan", radial="lobatto")
 
 
 def test_solve_store_keys_unchanged_for_cos_and_distinct_for_abt():
@@ -104,8 +109,8 @@ def test_attaching_a_solver_on_the_other_grid_is_refused(tmp_path):
     p_cos = _tiny_model("cos").save(str(tmp_path / "cos.npz"))
     p_abt = _tiny_model("abt").save(str(tmp_path / "abt.npz"))
     m_cos, m_abt = pnd.load_parametric(p_cos), pnd.load_parametric(p_abt)
-    prob_cos = s3.make_problem(10, 8, 4)
-    prob_abt = s3.make_problem(10, 8, 4, bmap="abt")
+    prob_cos = s3.make_problem(10, 8, 4, scheme="paper-v1")
+    prob_abt = s3.make_problem(10, 8, 4, bmap="abt", radial="lobatto")
     pnd.attach_solve_fn_3d(m_cos, prob_cos, ["b"])          # same grid: fine
     pnd.attach_solve_fn_3d(m_abt, prob_abt, ["b"])
     with pytest.raises(ValueError, match="angular grid"):
@@ -115,7 +120,7 @@ def test_attaching_a_solver_on_the_other_grid_is_refused(tmp_path):
 
 
 def test_export_refuses_a_mapped_grid():
-    prob = s3.make_problem(**GRID, bmap="abt")
+    prob = s3.make_problem(**GRID, bmap="abt", radial="lobatto")
     with pytest.raises(NotImplementedError, match="angular node map"):
         ex.from_solution(prob, _slice(), np.zeros(prob.shape))
 
@@ -134,7 +139,7 @@ def test_abt_map_and_its_inverse():
     assert np.all(err <= 1e-15 + 4e-16 / np.maximum(1 - s * s, 1e-300))
     assert ops.s_of_b(np.array([1.0, -1.0, 0.0]), "abt").tolist() == [1.0, -1.0, 0.0]
     # the nodes are kept exactly as laid
-    assert np.array_equal(s3.make_problem(10, 12, 4, bmap="abt").Bs,
+    assert np.array_equal(s3.make_problem(10, 12, 4, bmap="abt", radial="lobatto").Bs,
                           ops.gl_nodes_diffmat(12)[0])
     # eta is linear in (1 - s) at the puncture: 1 - B = (1-s)^2/(1+s^2)
     # (moderate e only: 1 - B itself cancels in float64 as e -> 0, the very effect
@@ -147,7 +152,7 @@ def test_abt_map_and_its_inverse():
 def test_abt_DB1_is_the_chain_rule_derivative():
     """DB1 differentiates, with respect to B, every polynomial in s of degree < Nb."""
     Nb = GRID["Nb"]
-    _, B, _, DB1 = ops.build_grid(GRID["Na"], Nb, "abt")
+    _, B, _, DB1 = ops.build_grid(GRID["Na"], Nb, "abt", radial="lobatto")
     s = ops.s_of_b(B, "abt")
     rng = np.random.default_rng(1)
     c = rng.standard_normal(Nb)
@@ -167,7 +172,7 @@ def test_abt_second_derivative_is_exact_on_polynomials_in_s():
     0.67 at Nb = 14).  The exact form is right to roundoff.
     """
     Nb = GRID["Nb"]
-    _, B, _, DB1 = ops.build_grid(GRID["Na"], Nb, "abt")
+    _, B, _, DB1 = ops.build_grid(GRID["Na"], Nb, "abt", radial="lobatto")
     s = ops.s_nodes(Nb, "abt")
     leg = np.polynomial.legendre
     c = np.random.default_rng(1).standard_normal(Nb)
@@ -189,10 +194,10 @@ def test_every_operator_uses_the_exact_second_derivative_on_abt_only():
     exact matrix on the canonical abt grid, ``None`` (the original squaring) on
     "cos" and on a hand-built grid."""
     Na, Nb = GRID["Na"], GRID["Nb"]
-    A, B, DA1, DB1 = ops.build_grid(Na, Nb, "abt")
+    A, B, DA1, DB1 = ops.build_grid(Na, Nb, "abt", radial="lobatto")
     DBB1 = ops.d2_dB2_1d(Nb, "abt")
     assert np.array_equal(ops.angular_d2(B, DB1), DBB1)
-    assert ops.angular_d2(*ops.build_grid(Na, Nb, "cos")[1::2]) is None
+    assert ops.angular_d2(*ops.build_grid(Na, Nb, "cos", radial="lobatto")[1::2]) is None
     assert ops.d2_dB2_1d(Nb, "cos") is None
     assert ops.angular_d2(B * (1 + 1e-15), DB1) is None
     # separable, m = 0: C_B = (1 − B²) d²/dB² − 2B d/dB with exactly that matrix
@@ -205,7 +210,7 @@ def test_every_operator_uses_the_exact_second_derivative_on_abt_only():
 
 def test_m0_block_is_the_2d_operator_on_the_abt_grid():
     """The oracle relation of test_solver_3d_fast holds on the mapped grid too."""
-    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], "abt")
+    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], "abt", radial="lobatto")
     Lap, _, _, _, _, DA, _ = ops.laplacian_matrix(A, B, DA1, DB1, 2.5)
     M_2d, int_2d = ops.apply_bcs(Lap, A, B, DA)
     M0_list, w_list, interior = ops3.mode_operators(A, B, DA1, DB1, 2.5, np.array([0]))
@@ -214,13 +219,13 @@ def test_m0_block_is_the_2d_operator_on_the_abt_grid():
 
 
 def test_operator_cache_serves_each_map_its_own_blocks():
-    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], "abt")
+    A, B, DA1, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], "abt", radial="lobatto")
     m_vals = ops3.fourier_modes(GRID["Nphi"])
     got = ops3.mode_operators_cached(A, B, DA1, DB1, 2.5, m_vals)[0]
     ref = ops3.mode_operators(A, B, DA1, DB1, 2.5, m_vals)[0]
     for x, y in zip(got, ref):
         assert np.array_equal(x, y)
-    Ac, Bc, DA1c, DB1c = ops.build_grid(GRID["Na"], GRID["Nb"], "cos")
+    Ac, Bc, DA1c, DB1c = ops.build_grid(GRID["Na"], GRID["Nb"], "cos", radial="lobatto")
     got_c = ops3.mode_operators_cached(Ac, Bc, DA1c, DB1c, 2.5, m_vals)[0]
     assert not np.array_equal(got_c[1], got[1]), "the two maps shared a cache entry"
 
@@ -228,7 +233,7 @@ def test_operator_cache_serves_each_map_its_own_blocks():
 def test_evaluate_field_on_abt_is_exact_on_its_discrete_space():
     """Nodal values recovered, and an off-grid query exact for û_m polynomial in (A, s)."""
     Na, Nb, Nphi, b = GRID["Na"], GRID["Nb"], GRID["Nphi"], 2.5
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, bmap="abt")
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, bmap="abt", radial="lobatto")
     rng = np.random.default_rng(7)
     cA = rng.standard_normal((Nphi, 6)) * 1e-2
     cS = rng.standard_normal((Nphi, 7))
@@ -265,7 +270,7 @@ def test_evaluate_field_on_abt_is_exact_on_its_discrete_space():
 
 
 def test_separable_route_matches_dense_on_abt():
-    prob = s3.make_problem(**GRID, bmap="abt")
+    prob = s3.make_problem(**GRID, bmap="abt", radial="lobatto")
     sl = _slice()
     U_s, i_s = nk.newton_solve_nk(prob, sl, tol=1e-12, max_iter=30, separable=True)
     U_d, i_d = nk.newton_solve_nk(prob, sl, tol=1e-12, max_iter=30, separable=False)
@@ -280,8 +285,8 @@ def test_separable_assembly_refuses_a_hand_built_grid():
     """A Problem3D whose nodes are not its declared map's would be preconditioned
     on the wrong grid — refused rather than solved."""
     import dataclasses
-    prob = s3.make_problem(**GRID)
-    _, B, _, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], "abt")
+    prob = s3.make_problem(**GRID, scheme="paper-v1")
+    _, B, _, DB1 = ops.build_grid(GRID["Na"], GRID["Nb"], "abt", radial="lobatto")
     bad = dataclasses.replace(prob, B=B, DB1=DB1)          # abt nodes, says "cos"
     with pytest.raises(ValueError, match="canonical"):
         s3.assemble(bad, _slice(), separable=True)
@@ -291,9 +296,9 @@ def test_axisym_reduction_reproduces_2d_on_abt():
     """Nφ=1 NK on the abt grid IS the 2-D Newton on the same grid."""
     P = 0.5
     for (b, mA, mB) in [(1.0, 0.5, 0.5), (1.5, 0.7, 0.3)]:
-        prob2 = sa.make_problem(Na=28, Nb=20, P=P, bmap="abt")
+        prob2 = sa.make_problem(Na=28, Nb=20, P=P, bmap="abt", radial="lobatto")
         U2, _ = sa.newton_solve(prob2, Slice(b=b, m_A=mA, m_B=mB), tol=1e-12, max_iter=25)
-        prob3 = s3.make_problem(Na=28, Nb=20, Nphi=1, bmap="abt")
+        prob3 = s3.make_problem(Na=28, Nb=20, Nphi=1, bmap="abt", radial="lobatto")
         U3, i3 = nk.newton_solve_nk(prob3, Slice3D.head_on(b=b, m_A=mA, m_B=mB, P=P),
                                     tol=1e-12, max_iter=25)
         d = float(np.max(np.abs(np.asarray(U3)[:, :, 0] - np.asarray(U2))))
@@ -339,7 +344,7 @@ def test_abt_resolves_the_punctures_at_the_production_grid():
     rho, z, phi = _near_probes(sl)
 
     def run(Na, Nb, bmap):
-        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=8, bmap=bmap)
+        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=8, bmap=bmap, radial="lobatto")
         U, info = nk.newton_solve_nk(prob, sl, tol=1e-12, max_iter=40)
         assert info.converged
         return _psi(prob, U, sl, rho, z, phi)
@@ -371,7 +376,7 @@ def test_abt_midfield_converges_with_the_exact_second_derivative():
     rho, z = r * np.sqrt(1 - ct ** 2), r * ct
 
     def run(n):
-        prob = s3.make_problem(Na=n, Nb=n, Nphi=8, bmap="abt")
+        prob = s3.make_problem(Na=n, Nb=n, Nphi=8, bmap="abt", radial="lobatto")
         U, info = nk.newton_solve_nk(prob, sl, tol=1e-12, max_iter=40)
         assert info.converged
         return _psi(prob, U, sl, rho, z, ph)
@@ -408,13 +413,13 @@ def test_puncture_readouts_on_abt():
     def f(A, s):                       # a polynomial in s, so exactly representable
         return 0.01 * (1 + A) * (0.3 + 0.2 * s - 0.5 * s ** 3 + 0.1 * s ** 4)
 
-    prob = s3.make_problem(16, 12, 4, bmap="abt")
+    prob = s3.make_problem(16, 12, 4, bmap="abt", radial="lobatto")
     AA, SS = np.meshgrid(prob.A, prob.Bs, indexing="ij")
     U = np.repeat(f(AA, SS)[:, :, None], 4, axis=2)
     for which, sq in (("A", 1.0), ("B", -1.0)):
         got = E._u_at_puncture(prob, U, which)
         assert abs(got - f(0.0, sq)) < 1e-14, (which, got, f(0.0, sq))
-    prob2 = sa.make_problem(16, 12, bmap="abt")
+    prob2 = sa.make_problem(16, 12, bmap="abt", radial="lobatto")
     U2 = f(*np.meshgrid(prob2.A, prob2.Bs, indexing="ij"))
     wB = sa._bary_weights(prob2.Bs)
     for which, sq in (("A", 1.0), ("B", -1.0)):

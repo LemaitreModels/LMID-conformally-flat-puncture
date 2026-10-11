@@ -94,14 +94,15 @@ def fourier_modes(Nphi: int) -> np.ndarray:
     return np.arange(Nphi // 2 + 1)
 
 
-def build_grid_3d(Na: int, Nb: int, Nphi: int, bmap=None, radial=None):
+def build_grid_3d(Na: int, Nb: int, Nphi: int, bmap=None, radial=None, scheme=None):
     """Return ``(A, B, DA1, DB1, phi)``: the frozen ABT (A,B) grid + φ nodes.
 
     ``A, B, DA1, DB1`` come verbatim from ``operators_abt.build_grid`` (with the
-    same angular node map ``bmap`` and radial map ``radial``) so the meridian
-    discretisation is identical to the 2-D code.
+    same ``scheme``, or angular node map ``bmap`` and radial map ``radial``,
+    resolved and refused exactly as there) so the meridian discretisation is
+    identical to the 2-D code.
     """
-    A, B, DA1, DB1 = ops.build_grid(Na, Nb, bmap, radial)
+    A, B, DA1, DB1 = ops.build_grid(Na, Nb, bmap, radial, scheme)
     return A, B, DA1, DB1, phi_grid(Nphi)
 
 

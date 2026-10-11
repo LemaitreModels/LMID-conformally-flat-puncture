@@ -68,6 +68,7 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 MODEL = os.path.join(REPORTS, "3D_parametric", "models_chi",
                      "surrogate_smolyak_d4_qc_chi_prod_L5.npz")
@@ -306,7 +307,7 @@ def main(n=25, seed=0, taskid=-1, ntasks=1, budgets=None):
         raise SystemExit(f"--taskid {taskid} out of range for --ntasks {ntasks}")
     t0 = time.time()
     print(f"[qc-target] load model + problem ...", flush=True)
-    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI)
+    prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme=pm.SCHEME)
     model = T.load_model(MODEL, prob)
     print(f"[qc-target]   model={os.path.basename(MODEL)} nodes={model.n_solver_nodes}"
           f" axes={list(NAMES)} grid=({NA},{NB},{NPHI})", flush=True)

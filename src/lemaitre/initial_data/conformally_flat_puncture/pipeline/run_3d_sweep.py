@@ -58,6 +58,7 @@ from lemaitre.initial_data.conformally_flat_puncture.validation import twopunctu
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REPDIR = os.path.join(REPORTS, "3D")
 os.makedirs(REPDIR, exist_ok=True)
@@ -109,7 +110,7 @@ def block_A():
     S_mags = [0.1, 0.2, 0.3]
     tilts = [0.0, 30.0, 45.0, 60.0, 90.0]
     Na, Nb, Nphi = 48, 34, 8
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
     rows = []
     print(f"\n=== Block A: misaligned-spin grid (Na={Na} Nb={Nb} Nphi={Nphi}) ===")
     print(f"{'b':>4} {'|S|':>5} {'tilt':>5} {'iters':>5} {'||R||':>10} "
@@ -170,7 +171,7 @@ def block_B(run_oracle=True):
           f"{'dpsi_vs_TP':>11} {'t/s':>5}")
     rows = []
     for (Na, Nb, Nphi) in ladder:
-        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+        prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
         U, info, dt = solve_slice(prob, sl)
         dpsi = None
         if psi_tp is not None:
@@ -193,7 +194,7 @@ def block_C():
     b, Pz = 1.5, 0.5
     Px_vals = [0.0, 0.05, 0.10, 0.15, 0.20]
     Na, Nb, Nphi = 48, 34, 8
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
     rows = []
     print("\n=== Block C: off-axis momentum (orbital J along y) ===")
     print(f"{'Px':>5} {'iters':>5} {'||R||':>10} {'M_ADM':>9} "
@@ -234,7 +235,7 @@ def block_D():
     QR = np.array([0.4, 0.8, 0.6, 1.2, 2.0]) * b
     QZ = np.array([0.6, 0.0, -0.5, 0.3, 0.4]) * b
     QP = np.array([0.0, 1.0, 2.0, 0.5, 2.5])
-    prob = s3.make_problem(Na=56, Nb=40, Nphi=10)
+    prob = s3.make_problem(Na=56, Nb=40, Nphi=10, scheme=pm.SCHEME)
     out = []
     print("\n=== Block D: oracle anchors (nA=56 nB=44 nphi=8 TP) ===")
     print(f"{'label':>16} {'dpsi':>10} {'dM/M':>10} {'dJ_max':>10}")
