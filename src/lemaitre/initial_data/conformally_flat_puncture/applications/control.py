@@ -63,6 +63,7 @@ from ..solver import solver_abt as sa
 from ..validation import adm
 from ..parametric import parametric_nd_2c as p3
 from ..parametric.parametric_nd import ParametricSolutionND
+from ..parametric.certification import gate_for_problem
 
 
 # --------------------------------------------------------------------------
@@ -195,7 +196,7 @@ def _guess_fn(cp: ControlProblem, mode: str):
 # Broyden control loop  (rank-1 "good" updates; FD initial Jacobian)
 # --------------------------------------------------------------------------
 def broyden_control(cp: ControlProblem, theta0, target, *, mode: str,
-                    tol_ctrl: float = 1e-9, tol_inner: float = 1e-10,
+                    tol_ctrl: float = 1e-9, tol_inner: Optional[float] = None,
                     max_steps: int = 40, fd_h: float = 1e-4,
                     max_inner: int = 30, max_step_frac: float = 0.35):
     """Mendes-style Broyden loop on ``G(θ)=F(θ)−target``, warm-started per ``mode``.
@@ -211,7 +212,10 @@ def broyden_control(cp: ControlProblem, theta0, target, *, mode: str,
     Returns a dict with the converged ``theta``, the residual ``history``, the
     :class:`Counters`, and convergence flags.  The certified inner residual
     ``tol_inner`` is enforced at every solver call (``counters.max_resid`` audits
-    it).  ``theta`` is clamped to ``cp.box`` each step (the validated region).
+    it); ``None`` is the grid's gate, ``certification.gate_for_problem`` —
+    ``CERT_TOL = 1e-10`` (raw) on the paper's "lobatto" grid, ``CERT_TOL_U`` in the
+    equilibrated ``u`` norm on "gauss".  ``theta`` is clamped to ``cp.box`` each step
+    (the validated region).
 
     The outer loop (initial Jacobian, step cap, rank-1 updates) is
     **mode-independent** — ``F(θ)`` is the unique certified solution to ~floor
@@ -220,6 +224,8 @@ def broyden_control(cp: ControlProblem, theta0, target, *, mode: str,
     wall-clock factor.
     """
     target = np.asarray(target, dtype=float)
+    if tol_inner is None:
+        tol_inner = gate_for_problem(cp.prob)
     c = Counters()
     guess_fn = _guess_fn(cp, mode)
     state = {"prev_U": None}
@@ -279,7 +285,7 @@ def broyden_control(cp: ControlProblem, theta0, target, *, mode: str,
 # --------------------------------------------------------------------------
 def run_comparison(cp: ControlProblem, theta0, target, *,
                    modes=("cold", "interp"), tol_ctrl: float = 1e-9,
-                   tol_inner: float = 1e-10, max_steps: int = 40,
+                   tol_inner: Optional[float] = None, max_steps: int = 40,
                    fd_h: float = 1e-4, max_inner: int = 30):
     """Run :func:`broyden_control` in each ``mode`` and tabulate the cost reduction.
 
@@ -358,12 +364,14 @@ def make_target(cp: ControlProblem, theta_star, tol: float = 1e-12,
 # Scattered parameter SURVEY (Mendes use case the surrogate accelerates most):
 # many *unconnected* target points, where continuation has no smooth march
 # --------------------------------------------------------------------------
-def survey_cost(cp: ControlProblem, thetas, *, mode: str, tol_inner: float = 1e-10,
-                max_inner: int = 30) -> Counters:
+def survey_cost(cp: ControlProblem, thetas, *, mode: str,
+                tol_inner: Optional[float] = None, max_inner: int = 30) -> Counters:
     """Solve at a list of *scattered* (unconnected) free-data points ``thetas`` in
     ``mode`` and tally the cost.  For ``"continuation"`` the previous (unrelated)
     point's field is the guess — deliberately a poor warm start, illustrating why
     a *global* interpolant beats a march for surveys."""
+    if tol_inner is None:
+        tol_inner = gate_for_problem(cp.prob)          # as broyden_control
     c = Counters()
     guess_fn = _guess_fn(cp, mode)
     prev_U = None

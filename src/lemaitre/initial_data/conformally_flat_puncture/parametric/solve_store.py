@@ -106,7 +106,7 @@ def _round12(x) -> float:
 
 
 def slice_payload(sl: Slice3D, grid_meta: Sequence[int], code_tag: str,
-                  bmap: str = "cos") -> dict:
+                  bmap: str = "cos", radial: str = "lobatto") -> dict:
     """The canonical (JSON-serialisable) content of the key + audit record.
 
     The 15 physical scalars of the slice (b, m_A, m_B, and the four 3-vectors),
@@ -131,6 +131,11 @@ def slice_payload(sl: Slice3D, grid_meta: Sequence[int], code_tag: str,
         # Tagging it makes a store written under the old form miss rather than serve
         # a field from a different discretisation; "cos" keys are untouched.
         out["angular_d2"] = "exact"
+    # The radial representation is part of the grid in the same way, added only when
+    # it is not the original "lobatto", so every earlier key — "cos" and "abt" alike —
+    # is unchanged and a "gauss" key differs from every one of them.
+    if radial != "lobatto":
+        out["radial"] = str(radial)
     return out
 
 
@@ -139,10 +144,10 @@ def _canonical_bytes(payload: dict) -> bytes:
 
 
 def slice_key(sl: Slice3D, grid_meta: Sequence[int], code_tag: str,
-              bmap: str = "cos") -> str:
+              bmap: str = "cos", radial: str = "lobatto") -> str:
     """SHA-1 of the canonical bytes of ``slice_payload`` (a 40-hex-char string)."""
     return hashlib.sha1(_canonical_bytes(
-        slice_payload(sl, grid_meta, code_tag, bmap))).hexdigest()
+        slice_payload(sl, grid_meta, code_tag, bmap, radial))).hexdigest()
 
 
 # --------------------------------------------------------------------------
@@ -164,14 +169,18 @@ class SolveStore:
         The angular node map of the grid (``operators_abt.B_MAPS``) — part of the
         key when it is not ``"cos"``, so a store never serves a field from the
         other map.
+    radial
+        The radial map (``operators_abt.RADIAL_MAPS``) — part of the key when it is
+        not ``"lobatto"``, for the same reason.
     """
 
     def __init__(self, root_dir, grid_meta: Sequence[int],
                  code_tag: Optional[str] = None, reuse_tol: float = 1e-6,
-                 bmap: str = "cos"):
+                 bmap: str = "cos", radial: str = "lobatto"):
         self.root_dir = str(root_dir)
         self.grid_meta = tuple(int(g) for g in grid_meta)
         self.bmap = str(bmap)
+        self.radial = str(radial)
         self.code_tag = _git_commit() if code_tag is None else str(code_tag)
         # Reuse-admission threshold, DECOUPLED from any caller solve tol: a stored
         # entry is reusable iff its achieved residual ≤ reuse_tol.  Loose enough to
@@ -184,7 +193,7 @@ class SolveStore:
 
     # ----- keys / paths -----
     def key(self, sl: Slice3D) -> str:
-        return slice_key(sl, self.grid_meta, self.code_tag, self.bmap)
+        return slice_key(sl, self.grid_meta, self.code_tag, self.bmap, self.radial)
 
     def _path(self, key: str) -> str:
         return os.path.join(self.root_dir, key + ".npz")
@@ -255,7 +264,7 @@ class SolveStore:
         """
         key = self.key(sl)
         path = self._path(key)
-        meta = slice_payload(sl, self.grid_meta, self.code_tag, self.bmap)
+        meta = slice_payload(sl, self.grid_meta, self.code_tag, self.bmap, self.radial)
         meta["resid"] = float(resid)
         meta["iters"] = int(iters)
         meta["solver"] = None if solver is None else str(solver)
@@ -327,16 +336,20 @@ def _as_store(store, prob, code_tag: Optional[str] = None,
     freshly-built store it sets the threshold (default ``1e-6``).
     """
     bmap = getattr(prob, "bmap", "cos")
+    radial = getattr(prob, "radial", "lobatto")
     if isinstance(store, SolveStore):
         if store.bmap != bmap:
             raise ValueError(f"solve store is keyed for the {store.bmap!r} angular grid "
                              f"but the problem uses {bmap!r}")
+        if getattr(store, "radial", "lobatto") != radial:
+            raise ValueError(f"solve store is keyed for the {store.radial!r} radial grid "
+                             f"but the problem uses {radial!r}")
         if reuse_tol is not None:
             store.reuse_tol = float(reuse_tol)
         return store
     kw = {} if reuse_tol is None else {"reuse_tol": float(reuse_tol)}
     return SolveStore(store, grid_meta=(prob.Na, prob.Nb, prob.Nphi),
-                      code_tag=code_tag, bmap=bmap, **kw)
+                      code_tag=code_tag, bmap=bmap, radial=radial, **kw)
 
 
 # --------------------------------------------------------------------------

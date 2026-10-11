@@ -58,6 +58,7 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import jax.numpy as jnp
 
+from ..solver import operators_abt as ops
 from ..solver import solver_3d_nk as nk
 from ..parametric import parametric_nd_smolyak as sm
 from ..parametric.parametric_nd import attach_solve_fn_3d
@@ -116,7 +117,11 @@ def M_ADM(prob, U, b, M_tot=1.0):
     """``M_ADM = m_A+m_B - 2b⟨∂_A u⟩_{A=1}`` on the φ-averaged (m=0) field (numpy)."""
     Umat = np.asarray(U).reshape(prob.shape)               # (Na+1, Nb, Nphi)
     Uavg = Umat.mean(axis=2)                                # m=0 meridian
-    dUdA_inf = (np.asarray(prob.DA1) @ Uavg)[0, :]          # A[0]=1 (infinity)
+    rows = ops.radial_edge_rows(prob.A)                     # "gauss": no A=1 node
+    if rows is not None:
+        dUdA_inf = rows[0] @ Uavg
+    else:
+        dUdA_inf = (np.asarray(prob.DA1) @ Uavg)[0, :]      # A[0]=1 (infinity)
     c = -float(b) * float(np.mean(dUdA_inf))
     return M_tot + 2.0 * c
 

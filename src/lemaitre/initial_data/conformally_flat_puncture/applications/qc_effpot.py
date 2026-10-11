@@ -49,6 +49,7 @@ import jax.numpy as jnp
 from scipy.optimize import brentq
 
 from ..parametric.parametric_nd import load_parametric, attach_solve_fn_3d
+from ..solver import operators_abt as ops
 from . import qc_targeting as qt
 
 NAMES = ("b", "P_x")
@@ -80,7 +81,9 @@ def _u_at_puncture(prob, U, which, wB=None):
     Um = np.asarray(U).reshape(prob.shape).mean(axis=2)     # (Na+1, Nb), m=0
     Bq = 1.0 if which == "A" else -1.0
     t = wB / (Bq - np.asarray(prob.Bs))    # B=±1 is s=±1 under every grid map
-    return float((t @ Um[-1, :]) / t.sum())                 # A=0 (inner-axis) row
+    rows = ops.radial_edge_rows(prob.A)    # "gauss": no A=0 node, extrapolate V
+    row = Um[-1, :] if rows is None else rows[1] @ Um       # u on the A=0 edge
+    return float((t @ row) / t.sum())
 
 
 def binding_energy(prob, U, b):
@@ -114,18 +117,23 @@ def build_Eb_jax(model, prob):
     B = jnp.asarray(prob.Bs)                # the grid map's interpolation coordinate
     shape = prob.shape
     wB = jnp.asarray(_bary_wB(prob))
+    rows = ops.radial_edge_rows(prob.A)     # "gauss": edge readouts off the nodes
+    if rows is not None:
+        slope_row, axis_row = jnp.asarray(rows[0]), jnp.asarray(rows[1])
 
     def u_punc(Uavg, which):
         Bq = 1.0 if which == "A" else -1.0
         t = wB / (Bq - B)
-        return (t @ Uavg[-1, :]) / jnp.sum(t)
+        row = Uavg[-1, :] if rows is None else axis_row @ Uavg
+        return (t @ row) / jnp.sum(t)
 
     def Eb(theta):
         b = theta[0]
         U = jnp.asarray(model.evaluate_jax(theta)).reshape(shape)
         Uavg = jnp.mean(U, axis=2)
         # M_ADM = M_bare − 2 b ⟨∂_A u⟩_{A=1}
-        M_ADM = M_BARE - 2.0 * b * jnp.mean((DA1 @ Uavg)[0, :])
+        dUdA_inf = (DA1 @ Uavg)[0, :] if rows is None else slope_row @ Uavg
+        M_ADM = M_BARE - 2.0 * b * jnp.mean(dUdA_inf)
         uA, uB = u_punc(Uavg, "A"), u_punc(Uavg, "B")
         M_A = M_A_BARE * (1.0 + uA + M_B_BARE / (4.0 * b))
         M_B = M_B_BARE * (1.0 + uB + M_A_BARE / (4.0 * b))

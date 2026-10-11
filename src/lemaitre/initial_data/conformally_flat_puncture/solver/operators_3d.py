@@ -94,14 +94,14 @@ def fourier_modes(Nphi: int) -> np.ndarray:
     return np.arange(Nphi // 2 + 1)
 
 
-def build_grid_3d(Na: int, Nb: int, Nphi: int, bmap=None):
+def build_grid_3d(Na: int, Nb: int, Nphi: int, bmap=None, radial=None):
     """Return ``(A, B, DA1, DB1, phi)``: the frozen ABT (A,B) grid + φ nodes.
 
     ``A, B, DA1, DB1`` come verbatim from ``operators_abt.build_grid`` (with the
-    same angular node map ``bmap``) so the meridian discretisation is identical to
-    the 2-D code.
+    same angular node map ``bmap`` and radial map ``radial``) so the meridian
+    discretisation is identical to the 2-D code.
     """
-    A, B, DA1, DB1 = ops.build_grid(Na, Nb, bmap)
+    A, B, DA1, DB1 = ops.build_grid(Na, Nb, bmap, radial)
     return A, B, DA1, DB1, phi_grid(Nphi)
 
 
@@ -217,14 +217,28 @@ def _mode_independent_pieces(A, B, DA1, DB1, b):
     outright, here and in ``operators_abt.laplacian_matrix`` together, by the exact
     chain-rule matrix ``operators_abt.angular_d2`` (``DB @ DB`` re-interpolates a
     product with poles at the axis — see ``operators_abt.d2_dB2_1d``).
+
+    On a ``"gauss"`` radial grid (``operators_abt.RADIAL_MAPS``) ``DA``/``DAA`` are
+    the ``A``-derivatives of ``u = (A − 1) V`` acting on ``V``
+    (``operators_abt.radial_derivs``, as Kronecker products — the same matrices
+    ``operators_abt.laplacian_matrix`` uses there), and ``fA`` carries the factor
+    ``A − 1`` at the flattened nodes; on any other grid ``fA`` is ``None``.
     """
     Na1, Nb1 = A.size, B.size
     IA, IB = np.eye(Na1), np.eye(Nb1)
     DA1 = np.asarray(DA1)
     DB1 = np.asarray(DB1)
-    DA = np.kron(DA1, IB)
-    DB = np.kron(IA, DB1)
-    DAA = DA @ DA
+    fAf = None
+    if ops.radial_of(A, DA1) == "gauss":
+        fA, DAu1, DAAu1 = ops.radial_derivs(A, DA1)
+        DA = np.kron(DAu1, IB)
+        DAA = np.kron(DAAu1, IB)
+        fAf = np.repeat(fA, Nb1)
+        DB = np.kron(IA, DB1)
+    else:
+        DA = np.kron(DA1, IB)
+        DB = np.kron(IA, DB1)
+        DAA = DA @ DA
     # Mapped grid: the exact chain rule, the same matrix operators_abt.laplacian_matrix
     # uses (so the m=0 block stays its bit-for-bit copy); "cos": DB @ DB as before.
     DBB1 = ops.angular_d2(B, DB1)
@@ -239,16 +253,29 @@ def _mode_independent_pieces(A, B, DA1, DB1, b):
                         inv_rho2, 0.0)
     return dict(DA=DA, DB=DB, DAA=DAA, DBB=DBB, Af=Af, Bf=Bf,
                 alpha=alpha, pcoef=pcoef, gamma=gamma, qcoef=qcoef,
-                inv_rho2=inv_rho2)
+                inv_rho2=inv_rho2, fA=fAf)
 
 
 def _block_from_pieces(p, m: int):
-    """``(Mv, w)`` for one mode from the shared :func:`_mode_independent_pieces`."""
+    """``(Mv, w)`` for one mode from the shared :func:`_mode_independent_pieces`.
+
+    On a ``"gauss"`` radial grid the unknown is ``v_m`` with
+    ``u_m = (A − 1)(1 − B²)^{|m|/2} v_m``: the ``A``-terms already act on it through
+    ``DA``/``DAA``, the ``B``-terms and the node-diagonal are multiplied by
+    ``A − 1``, and the returned ``w`` is the whole nodal factor ``(A − 1)·w_B``.
+    """
     alpha, pcoef = p["alpha"], p["pcoef"]
     gamma, qcoef = p["gamma"], p["qcoef"]
     DA, DB, DAA, DBB = p["DA"], p["DB"], p["DAA"], p["DBB"]
     cent = -(int(m) ** 2) * p["inv_rho2"]                   # centrifugal coeff
     w, wp, wpp = bc_factor(p["Bf"], m)
+    fAf = p.get("fA")
+    if fAf is not None:
+        Mv = (alpha * w)[:, None] * DAA + (pcoef * w)[:, None] * DA
+        Mv += (fAf * gamma)[:, None] * (2.0 * wp[:, None] * DB + w[:, None] * DBB)
+        Mv += (fAf * qcoef)[:, None] * (w[:, None] * DB)
+        Mv[np.diag_indices_from(Mv)] += fAf * (gamma * wpp + qcoef * wp + cent * w)
+        return Mv, fAf * w
     # A-derivatives: w is constant in A, so it factors through (row scaling)
     Mv = (alpha * w)[:, None] * DAA + (pcoef * w)[:, None] * DA
     # B-derivatives: expand ∂_B(w v), ∂²_B(w v) analytically in w and numerically in v
@@ -281,7 +308,9 @@ def mode_operators(A, B, DA1, DB1, b, m_vals):
     Returns ``(M_bc_list, w_list, interior)``: for each m the factored operator
     with BC rows replaced (``apply_bcs_m``) and the node-array B-factor ``w``.
     ``interior`` is the (shared) PDE-row mask.  Unknown per mode is ``v_m`` with
-    ``u_m = w · v_m``; for m=0 ``w≡1`` so it is the original u-solve.
+    ``u_m = w · v_m``; for m=0 ``w≡1`` so it is the original u-solve.  On a
+    ``"gauss"`` radial grid ``w`` also carries the radial factor ``A − 1``
+    (``w ≡ A − 1`` at m=0), and ``interior`` is all True.
 
     The m-independent pieces (:func:`_mode_independent_pieces`, including the 2-D
     ∂/∂A used for the m=0 Neumann row) are built ONCE for the whole mode set,
@@ -338,24 +367,26 @@ _CANON_GRID_MEMO: dict = {}
 
 
 def _canonical_grid(A, B, DA1, DB1):
-    """The angular node map whose canonical grid this is, or ``None``.
+    """The ``(bmap, radial)`` whose canonical grid this is, or ``None``.
 
-    The cache is keyed on ``(Na, Nb, Nφ, b, bmap)``, so it may only serve a caller
-    whose 1-D grid is exactly what ``operators_abt.build_grid`` builds for that size
-    and map.  A caller experimenting with a hand-built grid gets a fresh, uncached
-    build rather than someone else's nodes.  Returns the map name (truthy) so the
-    callers can key on it; ``None`` means "not canonical, do not cache".
+    The cache is keyed on ``(Na, Nb, Nφ, b, bmap, radial)``, so it may only serve a
+    caller whose 1-D grid is exactly what ``operators_abt.build_grid`` builds for
+    that size and pair of maps.  A caller experimenting with a hand-built grid gets
+    a fresh, uncached build rather than someone else's nodes.  Returns the pair
+    (truthy) so the callers can key on it; ``None`` means "not canonical, do not
+    cache".
     """
-    for bmap in ops.B_MAPS:
-        key = (A.size - 1, B.size, bmap)
-        canon = _CANON_GRID_MEMO.get(key)
-        if canon is None:
-            canon = ops.build_grid(*key)
-            _CANON_GRID_MEMO[key] = canon
-        Ac, Bc, DA1c, DB1c = canon
-        if all(np.array_equal(np.asarray(x), np.asarray(y)) for x, y in
-               ((A, Ac), (B, Bc), (DA1, DA1c), (DB1, DB1c))):
-            return bmap
+    for radial in ops.RADIAL_MAPS:
+        for bmap in ops.B_MAPS:
+            key = (A.size - 1, B.size, bmap, radial)
+            canon = _CANON_GRID_MEMO.get(key)
+            if canon is None:
+                canon = ops.build_grid(*key)
+                _CANON_GRID_MEMO[key] = canon
+            Ac, Bc, DA1c, DB1c = canon
+            if all(np.array_equal(np.asarray(x), np.asarray(y)) for x, y in
+                   ((A, Ac), (B, Bc), (DA1, DA1c), (DB1, DB1c))):
+                return bmap, radial
     return None
 
 
@@ -381,7 +412,7 @@ def mode_operators_cached(A, B, DA1, DB1, b, m_vals):
     order rather than growing without bound.
     """
     m_vals = np.asarray(m_vals)
-    bmap = _canonical_grid(A, B, DA1, DB1)
+    bmap = _canonical_grid(A, B, DA1, DB1)          # (bmap, radial), or None
     key = (A.size - 1, B.size, int(m_vals.size), float(b), tuple(int(m) for m in m_vals),
            bmap)
     hit = _BLOCK_CACHE.get(key)
@@ -494,7 +525,7 @@ def u_row_scales_cached(A, B, DA1, DB1, b, m_vals):
     iteration — and the cached value is kilobytes.
     """
     m_vals = np.asarray(m_vals)
-    bmap = _canonical_grid(A, B, DA1, DB1)
+    bmap = _canonical_grid(A, B, DA1, DB1)          # (bmap, radial), or None
     key = (A.size - 1, B.size, int(m_vals.size), float(b),
            tuple(int(m) for m in m_vals), bmap)
     hit = _U_SCALE_CACHE.get(key)
@@ -516,6 +547,10 @@ def inv_wmin(B, Nphi: int) -> float:
     The factor every residual recorded in the ``v`` row norm moves by when it is
     requoted in the ``u`` one, from the grid alone.  See :func:`u_row_scales` for
     why the bound is attained rather than merely an upper bound.
+
+    A ``"lobatto"``-grid identity: on a ``"gauss"`` radial grid ``w`` also carries
+    ``A − 1`` (``operators_abt.RADIAL_MAPS``), so the ratio is not this closed form
+    there and ``u_row_scales`` must be computed (``separable.row_scales_u`` does).
     """
     m_max = int(np.max(np.abs(fourier_modes(Nphi))))
     if m_max == 0:
@@ -622,8 +657,11 @@ def apply_bcs_m(Lap_m, A, B, DA, m: int):
     A=0 (i=Na): m=0 Neumann d/dA u=0 (the DA row, as in the 2-D code);
                 m≠0 Dirichlet u_m=0 (axis regularity).
     interior_mask is True on PDE rows (identical for every m).
+
+    A ``"gauss"`` radial grid has no edge node: nothing is replaced, for any m
+    (``operators_abt.apply_bcs``).
     """
-    if m == 0:
+    if m == 0 or ops.radial_of(A) == "gauss":
         return ops.apply_bcs(Lap_m, A, B, DA)
     Na1, Nb1 = A.size, B.size
     M = np.array(Lap_m, dtype=float)

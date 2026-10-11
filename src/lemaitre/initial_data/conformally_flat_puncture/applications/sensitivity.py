@@ -56,7 +56,7 @@ from ..solver import operators_abt as ops
 from ..solver import source
 from ..parametric import parametric_nd_2c as p3
 from ..parametric.parametric_nd import ParametricSolutionND
-from ..parametric.certification import CERT_TOL
+from ..parametric.certification import CERT_TOL, gate_for_problem  # noqa: F401
 from . import control as ctl   # reused verbatim: evaluate_observables (B2's ADM map)
 
 
@@ -124,7 +124,7 @@ def tangent_chi(prob: sa.Problem, U: np.ndarray, sl: sa.Slice, which: str,
     dsrc_dchi = 0.125 * base ** (-7.0) * dA2_dchi
     dR_dchi = np.where(asm.interior, dsrc_dchi, 0.0)
     J = sa.jacobian_mat(asm, u)
-    dU = ops.solve_equilibrated(J, -dR_dchi)
+    dU = sa.du_from_solve(asm, ops.solve_equilibrated(J, -dR_dchi))
     return dU.reshape(prob.shape)
 
 
@@ -184,7 +184,11 @@ def _u_at_puncture_jax(U, prob: sa.Problem, wB, which: str):
     B = jnp.asarray(getattr(prob, "Bs", prob.B))
     Bq = 1.0 if which == "A" else -1.0
     t = jnp.asarray(wB) / (Bq - B)
-    row = Umat[-1, :]                                  # A=0 (inner-axis edge) row
+    rows = ops.radial_edge_rows(prob.A)                # "gauss": no A=0 node
+    if rows is None:
+        row = Umat[-1, :]                              # A=0 (inner-axis edge) row
+    else:
+        row = jnp.asarray(rows[1]) @ Umat              # u at A=0, extrapolated
     return (t @ row) / jnp.sum(t)
 
 
@@ -194,11 +198,15 @@ def _make_observables_jax(prob: sa.Problem):
     and the slice params ``sp`` (from :func:`_slice_params_jax`)."""
     DA1 = jnp.asarray(prob.DA1)
     wB = sa._bary_weights(getattr(prob, "Bs", prob.B))
+    rows = ops.radial_edge_rows(prob.A)                # "gauss": no A=1 node
 
     def M_ADM(U, sp):
         # adm.adm_mass_spectral:  M_ADM = M − 2 b ⟨∂_A u⟩_{A=1}   (linear in U)
         Umat = jnp.asarray(U).reshape(prob.shape)
-        dUdA_inf = (DA1 @ Umat)[0, :]                  # A[0]=1 (infinity edge)
+        if rows is None:
+            dUdA_inf = (DA1 @ Umat)[0, :]              # A[0]=1 (infinity edge)
+        else:
+            dUdA_inf = jnp.asarray(rows[0]) @ Umat     # V(1, B)
         c = -sp["b"] * jnp.mean(dUdA_inf)
         return sp["M"] + 2.0 * c
 
@@ -299,7 +307,7 @@ def gauss_newton_target(ps: ParametricSolutionND, control_names: Sequence[str],
                         lm_init: float = 1e-3, lm_down: float = 0.5,
                         lm_up: float = 4.0, lm_max: float = 1e10,
                         polish: bool = True, polish_steps: int = 2,
-                        polish_tol: float = CERT_TOL) -> GNResult:
+                        polish_tol: Optional[float] = None) -> GNResult:
     """Hit ``F(θ)=target`` by **damped Gauss–Newton** on the analytic ``∂F/∂θ``.
 
     The outer loop runs on the **differentiable surrogate** (each evaluation is a
@@ -335,7 +343,10 @@ def gauss_newton_target(ps: ParametricSolutionND, control_names: Sequence[str],
     norms are bit-identical.  The flip is a no-op here, so moving the threshold to
     ``CERT_TOL_U = 1e-11`` would not be a change of units but a genuine ``10×``
     tightening against a solver whose floor is ``~1e-11``.  See
-    ``certification.gate_for``.
+    ``certification.gate_for``.  ``polish_tol=None`` resolves through
+    ``certification.gate_for_problem(prob)``: ``CERT_TOL`` on that "lobatto" grid,
+    and ``CERT_TOL_U`` on a "gauss" one, where ``solver_abt.newton_solve`` monitors
+    the equilibrated ``u``-norm residual instead of the raw one.
 
     The **value** of ``F`` is read through the node-safe numpy interpolant
     (``ps.evaluate`` + B2's ``control.evaluate_observables`` — byte-identical to
@@ -402,7 +413,9 @@ def gauss_newton_target(ps: ParametricSolutionND, control_names: Sequence[str],
                    ctrl_residual=float(np.max(np.abs(G))), history=history,
                    n_F=n_F, n_jac=n_jac, steps=steps)
     if polish:
-        U, info = ps.evaluate_polished(theta, newton_steps=polish_steps, tol=polish_tol)
+        U, info = ps.evaluate_polished(theta, newton_steps=polish_steps,
+                                       tol=gate_for_problem(prob) if polish_tol is None
+                                       else polish_tol)
         res.certified_residual = float(info.residual_norm)
         res.certified_U = np.asarray(U)
     return res

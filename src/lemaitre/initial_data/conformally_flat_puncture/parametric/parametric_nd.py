@@ -354,6 +354,16 @@ def grid_bmap_of(obj) -> Optional[str]:
     return getattr(getattr(obj, "_solve_fn", None), "bmap", None)
 
 
+def grid_radial_of(obj) -> Optional[str]:
+    """The radial map (``operators_abt.RADIAL_MAPS``) of the grid ``obj``'s attached
+    solver runs on, if known — :func:`grid_bmap_of`'s twin.  A solver stamped
+    before radial maps existed runs on ``"lobatto"``."""
+    fn = getattr(obj, "_solve_fn", None)
+    if fn is None:
+        return None
+    return getattr(fn, "radial", "lobatto" if hasattr(fn, "bmap") else None)
+
+
 def _save_npz_owned(owner, path, arrays: dict, base_meta: dict, meta, **kw) -> str:
     """:func:`_save_npz` for a model object: records its grid's angular node map.
 
@@ -363,6 +373,10 @@ def _save_npz_owned(owner, path, arrays: dict, base_meta: dict, meta, **kw) -> s
     when it is not the original ``"cos"`` map, so every artifact that existed before
     maps did stays byte-identical, and a file with no ``bmap`` key means ``"cos"``.
     A caller-supplied ``meta["bmap"]`` that contradicts the solver's is refused.
+
+    The radial map (``operators_abt.RADIAL_MAPS``) is recorded the same way, as
+    ``radial``, only when it is not the original ``"lobatto"``: a file with neither
+    key is a ``"paper-v1"`` artifact.
     """
     bmap = grid_bmap_of(owner)
     given = (meta or {}).get("bmap")
@@ -372,6 +386,14 @@ def _save_npz_owned(owner, path, arrays: dict, base_meta: dict, meta, **kw) -> s
     if bmap is not None and bmap != "cos" and given is None:
         meta = dict(meta or {})
         meta["bmap"] = bmap
+    radial = grid_radial_of(owner)
+    given_r = (meta or {}).get("radial")
+    if given_r is not None and radial is not None and str(given_r) != str(radial):
+        raise ValueError(f"meta says radial={given_r!r} but the model's solver runs on "
+                         f"{radial!r}")
+    if radial is not None and radial != "lobatto" and given_r is None:
+        meta = dict(meta or {})
+        meta["radial"] = radial
     return _save_npz(path, arrays, base_meta, meta, **kw)
 
 
@@ -459,6 +481,14 @@ def attach_solve_fn_3d(sol, prob, axis_names, *, M_tot: float = 1.0, fixed=None,
             f"this model's fields live on the {model_bmap!r} angular grid but the "
             f"problem uses {prob_bmap!r}; build the problem with "
             f"make_problem(..., bmap={model_bmap!r})")
+    # ...and the same for the radial map: a file without ``radial`` is "lobatto".
+    model_radial = str((getattr(sol, "meta", None) or {}).get("radial", "lobatto"))
+    prob_radial = getattr(prob, "radial", "lobatto")
+    if model_radial != prob_radial:
+        raise ValueError(
+            f"this model's fields live on the {model_radial!r} radial grid but the "
+            f"problem uses {prob_radial!r}; build the problem with "
+            f"make_problem(..., radial={model_radial!r})")
     from .parametric_nd_3d import make_solve_fn
     solve_fn, _ = make_solve_fn(prob, list(axis_names), M_tot=M_tot, fixed=fixed,
                                 use_cache=use_cache, solver=solver, gmres_rtol=gmres_rtol,

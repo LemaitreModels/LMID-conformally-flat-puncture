@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from . import operators_abt as ops
 from . import source_3d
 
 
@@ -127,11 +128,18 @@ def adm_mass_spectral_3d(prob, U, sl):
     identically in B and ``M_ADM = (m_A+m_B) − 2b ⟨∂_A u_0⟩_{A=1}``.  The m=0
     (φ-averaged) field is the only azimuthal mode with a 1/r tail, so the
     φ-average is the exact monopole.
+
+    On a ``"gauss"`` radial grid there is no node at A=1; the slope is
+    ``V(1, B) = ∂_A u|_{A=1}`` (``operators_abt.radial_edge_rows``).
     """
     DA = np.asarray(prob.DA1)
     U3 = np.asarray(U).reshape(prob.shape)                     # (Na+1, Nb, Nφ)
     u0 = U3.mean(axis=2)                                       # m=0 mode (Na+1, Nb)
-    dUdA_at_inf = (DA @ u0)[0, :]                              # A[0]=1 edge
+    rows = ops.radial_edge_rows(prob.A)
+    if rows is not None:
+        dUdA_at_inf = rows[0] @ u0                             # "gauss": V(1, B)
+    else:
+        dUdA_at_inf = (DA @ u0)[0, :]                          # A[0]=1 edge
     c = -sl.b * float(np.mean(dUdA_at_inf))
     return float(sl.M + 2.0 * c)
 

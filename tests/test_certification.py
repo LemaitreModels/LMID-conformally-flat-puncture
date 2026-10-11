@@ -386,7 +386,25 @@ def test_polish_tol_defaults_are_the_gate():
     # tolerance its own docstring claimed (1e-10) was not the one it used.
     from lemaitre.initial_data.conformally_flat_puncture.applications import sensitivity as S
 
-    assert inspect.signature(S.gauss_newton_target).parameters["polish_tol"].default == CERT_TOL, (
+    # Since the "gauss" radial grid (operators_abt.RADIAL_MAPS) the 2-D solver's norm
+    # depends on the grid -- raw max|R| on "lobatto", equilibrated u on "gauss", where
+    # the raw residual cannot reach any gate -- so the 2-D defaults are ``None`` and
+    # resolve through certification.gate_for_problem.  What must NOT move is the
+    # paper's grid: there the resolved gate is still CERT_TOL.
+    from lemaitre.initial_data.conformally_flat_puncture.applications import control as C
+    from lemaitre.initial_data.conformally_flat_puncture.parametric.certification import (
+        gate_for_problem)
+    from lemaitre.initial_data.conformally_flat_puncture.solver import solver_abt as sa
+    from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
+
+    assert inspect.signature(S.gauss_newton_target).parameters["polish_tol"].default is None
+    for fn in (C.broyden_control, C.run_comparison, C.survey_cost):
+        assert inspect.signature(fn).parameters["tol_inner"].default is None, fn.__name__
+    assert gate_for_problem(sa.make_problem(10, 8, scheme="paper-v1")) == CERT_TOL, (
         "sensitivity is the AXISYMMETRIC ABT cousin -- solver_abt has no Nphi, so "
         "the two norms coincide there and its gate must NOT have moved with the "
         "2026-08-25 flip; CERT_TOL_U would be a 10x tightening, not a re-norming")
+    assert gate_for_problem(sa.make_problem(10, 8, bmap="abt", radial="lobatto")) == CERT_TOL
+    assert gate_for_problem(sa.make_problem(10, 8, scheme="v2")) == CERT_TOL_U
+    assert gate_for_problem(s3.make_problem(10, 8, 4, scheme="paper-v1")) == CERT_TOL_U
+    assert gate_for_problem(s3.make_problem(10, 8, 4, scheme="v2")) == CERT_TOL_U

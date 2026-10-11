@@ -56,7 +56,12 @@ one canonical version of each model. Normal engineering hygiene applies.
 > the flip at all** — `solver_abt` has no `Nφ`, so it *is* the `Nφ = 1` case where the
 > norms are bit-identical, and its gate stays `CERT_TOL`. Putting the `u` gate under
 > it is a plain 10× tightening, not a re-norming; that mistake cost
-> `test_certified_polish_4d` on 2026-08-25. The gate is **opt-in**
+> `test_certified_polish_4d` on 2026-08-25. **That holds on the `"lobatto"` radial
+> grid only.** On `"gauss"` (see "The radial representation" below) the 2-D solver
+> monitors the equilibrated `u`-norm residual — the 3-D definition, because the raw
+> residual's roundoff floor there lies above every gate — and its gate is
+> `CERT_TOL_U`; for a caller holding a problem rather than a `solve_fn`,
+> `certification.gate_for_problem(prob)` answers both cases. The gate is **opt-in**
 > (`strict=True`) because the polish-history producers query below it on purpose —
 > but it is **closed at every point where a datum leaves the package** (`qc_targeting`,
 > `qc_effpot`, the GRTeclyn export). If you add such an exit, close it there too.
@@ -198,6 +203,29 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   > point's `s` from `operators_abt.inverse_map_s`, not from `B` — `s` is
   > ill-conditioned in `B` next to the axis. Making `"abt"` the production grid
   > re-prices every shipped number and is a maintainer decision.
+
+  > **The radial representation is part of the grid too, and the two schemes name
+  > the pairs.** `operators_abt.RADIAL_MAPS` offers `"lobatto"` (the original:
+  > Chebyshev–Gauss–Lobatto `A`, a Dirichlet row at `A = 1`, a Neumann/Dirichlet row at
+  > `A = 0`) and `"gauss"` (Ansorg–Brügmann–Tichy's `u = (A − 1)V` on Chebyshev–Gauss
+  > `A` nodes, no node and no boundary row at either edge, every row a PDE row).
+  > `operators_abt.SCHEMES` names the two intended combinations: `"paper-v1"` =
+  > `("cos", "lobatto")`, what the submitted paper used, and `"v2"` = `("abt",
+  > "gauss")`. `make_problem(..., scheme=)` selects one; `bmap=`/`radial=` select the
+  > axes separately (mixed grids are buildable); a contradiction is refused. On
+  > `"gauss"` the factor `A − 1` folds into the nodal factor `w` (so `u = w·v` holds
+  > everywhere and `w ≡ A − 1` at m = 0), the 2-D solver carries `v` too, and the edge
+  > readouts have no node to read: the ADM-mass slope is `V(1, B)` and the puncture
+  > values extrapolate `V` to `A = 0` — take both from `operators_abt.radial_edge_rows`,
+  > never from `(DA1 @ U)[0]` or `U[-1]`. The operator constructors recognise the
+  > canonical Gauss grid from bare arrays (`operators_abt.radial_of`), as the angular
+  > map is recognised by `angular_d2`. **`DEFAULT_SCHEME` is still `"paper-v1"`**, and
+  > every `"lobatto"` operator, solve, readout and store key is bit-for-bit what it was
+  > (`tests/test_scheme_v2.py`, against a verbatim copy of the old assembly). On
+  > `"gauss"` the 2-D solver's raw `max|R|` floors at 3e-9 – 3e-8 (the innermost row
+  > sits at `A ≈ 3e-4`–`7e-4` with coefficients ~1e9–1e11), so there it monitors the
+  > equilibrated `u` norm and certifies against `CERT_TOL_U` (`NewtonInfo.norm` says
+  > which); the GRTeclyn export refuses `"gauss"` (format 2 assumes Lobatto `A`).
 
   > **The separable preconditioner IS the default.** `newton_solve_nk` resolves
   > `separable=None` through `choose_separable`, which picks separable because it

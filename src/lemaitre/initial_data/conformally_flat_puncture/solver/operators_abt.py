@@ -30,6 +30,14 @@ Where the B nodes sit is a separate choice from the operator, which is written i
 ``B`` throughout: :data:`B_MAPS` offers the original Gauss–Legendre-in-``B`` grid
 (``"cos"``, the default) and Ansorg–Brügmann–Tichy's angular coordinate
 (``"abt"``), which resolves the punctures far better — see the note there.
+
+How the field is represented in ``A`` is a second, independent choice,
+:data:`RADIAL_MAPS`: the original Chebyshev–Gauss–Lobatto grid with boundary rows
+at both edges (``"lobatto"``, the default), or Ansorg–Brügmann–Tichy's own
+``u = (A − 1) V`` on Chebyshev–Gauss nodes with no boundary row at all
+(``"gauss"``), which reads the ADM mass far more accurately — see the note there.
+The two named combinations a caller is expected to pick between are the
+:data:`SCHEMES`.
 """
 
 from __future__ import annotations
@@ -77,6 +85,32 @@ def gl_nodes_diffmat(N):
     return B, D
 
 
+def cheb_gauss01(K):
+    """Chebyshev–Gauss nodes on (0,1) and a barycentric d/dA matrix: the ``"gauss"``
+    radial grid.
+
+    ``A_i = sin²[π(i + ½)/(2K)]``, ``i = 0..K−1`` — Ansorg, Brügmann & Tichy,
+    Phys. Rev. D 70, 064011 (2004), eq. (8) — returned DESCENDING (``A[0]`` nearest
+    infinity), the order :func:`cheb01` uses, so array index 0 is the outermost
+    shell under either radial map.  No node sits at ``A = 0`` or ``A = 1``.
+    """
+    i = np.arange(K)
+    A = np.sin(np.pi / (2 * K) * (i + 0.5)) ** 2
+    A = np.sort(A)[::-1].copy()
+    w = np.ones(K)
+    for j in range(K):
+        d = A[j] - A
+        d[j] = 1.0
+        w[j] = 1.0 / np.prod(d)
+    D = np.zeros((K, K))
+    for i in range(K):
+        for j in range(K):
+            if i != j:
+                D[i, j] = (w[j] / w[i]) / (A[i] - A[j])
+        D[i, i] = -np.sum(D[i, :])
+    return A, D
+
+
 # --------------------------------------------------------------------------
 # the ABT / prolate map and its closed-form inverse
 # --------------------------------------------------------------------------
@@ -111,21 +145,25 @@ def inverse_map(rho, z, b):
 # --------------------------------------------------------------------------
 # the prolate-spheroidal axisymmetric Laplacian (dense 2-D collocation matrix)
 # --------------------------------------------------------------------------
-def build_grid(Na, Nb, bmap=None):
-    """Return ``(A, B, DA1, DB1)``: Lobatto A on [0,1], interior B nodes on [-1,1].
+def build_grid(Na, Nb, bmap=None, radial=None):
+    """Return ``(A, B, DA1, DB1)``: Na+1 A nodes on [0,1], Nb interior B nodes on [-1,1].
 
-    ``A`` has Na+1 nodes (A[0]=1 infinity, A[Na]=0 inner axis); ``B`` has Nb
-    interior nodes, placed by the angular node map ``bmap`` (see
-    :data:`B_MAPS`; ``None`` means :data:`DEFAULT_BMAP`).  ``DA1, DB1`` are the
-    1-D differentiation matrices, ``DB1`` always being ``d/dB`` — so every
-    operator coefficient, written in ``B``, is unchanged by the choice of map.
+    ``A`` is laid by the radial map ``radial`` (see :data:`RADIAL_MAPS`; ``None``
+    means :data:`DEFAULT_RADIAL`): ``"lobatto"`` has A[0]=1 (infinity) and
+    A[Na]=0 (inner axis), ``"gauss"`` has both edges strictly outside the node
+    set.  ``B`` is placed by the angular node map ``bmap`` (see :data:`B_MAPS`;
+    ``None`` means :data:`DEFAULT_BMAP`).  ``DA1, DB1`` are the 1-D
+    differentiation matrices, ``DA1`` always being ``d/dA`` and ``DB1`` always
+    ``d/dB`` — so every operator coefficient, written in ``(A, B)``, is unchanged
+    by either choice.
 
-    ``bmap="cos"`` is the original grid, bit-for-bit: Gauss–Legendre nodes in
-    ``B = cos η``.  ``bmap="abt"`` puts the Gauss–Legendre nodes in the
-    interpolation coordinate ``s`` of :func:`b_of_s` instead.
+    ``bmap="cos"``, ``radial="lobatto"`` is the original grid, bit-for-bit:
+    Chebyshev–Gauss–Lobatto in ``A``, Gauss–Legendre nodes in ``B = cos η``.
+    ``bmap="abt"`` puts the Gauss–Legendre nodes in the interpolation coordinate
+    ``s`` of :func:`b_of_s` instead; ``radial="gauss"`` is :func:`cheb_gauss01`.
     """
     bmap = check_bmap(bmap)
-    A, DA1 = cheb01(Na)
+    A, DA1 = radial_nodes(Na, radial)
     if bmap == "cos":
         B, DB1 = gl_nodes_diffmat(Nb)
         return A, B, DA1, DB1
@@ -159,13 +197,212 @@ def build_grid(Na, Nb, bmap=None):
 #:   ``s``, so the azimuthal modes ``u_m ∝ sin^m η`` are analytic in ``s`` without
 #:   dividing anything out.
 #:
-#: The radial coordinate ``A`` is the same in both (ξ = 2 artanh A is ABT's too).
+#: The radial coordinate ``A`` is the same in both (ξ = 2 artanh A is ABT's too);
+#: how the field is represented in it is :data:`RADIAL_MAPS`.
 B_MAPS = ("cos", "abt")
 
-#: The map a grid gets when none is named.  ``"cos"`` keeps every existing grid,
-#: stored model, cache key and export bit-for-bit what it was; the conformally
+
+# --------------------------------------------------------------------------
+# The radial representation: which A nodes, and which edges carry a row
+# --------------------------------------------------------------------------
+#: The radial maps.  Both use the coordinate ``A`` of :func:`abt_map`; they differ
+#: in how the two edges are treated and in what the unknown is:
+#:
+#: * ``"lobatto"`` — the original grid.  Chebyshev–Gauss–Lobatto nodes
+#:   (:func:`cheb01`), so there is a node on each edge, and each carries a boundary
+#:   row instead of the PDE: Dirichlet ``u = 0`` at ``A = 1`` (spatial infinity), and
+#:   at ``A = 0`` (the inner axis) Neumann ``∂_A u = 0`` for ``m = 0``, ``u_m = 0``
+#:   otherwise.  The unknown is ``u``.
+#: * ``"gauss"`` — the representation of Ansorg, Brügmann & Tichy, Phys. Rev. D 70,
+#:   064011 (2004), eqs. (5) and (8): ``u = (A − 1) V`` on Chebyshev–Gauss nodes
+#:   (:func:`cheb_gauss01`), neither edge a node, every row a PDE row.  ``u = 0`` at
+#:   infinity holds by construction, and regularity on the inner axis is selected by
+#:   the PDE's own ``1/A``, ``1/A²`` coefficients at the interior nodes.  The unknown
+#:   is ``V``; the factor ``A − 1`` folds into the same nodal factor ``w`` as the
+#:   angular ``(1 − B²)^{|m|/2}`` (``operators_3d.mode_operators``), so ``u = w·v``
+#:   holds under both maps.
+#:
+#: Why it matters: the Dirichlet row degrades the slope ``∂_A u|_{A=1}``.  For the
+#: exact solution that slope is the same at every ``B`` and IS the ADM mass,
+#: ``M_ADM = m_A + m_B − 2b ⟨∂_A u⟩_{A=1}`` (``validation.adm.adm_mass_spectral``);
+#: near ``A = 1`` the angular operator is not damped by the ``(1 − A)²`` the
+#: ``A``-terms carry, so its leading order says the slope is constant in ``B`` — a
+#: condition the ``"gauss"`` unknown ``V`` sees directly (``∂_A u|_{A=1} = V(1, B)``)
+#: and the ``"lobatto"`` rows see only times the vanishing ``(1 − A)``.  At the
+#: production grid 44×32×8 and ``b = 10`` the ADM mass moves from 1.0e-6 off a
+#: converged reference (``"abt"`` angle, ``"lobatto"``) to 2.2e-9 (``"abt"``,
+#: ``"gauss"``); the near- and mid-field ψ are B-limited and unchanged.  The
+#: ``"gauss"`` form's one weak spot is ``u`` at the punctures (read by
+#: extrapolating to ``A = 0``) when ``A`` is starved relative to ``B``,
+#: ``Na ≲ Nb + 8``.
+RADIAL_MAPS = ("lobatto", "gauss")
+
+#: The two discretisations a caller chooses between, as ``(bmap, radial)``:
+#:
+#: * ``"paper-v1"`` — ``("cos", "lobatto")``, exactly what the first version of the
+#:   paper used: every shipped model, figure, table and the GRTeclyn export.
+#: * ``"v2"`` — ``("abt", "gauss")``, the angular and radial representations of
+#:   Ansorg, Brügmann & Tichy (with Gauss–Legendre rather than Chebyshev nodes in the
+#:   angle, and the exact chain-rule ``d²/dB²``).  Better near the punctures (the
+#:   angle) and in the ADM mass (the radius), and level elsewhere.
+#:
+#: The axes stay separately selectable (``bmap=``, ``radial=``), so the mixed
+#: combinations can be built too; ``scheme=`` names the two that are meant.
+SCHEMES = {"paper-v1": ("cos", "lobatto"), "v2": ("abt", "gauss")}
+
+#: The scheme a grid gets when none is named.  ``"paper-v1"`` keeps every existing
+#: grid, stored model, cache key and export bit-for-bit what it was; the conformally
 #: curved sibling builds its chart through :func:`build_grid` with the default.
-DEFAULT_BMAP = "cos"
+DEFAULT_SCHEME = "paper-v1"
+
+#: The map and the radial representation a grid gets when none is named — the two
+#: halves of :data:`DEFAULT_SCHEME`, so there is one place to change.
+DEFAULT_BMAP, DEFAULT_RADIAL = SCHEMES[DEFAULT_SCHEME]
+
+
+def check_radial(radial):
+    """Resolve ``None`` to :data:`DEFAULT_RADIAL` and reject an unknown map loudly."""
+    radial = DEFAULT_RADIAL if radial is None else str(radial)
+    if radial not in RADIAL_MAPS:
+        raise ValueError(f"unknown radial map {radial!r}; expected one of {RADIAL_MAPS}")
+    return radial
+
+
+def resolve_scheme(scheme=None, bmap=None, radial=None):
+    """``(bmap, radial)`` from a named scheme and/or the two axes.
+
+    With ``scheme`` given, its pair is returned, and an axis passed alongside it
+    must agree with it (a contradiction is refused, never silently resolved).
+    Without it, each axis resolves on its own — ``None`` to its half of
+    :data:`DEFAULT_SCHEME`.
+    """
+    if scheme is not None:
+        if str(scheme) not in SCHEMES:
+            raise ValueError(f"unknown scheme {scheme!r}; expected one of {tuple(SCHEMES)}")
+        sb, sr = SCHEMES[str(scheme)]
+        if bmap is not None and check_bmap(bmap) != sb:
+            raise ValueError(f"scheme {scheme!r} has bmap={sb!r}, not {bmap!r}")
+        if radial is not None and check_radial(radial) != sr:
+            raise ValueError(f"scheme {scheme!r} has radial={sr!r}, not {radial!r}")
+        return sb, sr
+    return check_bmap(bmap), check_radial(radial)
+
+
+def scheme_of(bmap, radial):
+    """The name of the scheme ``(bmap, radial)`` is, or ``None`` for a mixed grid."""
+    for name, pair in SCHEMES.items():
+        if pair == (bmap, radial):
+            return name
+    return None
+
+
+def radial_nodes(Na, radial=None):
+    """``(A, DA1)``: the Na+1 radial nodes, descending, and ``d/dA`` on them."""
+    if check_radial(radial) == "lobatto":
+        return cheb01(Na)
+    return cheb_gauss01(Na + 1)
+
+
+# The canonical "gauss" radial grid per node count, so a constructor handed bare
+# arrays can recognise one (O(Na) to compare, built once per size).
+_RADIAL_MEMO: dict = {}
+
+
+def radial_of(A, DA1=None):
+    """``"gauss"`` if ``A`` is exactly the canonical :func:`cheb_gauss01` grid, else
+    ``"lobatto"``.
+
+    The operator constructors (:func:`laplacian_matrix`, :func:`apply_bcs`,
+    ``operators_3d``, ``separable``) receive bare arrays, not a map name — the same
+    situation :func:`angular_d2` handles for the angle.  A grid with a node at
+    ``A = 1`` is never ``"gauss"``; anything that is not the canonical Gauss grid,
+    including a hand-built one, keeps the original boundary-row treatment it always
+    had.  ``DA1``, when passed, must then be the canonical matrix too: a Gauss grid
+    with someone else's ``d/dA`` is refused rather than half-recognised.
+    """
+    A = np.asarray(A)
+    if A.size == 0 or A[0] == 1.0:
+        return "lobatto"
+    hit = _RADIAL_MEMO.get(A.size)
+    if hit is None:
+        hit = cheb_gauss01(A.size)
+        for a in hit:
+            a.setflags(write=False)
+        _RADIAL_MEMO[A.size] = hit
+    if not np.array_equal(A, hit[0]):
+        return "lobatto"
+    if DA1 is not None and not np.array_equal(np.asarray(DA1), hit[1]):
+        raise ValueError("A is the canonical 'gauss' radial grid but DA1 is not its d/dA; "
+                         "a hand-built radial operator is not supported on it")
+    return "gauss"
+
+
+def radial_factor(A):
+    """The radial factor ``f(A) = A − 1`` of ``u = f·V`` on a ``"gauss"`` grid (an
+    array over the A nodes), or ``None`` on any other grid."""
+    if radial_of(A) != "gauss":
+        return None
+    return np.asarray(A, dtype=float) - 1.0
+
+
+def radial_derivs(A, DA1):
+    """``(f, DAu1, DAAu1)`` on a ``"gauss"`` grid: the 1-D ``∂_A`` and ``∂²_A`` of
+    ``u = f V`` acting on ``V``.
+
+    With ``f = A − 1`` (``f′ = 1``, ``f″ = 0``): ``∂_A u = V + f ∂_A V`` and
+    ``∂²_A u = 2 ∂_A V + f ∂²_A V``, so ``DAu1 = I + diag(f) DA1`` and
+    ``DAAu1 = 2 DA1 + diag(f) DA1²``.  The one place these are built, so the 2-D
+    operator, the 3-D blocks and the separable factors use the same matrices.
+    """
+    A = np.asarray(A, dtype=float)
+    DA1 = np.asarray(DA1, dtype=float)
+    fA = A - 1.0
+    DAu1 = np.diag(np.ones(A.size)) + fA[:, None] * DA1
+    DAAu1 = 2.0 * DA1 + fA[:, None] * (DA1 @ DA1)
+    return fA, DAu1, DAAu1
+
+
+def bary_row(x, nodes):
+    """The barycentric cardinal row at ``x`` (a scalar): ``row @ vals`` is the
+    degree-``n−1`` interpolant of ``vals`` at ``x``.  ``x`` may lie outside the node
+    set — the ``"gauss"`` grid reads ``V`` at ``A = 1`` and ``A = 0`` this way."""
+    nodes = np.asarray(nodes, dtype=float)
+    n = nodes.size
+    w = np.ones(n)
+    for j in range(n):
+        d = nodes[j] - nodes
+        d[j] = 1.0
+        w[j] = 1.0 / np.prod(d)
+    d = float(x) - nodes
+    hit = np.isclose(d, 0.0, atol=1e-13)
+    if hit.any():
+        return hit.astype(float) / hit.sum()
+    t = w / d
+    return t / t.sum()
+
+
+def radial_edge_rows(A):
+    """``(slope_row, axis_row)`` on a ``"gauss"`` grid, else ``None``.
+
+    The two linear readouts at the edges that a ``"lobatto"`` grid takes off its
+    edge nodes (``(DA1 @ U)[0]`` and ``U[-1]``), for a grid that has no node there.
+    Both act on the PHYSICAL field along ``A`` (``row @ U[:, j]``):
+
+    * ``slope_row @ U = ∂_A u|_{A=1}``.  With ``u = (A − 1) V``,
+      ``∂_A u = V + (A − 1) ∂_A V``, which is ``V(1)`` at ``A = 1``: the slope at
+      infinity is the interpolant of ``V`` read there — the ADM-mass coefficient
+      ``c = −b ∂_A u|_{A=1}`` (``validation.adm.adm_mass_spectral``).
+    * ``axis_row @ U = u|_{A=0}`` ``= (0 − 1) V(0)``, read by extrapolating ``V`` a
+      short way past the innermost Gauss node; the puncture values (``A = 0``,
+      ``B = ±1``) are built from this row.
+
+    Each is ``bary_row(edge, A) / (A − 1)`` (times ``−1`` on the axis), so it is a
+    plain vector: numpy and jax callers apply it the same way.
+    """
+    f = radial_factor(A)
+    if f is None:
+        return None
+    return bary_row(1.0, A) / f, -bary_row(0.0, A) / f
 
 
 def check_bmap(bmap):
@@ -365,12 +602,24 @@ def laplacian_matrix(A, B, DA1, DB1, b):
     Returns ``(Lap, rho, z, Af, Bf, DA, DB)`` where Lap is the
     ((Na+1)*Nb)x((Na+1)*Nb) operator on the flattened field U[i*Nb + j], and
     DA, DB are the 2-D first-derivative matrices (used for BC rows).
+
+    On a ``"gauss"`` radial grid (:data:`RADIAL_MAPS`) the unknown is ``V`` with
+    ``u = (A − 1) V``: ``Lap @ vec(V) = Δu``, ``DA`` is ``∂_A u`` as a matrix on
+    ``V`` (:func:`radial_derivs`), and the ``B``-terms carry the factor ``A − 1``
+    the ``A``-derivatives have already absorbed.  No row needs replacing there.
     """
     Na1, Nb1 = A.size, B.size
     IA, IB = np.eye(Na1), np.eye(Nb1)
-    DA = np.kron(np.asarray(DA1), IB)
+    gauss = radial_of(A, DA1) == "gauss"
+    if gauss:
+        fA, DAu1, DAAu1 = radial_derivs(A, DA1)
+        DA = np.kron(DAu1, IB)
+        DAA = np.kron(DAAu1, IB)
+    else:
+        DA = np.kron(np.asarray(DA1), IB)
     DB = np.kron(IA, np.asarray(DB1))
-    DAA = DA @ DA
+    if not gauss:
+        DAA = DA @ DA
     # On a mapped grid the exact chain rule, not DB @ DB (see d2_dB2_1d); on "cos"
     # (DBB1 is None) the original squaring, bit-for-bit.
     DBB1 = angular_d2(B, DB1)
@@ -379,6 +628,11 @@ def laplacian_matrix(A, B, DA1, DB1, b):
     Af, Bf = AA.ravel(), BB.ravel()
     rho, z = abt_map(Af, Bf, b)
     alpha, pcoef, gamma, qcoef = _coeffs(Af, Bf, b)
+    if gauss:
+        fAf = np.repeat(fA, Nb1)
+        Lap = (alpha[:, None] * DAA + pcoef[:, None] * DA
+               + (fAf * gamma)[:, None] * DBB + (fAf * qcoef)[:, None] * DB)
+        return Lap, rho, z, Af, Bf, DA, DB
     Lap = (alpha[:, None] * DAA + pcoef[:, None] * DA
            + gamma[:, None] * DBB + qcoef[:, None] * DB)
     return Lap, rho, z, Af, Bf, DA, DB
@@ -405,8 +659,13 @@ def apply_bcs(Lap, A, B, DA):
     A=1 (i=0): Dirichlet u=0 (identity row).
     A=0 (i=Na): Neumann d/dA u=0 (the DA row).
     interior_mask is True on PDE rows (RHS/source applied there).
+
+    A ``"gauss"`` radial grid (:data:`RADIAL_MAPS`) has no edge node, so nothing
+    is replaced: ``M`` is a copy of ``Lap`` and every row is a PDE row.
     """
     Na1, Nb1 = A.size, B.size
+    if radial_of(A) == "gauss":
+        return np.array(Lap, dtype=float), np.ones(Na1 * Nb1, dtype=bool)
     M = np.array(Lap, dtype=float)
     interior = np.ones(Na1 * Nb1, dtype=bool)
     for j in range(Nb1):

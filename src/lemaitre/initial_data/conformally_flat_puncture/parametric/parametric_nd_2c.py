@@ -92,7 +92,8 @@ def assemble_cached(prob: sa.Problem, sl: sa.Slice, cache: Dict[float, tuple]) -
     A2 = np.array(source.A2_2c_spin(rho_s, z_s, sl.b, prob.P, sl.S_A, sl.S_B))
     psi = np.where(finite, psi, 1.0)
     A2 = np.where(finite, A2, 0.0)
-    return sa.Assembly(M0=M0, interior=interior, rho=rho, z=z, psi=psi, A2=A2)
+    return sa.Assembly(M0=M0, interior=interior, rho=rho, z=z, psi=psi, A2=A2,
+                       w=sa.radial_w(prob))
 
 
 # --------------------------------------------------------------------------
@@ -114,6 +115,11 @@ def from_problem_nd(prob: sa.Problem, axes: Sequence[dict], M_tot: float = 1.0,
         asm = assemble_cached(prob, sl, cache) if use_cache else None
         return sa.newton_solve(prob, sl, U0=guess, tol=tol, max_iter=max_iter, asm=asm)
 
+    # the norm its residual is in decides its gate: raw (CERT_TOL, the default
+    # gate_for assumes) on "lobatto", equilibrated u (CERT_TOL_U) on "gauss"
+    if getattr(prob, "radial", "lobatto") == "gauss":
+        from .certification import CERT_TOL_U, SOLVE_FN_GATE_ATTR
+        setattr(solve_fn, SOLVE_FN_GATE_ATTR, CERT_TOL_U)
     spec = [(a["min"], a["max"], a["Q"]) for a in axes]
     return pnd.ParametricSolverND(solve_fn, spec)
 

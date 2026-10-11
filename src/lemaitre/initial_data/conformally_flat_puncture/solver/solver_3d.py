@@ -104,6 +104,9 @@ class Problem3D:
     # It is part of the grid's identity: a field on one map is not a field on the
     # other, and interpolation must be done in its coordinate (``Bs``).
     bmap: str = "cos"
+    # The radial representation (``operators_abt.RADIAL_MAPS``) — part of the grid's
+    # identity in the same way: on "gauss" the A nodes differ and u = (A − 1)·V.
+    radial: str = "lobatto"
 
     @property
     def shape(self):
@@ -119,14 +122,24 @@ class Problem3D:
     def Ntot2d(self) -> int:
         return self.A.size * self.B.size
 
+    @property
+    def scheme(self):
+        """``"paper-v1"``, ``"v2"`` (``operators_abt.SCHEMES``), or ``None`` for a
+        mixed ``(bmap, radial)``."""
+        return ops.scheme_of(self.bmap, self.radial)
 
-def make_problem(Na: int = 36, Nb: int = 24, Nphi: int = 8, bmap=None) -> Problem3D:
-    """The grid.  ``bmap`` is the angular node map (``operators_abt.B_MAPS``);
-    ``None`` is ``operators_abt.DEFAULT_BMAP``."""
-    bmap = ops.check_bmap(bmap)
-    A, B, DA1, DB1, phi = ops3.build_grid_3d(Na, Nb, Nphi, bmap)
+
+def make_problem(Na: int = 36, Nb: int = 24, Nphi: int = 8, bmap=None,
+                 radial=None, scheme=None) -> Problem3D:
+    """The grid.  ``scheme`` names a discretisation (``operators_abt.SCHEMES``:
+    ``"paper-v1"`` or ``"v2"``); ``bmap`` (``operators_abt.B_MAPS``) and ``radial``
+    (``operators_abt.RADIAL_MAPS``) select the two axes separately.  Unnamed axes
+    come from ``operators_abt.DEFAULT_SCHEME`` (see ``operators_abt.resolve_scheme``)."""
+    bmap, radial = ops.resolve_scheme(scheme, bmap, radial)
+    A, B, DA1, DB1, phi = ops3.build_grid_3d(Na, Nb, Nphi, bmap, radial)
     return Problem3D(Na=Na, Nb=Nb, Nphi=Nphi, A=A, B=B, DA1=DA1, DB1=DB1,
-                     phi=phi, m_vals=ops3.fourier_modes(Nphi), bmap=bmap)
+                     phi=phi, m_vals=ops3.fourier_modes(Nphi), bmap=bmap,
+                     radial=radial)
 
 
 # --------------------------------------------------------------------------
@@ -135,7 +148,8 @@ def make_problem(Na: int = 36, Nb: int = 24, Nphi: int = 8, bmap=None) -> Proble
 @dataclass
 class Assembly3D:
     M0: list                  # per-m FACTORED block with BC rows replaced (acts on v_m)
-    w: list                   # per-m B-factor (Ntot2d,) so u_m = w · v_m
+    w: list                   # per-m nodal factor (Ntot2d,) so u_m = w · v_m ("gauss":
+                              # includes the radial A − 1)
     interior: np.ndarray      # bool mask (Ntot2d,), True on PDE rows (same all m)
     rho: np.ndarray           # (Ntot2d,)
     z: np.ndarray
@@ -176,12 +190,17 @@ def assemble(prob: Problem3D, sl: Slice3D, separable: bool = False,
     rho, z, Af, Bf, inv_rho2 = ops3.meridian_geometry(prob.A, prob.B, sl.b)
     if separable:
         from . import separable as sepmod
-        sep = sepmod.get_separable(prob.Na, prob.Nb, prob.Nphi, prob.bmap)
+        radial = getattr(prob, "radial", "lobatto")
+        sep = sepmod.get_separable(prob.Na, prob.Nb, prob.Nphi, prob.bmap, radial)
         if not np.array_equal(np.asarray(sep.B), np.asarray(prob.B)):
             # A hand-built Problem3D whose nodes are not the canonical grid of its
             # declared map would otherwise be preconditioned on someone else's grid.
             raise ValueError("separable assembly: prob.B is not the canonical "
                              f"{prob.bmap!r} grid for (Na, Nb) = ({prob.Na}, {prob.Nb})")
+        if not (np.array_equal(np.asarray(sep.A), np.asarray(prob.A))
+                and np.array_equal(np.asarray(sep.DA1), np.asarray(prob.DA1))):
+            raise ValueError("separable assembly: prob.A/DA1 are not the canonical "
+                             f"{radial!r} radial grid for Na = {prob.Na}")
         M0_list = None
         # grid-only, so carried by the SeparableModes (shared, read-only) rather
         # than rebuilt per slice; only the row scales depend on b, and those are
@@ -652,6 +671,13 @@ def evaluate_field(prob: Problem3D, U, rho, z, phi, b):
     ``operators_abt.B_MAPS``) the angular rule is barycentric in the map's
     coordinate ``s`` and acts on ``û_m`` directly — there ``u_m`` is analytic in
     ``s`` including its ``w_m``, so there is nothing to divide out.
+
+    On a ``"gauss"`` radial grid (``prob.radial``, ``operators_abt.RADIAL_MAPS``)
+    the polynomial in ``A`` is ``V = u/(A − 1)``: each mode is divided by ``A − 1``
+    at the nodes (never zero there — no node sits at ``A = 1``), interpolated, and
+    multiplied by ``A_q − 1`` at the query point, which is what makes ``u`` vanish
+    at infinity by construction.  The puncture corners ``A = 0`` lie outside the
+    Gauss nodes, so a query there is a (short) barycentric extrapolation.
     """
     U = np.asarray(U).reshape(prob.shape)
     rho = np.atleast_1d(np.asarray(rho, dtype=float))
@@ -663,6 +689,11 @@ def evaluate_field(prob: Problem3D, U, rho, z, phi, b):
     MA = _bary_matrix(A_q, prob.A, _bary_weights(prob.A))     # (M, Na+1)
     Uhat = np.fft.rfft(U, axis=2)                             # (Na+1, Nb, Nm)
     wt = _mode_weights(prob.Nphi, prob.m_vals)
+    if getattr(prob, "radial", "lobatto") == "gauss":
+        fq = A_q - 1.0                                        # restored at the query
+        Uhat = Uhat / (prob.A - 1.0)[:, None, None]           # V = u/(A − 1)
+    else:
+        fq = None
 
     if bmap != "cos":
         # On a mapped grid every mode u_m = w_m·v_m is itself analytic in the
@@ -677,6 +708,8 @@ def evaluate_field(prob: Problem3D, U, rho, z, phi, b):
         out = np.zeros(A_q.shape[0])
         for mi, m in enumerate(prob.m_vals):
             vq = np.einsum("qi,qi->q", MA, np.einsum("qj,ij->qi", MS, Uhat[:, :, mi]))
+            if fq is not None:
+                vq = fq * vq
             out += wt[mi] * np.real(vq * np.exp(1j * int(m) * phi))
         return out
 
@@ -691,6 +724,8 @@ def evaluate_field(prob: Problem3D, U, rho, z, phi, b):
         Vm = Uhat[:, :, mi] / w_node[None, :]
         # B first, then A — the order the residual assembly uses.
         vq = np.einsum("qi,qi->q", MA, np.einsum("qj,ij->qi", MB, Vm))
+        if fq is not None:
+            vq = fq * vq
         out += wt[mi] * np.real(vq * w_query * np.exp(1j * m * phi))
     return out
 

@@ -50,6 +50,7 @@ jax.config.update("jax_enable_x64", True)
 
 import numpy as np
 
+from ..solver import operators_abt as ops
 from ..solver import source
 from ..solver import solver_abt as sa
 
@@ -122,10 +123,17 @@ def adm_mass_spectral(prob, U, sl):
     monopole-tail fit, and converges spectrally to the true ADM mass (validated to
     ~1e-11 vs TwoPunctures at 64x44).  This is the same construction TwoPunctures
     uses (admMass = mp+mm - 4b*v at A=1).
+
+    On a ``"gauss"`` radial grid — TwoPunctures' own representation — there is no
+    node at A=1 and the slope is ``V(1, B)`` (``operators_abt.radial_edge_rows``).
     """
     DA = np.asarray(prob.DA1)                              # d/dA on the A-nodes
     Umat = np.asarray(U).reshape(prob.shape)               # (Na+1, Nb)
-    dUdA_at_inf = (DA @ Umat)[0, :]                        # A[0]=1 (infinity edge)
+    rows = ops.radial_edge_rows(prob.A)
+    if rows is not None:
+        dUdA_at_inf = rows[0] @ Umat                       # "gauss": V(1, B)
+    else:
+        dUdA_at_inf = (DA @ Umat)[0, :]                    # A[0]=1 (infinity edge)
     c = -sl.b * float(np.mean(dUdA_at_inf))
     return float(sl.M + 2.0 * c)
 

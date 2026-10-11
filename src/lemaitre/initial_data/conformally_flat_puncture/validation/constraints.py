@@ -73,6 +73,10 @@ def evaluate_u_vec(prob, U, rho, z, b):
     BA = _bary_matrix_vec(A_q, prob.A, wA)                     # (M, Na+1)
     BB = _bary_matrix_vec(B_q, Bs, wB)                         # (M, Nb)
     Umat = np.asarray(U).reshape(prob.shape)
+    if getattr(prob, "radial", "lobatto") == "gauss":
+        # the polynomial is V = u/(A − 1); u = (A_q − 1)·V (solver_abt.evaluate_field_AB)
+        return (A_q - 1.0) * np.einsum("mi,mj,ij->m", BA, BB,
+                                       Umat / (prob.A - 1.0)[:, None])
     return np.einsum("mi,mj,ij->m", BA, BB, Umat)
 
 

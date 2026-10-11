@@ -422,7 +422,10 @@ def from_solution(prob, sl, U, *, residual: Optional[float] = None,
     Only the ``"cos"`` angular node map can be exported: the format's consumer
     interpolates a polynomial in ``B``, which a mapped grid's field is not (it is a
     polynomial in ``operators_abt.s_of_b(B)``).  Exporting one needs a new format
-    version on both sides, so it is refused rather than written wrong.
+    version on both sides, so it is refused rather than written wrong.  The same
+    holds for the radial map: the format assumes the Lobatto ``A`` nodes with
+    ``u`` itself the polynomial, so only the ``"paper-v1"`` scheme
+    (``operators_abt.SCHEMES``) can be exported; callers request it explicitly.
     """
     bmap = getattr(prob, "bmap", "cos")
     if bmap != "cos":
@@ -430,6 +433,12 @@ def from_solution(prob, sl, U, *, residual: Optional[float] = None,
             f"export format {FORMAT_VERSION} assumes the 'cos' angular node map; this "
             f"grid uses {bmap!r}. Exporting it needs a format bump on both the writer "
             "and the GRTeclyn reader.")
+    radial = getattr(prob, "radial", "lobatto")
+    if radial != "lobatto":
+        raise NotImplementedError(
+            f"export format {FORMAT_VERSION} assumes the 'lobatto' radial map (the "
+            f"'paper-v1' scheme); this grid uses {radial!r}. Exporting it needs a format "
+            "bump on both the writer and the GRTeclyn reader.")
     U = np.asarray(U, dtype=float).reshape(prob.shape)
     C, S = phi_modes(U)
     cos_m, sin_m = phi_mode_layout(prob.Nphi)

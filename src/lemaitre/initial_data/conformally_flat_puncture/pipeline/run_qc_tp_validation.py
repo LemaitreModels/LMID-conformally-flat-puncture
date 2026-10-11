@@ -48,6 +48,10 @@ def adm_mass_3d(prob, U, sl):
     sphere at infinity, contributing nothing to the ADM monopole); the ABT
     spectral boundary read at A=1 is the 3-D twin of validation.adm.adm_mass_spectral.
     """
+    if getattr(prob, "radial", "lobatto") != "lobatto":
+        # no A=1 node to read the slope off: the shared reader handles that grid
+        from lemaitre.initial_data.conformally_flat_puncture.solver import diagnostics_3d
+        return diagnostics_3d.adm_mass_spectral_3d(prob, U, sl)
     u0 = np.asarray(U).mean(axis=2)                     # (Na+1, Nb) φ-average
     dUdA_inf = (np.asarray(prob.DA1) @ u0)[0, :]        # A[0]=1 -> infinity edge
     c = -sl.b * float(np.mean(dUdA_inf))

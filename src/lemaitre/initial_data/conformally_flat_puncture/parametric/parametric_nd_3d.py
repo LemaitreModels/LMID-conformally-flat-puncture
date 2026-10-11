@@ -362,6 +362,7 @@ def make_solve_fn(prob: Problem3D, active_names: Sequence[str], M_tot: float = 1
     # the angular node map (parametric_nd._save_npz_owned), and attaching a solver
     # to a model checks it (parametric_nd.attach_solve_fn_3d).
     solve_fn.bmap = getattr(prob, "bmap", "cos")
+    solve_fn.radial = getattr(prob, "radial", "lobatto")
     return solve_fn, cache
 
 

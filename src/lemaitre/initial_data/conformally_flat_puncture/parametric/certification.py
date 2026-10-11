@@ -141,6 +141,28 @@ def gate_for(solve_fn) -> float:
     return float(getattr(solve_fn, SOLVE_FN_GATE_ATTR, CERT_TOL))
 
 
+def gate_for_problem(prob) -> float:
+    """The certification gate of the solver that runs on ``prob``'s grid.
+
+    :func:`gate_for` asks a ``solve_fn``; this asks the grid, for callers that hold
+    a problem and call a solver directly.  Three cases:
+
+    * a 3-D problem (it has ``Nphi``): the Newton–Krylov path, equilibrated ``u``
+      norm — :data:`CERT_TOL_U`;
+    * a 2-D problem on the ``"lobatto"`` radial grid: ``solver_abt.newton_solve``
+      monitors the raw ``max|R|`` — :data:`CERT_TOL`, as it always has;
+    * a 2-D problem on the ``"gauss"`` radial grid
+      (``operators_abt.RADIAL_MAPS``): there ``solver_abt.newton_solve`` monitors
+      the equilibrated ``u``-norm residual, the 3-D definition, because the raw
+      residual's roundoff floor (~1e-8 at the production grid) lies above any
+      threshold — so the gate is the one calibrated for that norm,
+      :data:`CERT_TOL_U`.
+    """
+    if hasattr(prob, "Nphi"):
+        return float(CERT_TOL_U)
+    return float(CERT_TOL_U if getattr(prob, "radial", "lobatto") == "gauss" else CERT_TOL)
+
+
 class CertificationError(RuntimeError):
     """A queried datum failed the ``‖R‖∞ ≤ tol`` gate and was therefore not returned.
 
