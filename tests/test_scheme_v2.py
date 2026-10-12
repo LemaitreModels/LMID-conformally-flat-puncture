@@ -600,10 +600,14 @@ def test_saved_models_record_the_radial_map_and_attaching_checks_it(tmp_path):
                                s3.make_problem(10, 8, 4, bmap="abt", radial="lobatto"), ["b"])
 
 
-def test_export_refuses_everything_but_paper_v1():
-    for kw in (dict(scheme="v2"), dict(bmap="cos", radial="gauss")):
+def test_export_has_a_format_per_scheme_and_refuses_mixed_grids():
+    # was test_export_refuses_everything_but_paper_v1, before format 4 carried v2
+    for scheme, fmt in (("paper-v1", 2), ("v2", 4)):
+        prob = s3.make_problem(**GRID, scheme=scheme)
+        assert ex.from_solution(prob, _slice(), np.zeros(prob.shape)).fmt == fmt
+    for kw in (dict(bmap="cos", radial="gauss"), dict(bmap="abt", radial="lobatto")):
         prob = s3.make_problem(**GRID, **kw)
-        with pytest.raises(NotImplementedError, match="angular node map|radial map"):
+        with pytest.raises(NotImplementedError, match="mixed grid"):
             ex.from_solution(prob, _slice(), np.zeros(prob.shape))
 
 
@@ -685,7 +689,7 @@ def test_the_paper_constant_is_paper_v1():
     import ast
     assert pm.SCHEME == "paper-v1" and pm.SCHEME in ops.SCHEMES
     assert pm.SCHEME != ops.DEFAULT_SCHEME
-    assert ex.SCHEME == "paper-v1"
+    assert ex.FORMAT_OF_SCHEME == {"paper-v1": 2, "v2": 4}      # each grid its format
     tree = ast.parse(open(pm.__file__).read())
     mods = [n.module or "" for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)]
     mods += [a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names]

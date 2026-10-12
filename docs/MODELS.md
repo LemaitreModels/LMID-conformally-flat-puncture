@@ -160,7 +160,8 @@ the cross POD bases from the full Hermite corpora.
 1. Change `production_model.py` — nothing else defines the model. Moving `SCHEME`
    off `"paper-v1"` moves every producer, figure, table and the export with it, and
    the shipped `.npz` models (built on `"paper-v1"`) stop loading: it means rebuilding
-   them, and the GRTeclyn format only carries `"paper-v1"`.
+   them. The GRTeclyn export follows the grid (format 2 for `"paper-v1"`, 4 for
+   `"v2"`), so fig10 needs new constraint runs.
 2. `pytest tests/test_production_model.py` (identity, accounting, slim losslessness).
 3. Rebuild the affected figdata — `python paper/figures/make_figdata.py --fig <stem>
    --force`; most sources are cluster-side, see [`DATA.md`](DATA.md). **Do not wait for

@@ -124,6 +124,11 @@ figure→producer→artifact graph). Those producers are the heavy tier below.
      > mixed:** `LMSpectralData` aborts unless the file says `format 2`, and
      > `Export.read` refuses the mismatch from this side, because reading a
      > newer file under an older rule is silently wrong rather than an error.
+     > Since 2026-10-12 there is also **format 4**, the `"v2"` grid (angular nodes in
+     > the ABT angle `s`, Chebyshev–Gauss `A`, `u = (A − 1) V`); the consumer reads 2
+     > and 4, each with its own rule. The committed fig10 is a `"paper-v1"`
+     > measurement; moving it to `"v2"` means new ladder runs from format-4 exports
+     > (`run_export_grteclyn --scheme v2`).
   3. `python paper/figures/fig10_constraints_data.py --runs <that tree>` (seconds, reads
      files only) then the plotter. Set `$LM_GRTECLYN_RUNS` instead of `--runs` if you
      prefer.

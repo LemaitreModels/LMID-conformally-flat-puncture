@@ -56,6 +56,28 @@ readable in a diff.  Keys:
 (``A[0] = 1`` is spatial infinity, ``A[Na] = 0`` the inner axis edge); ``B`` has
 ``Nb`` Gauss-Legendre interior nodes.  ``C`` and ``S`` are flattened
 ``C[i][j][t]``, i.e. ``t`` fastest then ``j`` then ``i``.
+
+FORMAT 4 — the ``"v2"`` grid (``solver.operators_abt.SCHEMES``).  The same token
+stream with two differences, both forced by the grid:
+
+* the angular nodes are shipped in the map's interpolation coordinate ``s``
+  (key ``s`` instead of ``B``; ``B = 2s/(1+s^2)``, the ABT angle), because the
+  field is a polynomial in ``s``, not in ``B``;
+* the ``A`` nodes are Chebyshev-Gauss (no node at ``A = 0`` or ``A = 1``) and the
+  field carries the radial factor ``A - 1`` of TwoPunctures' ``u = (A - 1) V``.
+
+So what is shipped is ``V_k = u_k / (A - 1)`` — and NOT divided by ``w_k(B)``: on the
+ABT angle ``w_k = sin^k(eta)`` is rational in ``s``, so ``u_k`` is itself analytic in
+``s``, and dividing by ``w_k`` at nodes where it is ~``(1 - s)^k`` small would only
+amplify roundoff (``solver_3d.evaluate_field`` makes the same choice on a mapped
+grid, and this rule is that evaluator, exactly).  The consumer interpolates ``C, S``
+in ``(A, s)`` and multiplies by ``A - 1`` at the query point.  The query coordinate
+``s`` must be computed without cancellation next to the axis, where ``s`` is
+ill-conditioned in ``B`` (:func:`inverse_abt_s`).  Two records name the
+grid explicitly, ``angular_map abt`` and ``radial_map gauss``, and a reader checks
+them.  Format numbers: 2 = ``"paper-v1"``, 3 = the curved sibling's channel, 4 =
+``"v2"``; every reader checks the number by EQUALITY against the rules it
+implements, because reading one format with another's rule is silently wrong.
 """
 
 from __future__ import annotations
@@ -67,15 +89,18 @@ from typing import Optional, Sequence, Tuple
 
 import numpy as np
 
-FORMAT_VERSION = 2
+#: The format each discretisation (``solver.operators_abt.SCHEMES``) is exported in.
+#: ``"paper-v1"`` (``"cos"`` + ``"lobatto"``: a polynomial in ``B`` on
+#: Chebyshev–Gauss–Lobatto ``A``) is format 2; ``"v2"`` (``"abt"`` + ``"gauss"``: a
+#: polynomial in ``s`` on Chebyshev–Gauss ``A``, times ``A - 1``) is format 4.  A mixed
+#: grid has no format and is refused.  (Format 3 is the curved sibling's channel.)
+FORMAT_OF_SCHEME = {"paper-v1": 2, "v2": 4}
 
-#: The one discretisation (``solver.operators_abt.SCHEMES``) this format carries: the
-#: consumer interpolates a polynomial in ``B`` on Chebyshev–Gauss–Lobatto ``A`` nodes,
-#: i.e. ``"cos"`` + ``"lobatto"``.  A property of the FORMAT, not of the shipped model
-#: (which happens to be on the same grid): :func:`from_solution` refuses any other
-#: grid, and :func:`solve_and_export` builds this one by name — the solver's default
-#: is ``"v2"``, which the format cannot hold.
-SCHEME = "paper-v1"
+#: The formats this module reads and writes.
+FORMATS = tuple(sorted(FORMAT_OF_SCHEME.values()))
+
+#: The current format: what an export of the solver's default grid (``"v2"``) is.
+FORMAT_VERSION = FORMAT_OF_SCHEME["v2"]
 
 
 # --------------------------------------------------------------------------
@@ -170,7 +195,12 @@ def phi_eval(cos_c: np.ndarray, sin_c: np.ndarray, cos_m: np.ndarray,
 # --------------------------------------------------------------------------
 @dataclass
 class Export:
-    """One exported slice: geometry, the ABT grid, and the phi-modal ``u``."""
+    """One exported slice: geometry, the ABT grid, and the phi-modal ``u``.
+
+    ``B`` holds the angular nodes in the format's interpolation coordinate: ``B``
+    itself in format 2, ``s`` in format 4 (written under the key ``s``).  ``fmt``
+    defaults to 2 because a record built without it is the original grid.
+    """
     b: float
     m_A: float
     m_B: float
@@ -188,6 +218,7 @@ class Export:
     C: np.ndarray                     # (Na+1, Nb, ncos), smooth factor
     S: np.ndarray                     # (Na+1, Nb, nsin), smooth factor
     provenance: Sequence[str] = field(default_factory=tuple)
+    fmt: int = 2                      # 2 ("paper-v1") or 4 ("v2"); see FORMAT_OF_SCHEME
 
     # -- writing ------------------------------------------------------------
     def write(self, path: str) -> str:
@@ -195,17 +226,35 @@ class Export:
         def fmt(a):
             return " ".join(f"{v:.17e}" for v in np.asarray(a).reshape(-1))
 
-        lines = [f"# LM-initial-data GRTeclyn export, format {FORMAT_VERSION}"]
+        if self.fmt not in FORMATS:
+            raise ValueError(f"format {self.fmt}: this writer handles {FORMATS}")
+        lines = [f"# LM-initial-data GRTeclyn export, format {self.fmt}"]
         lines += [f"# {ln}" for ln in self.provenance]
+        if self.fmt == 2:
+            lines += [
+                "# psi = psi_BL + u ;  psi_BL = 1 + m_A/(2 r_A) + m_B/(2 r_B),",
+                "# punctures A at (0,0,+b) and B at (0,0,-b).",
+                "# u(A,B,phi) = sum_t w(cos_m[t],B) C[i][j][t] cos(cos_m[t] phi)",
+                "#            + sum_t w(sin_m[t],B) S[i][j][t] sin(sin_m[t] phi)",
+                "# with w(k,B) = (1-B^2)^(k/2) applied AFTER interpolating C,S",
+                "# in (A,B) by tensor-product barycentric interpolation, and",
+                "# (A,B) <- (rho,z) by the closed-form inverse ABT map.",
+            ]
+        else:
+            lines += [
+                "# psi = psi_BL + u ;  psi_BL = 1 + m_A/(2 r_A) + m_B/(2 r_B),",
+                "# punctures A at (0,0,+b) and B at (0,0,-b).",
+                "# u(A,s,phi) = (A-1) sum_t C[i][j][t] cos(cos_m[t] phi)",
+                "#            + (A-1) sum_t S[i][j][t] sin(sin_m[t] phi)",
+                "# with (A-1) applied AFTER interpolating C,S in (A,s) by",
+                "# tensor-product barycentric interpolation (no axis factor:",
+                "# u_k is analytic in s on this angle);",
+                "# A on Chebyshev-Gauss nodes (no edge node), s the ABT angle",
+                "# (B = 2s/(1+s^2)); (A,s) <- (rho,z) by the closed-form inverse map,",
+                "# with 1-B and 1+B formed without cancellation (see inverse_abt_s).",
+            ]
         lines += [
-            "# psi = psi_BL + u ;  psi_BL = 1 + m_A/(2 r_A) + m_B/(2 r_B),",
-            "# punctures A at (0,0,+b) and B at (0,0,-b).",
-            "# u(A,B,phi) = sum_t w(cos_m[t],B) C[i][j][t] cos(cos_m[t] phi)",
-            "#            + sum_t w(sin_m[t],B) S[i][j][t] sin(sin_m[t] phi)",
-            "# with w(k,B) = (1-B^2)^(k/2) applied AFTER interpolating C,S",
-            "# in (A,B) by tensor-product barycentric interpolation, and",
-            "# (A,B) <- (rho,z) by the closed-form inverse ABT map.",
-            f"format {FORMAT_VERSION}",
+            f"format {self.fmt}",
             f"b {self.b:.17e}",
             f"m_A {self.m_A:.17e}",
             f"m_B {self.m_B:.17e}",
@@ -218,11 +267,12 @@ class Export:
             f"Nphi {self.Nphi}",
             f"ncos {self.cos_m.size}",
             f"nsin {self.sin_m.size}",
+            *(["angular_map abt", "radial_map gauss"] if self.fmt == 4 else []),
             "cos_m " + " ".join(str(int(v)) for v in self.cos_m),
             "sin_m " + (" ".join(str(int(v)) for v in self.sin_m)
                         if self.sin_m.size else ""),
             "A " + fmt(self.A),
-            "B " + fmt(self.B),
+            ("s " if self.fmt == 4 else "B ") + fmt(self.B),
             "C " + fmt(self.C),
             "S " + (fmt(self.S) if self.S.size else ""),
         ]
@@ -256,10 +306,13 @@ class Export:
                 float if cast is float else int))
 
         fmt_v = one("format", int)
-        if fmt_v != FORMAT_VERSION:
+        if fmt_v not in FORMATS:
             raise ValueError(
-                f"{path}: format {fmt_v}, this reader handles "
-                f"{FORMAT_VERSION}")
+                f"{path}: format {fmt_v}, this reader handles {FORMATS}")
+        if fmt_v == 4 and (rec.get("angular_map") != ["abt"]
+                           or rec.get("radial_map") != ["gauss"]):
+            raise ValueError(f"{path}: format 4 must declare 'angular_map abt' and "
+                             "'radial_map gauss'")
         Na, Nb, Nphi = one("Na", int), one("Nb", int), one("Nphi", int)
         ncos, nsin = one("ncos", int), one("nsin", int)
         cos_m, sin_m = arr("cos_m", int), arr("sin_m", int)
@@ -268,7 +321,7 @@ class Export:
         C = arr("C").reshape(Na + 1, Nb, ncos)
         S = (arr("S").reshape(Na + 1, Nb, nsin) if nsin
              else np.zeros((Na + 1, Nb, 0)))
-        A, B = arr("A"), arr("B")
+        A, B = arr("A"), arr("s" if fmt_v == 4 else "B")
         if A.size != Na + 1 or B.size != Nb:
             raise ValueError(f"{path}: node-count mismatch")
         return Export(
@@ -276,7 +329,7 @@ class Export:
             P_A=tuple(arr("P_A")), P_B=tuple(arr("P_B")),
             S_A=tuple(arr("S_A")), S_B=tuple(arr("S_B")),
             Na=Na, Nb=Nb, Nphi=Nphi, A=A, B=B,
-            cos_m=cos_m, sin_m=sin_m, C=C, S=S, provenance=tuple(prov))
+            cos_m=cos_m, sin_m=sin_m, C=C, S=S, provenance=tuple(prov), fmt=fmt_v)
 
 
 # --------------------------------------------------------------------------
@@ -323,6 +376,41 @@ def inverse_abt(rho, z, b):
     return A, np.clip(B, -1.0, 1.0)
 
 
+def inverse_abt_s(rho, z, b):
+    """``(rho, z) -> (A, s, 1 - B^2)`` for format 4: the ABT angle ``s`` (with
+    ``B = 2s/(1+s^2)``) and ``1 - B^2``, both without cancellation next to the axis
+    (the evaluator needs only ``A`` and ``s``; ``1 - B^2`` is returned for checks).
+
+    Independent transcription of ``solver.operators_abt.inverse_map_s``.  ``A`` as in
+    :func:`inverse_abt`.  ``B = 2z/(r1+r2)``, and ``1 - B``, ``1 + B`` are sums of
+    ``r - c`` / ``r + c`` terms (``c = z -/+ b``) rationalised as ``rho^2/(r +/- c)``
+    where they would cancel, so a point a hair off the outer axis still gets ``s`` to
+    ~eps (``s`` is ill-conditioned in ``B`` there: ``1 - s ~ sqrt(2(1 - B))``).  Then
+    ``s = B / (1 + sqrt((1-B)(1+B)))``, finite at ``B = 0``.
+    """
+    rho = np.asarray(rho, dtype=float)
+    z = np.asarray(z, dtype=float)
+    A, _ = inverse_abt(rho, z, b)
+    c1, c2 = z - b, z + b
+    r1, r2 = np.hypot(rho, c1), np.hypot(rho, c2)
+    rho2 = rho * rho
+
+    def r_minus_c(r, c):
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return np.where(c > 0.0, rho2 / (r + c), r - c)
+
+    def r_plus_c(r, c):
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return np.where(c < 0.0, rho2 / (r - c), r + c)
+
+    S = r1 + r2
+    B = np.clip(2.0 * z / S, -1.0, 1.0)
+    om = (r_minus_c(r1, c1) + r_minus_c(r2, c2)) / S
+    op = (r_plus_c(r1, c1) + r_plus_c(r2, c2)) / S
+    omb2 = np.clip(om * op, 0.0, None)
+    return A, B / (1.0 + np.sqrt(omb2)), omb2
+
+
 def eval_u(exp: Export, x, y, z) -> np.ndarray:
     """The correction ``u`` at Cartesian points, from the exported record only."""
     x = np.atleast_1d(np.asarray(x, dtype=float)).reshape(-1)
@@ -330,7 +418,10 @@ def eval_u(exp: Export, x, y, z) -> np.ndarray:
     z = np.atleast_1d(np.asarray(z, dtype=float)).reshape(-1)
     rho = np.hypot(x, y)
     phi = np.arctan2(y, x)
-    A_q, B_q = inverse_abt(rho, z, exp.b)
+    if exp.fmt == 4:
+        A_q, B_q, _ = inverse_abt_s(rho, z, exp.b)         # B_q holds s here
+    else:
+        A_q, B_q = inverse_abt(rho, z, exp.b)
 
     wA, wB = _bary_weights(exp.A), _bary_weights(exp.B)
     MA = _bary_matrix(A_q, exp.A, wA)              # (M, Na+1)
@@ -345,9 +436,15 @@ def eval_u(exp: Export, x, y, z) -> np.ndarray:
         tmp = np.einsum("mj,ijt->mit", MB, coef)
         return np.einsum("mi,mit->mt", MA, tmp)
 
-    # ...then restore w_k analytically at the query point (format 2).
-    C_q = interp(exp.C) * _factor_columns(B_q, exp.cos_m)
-    S_q = interp(exp.S) * _factor_columns(B_q, exp.sin_m)
+    # ...then restore the factor analytically at the query point: w_k (format 2);
+    # the radial A - 1 (format 4, whose u_k is analytic in s — no w_k).
+    if exp.fmt == 4:
+        fq = (A_q - 1.0)[:, None]
+        C_q = interp(exp.C) * fq
+        S_q = interp(exp.S) * fq
+    else:
+        C_q = interp(exp.C) * _factor_columns(B_q, exp.cos_m)
+        S_q = interp(exp.S) * _factor_columns(B_q, exp.sin_m)
     return phi_eval(C_q, S_q, exp.cos_m, exp.sin_m, phi)
 
 
@@ -427,37 +524,41 @@ def from_solution(prob, sl, U, *, residual: Optional[float] = None,
     — the certified number the solve controls), ``raw_residual`` the raw nodal
     inf-norm; both are recorded so the provenance is unambiguous.
 
-    Only the ``"cos"`` angular node map can be exported: the format's consumer
-    interpolates a polynomial in ``B``, which a mapped grid's field is not (it is a
-    polynomial in ``operators_abt.s_of_b(B)``).  Exporting one needs a new format
-    version on both sides, so it is refused rather than written wrong.  The same
-    holds for the radial map: the format assumes the Lobatto ``A`` nodes with
-    ``u`` itself the polynomial, so only the ``"paper-v1"`` scheme
-    (``operators_abt.SCHEMES``) can be exported; callers request it explicitly.
+    The grid decides the format (:data:`FORMAT_OF_SCHEME`): ``"paper-v1"`` is
+    format 2 (a polynomial in ``B`` on Lobatto ``A``), ``"v2"`` is format 4 (a
+    polynomial in ``s`` on Chebyshev–Gauss ``A``, with the radial factor ``A - 1``).
+    A mixed grid (cos + gauss, abt + lobatto) has no format and is refused rather
+    than written wrong.
     """
     bmap = getattr(prob, "bmap", "cos")
-    if bmap != "cos":
-        raise NotImplementedError(
-            f"export format {FORMAT_VERSION} assumes the 'cos' angular node map; this "
-            f"grid uses {bmap!r}. Exporting it needs a format bump on both the writer "
-            "and the GRTeclyn reader.")
     radial = getattr(prob, "radial", "lobatto")
-    if radial != "lobatto":
+    fmt_v = {("cos", "lobatto"): 2, ("abt", "gauss"): 4}.get((bmap, radial))
+    if fmt_v is None:
         raise NotImplementedError(
-            f"export format {FORMAT_VERSION} assumes the 'lobatto' radial map (the "
-            f"'paper-v1' scheme); this grid uses {radial!r}. Exporting it needs a format "
-            "bump on both the writer and the GRTeclyn reader.")
+            f"no export format holds the mixed grid bmap={bmap!r}, radial={radial!r}: "
+            f"format 2 is ('cos', 'lobatto') = 'paper-v1' and format 4 is "
+            f"('abt', 'gauss') = 'v2'. Exporting another needs a new format on both "
+            "the writer and the GRTeclyn reader.")
     U = np.asarray(U, dtype=float).reshape(prob.shape)
     C, S = phi_modes(U)
     cos_m, sin_m = phi_mode_layout(prob.Nphi)
-    # Ship the SMOOTH factor: divide out w_k(B) at the nodes so the consumer
-    # interpolates a polynomial and restores the factor analytically (format 2).
-    # The B nodes are Gauss-Legendre interior points, so w_k > 0 on all of them.
-    C = C / _factor_columns(prob.B, cos_m)[None, :, :]
-    if sin_m.size:
-        S = S / _factor_columns(prob.B, sin_m)[None, :, :]
+    # Ship the SMOOTH factor.  Format 2: divide out w_k(B) at the (interior) B nodes,
+    # so the consumer interpolates a polynomial in B and restores w_k.  Format 4:
+    # divide out only the radial A - 1 (< 0 at every Chebyshev-Gauss node); u_k is
+    # analytic in s on the ABT angle, so w_k stays in (solver_3d.evaluate_field's rule).
+    if fmt_v == 2:
+        C = C / _factor_columns(prob.B, cos_m)[None, :, :]
+        if sin_m.size:
+            S = S / _factor_columns(prob.B, sin_m)[None, :, :]
+        nodes = np.asarray(prob.B, dtype=float)
+    else:
+        fA = (np.asarray(prob.A, dtype=float) - 1.0)[:, None, None]
+        C = C / fA
+        if sin_m.size:
+            S = S / fA
+        nodes = np.asarray(prob.Bs, dtype=float)       # s, as laid
     prov = [f"git {_git_sha()}",
-            f"grid Na={prob.Na} Nb={prob.Nb} Nphi={prob.Nphi}"]
+            f"grid Na={prob.Na} Nb={prob.Nb} Nphi={prob.Nphi} scheme={prob.scheme}"]
     if residual is not None:
         prov.append(f"newton_residual_equilibrated_inf {residual:.6e}")
     if raw_residual is not None:
@@ -471,24 +572,26 @@ def from_solution(prob, sl, U, *, residual: Optional[float] = None,
         S_A=tuple(float(v) for v in sl.S_A_vec),
         S_B=tuple(float(v) for v in sl.S_B_vec),
         Na=prob.Na, Nb=prob.Nb, Nphi=prob.Nphi,
-        A=np.asarray(prob.A, dtype=float), B=np.asarray(prob.B, dtype=float),
-        cos_m=cos_m, sin_m=sin_m, C=C, S=S, provenance=tuple(prov))
+        A=np.asarray(prob.A, dtype=float), B=nodes,
+        cos_m=cos_m, sin_m=sin_m, C=C, S=S, provenance=tuple(prov), fmt=fmt_v)
 
 
 def solve_and_export(b: float, m_A: float, m_B: float, *,
                      P_A=(0.0, 0.0, 0.0), P_B=(0.0, 0.0, 0.0),
                      S_A=(0.0, 0.0, 0.0), S_B=(0.0, 0.0, 0.0),
                      Na: int = 36, Nb: int = 24, Nphi: int = 8,
+                     scheme: str = "v2",
                      path: Optional[str] = None, note: str = "") -> Export:
     """Run the certified Newton-Krylov solve and export the result.
 
-    Imported lazily so that reading/evaluating an exported file needs numpy
+    ``scheme`` names the grid (a key of :data:`FORMAT_OF_SCHEME`), and with it the
+    format.  Imported lazily so that reading/evaluating an exported file needs numpy
     only (the solver stack pulls in jax).
     """
     from ..solver import solver_3d as s3
     from ..solver import solver_3d_nk as nk
 
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=SCHEME)
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=scheme)
     sl = s3.Slice3D(b=b, m_A=m_A, m_B=m_B, P_A_vec=tuple(P_A),
                     P_B_vec=tuple(P_B), S_A_vec=tuple(S_A),
                     S_B_vec=tuple(S_B))

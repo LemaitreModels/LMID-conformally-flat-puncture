@@ -199,9 +199,10 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   > construction of the B-operator must go through it too, or the dense and separable
   > routes stop agreeing. **`"abt"` is the angular half of the default scheme
   > `"v2"`** (below); `"cos"` is the angular half of `"paper-v1"`, which every shipped
-  > model, figure, solve-store key and the GRTeclyn export (which refuses `"abt"`: the
-  > format assumes polynomials in `B`) is on, by name, and so is the curved sibling's
-  > chart. A model built on `"abt"` records `bmap` in its metadata, and
+  > model, figure and solve-store key is on, by name, and so is the curved sibling's
+  > chart. The GRTeclyn export has one format per scheme — 2 for `"paper-v1"` (a
+  > polynomial in `B`), 4 for `"v2"` (a polynomial in `s`) — and refuses a mixed
+  > grid. A model built on `"abt"` records `bmap` in its metadata, and
   > `attach_solve_fn_3d` refuses a problem on the other map. Interpolate in `prob.Bs`
   > (the nodes as laid), and get a query point's `s` from
   > `operators_abt.inverse_map_s`, not from `B` — `s` is ill-conditioned in `B` next
@@ -241,7 +242,12 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   > `"gauss"` the 2-D solver's raw `max|R|` floors at 3e-9 – 3e-8 (the innermost row
   > sits at `A ≈ 3e-4`–`7e-4` with coefficients ~1e9–1e11), so there it monitors the
   > equilibrated `u` norm and certifies against `CERT_TOL_U` (`NewtonInfo.norm` says
-  > which); the GRTeclyn export refuses `"gauss"` (format 2 assumes Lobatto `A`).
+  > which). The GRTeclyn export writes `"v2"` as **format 4** (`export_grteclyn.
+  > FORMAT_OF_SCHEME`): angular nodes in `s`, Chebyshev–Gauss `A`, and `V_k = u_k/(A − 1)`
+  > shipped with no axis factor (on the ABT angle `u_k` is analytic in `s` — the rule of
+  > `solver_3d.evaluate_field` on a mapped grid). The consumer (`LMSpectralData` /
+  > `LMInitialData::u` on the GRTeclyn branch) reads 2 and 4 with a rule each and refuses
+  > anything else; both halves move together, and a mixed grid has no format.
 
   > **The separable preconditioner IS the default.** `newton_solve_nk` resolves
   > `separable=None` through `choose_separable`, which picks separable because it

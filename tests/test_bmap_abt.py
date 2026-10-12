@@ -120,8 +120,9 @@ def test_attaching_a_solver_on_the_other_grid_is_refused(tmp_path):
 
 
 def test_export_refuses_a_mapped_grid():
+    # abt + lobatto is a mixed grid: format 2 is cos + lobatto, format 4 abt + gauss
     prob = s3.make_problem(**GRID, bmap="abt", radial="lobatto")
-    with pytest.raises(NotImplementedError, match="angular node map"):
+    with pytest.raises(NotImplementedError, match="mixed grid"):
         ex.from_solution(prob, _slice(), np.zeros(prob.shape))
 
 

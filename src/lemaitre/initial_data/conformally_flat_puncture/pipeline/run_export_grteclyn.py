@@ -178,6 +178,9 @@ def main():
     # the tightest representable number, is the gate.  The `info.converged` check
     # below is this script's copy of the gate: an export that misses it aborts
     # rather than writing a .lmid an evolution would then trust.
+    ap.add_argument("--scheme", default=pm.SCHEME, choices=sorted(eg.FORMAT_OF_SCHEME),
+                    help="the grid, and with it the export format (paper-v1 -> 2, "
+                         "v2 -> 4); default the shipped grid, production_model.SCHEME")
     ap.add_argument("--tol", type=float, default=CERT_TOL_U)
     ap.add_argument("--n-ref", type=int, default=256,
                     help="reference-table points for the C++ port test")
@@ -191,7 +194,7 @@ def main():
             nphi = args.nphi
         name = name + args.suffix
         t0 = time.time()
-        prob = s3.make_problem(Na=args.na, Nb=args.nb, Nphi=nphi, scheme=pm.SCHEME)
+        prob = s3.make_problem(Na=args.na, Nb=args.nb, Nphi=nphi, scheme=args.scheme)
         U, info = nk.newton_solve_nk(prob, sl, tol=args.tol, verbose=True)
         dt = time.time() - t0
         if not info.converged:

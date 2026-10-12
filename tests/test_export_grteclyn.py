@@ -15,6 +15,10 @@ Two things are gated:
 The second is what makes the reference table a valid target for the C++ port:
 if the port matches the table, it matches the solver.
 
+Two formats, one per discretisation (``eg.FORMAT_OF_SCHEME``): format 2 for
+``"paper-v1"`` and format 4 for ``"v2"`` (the ABT angle ``s`` and TwoPunctures'
+``u = (A - 1) V``).  The chain gates run on both; a mixed grid has no format.
+
 Most gates use a *manufactured* random ``U`` rather than a converged solve — the
 identity being tested is the interpolation/serialisation chain, which has nothing
 to do with whether ``U`` solves anything, and this keeps the test fast.  One
@@ -36,9 +40,12 @@ B_ANCHOR = 3.0
 M_A = M_B = 0.5
 
 
-def _manufactured(Na=20, Nb=14, Nphi=8, seed=3):
+SCHEMES = ("paper-v1", "v2")
+
+
+def _manufactured(Na=20, Nb=14, Nphi=8, seed=3, scheme="paper-v1"):
     """A small problem plus a smooth random nodal ``U`` (not a solution)."""
-    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme="paper-v1")
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=scheme)
     rng = np.random.default_rng(seed)
     U = rng.normal(size=prob.shape) * 1e-2
     sl = s3.Slice3D(b=B_ANCHOR, m_A=M_A, m_B=M_B,
@@ -108,8 +115,9 @@ def test_phi_mode_layout_nyquist():
 # ==========================================================================
 # The file format round-trips
 # ==========================================================================
-def test_write_read_roundtrip(tmp_path):
-    prob, sl, U = _manufactured()
+@pytest.mark.parametrize("scheme", SCHEMES)
+def test_write_read_roundtrip(tmp_path, scheme):
+    prob, sl, U = _manufactured(scheme=scheme)
     exp = eg.from_solution(prob, sl, U, residual=1.6e-10, raw_residual=3e-9,
                            note="unit test")
     path = str(tmp_path / "slice.lmid")
@@ -127,11 +135,15 @@ def test_write_read_roundtrip(tmp_path):
     assert any("newton_residual_equilibrated_inf" in p for p in got.provenance)
 
 
-def test_read_rejects_wrong_format(tmp_path):
-    prob, sl, U = _manufactured()
+@pytest.mark.parametrize("scheme", SCHEMES)
+def test_read_rejects_wrong_format(tmp_path, scheme):
+    prob, sl, U = _manufactured(scheme=scheme)
     path = str(tmp_path / "bad.lmid")
     eg.from_solution(prob, sl, U).write(path)
-    txt = open(path).read().replace(f"format {eg.FORMAT_VERSION}", "format 99")
+    fmt = eg.FORMAT_OF_SCHEME[scheme]
+    txt = open(path).read()
+    assert f"\nformat {fmt}\n" in txt
+    txt = txt.replace(f"\nformat {fmt}\n", "\nformat 99\n")
     open(path, "w").write(txt)
     with pytest.raises(ValueError):
         eg.Export.read(path)
@@ -140,9 +152,10 @@ def test_read_rejects_wrong_format(tmp_path):
 # ==========================================================================
 # The reference evaluator reproduces the solver, from the file alone
 # ==========================================================================
-def test_reference_evaluator_matches_solver(tmp_path):
+@pytest.mark.parametrize("scheme", SCHEMES)
+def test_reference_evaluator_matches_solver(tmp_path, scheme):
     """eval_u (numpy, from file) == solver_3d.evaluate_field, machine precision."""
-    prob, sl, U = _manufactured()
+    prob, sl, U = _manufactured(scheme=scheme)
     path = str(tmp_path / "slice.lmid")
     eg.from_solution(prob, sl, U).write(path)
     exp = eg.Export.read(path)
@@ -191,8 +204,9 @@ def test_psi_BL_and_Ahat_match_solver(tmp_path):
     assert np.max(np.abs(np.trace(got_A, axis1=1, axis2=2))) < 1e-12 * scale
 
 
-def test_full_psi_is_BL_plus_u(tmp_path):
-    prob, sl, U = _manufactured()
+@pytest.mark.parametrize("scheme", SCHEMES)
+def test_full_psi_is_BL_plus_u(tmp_path, scheme):
+    prob, sl, U = _manufactured(scheme=scheme)
     path = str(tmp_path / "slice.lmid")
     eg.from_solution(prob, sl, U).write(path)
     exp = eg.Export.read(path)
@@ -203,21 +217,24 @@ def test_full_psi_is_BL_plus_u(tmp_path):
     assert np.max(np.abs(lhs - rhs)) == 0.0
 
 
-def test_evaluator_exact_at_nodes(tmp_path):
+@pytest.mark.parametrize("scheme", SCHEMES)
+def test_evaluator_exact_at_nodes(tmp_path, scheme):
     """At a grid node the barycentric rule must return the nodal value exactly.
 
     This is the case a naive ``w/(xq-x)`` implementation divides by zero on, and
     the one a C++ port is most likely to get wrong.
     """
-    prob, sl, U = _manufactured()
+    prob, sl, U = _manufactured(scheme=scheme)
     path = str(tmp_path / "slice.lmid")
     eg.from_solution(prob, sl, U).write(path)
     exp = eg.Export.read(path)
 
-    # pick interior nodes (A=1 is spatial infinity, A=0 the axis edge)
+    # pick interior nodes (A=1 is spatial infinity, A=0 the axis edge); exp.B holds
+    # the angular nodes in the format's coordinate (s in format 4)
+    Bphys = exp.B if exp.fmt == 2 else ops.b_of_s(exp.B, "abt")
     for i in (3, 7, 12):
         for j in (2, 6, 10):
-            rho, z = ops.abt_map(exp.A[i], exp.B[j], exp.b)
+            rho, z = ops.abt_map(exp.A[i], Bphys[j], exp.b)
             for p in (0, 2, 5):
                 phi = 2.0 * np.pi * p / exp.Nphi
                 x, y = rho * np.cos(phi), rho * np.sin(phi)
@@ -226,9 +243,10 @@ def test_evaluator_exact_at_nodes(tmp_path):
                                                        U[i, j, p])
 
 
-def test_reference_table(tmp_path):
+@pytest.mark.parametrize("scheme", SCHEMES)
+def test_reference_table(tmp_path, scheme):
     """The C++-port target table is well formed and reproducible."""
-    prob, sl, U = _manufactured()
+    prob, sl, U = _manufactured(scheme=scheme)
     exp = eg.from_solution(prob, sl, U)
     path = str(tmp_path / "ref.dat")
     eg.dump_reference_table(exp, path, n=16, half_width=6.0)
@@ -239,6 +257,78 @@ def test_reference_table(tmp_path):
     # re-evaluating the table's own points reproduces it
     psi = eg.eval_psi(exp, tab[:, 0], tab[:, 1], tab[:, 2])
     assert np.max(np.abs(psi - tab[:, 3])) < 1e-14
+
+
+# ==========================================================================
+# Format 4: the "v2" grid
+# ==========================================================================
+_FORMAT2_KEYS = ["format", "b", "m_A", "m_B", "P_A", "P_B", "S_A", "S_B", "Na", "Nb",
+                 "Nphi", "ncos", "nsin", "cos_m", "sin_m", "A", "B", "C", "S"]
+
+
+def _keys(path):
+    return [ln.split()[0] for ln in open(path) if ln.strip() and not ln.startswith("#")]
+
+
+def test_the_grid_decides_the_format(tmp_path):
+    """paper-v1 writes format 2 with exactly its old keys; v2 writes format 4 with the
+    angular nodes under ``s`` and the two grid records; a mixed grid is refused."""
+    assert eg.FORMAT_OF_SCHEME == {"paper-v1": 2, "v2": 4} and eg.FORMAT_VERSION == 4
+    for scheme, fmt in eg.FORMAT_OF_SCHEME.items():
+        prob, sl, U = _manufactured(scheme=scheme)
+        exp = eg.from_solution(prob, sl, U)
+        assert exp.fmt == fmt
+        path = exp.write(str(tmp_path / f"{scheme}.lmid"))
+        keys = _keys(path)
+        if fmt == 2:
+            assert keys == _FORMAT2_KEYS, "a paper-v1 file must keep the format-2 layout"
+        else:
+            want = _FORMAT2_KEYS[:13] + ["angular_map", "radial_map"] + _FORMAT2_KEYS[13:]
+            assert keys == [k if k != "B" else "s" for k in want]
+            assert np.array_equal(exp.B, prob.Bs)                  # s, as laid
+    for kw in (dict(bmap="cos", radial="gauss"), dict(bmap="abt", radial="lobatto")):
+        prob = s3.make_problem(12, 10, 4, **kw)
+        with pytest.raises(NotImplementedError, match="mixed grid"):
+            eg.from_solution(prob, _manufactured()[1], np.zeros(prob.shape))
+
+
+def test_format4_reader_refuses_a_file_without_its_grid_records(tmp_path):
+    prob, sl, U = _manufactured(scheme="v2")
+    path = eg.from_solution(prob, sl, U).write(str(tmp_path / "v2.lmid"))
+    txt = open(path).read()
+    open(path, "w").write(txt.replace("radial_map gauss\n", ""))
+    with pytest.raises(ValueError, match="radial_map gauss"):
+        eg.Export.read(path)
+
+
+def test_inverse_abt_s_matches_solver():
+    """The transcribed (A, s) map == operators_abt.inverse_map_s, including a hair off
+    the outer axis, where s is ill-conditioned in B."""
+    P = _sample_points()
+    rho = np.concatenate([np.hypot(P[:, 0], P[:, 1]), [1e-12, 1e-9, 1e-6, 0.0]])
+    z = np.concatenate([P[:, 2], [7.0, -11.0, 3.0 + 1e-4, 50.0]])
+    A1, s1, omb2 = eg.inverse_abt_s(rho, z, B_ANCHOR)
+    A2, s2 = ops.inverse_map_s(rho, z, B_ANCHOR, "abt")
+    assert np.max(np.abs(A1 - A2)) < 1e-15 and np.max(np.abs(s1 - s2)) < 1e-15
+    B = ops.b_of_s(s1, "abt")
+    assert np.max(np.abs(omb2 - (1.0 - B) * (1.0 + B))) < 1e-14
+
+
+def test_format4_evaluator_near_the_axis_the_punctures_and_infinity(tmp_path):
+    """The places a v2 consumer can go wrong: s next to the outer axis, the puncture
+    corner (A = 0 lies outside the Gauss nodes: an extrapolation), and spatial
+    infinity, where u = (A - 1) V vanishes by construction."""
+    prob, sl, U = _manufactured(scheme="v2")
+    exp = eg.Export.read(eg.from_solution(prob, sl, U).write(str(tmp_path / "v2.lmid")))
+    b = sl.b
+    P = np.array([[1e-9, 0.0, 7.0], [0.0, 1e-7, -9.0], [1e-6, 1e-6, b + 1e-3],
+                  [0.0, 0.01, b - 0.01], [0.0, 0.0, b], [0.0, 0.0, -b],
+                  [0.0, 1e-8, 0.5 * b], [300.0, 0.0, 0.0]])
+    rho, phi = np.hypot(P[:, 0], P[:, 1]), np.arctan2(P[:, 1], P[:, 0])
+    want = s3.evaluate_field(prob, U, rho, P[:, 2], phi, b)
+    got = eg.eval_u(exp, P[:, 0], P[:, 1], P[:, 2])
+    assert np.max(np.abs(got - want)) < 1e-12 * max(1.0, np.max(np.abs(want)))
+    assert eg.eval_u(exp, 0.0, 1e150, 0.0)[0] == 0.0
 
 
 # ==========================================================================
