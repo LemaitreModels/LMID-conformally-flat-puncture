@@ -54,6 +54,7 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline import build_pod_h
 # imported above (a bare sibling import creates a second, unrelated copy).
 
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as _pb  # PROD_GRID (stdlib)
 from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_3d as p3
 from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_smolyak as sm
 from lemaitre.initial_data.conformally_flat_puncture.parametric import hermite_smolyak as hsm
@@ -86,9 +87,9 @@ def _common_args(ap):
                          "required for chunk/merge, unused by pod mode")
     ap.add_argument("--enhanced", default=SPIN_AXES,
                     help="comma-separated enhanced axes (default the 6 chi spins)")
-    ap.add_argument("--Na", type=int, default=44)
-    ap.add_argument("--Nb", type=int, default=32)
-    ap.add_argument("--Nphi", type=int, default=8)
+    ap.add_argument("--Na", type=int, default=_pb.PROD_GRID[0])
+    ap.add_argument("--Nb", type=int, default=_pb.PROD_GRID[1])
+    ap.add_argument("--Nphi", type=int, default=_pb.PROD_GRID[2])
     ap.add_argument("--tangent-jac", choices=("nk", "modified"), default="nk")
     ap.add_argument("--tangent-gmres-rtol", type=float, default=1e-8)
 

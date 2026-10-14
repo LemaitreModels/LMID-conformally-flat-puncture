@@ -46,7 +46,7 @@ REPDIR = os.path.join(REPORTS, "3D_parametric", "qc_chi")
 STORE = os.path.join(REPORTS, "3D_parametric", "solve_store_chi")
 os.makedirs(REPDIR, exist_ok=True)
 
-NA, NB, NPHI = 44, 32, 8
+NA, NB, NPHI = pb.PROD_GRID
 CODE_TAG = "chi-rebuild"
 QC = dict(pb.FIXED_QC)
 CHI_MAX = pb.CHI_MAX

@@ -41,13 +41,14 @@ from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_qc_joint_dist_
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as pb
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 REPDIR = os.path.join(REPORTS, "3D_parametric", "qc_chi")
 MODELS = os.path.join(REPORTS, "P2", "models_chi")
 # the 8-D y-pair CROSS model (value + gradient in chi_Ay,chi_By + cross term)
 CROSS_8D = os.path.join(MODELS, "hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross.npz")
 BOX_NAME = "spin8_qc_chi_prod"
-NA, NB, NPHI = 44, 32, 8
+NA, NB, NPHI = pb.PROD_GRID
 
 
 def _t(m): print(m, flush=True)

@@ -27,10 +27,14 @@ one canonical version of each model. Normal engineering hygiene applies.
 > `src/lemaitre/initial_data/conformally_flat_puncture/pipeline/production_model.py` (narrative: `docs/MODELS.md`).
 > Never restate the enhanced axes, POD ranks or stored-memory numbers anywhere else
 > — producers, figures, tests and the paper all read them from there. The same module
-> names the grid the shipped model is on, `production_model.SCHEME = "paper-v1"`,
-> which is **not** the solver's default (`"v2"`): every producer, figure, table, model
-> loader and the GRTeclyn export driver passes `scheme=production_model.SCHEME`, and
-> `tests/test_scheme_v2.py` fails on a grid built there without a name.
+> names the grid the shipped model is on, `production_model.SCHEME = "v2"` (since
+> 2026-10-14; `"paper-v1"` before), on `production_box.PROD_GRID = (44, 40, 8)`. It
+> equals the solver's default, but every producer, figure, table, model loader and the
+> GRTeclyn export driver still passes `scheme=production_model.SCHEME`, and
+> `tests/test_scheme_v2.py` fails on a grid built there without a name. The heavy
+> `reports/` tree is scoped by it (`paths.reports_root()` is `<base>/v2`; `paper-v1`
+> artifacts stay in the base), and a figdata whose `meta.scheme` is not it reads as
+> STALE.
 >
 > **Several design choices here were learned the hard way** — the equilibrated
 > (not raw) residual as the certification metric, field error as a metric separate
@@ -198,9 +202,9 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   > `None` — the original squaring — on `"cos"` and on any hand-built grid. A new
   > construction of the B-operator must go through it too, or the dense and separable
   > routes stop agreeing. **`"abt"` is the angular half of the default scheme
-  > `"v2"`** (below); `"cos"` is the angular half of `"paper-v1"`, which every shipped
-  > model, figure and solve-store key is on, by name, and so is the curved sibling's
-  > chart. The GRTeclyn export has one format per scheme — 2 for `"paper-v1"` (a
+  > `"v2"`** (below) and of `production_model.SCHEME`; `"cos"` is the angular half of
+  > `"paper-v1"`, the first submitted paper's grid, which the curved sibling's chart is
+  > on by name. The GRTeclyn export has one format per scheme — 2 for `"paper-v1"` (a
   > polynomial in `B`), 4 for `"v2"` (a polynomial in `s`) — and refuses a mixed
   > grid. A model built on `"abt"` records `bmap` in its metadata, and
   > `attach_solve_fn_3d` refuses a problem on the other map. Interpolate in `prob.Bs`
@@ -230,10 +234,10 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   > canonical Gauss grid from bare arrays (`operators_abt.radial_of`), as the angular
   > map is recognised by `angular_d2`. **`DEFAULT_SCHEME` is `"v2"`** (since
   > 2026-10-11): at the production grid 44×32×8 and `b = 10` it reads the ADM mass to
-  > 2.2e-9 where `"paper-v1"` is off by 6.7e-5, at the same cost. The paper's numbers
-  > stay on `"paper-v1"` by name: pipeline, paper and export code pass
-  > `production_model.SCHEME`; tests that pin a paper-v1 number pass
-  > `scheme="paper-v1"`; never let a paper number ride on the default. Every
+  > 2.2e-9 where `"paper-v1"` is off by 6.7e-5, at the same cost. The paper moved to
+  > it on 2026-10-14 (`production_model.SCHEME`); pipeline, paper and export code
+  > still name the grid through that constant, tests that pin a paper-v1 number pass
+  > `scheme="paper-v1"`, and no paper number rides on the default. Every
   > `"lobatto"` operator, solve, readout and store key is bit-for-bit what it was
   > (`tests/test_scheme_v2.py`, against a verbatim copy of the old assembly). The
   > identity defaults are not the grid default and stay the original grid: the

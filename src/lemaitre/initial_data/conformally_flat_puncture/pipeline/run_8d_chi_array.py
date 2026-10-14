@@ -50,7 +50,7 @@ from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
 from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 REPORTS = reports_root()          # heavy corpora root; $LM_REPORTS (see docs/DATA.md)
 STORE = os.path.join(REPORTS, "3D_parametric", "solve_store_chi")
-NA, NB, NPHI = 44, 32, 8
+NA, NB, NPHI = pb.PROD_GRID
 CHI = pb.CHI_MAX
 CODE_TAG = "chi-rebuild"
 FIXED = dict(pb.FIXED_QC)

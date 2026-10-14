@@ -63,7 +63,7 @@ REPDIR = os.path.join(REPORTS, "3D_parametric", "qc_chi")
 PARTDIR = os.path.join(REPDIR, "peraxis_dist_chi_parts")
 os.makedirs(PARTDIR, exist_ok=True)
 
-NA, NB, NPHI = 44, 32, 8
+NA, NB, NPHI = pb.PROD_GRID
 CODE_TAG = "chi-rebuild"
 QC = dict(pb.FIXED_QC)
 M_TOT = 1.0

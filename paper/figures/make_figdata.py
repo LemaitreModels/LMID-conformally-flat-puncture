@@ -29,6 +29,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import registry as reg          # noqa: E402
 import _figdata as fd           # noqa: E402
+from _figdata import _pm as pm  # noqa: E402  (production_model; stdlib)
 
 
 def _stem(arg):
@@ -53,17 +54,25 @@ def _figdata_tag(stem):
     STALE means the json is present but lacks a top-level key its plotter reads
     (registry.FIGURES[stem]["keys"]) — i.e. it predates a block being added to its producer, so
     ``make figures`` would die inside the plotter.  Reporting it as OK is what let fig02's
-    missing ``Q_wall_q`` sit unnoticed.
+    missing ``Q_wall_q`` sit unnoticed.  It also means the json describes another
+    discretisation than ``production_model.SCHEME`` (``meta.scheme``; absent = ``"paper-v1"``):
+    a figure from the old grid must not pass as current because its keys still match.
     """
     p = fd.figdata_path(stem)
     if not os.path.exists(p):
         return "figdata MISSING", None
     try:
         with open(p) as f:
-            miss = fd.missing_keys(stem, json.load(f))
+            d = json.load(f)
+        miss = fd.missing_keys(stem, d)
     except (ValueError, OSError) as e:                # unreadable/corrupt json
         return "figdata STALE", str(e)
-    return ("figdata STALE", f"missing keys {miss}") if miss else ("figdata OK", None)
+    if miss:
+        return "figdata STALE", f"missing keys {miss}"
+    if fd.scheme_of(d) != pm.SCHEME:
+        return "figdata STALE", (f"built on the {fd.scheme_of(d)!r} grid; the paper is on "
+                                 f"{pm.SCHEME!r}")
+    return "figdata OK", None
 
 
 def check():

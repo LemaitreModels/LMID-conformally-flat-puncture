@@ -59,6 +59,57 @@ def test_committed_figdata_is_current(stem):
         f"Rebuild: python paper/figures/make_figdata.py --fig {stem} --force")
 
 
+def test_figdata_of_another_scheme_reads_as_stale(tmp_path, monkeypatch):
+    """A figdata built on another discretisation must not pass as current because its
+    keys still match (meta.scheme; absent = "paper-v1", everything before 2026-10-14).
+    And dump() stamps the current scheme."""
+    import importlib
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+    mf = importlib.import_module("make_figdata")
+    stem = reg.figure_stems()[0]
+    full = {k: 0 for k in reg.keys_for(stem)}
+    monkeypatch.setattr(fd, "FIGDATA", str(tmp_path))
+    other = "paper-v1" if pm.SCHEME != "paper-v1" else "v2"
+    for meta, want in ((dict(scheme=pm.SCHEME), "figdata OK"),
+                       (dict(scheme=other), "figdata STALE"),
+                       ({}, "figdata OK" if pm.SCHEME == "paper-v1" else "figdata STALE")):
+        with open(fd.figdata_path(stem), "w") as f:
+            json.dump(dict(full, meta=meta), f)
+        assert mf._figdata_tag(stem)[0] == want, (meta, mf._figdata_tag(stem))
+    fd.dump(stem, dict(full))
+    with open(fd.figdata_path(stem)) as f:
+        assert json.load(f)["meta"]["scheme"] == pm.SCHEME
+    assert mf._figdata_tag(stem)[0] == "figdata OK"
+
+
+def test_fig10_refuses_a_ladder_from_another_grid(tmp_path):
+    """fig10 reads an external GRTeclyn run tree, not a reports/ source, so the scheme
+    scoping cannot protect it: a ladder run from another grid's export must be refused
+    rather than stamped with the current scheme.  No record = "paper-v1"; GRTeclyn's
+    own analytic Bowen-York series carries no scheme of ours."""
+    import importlib
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+    f10 = importlib.import_module("fig10_constraints_data")
+    rungs = [dict(N=48, h=0.375, L2_Ham=1e-6, L2_Mom=1e-7)]
+    other = "paper-v1" if pm.SCHEME != "paper-v1" else "v2"
+
+    def put(tag, **extra):
+        (tmp_path / tag).mkdir(exist_ok=True)
+        (tmp_path / tag / "ladder.json").write_text(json.dumps(dict(rungs=rungs, **extra)))
+
+    put("lm_anchor", scheme=pm.SCHEME)
+    assert f10._read_ladder(str(tmp_path), "lm_anchor")[0]["N"] == 48
+    put("lm_anchor", scheme=other)
+    with pytest.raises(SystemExit, match="export"):
+        f10._read_ladder(str(tmp_path), "lm_anchor")
+    put("lm_anchor")                                       # predates the record
+    if pm.SCHEME != "paper-v1":
+        with pytest.raises(SystemExit):
+            f10._read_ladder(str(tmp_path), "lm_anchor")
+    put("by_p010")                                         # no LM data: no scheme
+    assert f10._read_ladder(str(tmp_path), "by_p010")[0]["N"] == 48
+
+
 def test_every_figure_declares_its_plotter_keys():
     """The registry must declare keys for every figure, else the guard above is vacuous."""
     undeclared = [s for s in reg.figure_stems() if not reg.keys_for(s)]

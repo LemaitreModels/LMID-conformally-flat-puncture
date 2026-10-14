@@ -137,11 +137,11 @@ def _frozen_kron_factors(A, B, DA1, DB1, m):
     return L_A, C_B, W
 
 
-# The "default" case of milestone 1 is now the paper-v1 constant: the grid every shipped
-# number is on, by the name the producers use.
-@pytest.mark.parametrize("kw", [{"scheme": pm.SCHEME}, {"scheme": "paper-v1"},
+# paper-v1 by name (the grid of the first submitted paper; production_model.SCHEME
+# until 2026-10-14) and the 2026-10-10 abt+lobatto grid.
+@pytest.mark.parametrize("kw", [{"scheme": "paper-v1"},
                                 {"bmap": "abt", "radial": "lobatto"}],
-                         ids=["production_model.SCHEME", "paper-v1", "abt-lobatto"])
+                         ids=["paper-v1", "abt-lobatto"])
 @pytest.mark.parametrize("Na,Nb", [(12, 10), (20, 14), (44, 32)])
 def test_lobatto_operators_are_bit_identical_to_the_frozen_assembly(kw, Na, Nb):
     """paper-v1 (and the 2026-10-10 abt+lobatto grid) build exactly the old operator."""
@@ -683,12 +683,15 @@ def test_a_single_axis_has_no_default_of_its_own():
     assert ops.check_bmap("abt") == "abt" and ops.check_radial("gauss") == "gauss"
 
 
-def test_the_paper_constant_is_paper_v1():
+def test_the_paper_constant_is_v2():
     """One constant names the grid every shipped model, figure, table and the GRTeclyn
-    export is on; the export's own format constant agrees; the module stays stdlib."""
+    export is on; the export's own format constant agrees; the module stays stdlib.
+
+    Was ``test_the_paper_constant_is_paper_v1`` until the paper moved to v2 (2026-10-14);
+    the constant now equals the solver default, but the call sites still name it."""
     import ast
-    assert pm.SCHEME == "paper-v1" and pm.SCHEME in ops.SCHEMES
-    assert pm.SCHEME != ops.DEFAULT_SCHEME
+    assert pm.SCHEME == "v2" and pm.SCHEME in ops.SCHEMES
+    assert pm.SCHEME == ops.DEFAULT_SCHEME
     assert ex.FORMAT_OF_SCHEME == {"paper-v1": 2, "v2": 4}      # each grid its format
     tree = ast.parse(open(pm.__file__).read())
     mods = [n.module or "" for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)]

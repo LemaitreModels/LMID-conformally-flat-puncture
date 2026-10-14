@@ -45,6 +45,7 @@ import numpy as np
 
 
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as _pb  # PROD_GRID (stdlib)
 from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_3d as p3
 from lemaitre.initial_data.conformally_flat_puncture.parametric import hermite_smolyak as hsm
 from lemaitre.initial_data.conformally_flat_puncture.parametric import hermite_smolyak_pod as hpod
@@ -153,9 +154,9 @@ def build_hermite_from_value(value_path, prob, names, enhanced, M_tot, fixed,
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--Na", type=int, default=44)
-    ap.add_argument("--Nb", type=int, default=32)
-    ap.add_argument("--Nphi", type=int, default=8)
+    ap.add_argument("--Na", type=int, default=_pb.PROD_GRID[0])
+    ap.add_argument("--Nb", type=int, default=_pb.PROD_GRID[1])
+    ap.add_argument("--Nphi", type=int, default=_pb.PROD_GRID[2])
     ap.add_argument("--level", type=int, default=4, help="isotropic Smolyak level")
     ap.add_argument("--enhanced", default="S_Ay,S_By",
                     help="comma-separated enhanced axis names (default the two slow "

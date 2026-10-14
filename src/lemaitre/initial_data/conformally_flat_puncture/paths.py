@@ -24,6 +24,14 @@ Resolution order:
 2. ``<pipeline>/reports`` — the producers' historical location, so their
    behaviour is unchanged when the variable is unset.
 
+**The tree is kept apart by discretisation.**  The returned root is the base above
+for ``"paper-v1"`` (where every artifact built before 2026-10-14 lives) and
+``<base>/<scheme>`` for any other ``production_model.SCHEME``, so after the paper moved
+to ``"v2"`` every producer writes, and every figure-data script reads, under
+``<base>/v2``.  A ``"paper-v1"`` source therefore cannot be read under ``"v2"`` by
+accident: it is simply absent there, and the error names the producer.
+:func:`reports_base` is the unscoped base, for tools that must see both.
+
 Note (2) makes the default relative to the *package source*.  That is a
 deliberate compatibility choice, not a recommendation: a pip-installed package
 may sit read-only in site-packages, and corpora are data, not code.  Set
@@ -40,13 +48,33 @@ DEFAULT_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                             "pipeline", "reports")
 
 
-def reports_root(create: bool = False) -> str:
-    """Absolute path to the ``reports/`` tree (see the module docstring).
+#: The scheme whose artifacts sit directly in the base (everything built before the
+#: subdirectories existed).  Any other scheme gets ``<base>/<scheme>``.
+BASE_SCHEME = "paper-v1"
+
+
+def reports_base() -> str:
+    """The unscoped base: ``$LM_REPORTS``, else :data:`DEFAULT_ROOT` (absolute)."""
+    env = os.environ.get(ENV_VAR)
+    return os.path.abspath(os.path.expanduser(env)) if env else DEFAULT_ROOT
+
+
+def scheme_subdir(scheme: str) -> str:
+    """``""`` for :data:`BASE_SCHEME`, else the scheme name — the directory under the
+    base that holds that discretisation's artifacts."""
+    return "" if scheme == BASE_SCHEME else scheme
+
+
+def reports_root(create: bool = False, scheme: str | None = None) -> str:
+    """Absolute path to the ``reports/`` tree of ``scheme`` (default: the paper's,
+    ``production_model.SCHEME``) — see the module docstring.
 
     ``create=True`` makes the directory — pass it from producers that write.
     """
-    env = os.environ.get(ENV_VAR)
-    root = os.path.abspath(os.path.expanduser(env)) if env else DEFAULT_ROOT
+    if scheme is None:
+        from .pipeline import production_model as pm      # stdlib-only; no jax
+        scheme = pm.SCHEME
+    root = os.path.normpath(os.path.join(reports_base(), scheme_subdir(scheme)))
     if create:
         os.makedirs(root, exist_ok=True)
     return root

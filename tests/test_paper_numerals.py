@@ -386,7 +386,8 @@ def test_models_md_headline_numbers_come_from_production_model():
 
 def test_models_md_names_the_grid_the_model_is_built_on():
     """The shipped grid is ``production_model.SCHEME``; the page must say which, and
-    that it is not the solver's default (which became ``"v2"`` in milestone 2)."""
+    what the solver's default is (``"v2"`` since milestone 2, and the paper's grid since
+    2026-10-14 — the page must still say both, so a later change of either shows)."""
     from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
     from lemaitre.initial_data.conformally_flat_puncture.solver import operators_abt as ops
     doc = _text(MODELS_MD)

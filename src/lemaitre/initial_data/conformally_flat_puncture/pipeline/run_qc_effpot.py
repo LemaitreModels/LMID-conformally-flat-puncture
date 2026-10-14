@@ -65,7 +65,7 @@ def main(Jlist=None, n_scan=13):
     Jlist = list(JLIST_DEFAULT if Jlist is None else Jlist)
     os.makedirs(REPDIR, exist_ok=True); os.makedirs(FIGDIR, exist_ok=True)
     t0 = time.time()
-    prob = s3.make_problem(Na=44, Nb=32, Nphi=8, scheme=pm.SCHEME)
+    prob = s3.make_problem(*pb.PROD_GRID, scheme=pm.SCHEME)
     model = E.load_model(MODEL, prob)
     print(f"[effpot] model {model.n_nodes} nodes; J sweep {Jlist}", flush=True)
 
@@ -180,7 +180,7 @@ if __name__ == "__main__":
                         scan_b=np.asarray(d["per_J"][f"{J:.2f}"]["scan_curve"]["b"], float),
                         scan_Eb=np.asarray(d["per_J"][f"{J:.2f}"]["scan_curve"]["Eb"], float))
                 for J in Jlist}
-        prob = s3.make_problem(Na=44, Nb=32, Nphi=8, scheme=pm.SCHEME)
+        prob = s3.make_problem(*pb.PROD_GRID, scheme=pm.SCHEME)
         model = E.load_model(MODEL, prob)
         _figure(model, prob, Jlist, data, n_scan, n_grad,
                 os.path.join(FIGDIR, "fig_qc_eccentricity.png"))

@@ -26,6 +26,7 @@ FIGDATA = os.path.join(HERE, "figdata")
 # output of the producer that fed it; both now resolve through the one setting,
 # $LM_REPORTS.  See lemaitre.initial_data.conformally_flat_puncture.paths and docs/DATA.md.
 from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root  # noqa: E402  (pure stdlib; no jax)
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as _pm  # noqa: E402  (stdlib)
 from lemaitre.initial_data.conformally_flat_puncture.provenance import code_stamp  # noqa: E402
 
 REPORTS = reports_root()          # display convenience; source_path() resolves live
@@ -66,10 +67,21 @@ def dump(stem, obj):
         obj.setdefault("meta", {})
         if isinstance(obj["meta"], dict):
             obj["meta"]["code"] = code_stamp()
+            # Which discretisation the figure describes.  Its sources come from
+            # reports_root(), which is scoped by production_model.SCHEME, so this is the
+            # scheme of the sources as well as of the code.
+            obj["meta"]["scheme"] = _pm.SCHEME
     os.makedirs(FIGDATA, exist_ok=True)
     with open(figdata_path(stem), "w") as f:
         json.dump(obj, f, indent=2, default=_to_jsonable)
     return figdata_path(stem)
+
+
+def scheme_of(d):
+    """The discretisation a figdata describes: ``meta.scheme``, or ``"paper-v1"`` for a
+    file written before the stamp existed (everything before 2026-10-14 was)."""
+    meta = d.get("meta") if isinstance(d, dict) else None
+    return (meta or {}).get("scheme", "paper-v1") if isinstance(meta, dict) else "paper-v1"
 
 
 def missing_keys(stem, d):

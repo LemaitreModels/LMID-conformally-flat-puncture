@@ -20,6 +20,13 @@ import os
 import pytest
 
 from lemaitre.initial_data.conformally_flat_puncture import paths
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+
+
+def _scoped(base):
+    """The paper's root under ``base``: the base itself for ``"paper-v1"``, else
+    ``<base>/<scheme>`` (see ``paths`` — the tree is kept apart by discretisation)."""
+    return os.path.normpath(os.path.join(str(base), paths.scheme_subdir(pm.SCHEME)))
 
 
 # ==========================================================================
@@ -27,14 +34,16 @@ from lemaitre.initial_data.conformally_flat_puncture import paths
 # ==========================================================================
 def test_env_var_wins(tmp_path, monkeypatch):
     monkeypatch.setenv(paths.ENV_VAR, str(tmp_path / "corpora"))
-    assert paths.reports_root() == str(tmp_path / "corpora")
+    assert paths.reports_base() == str(tmp_path / "corpora")
+    assert paths.reports_root() == _scoped(tmp_path / "corpora")
 
 
 def test_default_is_the_in_package_path(monkeypatch):
     """Unset -> the producers' historical root, so nothing changes for them."""
     monkeypatch.delenv(paths.ENV_VAR, raising=False)
-    root = paths.reports_root()
+    root = paths.reports_base()
     assert root == paths.DEFAULT_ROOT
+    assert paths.reports_root() == _scoped(paths.DEFAULT_ROOT)
     # DEFAULT_ROOT is derived from paths.__file__, so it tracks the package
     # location: `<...>/lemaitre/initial_data/conformally_flat_puncture/pipeline/reports`.
     assert root.endswith(
@@ -47,14 +56,34 @@ def test_default_is_independent_of_cwd(tmp_path, monkeypatch):
     monkeypatch.delenv(paths.ENV_VAR, raising=False)
     monkeypatch.chdir(tmp_path)
     (tmp_path / "reports").mkdir()            # a decoy beside the cwd
-    assert paths.reports_root() == paths.DEFAULT_ROOT
+    assert paths.reports_root() == _scoped(paths.DEFAULT_ROOT)
 
 
 def test_root_is_absolute_and_expands_user(monkeypatch):
     monkeypatch.setenv(paths.ENV_VAR, "~/some-corpora")
-    root = paths.reports_root()
+    root = paths.reports_base()
     assert os.path.isabs(root) and "~" not in root
     assert root == os.path.join(os.path.expanduser("~"), "some-corpora")
+    assert paths.reports_root() == _scoped(root)
+
+
+def test_the_tree_is_kept_apart_by_scheme(tmp_path, monkeypatch):
+    """paper-v1 artifacts sit in the base (where everything before 2026-10-14 lives);
+    any other scheme in ``<base>/<scheme>``, so a v2 producer or figure cannot read a
+    paper-v1 source by accident — it is absent, and the error names the producer."""
+    monkeypatch.setenv(paths.ENV_VAR, str(tmp_path))
+    assert paths.reports_root(scheme="paper-v1") == str(tmp_path)
+    assert paths.reports_root(scheme="v2") == str(tmp_path / "v2")
+    assert paths.reports_root() == paths.reports_root(scheme=pm.SCHEME)
+    (tmp_path / "x.json").write_text("{}")                     # a paper-v1 artifact
+    assert not os.path.exists(os.path.join(paths.reports_root(scheme="v2"), "x.json"))
+
+
+def test_a_filesystem_root_base_stays_a_root(monkeypatch):
+    """``LM_REPORTS=/`` must not collapse to "" (relative paths, a failing mkdir)."""
+    monkeypatch.setenv(paths.ENV_VAR, os.sep)
+    assert paths.reports_root(scheme="paper-v1") == os.sep
+    assert paths.reports_root(scheme="v2") == os.path.join(os.sep, "v2")
 
 
 # ==========================================================================
@@ -62,16 +91,16 @@ def test_root_is_absolute_and_expands_user(monkeypatch):
 # ==========================================================================
 def test_reports_path_joins(tmp_path, monkeypatch):
     monkeypatch.setenv(paths.ENV_VAR, str(tmp_path))
-    assert paths.reports_path("P3", "x.json") == str(tmp_path / "P3" / "x.json")
+    assert paths.reports_path("P3", "x.json") == os.path.join(_scoped(tmp_path), "P3", "x.json")
 
 
 def test_create_flags(tmp_path, monkeypatch):
     monkeypatch.setenv(paths.ENV_VAR, str(tmp_path / "root"))
     assert not os.path.isdir(str(tmp_path / "root"))
     paths.reports_root(create=True)
-    assert os.path.isdir(str(tmp_path / "root"))
+    assert os.path.isdir(_scoped(tmp_path / "root"))
     paths.reports_path("P3", "deep", "y.json", create_parent=True)
-    assert os.path.isdir(str(tmp_path / "root" / "P3" / "deep"))
+    assert os.path.isdir(os.path.join(_scoped(tmp_path / "root"), "P3", "deep"))
 
 
 # ==========================================================================
@@ -79,9 +108,10 @@ def test_create_flags(tmp_path, monkeypatch):
 # ==========================================================================
 def test_require_returns_existing(tmp_path, monkeypatch):
     monkeypatch.setenv(paths.ENV_VAR, str(tmp_path))
-    (tmp_path / "P3").mkdir()
-    (tmp_path / "P3" / "ok.json").write_text("{}")
-    assert paths.require("P3", "ok.json") == str(tmp_path / "P3" / "ok.json")
+    d = os.path.join(_scoped(tmp_path), "P3")
+    os.makedirs(d)
+    open(os.path.join(d, "ok.json"), "w").write("{}")
+    assert paths.require("P3", "ok.json") == os.path.join(d, "ok.json")
 
 
 def test_require_error_is_actionable(tmp_path, monkeypatch):
@@ -126,9 +156,9 @@ def test_figure_side_agrees_with_producers(monkeypatch, tmp_path):
         sys.path.insert(0, figdir)
     monkeypatch.setenv(paths.ENV_VAR, str(tmp_path))
     import _figdata as fd
-    assert fd.reports_root() == paths.reports_root() == str(tmp_path)
+    assert fd.reports_root() == paths.reports_root() == _scoped(tmp_path)
     # and a source path lands under it (resolved per call, not at import)
-    assert fd.source_path("sweep_3d").startswith(str(tmp_path))
+    assert fd.source_path("sweep_3d").startswith(_scoped(tmp_path))
 
 
 def test_standalone_imports():

@@ -137,13 +137,16 @@ The unique node count follows from this and the dimension alone:
 Levels 1..5 are nested, so every lower level is already contained in the corpus.
 """
 
-PROD_GRID = (44, 32, 8)
+PROD_GRID = (44, 40, 8)
 """Production spatial grid ``(N_A, N_B, N_phi)`` of the shipped corpora.
 
-The builders take it on the command line (``--Na 44 --Nb 32 --Nphi 8``, see the
+The builders take it on the command line (``--Na 44 --Nb 40 --Nphi 8``, see the
 usage block of ``build_surrogate_chi``); it is recorded here so the paper's
-parameter-box table and the ``code_tag``-keyed corpora quote one canonical triple
-rather than a hand-copied one.  Changing it invalidates the solve store.
+parameter-box table, the pipeline scripts and the ``code_tag``-keyed corpora quote one
+canonical triple rather than a hand-copied one.  Changing it invalidates the solve
+store.
+
+History: (44, 32, 8) on the ``"paper-v1"`` grid; (44, 40, 8) on ``"v2"``.
 """
 
 # --- analyticity-wall sweep ranges -----------------------------------------

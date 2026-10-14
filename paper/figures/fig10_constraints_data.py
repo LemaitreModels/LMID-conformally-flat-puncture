@@ -68,7 +68,7 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from _figdata import dump
+from _figdata import dump, _pm  # noqa: E402  (_pm: production_model, stdlib)
 
 # tag -> (figdata key, label)
 SERIES = (
@@ -117,12 +117,28 @@ def _local_orders(h, e):
     return out
 
 
+#: Series whose initial data is GRTeclyn's own analytic Bowen-York, not an LM export:
+#: no discretisation of ours is involved, so they carry no scheme.
+NO_LM_DATA = ("by_p010",)
+
+
 def _read_ladder(root, tag):
     path = os.path.join(root, tag, "ladder.json")
     if not os.path.exists(path):
         return None
     with open(path) as f:
-        rungs = json.load(f)["rungs"]
+        d = json.load(f)
+    # The figdata is stamped with production_model.SCHEME (_figdata.dump), so a ladder
+    # run from another grid's export must not get through: run_ladder.sh records the
+    # export's scheme; a ladder without the record predates it and is "paper-v1".
+    if tag not in NO_LM_DATA:
+        have = d.get("scheme") or "paper-v1"
+        if have != _pm.SCHEME:
+            raise SystemExit(
+                f"{path}: this ladder was run from a {have!r} export, but the paper is on "
+                f"{_pm.SCHEME!r}. Re-run it from a `run_export_grteclyn --scheme "
+                f"{_pm.SCHEME}` export (grteclyn/run_ladder.sh records the scheme).")
+    rungs = d["rungs"]
     rungs.sort(key=lambda r: -r["h"])            # coarse -> fine
     return rungs
 
@@ -204,13 +220,21 @@ def main():
     # not only in prose.
     probe_tag = next(t for t, k, _ in SERIES if have.get(k))
     probe = _read_ladder(root, probe_tag)[0]
+    # The spectral grid of the export the anchor series was run from: recorded by
+    # run_ladder.sh since the v2 move; a ladder without it is the paper-v1 campaign,
+    # whose exports were 52 x 36 x 8 (run_export_grteclyn.SPECTRAL at the time).
+    sg = None
+    if have.get("lm"):
+        with open(os.path.join(root, "lm_anchor", "ladder.json")) as f:
+            sg = json.load(f).get("spectral_grid")
+    spectral = sg if sg else [52, 36, 8]
     meta = dict(
         measured_by="GRTeclyn Constraints (4th-order stencils, CCZ4 variables)",
         norm=probe.get("norm"),
         box_half_width=9.0, L_full=18.0,
         r_excl=probe.get("r_excl"), border_cells=probe.get("border_cells"),
         b=3.0, m_A=0.5, m_B=0.5, P_anchor=0.5, P_small=0.1,
-        spectral_grid=[52, 36], spectral_nphi=8,
+        spectral_grid=list(spectral[:2]), spectral_nphi=spectral[2],
         boost_guard="GRTeclyn analytic ID requires |P| < 0.3 m",
         has_tp=have.get("tp", False), has_by=have.get("by_p010", False),
         has_amr=bool(amr), has_variants=bool(variants),

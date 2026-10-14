@@ -40,19 +40,24 @@ The names are the same in both boxes and the indices are **not** — the six spi
 components sit between `q` and the aligned pair in 8-D. Use
 `production_model.enhanced_indices(dim)`, never a literal.
 
-### The grid it is built on: `production_model.SCHEME = "paper-v1"`
+### The grid it is built on: `production_model.SCHEME = "v2"`
 
-Both models were solved on the production grid `44 × 32 × 8`
-(`production_box.PROD_GRID`) under the `"paper-v1"` discretisation
-(`solver.operators_abt.SCHEMES`): Gauss–Legendre nodes in `B = cos η` (`"cos"`) and
-Chebyshev–Gauss–Lobatto `A` with a boundary row at each edge (`"lobatto"`) — what the
-first version of the paper used. **It is not the solver's default.** The solver
-defaults to `"v2"` (Ansorg–Brügmann–Tichy's angle and radial form), so every
-producer, figure-data script, table, model loader and the GRTeclyn export driver
-passes `scheme=production_model.SCHEME`, and `tests/test_scheme_v2.py` scans the
-source for any grid built there without a name. Loading a shipped model onto a
-problem built on another grid is refused (`attach_solve_fn_3d`); the model files do
-not record `"paper-v1"` because "no key" has always meant it.
+Since 2026-10-14 the shipped models are to be built on the production grid
+`44 × 40 × 8` (`production_box.PROD_GRID`) under the `"v2"` discretisation
+(`solver.operators_abt.SCHEMES`): Gauss–Legendre nodes in the ABT angle `s` (`"abt"`)
+and TwoPunctures' radial form `u = (A − 1) V` on Chebyshev–Gauss `A` with no boundary
+rows (`"gauss"`). **Until the rebuild is complete the `.npz` models on disk are the
+first paper's**, on `44 × 32 × 8` under `"paper-v1"` (`"cos"` + `"lobatto"`). They do
+not record `"paper-v1"`, because "no key" has always meant it, and loading one onto a
+`"v2"` problem is refused (`attach_solve_fn_3d`). They also sit in the base of the
+`reports/` tree, while everything built on `"v2"` lives in `<base>/v2`
+(`paths.reports_root`), so a `"v2"` producer cannot pick one up by accident.
+
+The solver also defaults to `"v2"` (`operators_abt.DEFAULT_SCHEME`), but every producer, figure-data script, table,
+model loader and the GRTeclyn export driver still passes
+`scheme=production_model.SCHEME`, and `tests/test_scheme_v2.py` scans the source for
+any grid built there without a name. The paper's grid must never follow a later change
+of the default silently.
 
 ---
 
@@ -71,12 +76,12 @@ is counting tangents the model never reads.
 
 | family | blocks/node | 4-D bare | 4-D POD | 8-D bare | 8-D POD |
 |---|---|---|---|---|---|
-| `value` | 1 | 97 MiB | 24.2 MiB | 1,381 MiB | 104.0 MiB |
-| `gradient_all` | 5 / 9 | 486 MiB | 32.6 MiB | 12,429 MiB | 583.5 MiB |
-| `cross_all` | 6 / 10 | 583 MiB | 34.7 MiB | 13,810 MiB | 643.4 MiB |
-| `shipped` **(shipped)** | 4 | 388 MiB | 30.5 MiB | 5,524 MiB | 283.8 MiB |
+| `value` | 1 | 121 MiB | 29.7 MiB | 1,726 MiB | 115.0 MiB |
+| `gradient_all` | 5 / 9 | 607 MiB | 38.1 MiB | 15,537 MiB | 594.5 MiB |
+| `cross_all` | 6 / 10 | 728 MiB | 40.2 MiB | 17,263 MiB | 654.4 MiB |
+| `shipped` **(shipped)** | 4 | 486 MiB | 36.0 MiB | 6,905 MiB | 294.8 MiB |
 
-POD columns are at the shipped ranks. Compression: **12.7×** (4-D), **19.5×** (8-D).
+POD columns are at the shipped ranks, on the `"v2"` production grid (44, 40, 8): **13.5×** (4-D), **23.4×** (8-D). The ranks are to be re-measured on the v2 corpora (fig05's knee), and every number here moves with them. The first submitted paper quoted the `"paper-v1"` grid's numbers (§4).
 
 The non-shipped families are kept *named* so that every number the project has ever
 quoted stays reproducible and labelled — see §4.
@@ -143,8 +148,9 @@ the accuracy statistics were never affected by it.
 
 | number | what it actually was |
 |---|---|
-| 486 MiB / 12.1 GiB corpus | `gradient_all` — all-`d` tangents, **no** cross |
-| 583 MiB / 13.5 GiB bare star | `cross_all` — all-`d` tangents **+** cross |
+| 388 MiB / 5.4 GiB bare, 30.5 / 284 MiB POD, 12.7× / 19.5× | the shipped model on the `"paper-v1"` grid (44, 32, 8), N_FEAT 11 520 — the first submitted paper |
+| 486 MiB / 12.1 GiB corpus | `gradient_all` — all-`d` tangents, **no** cross, on the `"paper-v1"` grid (the 4-D 486 MiB coincides with the v2 shipped bare corpus; they are different models) |
+| 583 MiB / 13.5 GiB bare star | `cross_all` — all-`d` tangents **+** cross, on the `"paper-v1"` grid |
 | 10.0 MiB / 420 MiB compressed | `gradient_all` at the **old** ranks r=76 / r=359 |
 | compression 49× / 30× | the two rows above, combined |
 | POD rank 75/76, 359 | the first shipped bases, below the Fig. 5 saturation knee |
@@ -158,16 +164,17 @@ the cross POD bases from the full Hermite corpora.
 ## 5. If you change the model
 
 1. Change `production_model.py` — nothing else defines the model. Moving `SCHEME`
-   off `"paper-v1"` moves every producer, figure, table and the export with it, and
-   the shipped `.npz` models (built on `"paper-v1"`) stop loading: it means rebuilding
-   them. The GRTeclyn export follows the grid (format 2 for `"paper-v1"`, 4 for
-   `"v2"`), so fig10 needs new constraint runs.
+   moves every producer, figure, table and the export with it. The shipped `.npz`
+   models of the old grid stop loading and the `reports/` root moves to the new
+   scheme's subdirectory, so it means rebuilding them (this was done for `"paper-v1"` →
+   `"v2"` on 2026-10-14). The GRTeclyn export follows the grid (format 2 for
+   `"paper-v1"`, 4 for `"v2"`), so fig10 needs new constraint runs.
 2. `pytest tests/test_production_model.py` (identity, accounting, slim losslessness).
 3. Rebuild the affected figdata — `python paper/figures/make_figdata.py --fig <stem>
    --force`; most sources are cluster-side, see [`DATA.md`](DATA.md). **Do not wait for
    a guard to tell you.** Plain `make figdata` skips a figdata that is present, and its
-   staleness check is key-presence only (§3), so a model change leaves the old numbers
-   reading as `figdata OK`. `fig04` and `fig05` refuse a mismatched sweep, but only
-   once their producer actually runs.
+   staleness check reads only the keys and `meta.scheme` (§3). A model change that
+   keeps the scheme leaves the old numbers reading as `figdata OK`. `fig04` and
+   `fig05` refuse a mismatched sweep, but only once their producer actually runs.
 4. Update this page by re-running the self-report.
 5. Only then touch `paper/paper.tex`.

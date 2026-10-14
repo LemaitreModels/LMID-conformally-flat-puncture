@@ -157,7 +157,10 @@ def tp_export(prob, sl, name, out_dir, n_ref):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default="reports/grteclyn_export")
+    ap.add_argument("--out", default=None,
+                    help="output directory; default <reports root of --scheme>/grteclyn_export "
+                         "(paths.reports_root), so exports of different grids never share "
+                         "a directory")
     ap.add_argument("--which", default="all",
                     choices=["all", "anchor", "single", "qc", "p010"])
     ap.add_argument("--tp", action="store_true",
@@ -185,6 +188,9 @@ def main():
     ap.add_argument("--n-ref", type=int, default=256,
                     help="reference-table points for the C++ port test")
     args = ap.parse_args()
+    if args.out is None:
+        from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root
+        args.out = os.path.join(reports_root(scheme=args.scheme), "grteclyn_export")
 
     os.makedirs(args.out, exist_ok=True)
     summary = []

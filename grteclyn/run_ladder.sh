@@ -122,10 +122,28 @@ for N in $NLIST; do
 done
 
 # --- collect into the schema fig10_constraints_data.py reads ----------------
-python3 - "$OUT" "$L" $NLIST <<'PY'
+LMID_ABS=""
+[ -n "$LMID" ] && LMID_ABS="$(cd "$(dirname "$LMID")" && pwd)/$(basename "$LMID")"
+python3 - "$OUT" "$L" "$LMID_ABS" $NLIST <<'PY'
 import json, math, os, sys
-out, L = sys.argv[1], float(sys.argv[2])
-ns = [int(a) for a in sys.argv[3:]]
+out, L, lmid = sys.argv[1], float(sys.argv[2]), sys.argv[3]
+ns = [int(a) for a in sys.argv[4:]]
+# Which discretisation the LM initial data was exported from: the .lmid's own
+# `format` record (2 = "paper-v1", 4 = "v2").  fig10_constraints_data refuses a
+# series whose scheme is not production_model.SCHEME, so an old ladder can never
+# be stamped as the current grid.  No LMID (GRTeclyn's own analytic data) -> None.
+fmt, grid = None, {}
+if lmid:
+    with open(lmid) as f:
+        for line in f:
+            key = line.split(" ", 1)[0]
+            if key == "format":
+                fmt = int(line.split()[1])
+            elif key in ("Na", "Nb", "Nphi"):
+                grid[key] = int(line.split()[1])
+scheme = {2: "paper-v1", 4: "v2"}.get(fmt)
+if lmid and scheme is None:
+    sys.exit(f"{lmid}: no known `format` record ({fmt!r}); refusing to label the ladder")
 rows = []
 for n in ns:
     with open(os.path.join(out, f"N{n}", "constraint_norms.json")) as f:
@@ -134,7 +152,9 @@ for n in ns:
     d["h"] = L / n
     rows.append(d)
 with open(os.path.join(out, "ladder.json"), "w") as f:
-    json.dump({"rungs": rows}, f, indent=2)
+    json.dump({"rungs": rows, "lm_format": fmt, "scheme": scheme,
+               "spectral_grid": [grid.get("Na"), grid.get("Nb"), grid.get("Nphi")]
+               if grid else None}, f, indent=2)
 
 
 def show(v):

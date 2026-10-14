@@ -14,7 +14,7 @@ on that table). Same methodology as ``run_polish_table_qc.py`` (which is the OLD
 with all edges taken from ``production_box``,
 
 at fixed quasi-circular tangential momentum (``qc=1.0``), on the production 3-D
-spatial grid (Na=44, Nb=32, Nphi=8), against the shipped 4-D χ Smolyak model
+spatial grid (production_box.PROD_GRID), against the shipped 4-D χ Smolyak model
 (isotropic level L=5, 1105 solves):
 
     reports/3D_parametric/models_chi/surrogate_smolyak_d4_qc_chi_prod_L5.npz
@@ -61,7 +61,7 @@ MODELDIR = os.path.join(REPORTS, "3D_parametric", "models_chi")
 BOX = pb.aligned_box()
 NAMES = [a["name"] for a in BOX]
 FIXED = dict(pb.FIXED_QC)
-NA, NB, NPHI, M_TOT = 44, 32, 8, 1.0
+(NA, NB, NPHI), M_TOT = pb.PROD_GRID, 1.0
 GAP_MIN = 1e-4  # off-node guard
 MODEL_NAME = "surrogate_smolyak_d4_qc_chi_prod_L5.npz"
 

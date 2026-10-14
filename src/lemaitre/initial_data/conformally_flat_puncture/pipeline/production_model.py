@@ -42,19 +42,24 @@ from . import production_box as pb
 # ---------------------------------------------------------------------------
 # 1.  Identity of the shipped model
 # ---------------------------------------------------------------------------
-SCHEME = "paper-v1"
+SCHEME = "v2"
 """The discretisation every shipped model, figure, table and the GRTeclyn export is
-built on: a name in ``solver.operators_abt.SCHEMES`` (``"paper-v1"`` = the ``"cos"``
-angular node map with the ``"lobatto"`` radial grid, what the first version of the
-paper used).
+built on: a name in ``solver.operators_abt.SCHEMES``.  ``"v2"`` is the ``"abt"``
+angular node map (Gauss–Legendre nodes in the ABT angle ``s``) with the ``"gauss"``
+radial grid (TwoPunctures' ``u = (A − 1) V`` on Chebyshev–Gauss ``A``).
 
-It is deliberately NOT the solver's default.  The solver defaults to ``"v2"``
-(``operators_abt.DEFAULT_SCHEME``), so every producer, figure-data script, table,
-model loader and the GRTeclyn export driver passes ``scheme=SCHEME`` to
-``make_problem``/``build_grid``/``get_separable``; a source scan in
-``tests/test_scheme_v2.py`` fails on any such call there that names no grid.  The
-shipped ``.npz`` models were built on this grid, and ``attach_solve_fn_3d`` refuses
-a problem on another one, so changing it means rebuilding them.
+History: until 2026-10-14 this was ``"paper-v1"`` (``"cos"`` + ``"lobatto"``), the grid
+of the first submitted version of the paper.  Every artifact built before then is on
+that grid; :func:`~..paths.reports_root` keeps them apart by scheme, so a ``"v2"``
+producer cannot read a ``"paper-v1"`` source by accident.
+
+Every producer, figure-data script, table, model loader and the GRTeclyn export
+driver passes ``scheme=SCHEME`` to ``make_problem``/``build_grid``/``get_separable``.
+It now equals the solver's default (``operators_abt.DEFAULT_SCHEME``), but the call
+sites still name it: a source scan in ``tests/test_scheme_v2.py`` fails on any such
+call there that names no grid, so the paper cannot follow a later change of the
+solver default by accident.  ``attach_solve_fn_3d`` refuses a model built on another
+grid, so changing this means rebuilding the shipped ``.npz`` models.
 
 A string, not an import of the solver's table, so this module stays stdlib-only;
 the same test asserts it is a key of ``operators_abt.SCHEMES``.  The dependency
@@ -96,9 +101,13 @@ cross POD bases from the full Hermite corpora.
 N_NODES = {4: 1105, 8: 15713}
 """Solver nodes in the isotropic Smolyak level-``pb.SMOLYAK_LEVEL`` corpus."""
 
-N_FEAT = 11520
-"""Spatial degrees of freedom per stored field (``Na * Nb * Nphi`` of the
-production grid), measured from the corpora."""
+N_FEAT = (pb.PROD_GRID[0] + 1) * pb.PROD_GRID[1] * pb.PROD_GRID[2]
+"""Spatial degrees of freedom per stored field: ``(Na + 1) * Nb * Nphi`` of the
+production grid (both radial maps lay ``Na + 1`` nodes in ``A``), 45 * 40 * 8 = 14 400.
+
+History: 11 520 = 45 * 32 * 8 on the ``"paper-v1"`` production grid (44, 32, 8), where
+it was measured from the corpora.  The ``"v2"`` corpora are to be checked against
+this derived value when they are rebuilt."""
 
 BYTES_PER_FLOAT = 8
 """All stored arrays are float64."""
@@ -211,10 +220,11 @@ def pod_bytes(r: int, dim: int, family: str = "shipped", *, N: int | None = None
     return float(BYTES_PER_FLOAT * (nfeat * r + N * stored_blocks(family, dim) * r + nfeat))
 
 
-def compression_factor(dim: int, r: int | None = None, family: str = "shipped") -> float:
+def compression_factor(dim: int, r: int | None = None, family: str = "shipped", *,
+                       nfeat: int = N_FEAT) -> float:
     """Bare corpus / rank-``r`` POD, both in ``family``'s accounting."""
     r = SHIPPED_RANK[dim] if r is None else r
-    return bare_bytes(dim, family) / pod_bytes(r, dim, family)
+    return bare_bytes(dim, family, nfeat=nfeat) / pod_bytes(r, dim, family, nfeat=nfeat)
 
 
 # ---------------------------------------------------------------------------

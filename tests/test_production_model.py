@@ -69,24 +69,47 @@ def test_stored_blocks_families():
         pm.stored_blocks("gradient_all")
 
 
+#: N_FEAT of the "paper-v1" production grid (44, 32, 8): (44 + 1) * 32 * 8, measured from
+#: those corpora.  Every number the first submitted paper quoted was computed with it.
+NFEAT_PAPER_V1 = 11520
+
+
+def test_n_feat_is_the_production_grid():
+    Na, Nb, Nphi = pb.PROD_GRID
+    assert pm.N_FEAT == (Na + 1) * Nb * Nphi
+    assert NFEAT_PAPER_V1 == (44 + 1) * 32 * 8
+
+
 def test_memory_reproduces_quoted_numbers():
-    """The formulas regenerate each number that has appeared in the paper or Fig. 5."""
+    """The formulas regenerate each number that has appeared in the paper or Fig. 5.
+
+    Everything quoted up to the first submission is on the "paper-v1" grid, so those
+    checks pass its N_FEAT explicitly; the current grid's numbers are pinned last."""
+    nf = dict(nfeat=NFEAT_PAPER_V1)
     # paper text before 2026-08: gradient_all, no cross
-    assert pm.bare_bytes(4, "gradient_all") / MiB == pytest.approx(485.6, abs=0.1)
-    assert pm.bare_bytes(8, "gradient_all") / GiB == pytest.approx(12.14, abs=0.01)
+    assert pm.bare_bytes(4, "gradient_all", **nf) / MiB == pytest.approx(485.6, abs=0.1)
+    assert pm.bare_bytes(8, "gradient_all", **nf) / GiB == pytest.approx(12.14, abs=0.01)
     # Fig. 5 bare stars before 2026-08: cross_all
-    assert pm.bare_bytes(4, "cross_all") / MiB == pytest.approx(582.7, abs=0.1)
-    assert pm.bare_bytes(8, "cross_all") / GiB == pytest.approx(13.49, abs=0.01)
+    assert pm.bare_bytes(4, "cross_all", **nf) / MiB == pytest.approx(582.7, abs=0.1)
+    assert pm.bare_bytes(8, "cross_all", **nf) / GiB == pytest.approx(13.49, abs=0.01)
     # superseded shipped ranks, in the accounting that produced 10.0 MiB / 420 MiB
-    assert pm.pod_bytes(76, 4, "gradient_all") / MiB == pytest.approx(10.0, abs=0.1)
-    assert pm.pod_bytes(359, 8, "gradient_all") / MiB == pytest.approx(419.0, abs=1.0)
-    # what the paper now quotes: the shipped y-pair cross model at r=250 / r=500
-    assert pm.bare_bytes(4) / MiB == pytest.approx(388.5, abs=0.1)
-    assert pm.bare_bytes(8) / GiB == pytest.approx(5.395, abs=0.005)
-    assert pm.pod_bytes(250, 4) / MiB == pytest.approx(30.5, abs=0.1)
-    assert pm.pod_bytes(500, 8) / MiB == pytest.approx(283.8, abs=0.5)
-    assert pm.compression_factor(4) == pytest.approx(12.7, abs=0.1)
-    assert pm.compression_factor(8) == pytest.approx(19.5, abs=0.1)
+    assert pm.pod_bytes(76, 4, "gradient_all", **nf) / MiB == pytest.approx(10.0, abs=0.1)
+    assert pm.pod_bytes(359, 8, "gradient_all", **nf) / MiB == pytest.approx(419.0, abs=1.0)
+    # the first submitted paper: the shipped y-pair cross model at r=250 / r=500
+    assert pm.bare_bytes(4, **nf) / MiB == pytest.approx(388.5, abs=0.1)
+    assert pm.bare_bytes(8, **nf) / GiB == pytest.approx(5.395, abs=0.005)
+    assert pm.pod_bytes(250, 4, **nf) / MiB == pytest.approx(30.5, abs=0.1)
+    assert pm.pod_bytes(500, 8, **nf) / MiB == pytest.approx(283.8, abs=0.5)
+    assert pm.compression_factor(4, **nf) == pytest.approx(12.7, abs=0.1)
+    assert pm.compression_factor(8, **nf) == pytest.approx(19.5, abs=0.1)
+    # the "v2" production grid (44, 40, 8) at the same ranks.  The ranks themselves rest on
+    # fig05's knee and are to be re-measured on the v2 corpora; these follow if they hold.
+    assert pm.bare_bytes(4) / MiB == pytest.approx(485.6, abs=0.1)
+    assert pm.bare_bytes(8) / GiB == pytest.approx(6.743, abs=0.005)
+    assert pm.pod_bytes(250, 4) / MiB == pytest.approx(36.0, abs=0.1)
+    assert pm.pod_bytes(500, 8) / MiB == pytest.approx(294.8, abs=0.5)
+    assert pm.compression_factor(4) == pytest.approx(13.5, abs=0.1)
+    assert pm.compression_factor(8) == pytest.approx(23.4, abs=0.1)
 
 
 # ------------------------------------------------------------ slim storage ----
@@ -218,7 +241,7 @@ def test_fig05_recomputes_memory_from_the_shipped_accounting():
     assert c["blocks"] == 4                                     # 1 + n_enh + npair
     # bare star and every ladder point are the shipped accounting, not the raw's
     assert c["bare_mem"] * 1e6 == pytest.approx(pm.bare_bytes(4), rel=1e-12)
-    assert c["bare_mem"] * 1e6 / MiB == pytest.approx(388.5, abs=0.1)
+    assert c["bare_mem"] * 1e6 / MiB == pytest.approx(485.6, abs=0.1)   # v2 grid
     for pt in c["cur"]:
         assert pt["mem_bytes"] == pytest.approx(
             pm.pod_bytes_of(pt["r"], 1105, pm.N_FEAT, 4), rel=1e-12)
@@ -247,5 +270,5 @@ def test_fig05_meta_pins_the_model_and_ranks():
     assert m["blocks_per_node"] == 4
     assert m["shipped_rank"] == {"4": 250, "8": 500}
     assert m["model"]["8"].endswith("_cross")
-    assert m["compression"]["4"] == pytest.approx(12.7, abs=0.1)
-    assert m["compression"]["8"] == pytest.approx(19.5, abs=0.1)
+    assert m["compression"]["4"] == pytest.approx(13.5, abs=0.1)        # v2 grid
+    assert m["compression"]["8"] == pytest.approx(23.4, abs=0.1)

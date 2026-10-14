@@ -32,6 +32,7 @@ from _figdata import load_source, source, dump
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
 from lemaitre.initial_data.conformally_flat_puncture.applications import qc_effpot as E
 from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as pb
 
 
 def _model_meta(path):
@@ -59,7 +60,7 @@ def build():
     # BUILT on.  Those must be the same grid or the curves are evaluated against a
     # model that never saw them, so disagreement is an error rather than a warning
     # (same policy as fig04's shipped-rank guard).
-    grid = (44, 32, 8)
+    grid = tuple(pb.PROD_GRID)
     built = tuple(int(mm[k]) for k in ("Na", "Nb", "Nphi")) if all(
         k in mm for k in ("Na", "Nb", "Nphi")) else None
     if built is not None and built != grid:

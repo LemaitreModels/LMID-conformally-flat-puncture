@@ -50,7 +50,7 @@ PARTDIR = os.path.join(REPDIR, "joint_dist_truth_parts")  # array truth-solve pa
 os.makedirs(REPDIR, exist_ok=True)
 os.makedirs(PARTDIR, exist_ok=True)
 
-NA, NB, NPHI = 44, 32, 8
+NA, NB, NPHI = pb.PROD_GRID
 CODE_TAG = "chi-rebuild"
 QC = dict(pb.FIXED_QC)
 CHI = pb.CHI_MAX

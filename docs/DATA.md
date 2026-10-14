@@ -192,6 +192,15 @@ and `paper/figures/_figdata` resolves the heavy tree through
 2. `<pipeline>/reports` — the producers' historical location, so their behaviour
    is unchanged when the variable is unset.
 
+**Scoped by discretisation (since 2026-10-14).** That base holds the `"paper-v1"`
+artifacts, everything built before then. For any other `production_model.SCHEME`,
+`reports_root()` is `<base>/<scheme>`, so on `"v2"` every producer writes, and every
+figure-data script reads, `<base>/v2/...`. A `"paper-v1"` source is therefore absent
+to a `"v2"` figure rather than silently re-distilled under new code, and the error
+names the producer. `paths.reports_base()` is the unscoped base. Every committed
+figdata records `meta.scheme`, absent meaning `"paper-v1"`, and `make_figdata.py
+--check` reports one that is not on the current scheme as STALE.
+
 Before this, producers wrote to `<pipeline>/reports` (off their own `__file__`)
 while the figure scripts read `<repo_root>/reports`, so a figure could not see
 the output of the producer that fed it and every source read as absent.

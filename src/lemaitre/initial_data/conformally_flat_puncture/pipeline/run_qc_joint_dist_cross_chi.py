@@ -49,7 +49,7 @@ CKDIR = os.path.join(REPDIR, "joint_dist_cross_parts")
 os.makedirs(REPDIR, exist_ok=True)
 os.makedirs(CKDIR, exist_ok=True)
 
-NA, NB, NPHI = 44, 32, 8
+NA, NB, NPHI = pb.PROD_GRID
 QC = dict(pb.FIXED_QC)
 D = 4
 CHI = pb.CHI_MAX

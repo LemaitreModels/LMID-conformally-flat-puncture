@@ -40,6 +40,7 @@ import numpy as np
 
 
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as _pb  # PROD_GRID (stdlib)
 from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_3d as p3
 from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_smolyak as sm
 from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd import (
@@ -182,9 +183,9 @@ def _reload_spotcheck(loader, path, box, seed, tag):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--Na", type=int, default=44)
-    ap.add_argument("--Nb", type=int, default=32)
-    ap.add_argument("--Nphi", type=int, default=8)
+    ap.add_argument("--Na", type=int, default=_pb.PROD_GRID[0])
+    ap.add_argument("--Nb", type=int, default=_pb.PROD_GRID[1])
+    ap.add_argument("--Nphi", type=int, default=_pb.PROD_GRID[2])
     ap.add_argument("--box", choices=sorted(BOXES), default="d4")
     ap.add_argument("--level", type=int, default=3, help="isotropic Smolyak level (sparse)")
     ap.add_argument("--dense-Q", type=int, default=None,
