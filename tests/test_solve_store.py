@@ -297,3 +297,52 @@ def test_solver_cross_reuse_certifies(tmp_path):
         worst = max(worst, float(info.residual_norm))
     print(f"[solve-store cross] worst certified ‖R‖ = {worst:.2e}")
     assert worst <= 1e-10
+
+
+# ==========================================================================
+# Modified Newton is refused on a "gauss" (v2) store, and no producer asks for it
+# ==========================================================================
+# On the "gauss" radial grid the modified solver monitors the raw nodal residual,
+# which floors there at ~1e-6, so it stops on stagnation with the field ~1e-7
+# (relative) short of NK's.  The store key omits the solver because the two fields
+# agree on "lobatto"; on "gauss" an entry filed from a modified solve would be served
+# to a later NK build as converged.
+def _dummy_solve(theta, guess, tol, max_iter):          # never called by these tests
+    raise AssertionError("not reached")
+
+
+@pytest.mark.parametrize("solver", ["modified"])
+def test_gauss_store_refuses_modified(tmp_path, solver):
+    store = ss.SolveStore(str(tmp_path), grid_meta=(8, 6, 4), code_tag="t",
+                          bmap="abt", radial="gauss")
+    with pytest.raises(ValueError, match="gauss"):
+        ss.wrap_solve_fn(_dummy_solve, store, ["b"], solver=solver)
+
+
+@pytest.mark.parametrize("radial,solver", [("gauss", "nk"), ("gauss", None),
+                                           ("lobatto", "modified"), ("lobatto", "nk")])
+def test_store_admits_every_other_pairing(tmp_path, radial, solver):
+    bmap = "abt" if radial == "gauss" else "cos"
+    store = ss.SolveStore(str(tmp_path), grid_meta=(8, 6, 4), code_tag="t",
+                          bmap=bmap, radial=radial)
+    assert callable(ss.wrap_solve_fn(_dummy_solve, store, ["b"], solver=solver))
+
+
+def test_no_pipeline_producer_asks_for_modified_newton():
+    """The producers name their grid through production_model.SCHEME ("v2", Gauss
+    radial), so a modified-Newton corpus or truth solve there stops short of the
+    field.  They solve with NK; the tangent-Jacobian `choices=` argparse lists are the
+    only place the word may appear."""
+    import re
+    from lemaitre.initial_data.conformally_flat_puncture import pipeline
+    pdir = os.path.dirname(pipeline.__file__)
+    bad = []
+    for fn in sorted(os.listdir(pdir)):
+        if not fn.endswith(".py"):
+            continue
+        for i, line in enumerate(open(os.path.join(pdir, fn)), 1):
+            if "choices=" in line:
+                continue
+            if re.search(r"""solver\s*=\s*["']modified["']|--solver\s+modified""", line):
+                bad.append(f"{fn}:{i}: {line.strip()}")
+    assert not bad, "modified-Newton solves in pipeline/:\n" + "\n".join(bad)

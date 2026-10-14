@@ -82,7 +82,7 @@ def _distribution(prob, store, box, levels, hold, U_dir):
         store.n_hits = store.n_misses = 0
         t0 = time.time()
         smsolver = ss.from_problem_smolyak_3d_cached(prob, box, store=store, fixed=QC,
-                                                     solver="modified", retry_tol=1e-6)
+                                                     solver="nk", retry_tol=1e-6)
         sm = smsolver.build_isotropic(L, tol=1e-12, max_iter=30)
         errs = np.array([float(np.max(np.abs(sm.evaluate(th) - U_dir[i])))
                          for i, th in enumerate(hold)])
@@ -162,7 +162,9 @@ def main():
        f"{'(truth array %d/%d)'%(args.taskid,args.ntasks) if array_mode else ''} ===")
     _t(f"    box={args.box} axes={names}  n_points={n_pts}  levels={levels}")
     prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme=pm.SCHEME)
-    solve_fn, _ = p3.make_solve_fn(prob, names, fixed=QC, solver="modified")
+    # The truth solves: certified NK (modified Newton stops short on "v2"'s Gauss
+    # radial grid, so its field would not be a truth there).
+    solve_fn, _ = p3.make_solve_fn(prob, names, fixed=QC, solver="nk", retry_tol=1e-6)
 
     # -- array mode: solve a stride of truth points -> npz partial (no models) --
     if array_mode:

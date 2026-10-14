@@ -14,7 +14,8 @@ The physics/solve/tangent/POD/certify are all REUSED byte-for-byte from the comm
 Modes
 -----
   chunk:  --mode chunk --taskid K --ntasks N --reuse-value <8-D value npz> \
-          --partial-dir <dir> [--enhanced ...] [--Na 44 --Nb 32 --Nphi 8]
+          --partial-dir <dir> [--enhanced ...] [--Na .. --Nb .. --Nphi ..]
+          (the grid defaults to production_box.PROD_GRID)
       Loads the value corpus, computes the enhanced-only QC tangents for the node
       stride ``keys[K::N]``, and writes ``<dir>/tangents_task<K>.npz`` (thetas, dUs).
       taskid/ntasks default to SLURM_ARRAY_TASK_ID / SLURM_ARRAY_TASK_COUNT
@@ -28,9 +29,34 @@ Modes
       and runs the certified spot-check (worst ‖R‖ must be ≤ the live gate,
       ``CERT_TOL_U = 1e-11`` in the ``u`` norm since 2026-08-25).
 
+Production recipe — the shipped 8-D chain.  ``$R`` is the scheme-scoped reports root
+``paths.reports_root()`` (see build_surrogate_chi), and ``V`` the 8-D value corpus
+``$R/3D_parametric/models_chi/surrogate_smolyak_spin8_qc_chi_prod_L5.npz``
+(``run_8d_chi_array`` + ``build_surrogate_chi --box spin8_qc_chi_prod``).  Each chunk
+line is one array task's argv; the array sets ``--taskid`` from SLURM.
+
+  1. The six-spin corpus (its POD is ``fielderr_shared.MODELS[8]``, the plain-Hermite
+     curves of the field-error figure; ``run_polish_cold`` reads its metadata):
+       --mode chunk --ntasks 80 --reuse-value "$V" --partial-dir "$R/P2/tangents_8d_parts"
+       --mode merge --reuse-value "$V" --partial-dir "$R/P2/tangents_8d_parts" \
+           --outdir "$R/P2/models_chi" --level 5 --newton-steps 5
+  2. The shipped 8-D CROSS model, built on that same six-spin model restricted to the
+     aligned pair — the y-pair tangents ARE its chi_Ay/chi_By columns (the tangent
+     function solves each axis on its own; the two routes give bit-identical cross
+     models up to the unused x/z tangent columns stored in ``node_dU``) — then its POD:
+       python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_cross_model_chi \
+           --model "$R/P2/models_chi/hermite_smolyak_spin8qc_L5_enh-chi_Ax-chi_Ay-chi_Az-chi_Bx-chi_By-chi_Bz.npz" \
+           --enhanced chi_Ay,chi_By --jac nk \
+           --out   "$R/P2/models_chi/hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross.npz"
+       python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_cross_pod_r250_8d
+     (``run_cross_pod_r250_8d`` reads that ``_cross.npz`` by name and writes the rank
+     ``production_model.SHIPPED_RANK[8]`` POD the figures consume.)  The first paper
+     ran a separate aligned-pair chunk array and merge (``--enhanced chi_Ay,chi_By``)
+     to feed this step; it is no longer needed.
+
 Smoke (end-to-end, tiny): build a small 8-D value corpus first, e.g.
   python build_surrogate_chi.py --Na 16 --Nb 12 --Nphi 6 --box spin8_qc_chi_prod \
-      --level 2 --solver modified --outdir /tmp/smk
+      --level 2 --solver nk --outdir /tmp/smk
 then chunk (--ntasks 2, K=0 and 1) + merge, and check the certified ‖R‖.
 """
 from __future__ import annotations

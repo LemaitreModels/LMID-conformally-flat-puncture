@@ -3,111 +3,130 @@
 # Purpose: measure L2(H), L2(M) of an initial-data set with GRTeclyn's own
 # fourth-order constraint operator (Source/CCZ4/Constraints.hpp) on a uniform
 # grid, as the successor to LM-initial-data's in-house second-order monitor
-# (App. A 2 of the paper).  See docs/GRTECLYN_CONSTRAINTS_PLAN.md.
+# (App. A 2 of the paper).
 #
-# The box is [0, L_full]^3 with `center` defaulting to L_full/2 in every
-# direction (all-Sommerfeld boundaries, no reflective face), so with
-# L_full = 18 the physical box is a half-width-9 M cube about the centre —
-# matching the paper's [-9,9]^3.  h = L_full / N_full.
+# KEY GENERATION.  These are the PREFIXED keys of GRTeclyn after upstream PR #215
+# (refactor_params2): `amr.*`, `geometry.*`, `boundary.*`, `evolution.*`,
+# `gauge.*`, `ccz4.*`, `bh1.*`/`bh2.*`, `tagging.*`, and our fork's `lm.*`.  A
+# key from the older, bare generation (`N_full`, `massA`, `max_steps`, ...) is
+# not an error to ParmParse: it is simply never read and the default wins.  So
+# `amrex.abort_on_unused_inputs = 1` below makes AMReX abort at finalisation if
+# ANY key in this file was never read — the guard that turns a wrong-generation
+# key into a failed run instead of a plausible number.  See ./README.md for the
+# minimum GRTeclyn commit this file targets.
+#
+# The box is [0, L]^3 with `geometry.center` defaulting to L/2 in every
+# direction (all-Sommerfeld boundaries, no reflective face), so with L = 18 the
+# physical box is a half-width-9 M cube about the centre — matching the paper's
+# [-9,9]^3.  h = L / N.
 #
 # The punctures sit on the z-axis at center ± b ẑ, matching LM-initial-data's
-# convention (punctures at (0,0,±b)).
+# convention (punctures at (0,0,±b)).  The `bh*.offset`s also place the
+# constraint-norm exclusion balls, so they must match the exported file's b
+# (run_ladder.sh checks this).
 #
 # Substituted by run_ladder.sh: @N@ @L@ @MASSA@ @MASSB@ @BZ@ @PA@ @PB@ @RXCL@
-#                              @MAXLEV@ @PTRACK@
+#                              @MAXLEV@ @PTRACK@ @REGRID@
+# Appended by run_ladder.sh only when the binary will read them (a key it does
+# not read would trip abort_on_unused_inputs):
+#   puncture_tracking.level   when PTRACK != 0
+#   weyl_extraction.center    when MAXLEV > 0 (the tagger reads it)
+#   lm.id_file, lm.id_reference_file, lm.id_reference_tol   when LMID/LMREF set
 #
 #################################################
-# Filesystem
+# Filesystem and diagnostics of the run itself
 
-verbosity = 1
-output_path = .
+amrex.abort_on_unused_inputs = 1
+amr.verbose = 1
+grteclyn.output_path = .
 
 # No plotfiles, no checkpoints: the only output we want is constraint_norms.json,
-# written from specific_post_init at t = 0.  (Requesting Weyl4 in the plot vars
-# while activate_extraction = 0 aborts at the first plotfile write.)
+# written from specific_post_init at t = 0 into the run directory (`lm.data_path`
+# left at its default, empty = the working directory).
 amr.check_int = -1
-checkpoint_interval = -1
 amr.plot_int = -1
-plot_interval = -1
 
 #################################################
 # BH initial data
 
-massA = @MASSA@
-massB = @MASSB@
+bh1.mass = @MASSA@
+bh2.mass = @MASSB@
 
 # punctures on the z-axis at ±b
-offsetA = 0 0  @BZ@
-offsetB = 0 0 -@BZ@
+bh1.offset = 0 0  @BZ@
+bh2.offset = 0 0 -@BZ@
 
 # head-on: anti-parallel z-momenta, A at +b moving in -z
-momentumA = 0.0 0.0 @PA@
-momentumB = 0.0 0.0 @PB@
+bh1.momentum = 0.0 0.0 @PA@
+bh2.momentum = 0.0 0.0 @PB@
 
 #################################################
 # Grid
 
-N_full = @N@
-L_full = @L@
+amr.n_cell = @N@ @N@ @N@
+geometry.prob_extent = @L@ @L@ @L@
 
-# max_level = 0 gives the uniform grid the convergence statement is read from.
-# With max_level > 0 AMReX builds the refined hierarchy during initialisation
-# (bldFineLevels iterates the taggers), so an AMR measurement still needs no
-# evolution step; ConstraintNorms then reports per-level as well as leaf totals.
-max_level = @MAXLEV@
-# One entry per level below max_level (getarr(..., 0, max_level)); the last is
-# irrelevant.  0 = never regrid after initialisation, which is all we need since
-# the hierarchy is built during initialisation and no step is taken.
-regrid_interval = @REGRID@
+# amr.max_level = 0 gives the uniform grid the convergence statement is read
+# from.  With amr.max_level > 0 AMReX builds the refined hierarchy during
+# initialisation (bldFineLevels iterates the taggers), so an AMR measurement
+# still needs no evolution step; ConstraintNorms then reports per-level as well
+# as leaf totals.
+amr.max_level = @MAXLEV@
+# One entry per level below max_level (one shared value is also accepted); the
+# last is irrelevant.  0 = never regrid after initialisation, which is all we
+# need since the hierarchy is built during initialisation and no step is taken.
+amr.regrid_int = @REGRID@
 
-max_grid_size = 32
-block_factor = 16
+amr.max_grid_size = 32
+amr.blocking_factor = 16
 
 #################################################
 # Boundary conditions — all Sommerfeld, no reflective face, so `center`
-# defaults to L_full/2 in every direction and the box is symmetric about it.
+# defaults to L/2 in every direction and the box is symmetric about it.
+# (The Sommerfeld asymptotic values — chi, h11, h22, h33, lapse -> 1, the rest
+# -> 0 — are compiled into this generation and are no longer parameters.)
 
-isPeriodic = 0 0 0
-hi_boundary = 1 1 1
-lo_boundary = 1 1 1
-
-nonzero_asymptotic_vars = chi h11 h22 h33 lapse
-nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
+geometry.is_periodic = 0 0 0
+boundary.hi_condition = "SOMMERFELD_BC" "SOMMERFELD_BC" "SOMMERFELD_BC"
+boundary.lo_condition = "SOMMERFELD_BC" "SOMMERFELD_BC" "SOMMERFELD_BC"
 
 #################################################
-# Evolution — none.  post_init runs, then the run stops.
+# Evolution — none.  post_init runs, then the run stops: max_steps is an
+# ABSOLUTE coarse-step count, and the main loop requires levelSteps(0) <
+# max_steps, so 0 takes no step from a fresh start.
 
-dt_multiplier = 0.25
-max_steps = 0
+evolution.dt_multiplier = 0.25
+evolution.max_steps = 0
 
-nan_check = true
+evolution.nan_check = true
 
-lapse_advec_coeff = 1.0
-lapse_coeff = 2.0
-lapse_power = 1.0
-shift_advec_coeff = 1.0
-shift_Gamma_coeff = 0.75
-eta = 1.0
+gauge.lapse_advec_coeff = 1.0
+gauge.lapse_coeff = 2.0
+gauge.lapse_power = 1.0
+gauge.shift_advec_coeff = 1.0
+gauge.shift_Gamma_coeff = 0.75
+gauge.eta = 1.0
 
-formulation = 0
-kappa1 = 0.1
-kappa2 = 0.
-kappa3 = 1.
-covariantZ4 = 1
-sigma = 0.5
+ccz4.formulation = 0
+ccz4.kappa1 = 0.1
+ccz4.kappa2 = 0.
+ccz4.kappa3 = 1.
+ccz4.covariantZ4 = 1
+evolution.sigma = 0.5
 
 #################################################
 # Diagnostics
 
-activate_extraction = false
+# No psi_4 extraction.  (The tagger reads weyl_extraction.center whenever it
+# runs, i.e. only when max_level > 0; run_ladder.sh appends it then.)
+weyl_extraction.enabled = false
 # PunctureTagger reads the tracker's coordinates, so tracking must be on for
 # any refined run (otherwise the coords stay zero and it tags the wrong place).
 puncture_tracking.enabled = @PTRACK@
-puncture_tracking.level = 0
-regrid_threshold = 0.05
+tagging.threshold = 0.05
 
-calculate_constraint_norms = 1
+lm.calculate_constraint_norms = 1
 # exclude a ball of this radius about each puncture, and drop this many cells
 # from the domain edge (mirrors the in-house monitor's mask)
-constraint_norm_exclusion_radius = @RXCL@
-constraint_norm_border_cells = 2
+lm.constraint_norm_exclusion_radius = @RXCL@
+lm.constraint_norm_border_cells = 2

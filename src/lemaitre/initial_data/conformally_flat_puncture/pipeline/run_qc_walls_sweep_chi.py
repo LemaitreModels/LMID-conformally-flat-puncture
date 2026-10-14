@@ -251,14 +251,17 @@ def block_D(prob, blockA):
     _t(f"   store: {store.n_entries} entries, code_tag={store.code_tag}")
     hold = p3.holdout_points_nd(BOX, n_points=6)
     p3.assert_off_node(hold, [dict(a, Q=8) for a in BOX])
-    solve_fn, _ = p3.make_solve_fn(prob, [a["name"] for a in BOX], fixed=QC, solver="modified")
+    # certified NK throughout (modified Newton stops short on "v2"'s Gauss radial
+    # grid, and solve_store.wrap_solve_fn refuses it there)
+    solve_fn, _ = p3.make_solve_fn(prob, [a["name"] for a in BOX], fixed=QC, solver="nk",
+                                   retry_tol=1e-6)
     U_dir = [np.asarray(solve_fn(th, None, 1e-12, 30)[0]) for th in hold]
     joint = []
     for L in (1, 2, 3, 4):
         store.n_hits = store.n_misses = 0
         t0 = time.time()
         smsolver = ss.from_problem_smolyak_3d_cached(prob, BOX, store=store, fixed=QC,
-                                                     solver="modified")
+                                                     solver="nk", retry_tol=1e-6)
         sm = smsolver.build_isotropic(L, tol=1e-12, max_iter=30)
         err = max(float(np.max(np.abs(sm.evaluate(th) - U_dir[i]))) for i, th in enumerate(hold))
         joint.append(dict(level=L, nodes=int(sm.n_solver_nodes), err=err,

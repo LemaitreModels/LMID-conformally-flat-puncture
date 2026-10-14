@@ -14,13 +14,15 @@ The enhanced (gradient) axes default to the two slow aligned dimensionless spins
 certified tangent (``∂/∂chi = m^2·∂/∂S``) is the committed sensitivity_3d[_qc]
 addition (verified: FD 1.1e-8, m^2-identity 1.2e-15).
 
-Usage (mirrors build_pod_hermite_model.py):
+Usage (mirrors build_pod_hermite_model.py; the grid defaults to
+``production_box.PROD_GRID``; ``$R`` is the scheme-scoped ``paths.reports_root()``,
+see build_surrogate_chi):
     python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_pod_hermite_model_chi \
-        --Na 44 --Nb 32 --Nphi 8 --level 5 --enhanced chi_Ay,chi_By \
-        --outdir reports/P2/models_chi
+        --level 5 --enhanced chi_Ay,chi_By --outdir "$R/P2/models_chi"
 
-    # fastest: reuse the 4-D value corpus (skip the re-solve, compute only tangents)
-    ... --reuse-value reports/3D_parametric/models_chi/surrogate_smolyak_d4_qc_chi_L5.npz
+    # fastest, and the production route: reuse the 4-D value corpus (skip the
+    # re-solve, compute only tangents)
+    ... --reuse-value "$R/3D_parametric/models_chi/surrogate_smolyak_d4_qc_chi_prod_L5.npz"
 
 Smoke: --Na 16 --Nb 12 --Nphi 6 --level 2 (enhanced chi_Ay,chi_By).
 """

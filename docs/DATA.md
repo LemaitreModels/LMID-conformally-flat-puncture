@@ -85,10 +85,10 @@ figure→producer→artifact graph). Those producers are the heavy tier below.
   numerical-relativity code, not by the in-house monitor (which stays as an internal
   check: `validation/constraints.py` + its tests). Three stages:
 
-  1. `python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_export_grteclyn --out reports/grteclyn_export
+  1. `python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_export_grteclyn
      --tp` (~3 min; needs a machine with AVX, so on a cluster submit it as a batch
-     job) — solves each
-     configuration and writes `<name>.lmid` plus a `<name>_reference.dat` table of `psi`
+     job; the default `--out` is `<reports_root()>/grteclyn_export`) — solves each
+     configuration on the production grid (`SPECTRAL = PROD_GRID[:2]`) and writes `<name>.lmid` plus a `<name>_reference.dat` table of `psi`
      and `Ahat` values that the C++ evaluator is validated against. With `--tp` it also
      writes the TwoPunctures conformal factor **on the identical spectral grid**, so the
      cross-code comparison shares the interpolation operator too.
@@ -107,8 +107,11 @@ figure→producer→artifact graph). Those producers are the heavy tier below.
      script is account- and cluster-agnostic on purpose: it takes the executable
      and the launcher from the environment and hard-codes no paths. GRTeclyn
      itself is **not** vendored here — you need a build of our fork's
-     `lm-initial-data-constraints` branch, which carries the `lm_id_file`
-     runtime switch.
+     `lm-initial-data-constraints` branch at commit `087f827` or later, which reads
+     GRTeclyn's prefixed parameter keys (upstream PR #215) and our `lm.*` keys,
+     including the `lm.id_file` runtime switch and the format-4 reader;
+     `grteclyn/README.md` says which keys and why an older build silently ignores
+     them.
 
      > **Provenance of the committed numbers: they are format-1 measurements, and
      > that is deliberate.** The exporter now writes **format 2**, which divides
@@ -127,8 +130,9 @@ figure→producer→artifact graph). Those producers are the heavy tier below.
      > Since 2026-10-12 there is also **format 4**, the `"v2"` grid (angular nodes in
      > the ABT angle `s`, Chebyshev–Gauss `A`, `u = (A − 1) V`); the consumer reads 2
      > and 4, each with its own rule. The committed fig10 is a `"paper-v1"`
-     > measurement; moving it to `"v2"` means new ladder runs from format-4 exports
-     > (`run_export_grteclyn --scheme v2`).
+     > measurement, exported at 52 × 36; moving it to `"v2"` means new ladder runs from
+     > format-4 exports on the production grid 44 × 40 (`run_export_grteclyn`, whose
+     > `--scheme` defaults to `production_model.SCHEME`).
   3. `python paper/figures/fig10_constraints_data.py --runs <that tree>` (seconds, reads
      files only) then the plotter. Set `$LM_GRTECLYN_RUNS` instead of `--runs` if you
      prefer.
@@ -299,8 +303,14 @@ wrong name. The build must pass `--dense-Q` and `--dense-name`:
 ```bash
 python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_surrogate \
     --box bpt_ecc --level 5 --dense-Q 16 --dense-name surrogate_bpt_ecc.npz \
-    --Na 44 --Nb 32 --Nphi 8 --solver nk --store --code-tag chi-rebuild
+    --solver nk --store --code-tag chi-rebuild
 ```
+
+The grid is the builder's default, `production_box.PROD_GRID`, and the bare `--store`
+and the default `--outdir` both resolve under the scheme-scoped `reports_root()`
+(`<root>/3D_parametric/solve_store/` and `<root>/3D_parametric/models/`, the latter
+being where `run_qc_effpot.MODEL` looks). Passing an explicit grid here is how the
+first paper's `--Nb 32` would outlive a grid change.
 
 `--dense-name` exists for exactly this: a consumer that hardcodes the filename.
 `Q=16` (17 nodes/axis) is derived the same way as the edges — the historical

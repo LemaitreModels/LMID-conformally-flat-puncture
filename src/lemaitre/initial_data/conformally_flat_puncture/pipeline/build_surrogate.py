@@ -23,7 +23,10 @@ solves (~70 min) — the dense build dominates.  Omit ``--dense-Q`` to skip it.
 Run in the background under caffeinate:
 
     caffeinate -ims python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_surrogate \
-        --Na 44 --Nb 32 --Nphi 8 --box d4 --level 3 --dense-Q 5 --solver nk
+        --box d4 --level 3 --dense-Q 5 --solver nk
+
+(the grid defaults to ``production_box.PROD_GRID``; the ETA above was measured at the
+first paper's 44x32x8)
 """
 from __future__ import annotations
 

@@ -19,19 +19,27 @@ The chi_* axes are value axes already handled by ``parametric_nd_3d.theta_to_sli
 the box swap — no tangent/derivative path is used (that is the gradient-enhanced
 builder's separate concern).
 
-Usage (mirrors build_surrogate.py; add --box d4_qc_chi / spin8_qc_chi):
+Usage (mirrors build_surrogate.py; pass one of the boxes above).  The grid defaults to
+``production_box.PROD_GRID``, and every heavy path is under the scheme-scoped reports
+root ``paths.reports_root()`` (``$LM_REPORTS/<scheme>``; docs/DATA.md), never a
+cwd-relative ``reports/``.  The production 4-D value corpus:
+    R=$(python -c "from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root; print(reports_root())")
     python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_surrogate_chi \
-        --Na 44 --Nb 32 --Nphi 8 --box d4_qc_chi --level 5 --solver modified \
-        --store reports/3D_parametric/solve_store_chi \
+        --box d4_qc_chi_prod --level 5 --solver nk --retry-tol 1e-6 \
+        --store "$R/3D_parametric/solve_store_chi" \
         --code-tag chi-rebuild \
-        --outdir reports/3D_parametric/models_chi
+        --outdir "$R/3D_parametric/models_chi"
+(``--box spin8_qc_chi_prod`` assembles the 8-D one once ``run_8d_chi_array`` has
+filled the store.)
 
 NOTE (store reuse): to reuse the d4_qc-chi Smolyak corpus that
 run_qc_walls_sweep_chi.py (S1, block D) populates, pass the SAME store
 (solve_store_chi) and the SAME --code-tag it uses ("chi-rebuild"); the code_tag
-is part of the store key.  Match the build solver to S1's ("modified") so the
-cached nodes are served.  The final certified spot-check always NK-polishes to
-the ‖R‖ floor regardless of build solver.
+is part of the store key.  Every producer that fills that store solves with NK
+(``--solver nk``); the solver is not in the key, so build with NK too.  Modified
+Newton is refused on a "v2" (Gauss radial) store: its raw nodal monitor floors there
+and stops it short of the converged field (``solve_store.wrap_solve_fn``).  The final
+certified spot-check always NK-polishes to the ‖R‖ floor regardless of build solver.
 """
 from __future__ import annotations
 

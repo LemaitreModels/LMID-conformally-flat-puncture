@@ -22,12 +22,16 @@ for the in-plane components and the in-plane tangent reduces (correctly, at this
 order) to the direct Bowen–York spin-source tangent — this falls out of the
 autodiff chain rule automatically.
 
-Usage — fastest: reuse the 8-D value corpus (compute only tangents; no re-solve):
+Usage — fastest: reuse the 8-D value corpus (compute only tangents; no re-solve).
+The grid defaults to ``production_box.PROD_GRID``; ``$R`` is the scheme-scoped
+``paths.reports_root()`` (see build_surrogate_chi).  At the production level this
+single process is the slow route — ``build_pod_hermite_chi8d_array`` splits the same
+tangent loop over a job array:
     python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_pod_hermite_model_chi_8d \
-        --Na 44 --Nb 32 --Nphi 8 --level 5 \
+        --level 5 \
         --enhanced chi_Ax,chi_Ay,chi_Az,chi_Bx,chi_By,chi_Bz \
-        --reuse-value reports/3D_parametric/models_chi/surrogate_smolyak_spin8_qc_chi_prod_L5.npz \
-        --outdir reports/P2/models_chi
+        --reuse-value "$R/3D_parametric/models_chi/surrogate_smolyak_spin8_qc_chi_prod_L5.npz" \
+        --outdir "$R/P2/models_chi"
 
 Smoke (fast, from scratch, small grid+level; exercises all six enhanced spin axes —
 incl. the in-plane components — through the QC tangent, POD, and the certified

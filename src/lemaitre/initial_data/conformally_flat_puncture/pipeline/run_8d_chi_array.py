@@ -4,12 +4,16 @@ The 8D ℓ=5 node pool (~15k nodes) is multi-day serial, so it is parallelised a
 SLURM job ARRAY: each task solves a DISJOINT STRIDE of the unique L=5 node pool
 into the SHARED, lock-free ``solve_store_chi`` (atomic temp+os.replace writes, so
 concurrent tasks are safe and dedup).  After the array completes, assemble the
-model with the store fully populated (all hits):
+model with the store fully populated (all hits), on the default grid
+(``production_box.PROD_GRID``) and under the scheme-scoped reports root:
 
-    python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_surrogate_chi --Na 44 --Nb 32 --Nphi 8 \
-        --box spin8_qc_chi_prod --level 5 --solver modified --retry-tol 1e-6 \
-        --store reports/3D_parametric/solve_store_chi \
-        --code-tag chi-rebuild --outdir reports/3D_parametric/models_chi
+    R=$(python -c "from lemaitre.initial_data.conformally_flat_puncture.paths import reports_root; print(reports_root())")
+    python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_surrogate_chi \
+        --box spin8_qc_chi_prod --level 5 --solver nk --retry-tol 1e-6 \
+        --store "$R/3D_parametric/solve_store_chi" \
+        --code-tag chi-rebuild --outdir "$R/3D_parametric/models_chi"
+
+``STORE`` below is that same ``$R/3D_parametric/solve_store_chi``.
 
 Chunking is by stride (task k solves nodes[k::ntasks]), so tasks are disjoint (no
 duplicate solves); the store additionally serves the in-plane=0 sub-slice from the
@@ -91,8 +95,11 @@ def main():
     prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme=pm.SCHEME)
     store = ss.SolveStore(STORE, grid_meta=(NA, NB, NPHI), code_tag=CODE_TAG, reuse_tol=1e-6,
                           bmap=prob.bmap, radial=prob.radial)
+    # NK, not modified Newton: on "v2"'s Gauss radial grid the modified solver's raw
+    # nodal monitor floors at ~1e-6 and stops it short of the converged field
+    # (solve_store.wrap_solve_fn refuses that pairing).  NK is certified and cheaper.
     solver = ss.from_problem_smolyak_3d_cached(prob, BOX, store=store, fixed=FIXED,
-                                               solver="modified", retry_tol=1e-6)
+                                               solver="nk", retry_tol=1e-6)
 
     t0 = time.time()
     thetas = enumerate_nodes(solver, args.level)

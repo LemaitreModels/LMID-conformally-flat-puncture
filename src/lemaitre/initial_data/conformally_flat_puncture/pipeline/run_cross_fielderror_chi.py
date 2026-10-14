@@ -10,10 +10,11 @@ error on the two enhanced axes, and gates that the with-cross joint floor drops 
 ≤ the value-only joint floor (the ~5× gradient-only gap closes) while per-axis
 stays as good.  Resumable (checkpoints the per-point errors).
 
-Run (from repo root):
+Run (``$R`` is the scheme-scoped reports root ``paths.reports_root()``; see
+build_surrogate_chi):
   caffeinate -i python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_cross_fielderror_chi \
-      --grad  reports/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz \
-      --cross reports/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz
+      --grad  "$R/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz" \
+      --cross "$R/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz"
 """
 from __future__ import annotations
 

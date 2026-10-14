@@ -12,10 +12,14 @@ writes the with-cross model (``hermite_smolyak_cross`` kind) to a DISTINCT path
 Resumable: checkpoints ``node_cross`` to ``<out>.cross.partial.npy`` every
 ``--checkpoint`` nodes; a re-run resumes from the checkpoint.
 
-Run (from repo root):
+Run (``$R`` is the scheme-scoped reports root ``paths.reports_root()``; see
+build_surrogate_chi).  The 4-D production model:
   caffeinate -i python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_cross_model_chi \
-      --model reports/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz \
-      --out   reports/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz
+      --model "$R/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By.npz" \
+      --out   "$R/P2/models_chi/hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz"
+The 8-D one reads the six-spin 8-D model and restricts it to the aligned pair with
+``--enhanced chi_Ay,chi_By`` (the whole chain is in build_pod_hermite_chi8d_array).
+The checkpoint does not record ``--gmres-rtol``: resume with the same value.
 """
 from __future__ import annotations
 
@@ -42,8 +46,17 @@ from lemaitre.initial_data.conformally_flat_puncture.parametric.hermite_smolyak_
 from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
 
 
+#: Inner GMRES tolerance of the cross-tangent back-solve.  The routine's own default
+#: (1e-11) is what the first paper's grid used; on "v2"'s Gauss radial grid GMRES
+#: cannot reach it — at the production grid it runs to ~11 650 iterations (~3 min a
+#: node) and returns the rtol-1e-9 answer — while 1e-8 converges in ~5 iterations and
+#: moves the cross tangent by ~6e-9 relative.  The first tangents use the same 1e-8
+#: for the same reason (build_pod_hermite_model.enhanced_only_tangent_fn).
+CROSS_GMRES_RTOL = 1e-8
+
+
 def main(model_path, out_path, jac="nk", checkpoint=50, M_tot=1.0, enhanced_names=None,
-         cross_fn="committed"):
+         cross_fn="committed", gmres_rtol=CROSS_GMRES_RTOL):
     # Select the second-order cross-tangent routine.  Default "committed"
     # calls sensitivity_3d_cross.cross_tangent_3d_qc EXACTLY as before (byte-for-byte
     # for a spin-spin enhanced set — the only case the committed routine supports).
@@ -89,7 +102,7 @@ def main(model_path, out_path, jac="nk", checkpoint=50, M_tot=1.0, enhanced_name
           flush=True)
     print(f"[cross] axes={names} enhanced={[names[e] for e in enhanced]} "
           f"pairs={[(names[a], names[b]) for (a, b) in gp]} (n_pairs={npair}) "
-          f"jac={jac} grid Na={Na},Nb={Nb},Nphi={Nphi}", flush=True)
+          f"jac={jac} gmres_rtol={gmres_rtol:g} grid Na={Na},Nb={Nb},Nphi={Nphi}", flush=True)
 
     prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
 
@@ -111,7 +124,8 @@ def main(model_path, out_path, jac="nk", checkpoint=50, M_tot=1.0, enhanced_name
         asm = s3.assemble(prob, sl)                       # shared across all pairs at node i
         for pj, (e0, e1) in enumerate(gp):
             Uij = _cross_tan(prob, U[i], sl, names[e0], names[e1], M_tot,
-                             dU_i=dU[i, e0], dU_j=dU[i, e1], asm=asm, jac=jac)
+                             dU_i=dU[i, e0], dU_j=dU[i, e1], asm=asm, jac=jac,
+                             gmres_rtol=gmres_rtol)
             node_cross[i, pj] = np.asarray(Uij)
         if (i + 1) % checkpoint == 0 or i == N - 1:
             np.save(ckpt, node_cross)
@@ -133,6 +147,7 @@ def main(model_path, out_path, jac="nk", checkpoint=50, M_tot=1.0, enhanced_name
     out_meta["enhanced"] = [names[e] for e in enhanced]     # reflect any override
     out_meta["cross_pairs"] = [[names[a], names[b]] for (a, b) in gp]
     out_meta["cross_jac"] = jac
+    out_meta["cross_gmres_rtol"] = float(gmres_rtol)
     out_meta["note"] = ((meta.get("note", "") or "")
                         + " | full bilinear cross ∂²U/∂χ_Ay∂χ_By added "
                           "(post-process of the shipped gradient-only model)")
@@ -151,6 +166,9 @@ if __name__ == "__main__":
     ap.add_argument("--out", required=True)
     ap.add_argument("--jac", default="nk", choices=["nk", "modified"])
     ap.add_argument("--checkpoint", type=int, default=50)
+    ap.add_argument("--gmres-rtol", type=float, default=CROSS_GMRES_RTOL,
+                    help="inner GMRES tolerance of the cross-tangent back-solve "
+                         f"(default {CROSS_GMRES_RTOL:g}; see CROSS_GMRES_RTOL)")
     ap.add_argument("--enhanced", default=None,
                     help="comma-separated axis NAMES to enhance for the cross "
                          "(default: the shipped model's enhanced set). E.g. "
@@ -162,4 +180,4 @@ if __name__ == "__main__":
     args = ap.parse_args()
     enh = [s.strip() for s in args.enhanced.split(",")] if args.enhanced else None
     main(args.model, args.out, jac=args.jac, checkpoint=args.checkpoint,
-         enhanced_names=enh, cross_fn=args.cross_fn)
+         enhanced_names=enh, cross_fn=args.cross_fn, gmres_rtol=args.gmres_rtol)

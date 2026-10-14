@@ -158,7 +158,7 @@ def measure_unit(prob, name, lo, hi, base, Qs, fracs, timing=None):
     per-value-solve and per-tangent wall times for the ETA estimate."""
     fixed = dict(QC, **{k: v for k, v in base.items() if k != name})
     solve_fn, _ = p3.make_solve_fn(prob, [name], M_tot=M_TOT, fixed=fixed,
-                                   use_cache=True, solver="modified")
+                                   use_cache=True, solver="nk", retry_tol=1e-6)
     tf = _tangent_fn(prob, name, fixed)
     hold = lo + fracs * (hi - lo)
 

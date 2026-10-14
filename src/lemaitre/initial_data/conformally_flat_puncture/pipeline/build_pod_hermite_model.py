@@ -26,7 +26,10 @@ source, so budget ~1.5–2.5× that, i.e. ~1.5–2.5 h at ℓ=4. Run in the back
 under caffeinate:
 
     caffeinate -ims python \\
-        -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_pod_hermite_model --Na 44 --Nb 32 --Nphi 8 --level 4
+        -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_pod_hermite_model --level 4
+
+(the grid defaults to ``production_box.PROD_GRID``; the ETA above was measured at the
+first paper's 44x32x8)
 
 Smoke (fast, confirms the pipeline end-to-end): ``--Na 16 --Nb 12 --Nphi 6 --level 3``.
 """

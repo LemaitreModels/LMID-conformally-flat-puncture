@@ -246,7 +246,11 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   > `"gauss"` the 2-D solver's raw `max|R|` floors at 3e-9 – 3e-8 (the innermost row
   > sits at `A ≈ 3e-4`–`7e-4` with coefficients ~1e9–1e11), so there it monitors the
   > equilibrated `u` norm and certifies against `CERT_TOL_U` (`NewtonInfo.norm` says
-  > which). The GRTeclyn export writes `"v2"` as **format 4** (`export_grteclyn.
+  > which). The 3-D **modified-Newton** solver (`solver_3d.newton_solve`) has no such
+  > switch: its raw nodal monitor floors at ~1e-6 on `"gauss"` and stops it ~1e-7
+  > (relative) short of the field NK reaches, at ~100× NK's cost. So every
+  > `pipeline/` producer solves with NK, and `solve_store.wrap_solve_fn` refuses a
+  > modified solve on a `"gauss"` store (`tests/test_solve_store.py`). The GRTeclyn export writes `"v2"` as **format 4** (`export_grteclyn.
   > FORMAT_OF_SCHEME`): angular nodes in `s`, Chebyshev–Gauss `A`, and `V_k = u_k/(A − 1)`
   > shipped with no axis factor (on the ABT angle `u_k` is analytic in `s` — the rule of
   > `solver_3d.evaluate_field` on a mapped grid). The consumer (`LMSpectralData` /

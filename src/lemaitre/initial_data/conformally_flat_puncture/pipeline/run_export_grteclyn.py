@@ -49,9 +49,13 @@ from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as 
 from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d_nk as nk
 from lemaitre.initial_data.conformally_flat_puncture.validation import export_grteclyn as eg
 from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as pb
 
-# The anchor's spectral grid, matching paper/figures/fig10_constraints_data.py.
-SPECTRAL = (52, 36)
+# The exported spectral grid (Na, Nb): the shipped model's own, so the GRTeclyn check
+# measures the initial data the model actually delivers.  The first paper exported at
+# 52 x 36 (finer than its 44 x 32 production grid); a ladder records the grid it was
+# run from, and fig10_constraints_data reads it from there, not from here.
+SPECTRAL = tuple(pb.PROD_GRID[:2])
 B_ANCHOR, M_A, M_B, P_ANCHOR = 3.0, 0.5, 0.5, 0.5
 
 

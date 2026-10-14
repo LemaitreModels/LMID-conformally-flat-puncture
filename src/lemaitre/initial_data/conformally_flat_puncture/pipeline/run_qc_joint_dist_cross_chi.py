@@ -90,7 +90,8 @@ def main():
     _t(f"    box=d4_qc_chi_prod axes={names}  n_points={n_pts}  levels={levels}")
 
     prob = s3.make_problem(Na=NA, Nb=NB, Nphi=NPHI, scheme=pm.SCHEME)
-    solve_fn, _ = p3.make_solve_fn(prob, names, fixed=QC, solver="modified")
+    # certified NK truths (modified Newton stops short on "v2"'s Gauss radial grid)
+    solve_fn, _ = p3.make_solve_fn(prob, names, fixed=QC, solver="nk", retry_tol=1e-6)
 
     # -- load the committed L=5 cross corpus; build per-level sub-models (no solves) --
     mc = load_hermite_smolyak_cross(CROSS_MODEL)

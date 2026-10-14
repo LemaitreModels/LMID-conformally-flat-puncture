@@ -25,11 +25,16 @@ Key design decisions (grounded in the committed facts):
     different active axes / different ``fixed`` inactive knobs that nevertheless
     land on the SAME physical slice share the solve; two builds at the same θ but
     a different ``fixed`` (e.g. ``|S|=0.3`` vs ``0.1``) do NOT collide.
-  * **Solver type and tol are EXCLUDED from the key.**  The converged field is
-    bit-identical between ``solver="modified"`` and ``solver="nk"`` (the NK report
-    — NK *reproduces*, never improves, the modified field), so a ``modified``-built
-    store is reused by an ``nk`` build (and stays certifiable).  ``tol`` is not in
-    the key either.
+  * **Solver type and tol are EXCLUDED from the key.**  On the ``"lobatto"`` radial
+    grid (``"paper-v1"``) the converged field is bit-identical between
+    ``solver="modified"`` and ``solver="nk"`` (the NK report — NK *reproduces*, never
+    improves, the modified field), so a ``modified``-built store is reused by an
+    ``nk`` build (and stays certifiable).  ``tol`` is not in the key either.
+    **That premise fails on the ``"gauss"`` radial grid (``"v2"``):** the modified
+    solver monitors the raw nodal residual, which floors there at ~1e-6 (the
+    innermost rows carry 1e9–1e11 coefficients), so it stops on stagnation with the
+    field ~1e-7 (relative) short of NK's.  :func:`wrap_solve_fn` therefore refuses
+    to file modified-Newton solves into a ``"gauss"`` store.
   * **Reuse admission is gated on a store-level ``reuse_tol``, NOT the caller's
     solve tol.**  The stored field IS the converged solution; the residual gate
     exists only to reject a *failed/diverged* solve, never to enforce the caller's
@@ -308,6 +313,15 @@ def wrap_solve_fn(base_solve_fn, store: SolveStore, active_names: Sequence[str],
     here overrides ``store.reuse_tol`` for this store.  ``solver`` is recorded in
     each new entry's ``meta_json`` for auditing (not in the key).
     """
+    if solver == "modified" and getattr(store, "radial", "lobatto") == "gauss":
+        # The key omits the solver because the two solvers' converged fields are
+        # identical on "lobatto".  On "gauss" the modified solve stops short of the
+        # field (module docstring), and an entry filed from it would be served to a
+        # later NK build as if it were converged.
+        raise ValueError(
+            "solve_store: refusing a modified-Newton solve on a 'gauss' radial store — "
+            "its raw nodal monitor floors there and stops it short of the converged "
+            "field; use solver='nk'")
     active_names = list(active_names)
     if reuse_tol is not None:
         store.reuse_tol = float(reuse_tol)

@@ -137,9 +137,15 @@ FIXED_QC = dict(pbox.FIXED_QC)          # {"qc": 1.0} -- deterministic PN moment
 # stays under the 1e-10 gate (v norm, pre-2026-08-25) at every rung, whereas raising Nphi makes it rise by ~6e6 (to
 # 3.2e-7) and breach the gate from the third rung on, because the mechanism is roundoff
 # amplification in unpopulated high-m azimuthal modes.  Refining the meridian therefore
-# keeps every rung certified at no cost in convergence.  (This is also the ladder the
-# previous single-configuration figure used.)
-DEFAULT_LADDER = "28,20,8;36,24,8;44,30,8;52,36,8;64,44,8"
+# keeps every rung certified at no cost in convergence.  Those measurements were made on
+# the first paper's ladder, 28,20 / 36,24 / 44,30 / 52,36 / 64,44 (also the ladder of the
+# previous single-configuration figure).
+#
+# The rungs follow the production grid, so the shipped grid is a rung: with
+# production_box.PROD_GRID = (44, 40, 8) the ladder keeps the first paper's span in Na
+# and the production aspect Nb ~ 0.9 Na (Nb a multiple of 4).  Refinement is still
+# meridional at fixed Nphi = 8.
+DEFAULT_LADDER = "28,24,8;36,32,8;44,40,8;52,48,8;64,56,8"
 
 
 def _edge_cases():
