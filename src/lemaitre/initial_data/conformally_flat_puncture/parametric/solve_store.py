@@ -336,6 +336,13 @@ def wrap_solve_fn(base_solve_fn, store: SolveStore, active_names: Sequence[str],
         store.put(sl, np.asarray(U), info.iters, info.residual_norm, solver=solver)
         return U, info
 
+    # Carry the base solver's stamps across: ``make_solve_fn`` stamps the grid it runs
+    # on (``bmap``, ``radial``) and its certification norm (``cert_tol``).  A model
+    # saved with this wrapper records its grid from them (``_save_npz_owned``) and
+    # ``evaluate_polished`` reads its gate from them (``certification.gate_for``).
+    # Without them a "v2" model was saved as if it lived on the "paper-v1" grid, and
+    # its in-process gate fell back to the axisymmetric 1e-10.
+    solve_fn.__dict__.update(getattr(base_solve_fn, "__dict__", {}))
     return solve_fn
 
 

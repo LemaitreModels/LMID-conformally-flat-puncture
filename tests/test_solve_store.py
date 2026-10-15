@@ -346,3 +346,49 @@ def test_no_pipeline_producer_asks_for_modified_newton():
             if re.search(r"""solver\s*=\s*["']modified["']|--solver\s+modified""", line):
                 bad.append(f"{fn}:{i}: {line.strip()}")
     assert not bad, "modified-Newton solves in pipeline/:\n" + "\n".join(bad)
+
+
+# ==========================================================================
+# The store wrapper keeps the base solver's grid and gate stamps
+# ==========================================================================
+# ``make_solve_fn`` stamps its solve_fn with the grid it runs on (``bmap``,
+# ``radial``) and its certification norm (``cert_tol``).  A model saved from a
+# store-built solver records its grid from those stamps, and ``attach_solve_fn_3d``
+# refuses a problem on another grid.  Before 2026-10-15 the wrapper dropped them, so a
+# "v2" corpus built through the store was saved as a "paper-v1" one, and the
+# certified spot-check of the first v2 cluster build refused to attach a solver.
+def test_wrap_solve_fn_keeps_the_base_stamps(tmp_path):
+    from lemaitre.initial_data.conformally_flat_puncture.parametric.certification import (
+        CERT_TOL_U, SOLVE_FN_GATE_ATTR, gate_for)
+
+    def base(theta, guess, tol, max_iter):
+        raise AssertionError("not reached")
+    base.bmap, base.radial = "abt", "gauss"
+    setattr(base, SOLVE_FN_GATE_ATTR, CERT_TOL_U)
+    store = ss.SolveStore(str(tmp_path), grid_meta=(8, 6, 4), code_tag="t",
+                          bmap="abt", radial="gauss")
+    fn = ss.wrap_solve_fn(base, store, ["b"], solver="nk")
+    assert (fn.bmap, fn.radial) == ("abt", "gauss")
+    assert gate_for(fn) == CERT_TOL_U
+
+
+def test_v2_store_built_model_reloads_on_its_own_grid(tmp_path):
+    """End to end on a tiny "v2" grid: build through the store, save, reload, and
+    attach a solver on the same grid — the route of ``build_surrogate``'s spot-check."""
+    from lemaitre.initial_data.conformally_flat_puncture.solver import solver_3d as s3
+    from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd_smolyak as sm
+    from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd import attach_solve_fn_3d
+
+    prob = s3.make_problem(Na=12, Nb=10, Nphi=4, scheme="v2")
+    assert (prob.bmap, prob.radial) == ("abt", "gauss")
+    box = [{"name": "b", "min": 3.0, "max": 4.0}]
+    store = ss.SolveStore(os.path.join(str(tmp_path), "s"), grid_meta=(12, 10, 4),
+                          code_tag="t", bmap=prob.bmap, radial=prob.radial)
+    sol = ss.from_problem_smolyak_3d_cached(prob, box, store=store,
+                                            solver="nk").build_isotropic(1, tol=1e-12,
+                                                                         max_iter=30)
+    path = os.path.join(str(tmp_path), "m.npz")
+    sol.save(path, meta={"axis_names": ["b"]})
+    model = sm.load_smolyak(path)
+    assert (model.meta.get("bmap"), model.meta.get("radial")) == ("abt", "gauss")
+    attach_solve_fn_3d(model, prob, ["b"], solver="nk")      # raised before the fix
