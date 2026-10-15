@@ -98,6 +98,21 @@ for a higher rank silently clamped.  Raising the ranks required rebuilding the
 cross POD bases from the full Hermite corpora.
 """
 
+GUESS_RESIDUAL_ROW_SCALE = {"paper-v1": "v", "v2": "u"}[SCHEME]
+"""The row scale Fig. 5 plots its bare-guess constraint residual in.
+
+``"v"`` divides each mode-space residual row by ``max|M0_m row|`` in the factored
+unknown (``solver_3d_nk._block_scales``), ``"u"`` by the same row in the physical field
+(``_block_scales_u``), the certification norm since 2026-08-25.  The residual sweeps
+record both per rank (``pod_curve[i]`` in ``v``, ``pod_curve[i]["u"]`` in ``u``).
+
+``"paper-v1"`` keeps ``"v"``, the norm its published Fig. 5 is in.  ``"v2"`` plots
+``"u"``, the certification norm (ruled 2026-10-15).  It is also the norm of the
+bare-guess stars: they come from the polish tables, whose residuals are the solver's
+own monitor, in ``u`` since 2026-08-25, so on ``"v2"`` the curves and their stars are
+in one norm.
+"""
+
 N_NODES = {4: 1105, 8: 15713}
 """Solver nodes in the isotropic Smolyak level-``pb.SMOLYAK_LEVEL`` corpus."""
 

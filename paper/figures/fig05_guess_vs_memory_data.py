@@ -94,11 +94,34 @@ def blocks_of(raw, kind):
     return want
 
 
-def _pod5(cur, N, nfeat, blocks):
-    """Distil a rank ladder, RECOMPUTING each point's memory from the block count."""
+RESID = pm.GUESS_RESIDUAL_ROW_SCALE   # the row scale the residual row plots (production_model)
+
+
+def _scaled(c, scale):
+    """The {min,median,max,...} record of one sweep point in row ``scale``.
+
+    A residual sweep stores ``v`` at the top level and ``u`` under ``"u"`` (since the
+    producers recorded both, 2026-10-15).  A sweep from before that has no ``"u"``, and
+    plotting its ``v`` numbers under a ``u`` label is exactly the mix this refuses.
+    """
+    if scale == "v":
+        return c
+    if scale == "u" and "u" in c:
+        return c["u"]
+    raise SystemExit(f"fig05: the residual row plots the {scale!r} row scale "
+                     f"(production_model.GUESS_RESIDUAL_ROW_SCALE) but this sweep point "
+                     f"has no {scale!r} record (r={c.get('r')}); re-run its producer.")
+
+
+def _pod5(cur, N, nfeat, blocks, scale="v"):
+    """Distil a rank ladder, RECOMPUTING each point's memory from the block count.
+
+    ``scale`` is the residual row scale to read (field-error sweeps have one value: "v",
+    i.e. the top-level record)."""
     out = []
     for c in _thin(cur):
-        e = {k: c[k] for k in POD5}
+        e = dict(_scaled(c, scale), r=c["r"])
+        e = {k: e[k] for k in POD5 if k != "mem_bytes"}
         e["mem_bytes"] = pm.pod_bytes_of(int(c["r"]), N, nfeat, blocks)
         out.append(e)
     return out
@@ -113,7 +136,7 @@ def _guess(key):
     return _mmm(load_source(key)["rows"]["guess"])
 
 
-def curve(raw, bare, color, marker, ann, drop_last, *, kind):
+def curve(raw, bare, color, marker, ann, drop_last, *, kind, scale="v"):
     """One panel curve: the thinned rank ladder + its full-rank bare star.
 
     Both memories come from :mod:`production_model`; the raw sweep supplies only
@@ -121,7 +144,9 @@ def curve(raw, bare, color, marker, ann, drop_last, *, kind):
     """
     N, nfeat = int(raw["N"]), int(raw["nfeat"])
     blocks = blocks_of(raw, kind)
-    return dict(cur=_pod5(raw["pod_curve"], N, nfeat, blocks), bare=bare,
+    if scale != "v" and raw.get("row_scale", "v") != "v":
+        raise SystemExit(f"fig05: a sweep whose top level is {raw.get('row_scale')!r}, not 'v'")
+    return dict(cur=_pod5(raw["pod_curve"], N, nfeat, blocks, scale), bare=bare,
                 bare_mem=pm.bare_bytes_of(N, nfeat, blocks) / 1e6,
                 bare_r=raw["r_full"], blocks=blocks,
                 color=color, marker=marker, ann=ann, drop_last=drop_last)
@@ -173,6 +198,7 @@ def _meta(gh4, gx8):
         shipped_pod_mib={str(dim): pm.pod_bytes(pm.SHIPPED_RANK[dim], dim) / 2**20
                          for dim in (4, 8)},
         compression={str(dim): pm.compression_factor(dim) for dim in (4, 8)},
+        scheme=pm.SCHEME, residual_row_scale=RESID,
     )
 
 
@@ -180,9 +206,10 @@ def build():
     # ---- TOP-LEFT: 4D residual (value + value+gradient cross) ----
     gv = load_source("gvm_4d_value")
     gh = load_source("gvm_4d_cross")
-    TL = [curve(gv, _guess("polish_table_4d"), VAL_C, "o", "below", True, kind="value"),
+    TL = [curve(gv, _guess("polish_table_4d"), VAL_C, "o", "below", True, kind="value",
+                scale=RESID),
           curve(gh, _guess("polish_table_4d_cross"), HERM_C, "s", "above", True,
-                kind="cross")]
+                kind="cross", scale=RESID)]
 
     # ---- TOP-RIGHT: 8D residual (value gapfill + value+gradient y-pair-CROSS gapfill) ----
     # Both to r_full over the SAME 1000 seed-0 points; the value+gradient curve is the RESIDUAL
@@ -191,8 +218,9 @@ def build():
     gv8 = load_source("gvm_8d_value")
     gx8 = load_source("gvm_8d_cross")
     TR = [curve(gv8, _guess("polish_table_8d_value"), VAL_C, "o", "below", True,
-                kind="value"),
-          curve(gx8, _mmm(gx8["pod_curve"][-1]), HERM_C, "s", "above", True, kind="cross")]
+                kind="value", scale=RESID),
+          curve(gx8, _mmm(_scaled(gx8["pod_curve"][-1], RESID)), HERM_C, "s", "above", True,
+                kind="cross", scale=RESID)]
 
     # ---- BOTTOM-LEFT: 4D field error (value + value+gradient cross) ----
     # Flat schema, matching the 8-D siblings below.  Was ["value"]: a leftover

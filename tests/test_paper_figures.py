@@ -261,3 +261,28 @@ def test_fig05_residual_producers_record_both_row_scales():
         assert "equil_residuals_inf(asm, u, (scales, scales_u))" in src, mod.__name__
         assert "u=stats(res_u[r])" in src, mod.__name__
         assert 'row_scale="v"' in src, mod.__name__
+
+
+def test_fig05_residual_row_reads_the_scheme_row_scale():
+    """fig05's residual curves read the row scale ``production_model`` names for the
+    scheme (``v`` on paper-v1, ``u`` on v2), and refuse a sweep that has no record in it
+    rather than plot ``v`` numbers as ``u``."""
+    import importlib
+    fig05 = importlib.import_module("fig05_guess_vs_memory_data")
+    assert pm.GUESS_RESIDUAL_ROW_SCALE == {"paper-v1": "v", "v2": "u"}[pm.SCHEME]
+    assert fig05.RESID == pm.GUESS_RESIDUAL_ROW_SCALE
+
+    def point(r, v, u=None):
+        p = dict(r=r, mem_bytes=0.0, min=v / 2, median=v, max=2 * v, mean=v, p95=v)
+        if u is not None:
+            p["u"] = dict(min=u / 2, median=u, max=2 * u, mean=u, p95=u)
+        return p
+    both = [point(r, 1e-1, 1e-6 * r) for r in (1, 10, 100)]
+    raw = dict(N=10, nfeat=20, r_full=100, row_scale="v", pod_curve=both, blocks=1)
+    cu = fig05.curve(raw, {}, "C0", "o", "below", True, kind="value", scale="u")
+    cv = fig05.curve(raw, {}, "C0", "o", "below", True, kind="value", scale="v")
+    assert [p["median"] for p in cu["cur"]] == [p["u"]["median"] for p in fig05._thin(both)]
+    assert {p["median"] for p in cv["cur"]} == {1e-1}
+    old = dict(raw, pod_curve=[point(r, 1e-1) for r in (1, 10, 100)])
+    with pytest.raises(SystemExit, match="no 'u' record"):
+        fig05.curve(old, {}, "C0", "o", "below", True, kind="value", scale="u")
