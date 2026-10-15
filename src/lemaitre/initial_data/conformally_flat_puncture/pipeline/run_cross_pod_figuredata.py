@@ -107,7 +107,12 @@ def main(n_points=1000, seed=0, pod_out=None, rank=pm.SHIPPED_RANK[4],
     truncate_pod_cross(pod, rank).save(pod_out, meta={
         "axis_names": names, "box": [list(b) for b in box], "fixed": fixed,
         "Na": Na, "Nb": Nb, "Nphi": Nphi, "level": int(meta.get("level", 5)),
-        "enhanced": list(meta.get("enhanced", [])), "r_shipped": int(r_full)})
+        "enhanced": list(meta.get("enhanced", [])), "r_shipped": int(r_full),
+        # The grid the fields live on.  A POD built from a loaded model has no solver
+        # attached, so the save cannot read it off one (_save_npz_owned): carry the
+        # source model's keys, or a "v2" POD is saved as a "paper-v1" one and every
+        # consumer that attaches a solver refuses it.
+        **{k: meta[k] for k in ("bmap", "radial") if k in meta}})
     print(f"[figdata] wrote r={rank} cross POD -> {os.path.basename(pod_out)}", flush=True)
     if save_only:
         # The rank sweep below is a separate (1000-point, ~hour) fig05 artifact; a

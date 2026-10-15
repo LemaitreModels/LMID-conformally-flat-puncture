@@ -122,7 +122,12 @@ def main(rank=pm.SHIPPED_RANK[8], project_rank=None):
     truncate_pod_cross(pod, rank).save(out, meta={
         "axis_names": names, "box": [list(b) for b in box], "fixed": fixed,
         "Na": Na, "Nb": Nb, "Nphi": Nphi, "level": int(meta.get("level", 5)),
-        "enhanced": list(meta.get("enhanced", [])), "r_shipped": int(r_full)})
+        "enhanced": list(meta.get("enhanced", [])), "r_shipped": int(r_full),
+        # The grid the fields live on.  A POD built from a loaded model has no solver
+        # attached, so the save cannot read it off one (_save_npz_owned): carry the
+        # source model's keys, or a "v2" POD is saved as a "paper-v1" one and every
+        # consumer that attaches a solver refuses it.
+        **{k: meta[k] for k in ("bmap", "radial") if k in meta}})
     print(f"[r250-8d] wrote r={rank} cross POD "
           f"({os.path.getsize(out)/1e6:.0f} MB) -> {os.path.basename(out)}",
           flush=True)

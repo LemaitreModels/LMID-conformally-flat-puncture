@@ -94,6 +94,15 @@ def load_pod_truncated_value(path, r_new) -> PODHermiteSmolyak:
     node_thetas = np.asarray(data["node_thetas"], dtype=float)
     node_U = np.asarray(data["node_U"], dtype=float)[:, :r_new]
     node_dU = np.asarray(data["node_dU"], dtype=float)[:, :, :r_new]
+    # Slim cross files store the tangent block for the enhanced axes only
+    # (meta["dU_layout"] == "enhanced"); re-expand to the full (N, d, r) the finalize
+    # indexes by global axis, exactly as load_pod_hermite_smolyak_cross does.  The
+    # value-only interpolant never reads these blocks.
+    if meta.get("dU_layout", "full") == "enhanced":
+        enhanced = [int(e) for e in np.asarray(data["enhanced"], dtype=np.int64)]
+        full = np.zeros((node_dU.shape[0], int(meta["d"])) + node_dU.shape[2:], dtype=float)
+        full[:, enhanced, :] = node_dU
+        node_dU = full
     node_iters = np.asarray(data["node_iters"])
     node_resids = np.asarray(data["node_resids"], dtype=float)
     index_set = [tuple(int(x) for x in row) for row in np.asarray(data["index_set"])]

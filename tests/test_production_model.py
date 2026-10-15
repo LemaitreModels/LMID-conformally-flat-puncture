@@ -272,3 +272,36 @@ def test_fig05_meta_pins_the_model_and_ranks():
     assert m["model"]["8"].endswith("_cross")
     assert m["compression"]["4"] == pytest.approx(13.5, abs=0.1)        # v2 grid
     assert m["compression"]["8"] == pytest.approx(23.4, abs=0.1)
+
+
+def test_value_only_pod_loader_reads_both_tangent_layouts(cross_pod):
+    """``run_polish_fielderr_value_pod`` builds the value-only interpolant from a
+    cross POD file.  It must read the slim layout (tangents at the enhanced axes only,
+    the default since the slim save) as well as the full one, and both must give the
+    same value-only model: before 2026-10-16 it read ``node_dU`` as full-``d`` and a
+    slim file died in the finalize with a broadcast error."""
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline.run_polish_fielderr_value_pod import (
+        load_pod_truncated_value)
+    with tempfile.TemporaryDirectory() as tmp:
+        p_slim = cross_pod.save(os.path.join(tmp, "slim.npz"), slim=True)
+        p_full = cross_pod.save(os.path.join(tmp, "full.npz"), slim=False)
+        v_slim = load_pod_truncated_value(p_slim, 6)
+        v_full = load_pod_truncated_value(p_full, 6)
+        rng = np.random.default_rng(1)
+        for _ in range(4):
+            th = np.array([rng.uniform(lo, hi) for lo, hi in AXES])
+            assert np.array_equal(v_slim.evaluate(th), v_full.evaluate(th))
+
+
+def test_pod_producers_carry_the_source_grid():
+    """The two cross-POD producers build the saved file's metadata by hand, from a
+    model loaded without a solver, so ``_save_npz_owned`` cannot read the grid off
+    one.  Each must forward the source model's ``bmap``/``radial``; without them a
+    "v2" POD reads as "paper-v1" and every consumer that attaches a solver refuses it
+    (first seen 2026-10-16, on both shipped PODs)."""
+    import inspect
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline import (
+        run_cross_pod_figuredata, run_cross_pod_r250_8d)
+    for mod in (run_cross_pod_figuredata, run_cross_pod_r250_8d):
+        src = inspect.getsource(mod)
+        assert '**{k: meta[k] for k in ("bmap", "radial") if k in meta}' in src, mod.__name__
