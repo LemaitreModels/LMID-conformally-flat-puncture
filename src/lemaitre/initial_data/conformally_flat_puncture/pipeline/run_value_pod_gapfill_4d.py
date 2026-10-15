@@ -113,6 +113,7 @@ def main(n_points=1000, seed=0, model=None):
 
     pts = offnode_points(box, n_points, seed)
     res = {r: [] for r in ranks}
+    res_u = {r: [] for r in ranks}
     tev = time.time()
     for i, th in enumerate(pts):
         sl = theta_to_slice3d(th, names, 1.0, fixed)
@@ -128,12 +129,18 @@ def main(n_points=1000, seed=0, model=None):
         # committed figdata was distilled on the DENSE route, so a re-distill will
         # differ in the last digit or two, and this comment is why.
         asm = s3.assemble(prob, sl, separable=True)
+        # Both row scales from one residual: `v` (_block_scales, the plotted
+        # default, what every paper-v1 number is in) and `u` (the certification
+        # norm), so the figure can be drawn in either.
         scales = s3nk._block_scales(asm)
+        scales_u = s3nk._block_scales_u(asm)
         u_full = np.asarray(view.evaluate(th)).reshape(-1)
         c = Phi.T @ (u_full - mean)
         for r in ranks:
             u = (mean + Phi[:, :r] @ c[:r]).reshape(prob.Ntot2d, prob.Nphi)
-            res[r].append(s3nk.equil_residual_inf(asm, u, scales))
+            rv, ru = s3nk.equil_residuals_inf(asm, u, (scales, scales_u))
+            res[r].append(rv)
+            res_u[r].append(ru)
         if (i + 1) % 50 == 0 or i == n_points - 1:
             el = time.time() - tev
             rate = el / (i + 1)
@@ -141,11 +148,12 @@ def main(n_points=1000, seed=0, model=None):
                   f"ETA {rate*(n_points-i-1)/60:.1f} min)  "
                   f"med resid@r_full={np.median(res[ranks[-1]]):.2e}", flush=True)
 
-    pod_curve = [dict(r=int(r), mem_bytes=_pod_mem_bytes_value(r, N, nfeat), **stats(res[r]))
+    pod_curve = [dict(r=int(r), mem_bytes=_pod_mem_bytes_value(r, N, nfeat), **stats(res[r]),
+                      u=stats(res_u[r]))
                  for r in ranks]
     out = dict(dim=4, metric="equilibrated_residual", r_full=int(r_full), r_cap=int(r_full),
                N=int(N), nfeat=int(nfeat), d=int(d), n_points=int(n_points), seed=int(seed),
-               n_ranks=len(ranks), norm="equilibrated", flavor="value-only",
+               n_ranks=len(ranks), norm="equilibrated", row_scale="v", flavor="value-only",
                model=os.path.basename(path),
                bare_mem_bytes=8.0 * N * nfeat, pod_curve=pod_curve)
     outp = os.path.join(REP3, f"guess_vs_memory_4d_value_gapfill_{n_points}.json")

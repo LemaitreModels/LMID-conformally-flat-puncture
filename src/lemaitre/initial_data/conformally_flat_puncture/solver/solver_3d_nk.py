@@ -242,6 +242,19 @@ def equil_residual_inf(asm: Assembly3D, U: np.ndarray, scales=None,
     return _equil_norm(Rm, scales)
 
 
+def equil_residuals_inf(asm: Assembly3D, U: np.ndarray, scales_seq) -> tuple:
+    """:func:`equil_residual_inf` of ONE field in several row scales, from one residual.
+
+    ``scales_seq`` is a sequence of per-m scale lists (``_block_scales`` for ``v``,
+    ``_block_scales_u`` for ``u``); the result is one float per entry, each equal to
+    ``equil_residual_inf(asm, U, scales)`` bit for bit.  The residual is evaluated once,
+    which is the whole cost of a sweep that reports a field in both norms.
+    """
+    Nphi = U.shape[1]
+    Rm = s3.residual_modes(asm, np.asarray(U).reshape(asm.interior.size, Nphi))
+    return tuple(_equil_norm(Rm, s) for s in scales_seq)
+
+
 # --------------------------------------------------------------------------
 # One Newton–Krylov step
 # --------------------------------------------------------------------------

@@ -244,3 +244,20 @@ def test_fig07_eccentricity_ladder_is_measurable_somewhere():
             f"fig07 per_J[{J}]: the first rung is b0 = b_circ and must have e = 0")
         if pj["e_max"] is not None:
             assert pj["e_max"] == pytest.approx(max(finite))
+
+
+def test_fig05_residual_producers_record_both_row_scales():
+    """fig05's residual row is distilled from four sweeps.  Each records the `v`-scaled
+    residual (the plotted default, every paper-v1 number) and the `u`-scaled one (the
+    certification norm) per rank, and names the plotted scale, so a figure in either
+    scale can be drawn from one run and a JSON never again leaves its scale implicit."""
+    import inspect
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline import (
+        run_value_pod_gapfill_4d, run_value_pod_gapfill_8d,
+        run_cross_pod_figuredata, run_cross_pod_resid_8d)
+    for mod in (run_value_pod_gapfill_4d, run_value_pod_gapfill_8d,
+                run_cross_pod_figuredata, run_cross_pod_resid_8d):
+        src = inspect.getsource(mod)
+        assert "equil_residuals_inf(asm, u, (scales, scales_u))" in src, mod.__name__
+        assert "u=stats(res_u[r])" in src, mod.__name__
+        assert 'row_scale="v"' in src, mod.__name__

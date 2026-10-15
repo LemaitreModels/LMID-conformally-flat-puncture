@@ -943,3 +943,24 @@ def test_evaluate_field_axisymmetric_matches_the_2d_solver():
     prob2 = sa.make_problem(Na=Na, Nb=Nb, scheme="paper-v1")
     want = np.asarray(sa.evaluate_field_phys(prob2, U[:, :, 0], rho_q, z_q, b))
     assert np.max(np.abs(got - want)) < 1e-13, f"Nφ=1 drifted from 2-D: {got - want}"
+
+
+# ==========================================================================
+# One residual, several row scales (the fig05 sweeps record `v` and `u`)
+# ==========================================================================
+@pytest.mark.parametrize("scheme", ["paper-v1", "v2"])
+@pytest.mark.parametrize("separable_route", [False, True])
+def test_equil_residuals_inf_is_equil_residual_inf_per_scale(scheme, separable_route):
+    """``equil_residuals_inf`` evaluates the residual once and divides by each scale
+    set; each entry must be ``equil_residual_inf`` with that scale set, bit for bit,
+    on both grids and both assembly routes (the sweeps assemble separably)."""
+    prob = s3.make_problem(**dict(GRID, scheme=scheme))
+    asm = s3.assemble(prob, _slice(b=3.0), separable=separable_route)
+    rng = np.random.default_rng(7)
+    U = 1e-2 * rng.standard_normal((prob.Ntot2d, prob.Nphi))
+    sv, su = nk._block_scales(asm), nk._block_scales_u(asm)
+    rv, ru = nk.equil_residuals_inf(asm, U, (sv, su))
+    assert rv == nk.equil_residual_inf(asm, U, sv)
+    assert ru == nk.equil_residual_inf(asm, U, su)
+    assert ru == nk.equil_residual_inf(asm, U, norm="u")
+    assert rv == nk.equil_residual_inf(asm, U, norm="v")

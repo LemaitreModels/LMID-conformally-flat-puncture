@@ -123,15 +123,22 @@ def main(n_points=1000, seed=0, pod_out=None, rank=pm.SHIPPED_RANK[4],
     Phi, mean = pod.Phi, pod.mean
     fs = mc.field_shape
     res = {r: [] for r in ranks}
+    res_u = {r: [] for r in ranks}
     tev = time.time()
     for i, th in enumerate(pts):
         sl = theta_to_slice3d(th, names, 1.0, fixed)
         asm = s3.assemble(prob, sl)
+        # Both row scales from one residual: `v` (_block_scales, the plotted
+        # default, what every paper-v1 number is in) and `u` (the certification
+        # norm), so the figure can be drawn in either.
         scales = s3nk._block_scales(asm)
+        scales_u = s3nk._block_scales_u(asm)
         c = pod.coeffs(th)                                # (r_full,)
         for r in ranks:
             u = (mean + Phi[:, :r] @ c[:r]).reshape(prob.Ntot2d, prob.Nphi)
-            res[r].append(s3nk.equil_residual_inf(asm, u, scales))
+            rv, ru = s3nk.equil_residuals_inf(asm, u, (scales, scales_u))
+            res[r].append(rv)
+            res_u[r].append(ru)
         if (i + 1) % 100 == 0 or i == n_points - 1:
             el = time.time() - tev
             print(f"   sweep {i+1}/{n_points} ({el:.0f}s, {el/(i+1):.2f}s/pt)  "
@@ -141,10 +148,11 @@ def main(n_points=1000, seed=0, pod_out=None, rank=pm.SHIPPED_RANK[4],
     pod_curve = []
     for r in ranks:
         st = stats(res[r])
-        pod_curve.append(dict(r=int(r), mem_bytes=_pod_mem_bytes(r, N, nfeat, blocks), **st))
+        pod_curve.append(dict(r=int(r), mem_bytes=_pod_mem_bytes(r, N, nfeat, blocks), **st,
+                              u=stats(res_u[r])))
     out = dict(dim=4, r_full=int(r_full), r_cap=int(r_full), N=int(N), nfeat=int(nfeat),
                d=int(d), npair=int(npair), n_points=int(n_points), seed=int(seed),
-               n_ranks=len(ranks), norm="equilibrated",
+               n_ranks=len(ranks), norm="equilibrated", row_scale="v",
                blocks=int(blocks), bare_mem_bytes=pm.bare_bytes_of(N, nfeat, blocks), pod_curve=pod_curve)
     outp = os.path.join(REP3, f"guess_vs_memory_4d_cross_gapfill_{n_points}.json")
     with open(outp, "w") as f:
