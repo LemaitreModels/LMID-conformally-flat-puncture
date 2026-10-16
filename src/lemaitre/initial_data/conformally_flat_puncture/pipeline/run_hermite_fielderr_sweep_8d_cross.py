@@ -119,6 +119,16 @@ def _pod_mem_bytes_value(r, N, nfeat):
     return 8.0 * (nfeat * r + N * r + nfeat)
 
 
+def _mem():
+    """Current and peak resident set (Linux ``/proc``; empty elsewhere)."""
+    try:
+        kv = {l.split(":")[0]: l.split()[1] for l in open("/proc/self/status")
+              if l.startswith(("VmRSS:", "VmHWM:"))}
+        return f"rss={int(kv['VmRSS'])/2**20:.1f}G peak={int(kv['VmHWM'])/2**20:.1f}G"
+    except Exception:
+        return ""
+
+
 def _field_err(u, ut):
     """Relative Frobenius L2 (matches run_cross_fielderror_chi.field_err)."""
     u = np.asarray(u).reshape(-1)
@@ -190,8 +200,18 @@ def sweep_cross(pts, key, prob, names, fixed, n_points, seed):
     pod, _diag = build_pod_hermite_smolyak_cross(mc, r=r_req)
     r_full = int(pod.r)
     Phi, mean = pod.Phi, np.asarray(pod.mean, dtype=float).reshape(-1)
-    print(f"[hf8dx:cross] Phi {Phi.shape}  r_full={r_full}  ({time.time()-t0:.0f}s)",
+    print(f"[hf8dx:cross] Phi {Phi.shape}  r_full={r_full}  ({time.time()-t0:.0f}s)  {_mem()}",
           flush=True)
+
+    # Release the cross model before the sweep: the POD carries its own projected pool
+    # and the sweep reads only `pod`, so `mc` is dead weight from here (the 8-D raw
+    # models measured 113-117 GiB loaded in the 2026-10-14 budget; this one is unmeasured).  Job 141627 was OOM-killed at 248 GiB of 250 as
+    # the sweep started with both resident.  Keep only the scalars the record needs.
+    n_enh = len(tuple(mc.enhanced))
+    blocks = int(pm.blocks_of_model(mc))
+    del mc, _diag
+    gc.collect()
+    print(f"[hf8dx:cross] released the cross model before the sweep  {_mem()}", flush=True)
 
     ranks = sorted(set(int(round(x)) for x in np.geomspace(1, r_full, 10)))
     ranks = [r for r in ranks if 1 <= r <= r_full]
@@ -212,7 +232,7 @@ def sweep_cross(pts, key, prob, names, fixed, n_points, seed):
                   f"med field-err@r_full={np.median(fe[ranks[-1]]):.2e}", flush=True)
 
     pod_curve = [dict(r=int(r),
-                      mem_bytes=_pod_mem_bytes_cross(r, N, nfeat, len(tuple(mc.enhanced)), npair),
+                      mem_bytes=_pod_mem_bytes_cross(r, N, nfeat, n_enh, npair),
                       **stats(fe[r])) for r in ranks]
     out = dict(dim=8, metric="field_error_relL2", flavor="value+grad-cross",
                r_full=int(r_full), r_cap=int(r_full),
@@ -221,13 +241,13 @@ def sweep_cross(pts, key, prob, names, fixed, n_points, seed):
                u_tol=key["u_tol"], u_steps=key["u_steps"], u_true_source=src,
                u_true_res_med=float(np.median(ures)),
                model=os.path.basename(CROSS_MODEL),
-               blocks=int(pm.blocks_of_model(mc)), bare_mem_bytes=pm.bare_bytes_of(N, nfeat, pm.blocks_of_model(mc)), pod_curve=pod_curve)
+               blocks=blocks, bare_mem_bytes=pm.bare_bytes_of(N, nfeat, blocks), pod_curve=pod_curve)
     outp = os.path.join(REP3, f"guess_vs_memory_8d_cross_field_{n_points}.json")
     _write(outp, out)
     med = {r: float(np.median(fe[r])) for r in ranks}
     print(f"[hf8dx:cross] median field err: {[f'{med[r]:.2e}' for r in ranks]}  "
-          f"({(time.time()-t0)/60:.1f} min)", flush=True)
-    del mc, pod, Phi, mean, fe
+          f"({(time.time()-t0)/60:.1f} min)  {_mem()}", flush=True)
+    del pod, Phi, mean, fe
     gc.collect()
     return outp, r_full, med, ut, ures
 

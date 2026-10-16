@@ -367,3 +367,62 @@ def test_solve_and_export_wiring(tmp_path):
     # content beyond roundoff: a genuine physics check on the phi transform
     assert np.max(np.abs(exp.S)) < 1e-9
     assert np.max(np.abs(exp.C[:, :, 1:])) < 1e-9
+
+
+@pytest.mark.parametrize("scheme", ["paper-v1", "v2"])
+def test_tp_export_queries_every_node_that_is_not_at_infinity(scheme, tmp_path, monkeypatch):
+    """``run_export_grteclyn.tp_export`` must query the oracle at every node the grid
+    lays, and skip only a node AT ``A = 1``.
+
+    On ``"lobatto"`` row 0 is ``A = 1`` (spatial infinity, ``u = 0`` by the boundary
+    row), so it is skipped.  On ``"gauss"`` there is no node at ``A = 1``: row 0 is the
+    outermost interior node.  The export once skipped it on both grids, zeroing a real
+    node, and the v2 TwoPunctures parity file then disagreed with our own solve by
+    1.8e-5 relative (anchor, 44 x 40 x 8) where the fix gives 1.6e-13.  The oracle is
+    stubbed with a known field, so no TwoPunctures binary is needed.
+    """
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline import run_export_grteclyn as rex
+    from lemaitre.initial_data.conformally_flat_puncture.validation import twopunctures as tp
+
+    prob = s3.make_problem(Na=10, Nb=8, Nphi=4, scheme=scheme)
+    sl = s3.Slice3D.head_on(B_ANCHOR, M_A, M_B, 0.5)
+
+    def u_known(rho, z, phi):
+        # decays slowly, so it is far from zero at the outermost node (r ~ 1e2)
+        return 1e-2 * (1.0 + 0.1 * np.cos(phi)) / (1.0 + 0.01 * np.hypot(rho, z))
+
+    class _Res:
+        pass
+
+    def fake_solve(b, mA, mB, PA, PB, SA, SB, rho, z, phi):
+        r = _Res()
+        r.psi = np.asarray(source.psi_BL_2c(rho, z, b, mA, mB)) + u_known(rho, z, phi)
+        r.E = 1.0
+        return r
+
+    seen = {}
+    real_from_solution = eg.from_solution
+
+    def spy_from_solution(prob_, sl_, U, **kw):
+        seen["U"] = np.array(U)
+        return real_from_solution(prob_, sl_, U, **kw)
+
+    monkeypatch.setattr(tp, "available", lambda: True)
+    monkeypatch.setattr(tp, "solve_lm_initial_data_points_3d", fake_solve)
+    monkeypatch.setattr(rex.eg, "from_solution", spy_from_solution)
+    rex.tp_export(prob, sl, "stub_tp", str(tmp_path), n_ref=16)
+
+    A2, B2 = np.meshgrid(prob.A, prob.B, indexing="ij")
+    rho2, z2 = ops.abt_map(A2, B2, sl.b)
+    want = u_known(rho2[:, :, None], z2[:, :, None],
+                   2.0 * np.pi * np.arange(prob.Nphi)[None, None, :] / prob.Nphi)
+    U = seen["U"]
+    if prob.radial == "lobatto":
+        assert prob.A[0] == 1.0
+        assert np.all(U[0] == 0.0)
+        np.testing.assert_allclose(U[1:], want[1:], rtol=0, atol=1e-12)
+    else:
+        assert prob.A[0] < 1.0
+        # psi - psi_BL loses ~1e-14 next to a puncture; a skipped row is off by ~1e-3
+        assert np.max(np.abs(want[0])) > 1e-3
+        np.testing.assert_allclose(U, want, rtol=0, atol=1e-12)

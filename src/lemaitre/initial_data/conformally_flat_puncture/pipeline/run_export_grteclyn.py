@@ -113,17 +113,21 @@ def tp_export(prob, sl, name, out_dir, n_ref):
               f"({tp.binary_path()}) — skipping the parity export")
         return None
 
-    # Node coordinates.  i = 0 is A = 1, i.e. spatial infinity, where the solve
-    # imposes Dirichlet u = 0 (operators_abt.apply_bcs) and where the oracle
-    # cannot be queried; fill that row with the same boundary value.
+    # Node coordinates.  On "lobatto" i = 0 is A = 1, i.e. spatial infinity, where the
+    # solve imposes Dirichlet u = 0 (operators_abt.apply_bcs) and where the oracle
+    # cannot be queried; that row keeps the same boundary value.  On "gauss" there is
+    # no node at A = 1 (i = 0 is the outermost interior node, A ≈ 1 − 3e-4 at Na = 44),
+    # so every row is queried: skipping it zeroed a real node, and the v2 TP export
+    # then disagreed with the solver by ~1e-6 instead of ~1e-10.
     from lemaitre.initial_data.conformally_flat_puncture.solver import operators_abt as ops
     A2, B2 = np.meshgrid(prob.A, prob.B, indexing="ij")
     rho2, z2 = ops.abt_map(A2, B2, sl.b)
     nA, nB, nphi = prob.shape
     U = np.zeros((nA, nB, nphi))
+    i0 = 1 if prob.radial == "lobatto" else 0
 
     rho_q, z_q, phi_q, idx = [], [], [], []
-    for i in range(1, nA):                       # skip the A = 1 (infinity) row
+    for i in range(i0, nA):
         for j in range(nB):
             for p in range(nphi):
                 rho_q.append(rho2[i, j])
