@@ -36,7 +36,7 @@ from _figstyle import figdims, MODEL_TITLES, PANEL_H_STACK
 # and 5, which draw the same two models.
 TITLES = MODEL_TITLES
 
-THRESH = 1e-10
+THRESH = 1e-10   # paper-v1's gate; main() takes the figdata's own meta.certify_tol
 FIELD_FLOOR = 1e-13          # below this the iterate == converged solution (log floor)
 # convention (Figs. 1, 3, 4, 5): value-only = C0 (tab:blue),
 # gradient-enhanced = C1 (tab:orange); cold baseline = grey
@@ -141,7 +141,9 @@ def _plot_field(ax, col):
 
 
 def main():
+    global THRESH
     d = load("fig04_polish_staircase")
+    THRESH = float(d["meta"].get("certify_tol", THRESH))
     cols = d["cols"]
     fig, axes = plt.subplots(2, 2, figsize=figdims(2, 2, panel_h=PANEL_H_STACK),
                              sharex="col", sharey="row")

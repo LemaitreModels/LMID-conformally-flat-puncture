@@ -38,6 +38,14 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _figdata import load_source, have_source, dump
 from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
+from lemaitre.initial_data.conformally_flat_puncture.parametric import certification
+
+# The certification gate the dotted line and the step counts are read against: the gate
+# of the norm the producers' residuals are in.  On "paper-v1" that is the submitted
+# figure's v-norm CERT_TOL (1e-10, kept so its numbers reproduce); on "v2" the polish
+# producers record the solver's u-norm monitor, gated at CERT_TOL_U (1e-11).
+CERTIFY_TOL = (certification.CERT_TOL if pm.SCHEME == "paper-v1"
+               else certification.CERT_TOL_U)
 
 
 def _stair(d):
@@ -148,11 +156,9 @@ def _meta(cfgs):
         # The route the residual staircases ran.  fig04's field-error producers used to
         # assemble dense while the residuals they reproduce ran separable (review 5.4).
         route={str(d): cfgs[d].get("route") for d in (4, 8)},
-        certify_tol=1e-10,                       # the dotted line; CERT_TOL (v norm) is certification.py's
-                                                 # -- the committed artifact is a pre-1eec8c7 v-era
-                                                 # measurement kept byte-stable per the 2026-08-25
-                                                 # [D2] ruling (see docs/DATA.md); a rebuild under the
-                                                 # u regime would re-price a submitted figure
+        certify_tol=CERTIFY_TOL,                 # the dotted line, and the steps-to-certify below;
+                                                 # paper-v1's committed artifact is the v-era
+                                                 # 1e-10 per the 2026-08-25 [D2] ruling (docs/DATA.md)
         n_points=c4.get("n_points"), seed=c4.get("seed"),
         smolyak_level=c4.get("level"),
         grid={str(d): [cfgs[d].get("Na"), cfgs[d].get("Nb"), cfgs[d].get("Nphi")]
@@ -162,26 +168,34 @@ def _meta(cfgs):
     )
 
 
-def _steps_to_certify(srcs):
+def _steps_to_certify(srcs, tol=None):
     """The statistic the caption's claim IS: per curve, the first step at which every one
-    of the 1000 points has crossed 1e-10, plus the producers' own median/max where they
-    report it.  Committed so the figure's data can be checked against its own caption.
+    of the 1000 points has crossed the gate ``tol`` (``worst_step``, from the per-step
+    maxima), and the first step at which the median has (``median_step``, from the
+    per-step medians).  Committed so the figure's data can be checked against its own
+    caption.
 
-    The value-only POD producer reports ``residual_rows`` but no steps-to-certify
-    histogram, so its entry carries ``worst_step`` only -- absent, not zero.
+    ``median_step`` equals the median of the per-point step counts only if every point's
+    residual history is non-increasing; the producers keep no per-point histories, so it
+    is the per-step statistic, named as such.  The producers' own histogram counts are
+    against a fixed 1e-10 report threshold (``run_polish_table``), so they are carried
+    under that name, not as the gate's.  The value-only POD producer reports
+    ``residual_rows`` and no histogram: its 1e-10 entries are absent, not zero.
     """
+    tol = CERTIFY_TOL if tol is None else tol
+    keys = ["guess"] + [f"after{k}" for k in range(1, 9)]
     out = {}
     for name, d in srcs.items():
-        rows = d.get("worst_per_step")
-        if rows is None:
+        if "rows" in d and "worst_per_step" in d:
+            worst_rows, med_rows = d["worst_per_step"], {k: v["median"] for k, v in d["rows"].items()}
+        else:
             rr = d.get("residual_rows") or {}
-            rows = {k: v["max"] for k, v in rr.items()}
-        keys = ["guess"] + [f"after{k}" for k in range(1, 9)]
-        vals = [rows[k] for k in keys if k in rows]
-        worst = next((i for i, v in enumerate(vals) if v <= 1e-10), None)
-        out[name] = dict(worst_step=worst,
-                         median=d.get("median_steps_to_certify"),
-                         max=d.get("max_steps_to_certify"),
+            worst_rows = {k: v["max"] for k, v in rr.items()}
+            med_rows = {k: v["median"] for k, v in rr.items()}
+        first = lambda rows: next((i for i, k in enumerate(keys) if k in rows and rows[k] <= tol), None)
+        out[name] = dict(tol=tol, worst_step=first(worst_rows), median_step=first(med_rows),
+                         median_le_1e10=d.get("median_steps_to_certify"),
+                         max_le_1e10=d.get("max_steps_to_certify"),
                          never=d.get("n_never_certified"))
     return out
 
@@ -216,8 +230,9 @@ def build():
     p = dump("fig04_polish_staircase", dict(cols=cols, meta=meta))
     print(f"wrote {os.path.relpath(p)}  (4D + 8D, residual + field rows, cold|value|value+grad)")
     for name, s in meta["steps_to_certify"].items():
-        print(f"   steps-to-certify {name:10s} worst={s['worst_step']}  "
-              f"median={s['median']}  max={s['max']}  never={s['never']}")
+        print(f"   steps-to-certify (<= {s['tol']:.0e}) {name:10s} worst={s['worst_step']}  "
+              f"median={s['median_step']}   [<=1e-10: median={s['median_le_1e10']} "
+              f"max={s['max_le_1e10']}]  never={s['never']}")
 
 
 if __name__ == "__main__":
