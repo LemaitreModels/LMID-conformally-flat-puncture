@@ -201,8 +201,19 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   > `separable.kron_factors`) take it from `operators_abt.angular_d2`, which returns
   > `None` — the original squaring — on `"cos"` and on any hand-built grid. A new
   > construction of the B-operator must go through it too, or the dense and separable
-  > routes stop agreeing. **`"abt"` is the angular half of the default scheme
-  > `"v2"`** (below) and of `production_model.SCHEME`; `"cos"` is the angular half of
+  > routes stop agreeing. **On `"abt"` the associated-Legendre factor's exponent is
+  > capped:** `w = (1−B²)^{k/2}` with `k = min(|m|, operators_3d.ABT_FACTOR_M_MAX = 4)`
+  > (`operators_3d.angular_factor_order`, recognised from the node values inside
+  > `bc_factor`, so the dense, separable and curved-leaf constructors all get it).
+  > - Uncapped, the near-axis `w` reaches 9e-23 at m = 8 and the source's high-m
+  >   roundoff divided by it wrecked every solve from Nφ ≈ 12 on: at 44×40×16,
+  >   2.8e3 GMRES iterations per step, the gate missed, ψ 1e-4 off TwoPunctures.
+  > - On `"abt"` the factor is rational in `s`, so a smaller exponent loses no
+  >   convergence. Nothing at Nφ ≤ 9 changes, and `"cos"` is never capped.
+  > - `tests/test_scheme_v2.py` §6 pins the rule and the repaired solve, against an
+  >   uncapped control.
+  >
+  > **`"abt"` is the angular half of the default scheme `"v2"`** (below) and of `production_model.SCHEME`; `"cos"` is the angular half of
   > `"paper-v1"`, the first submitted paper's grid, which the curved sibling's chart is
   > on by name. The GRTeclyn export has one format per scheme — 2 for `"paper-v1"` (a
   > polynomial in `B`), 4 for `"v2"` (a polynomial in `s`) — and refuses a mixed

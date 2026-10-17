@@ -177,15 +177,109 @@ def axisym_blocks(A, B, DA1, DB1, b):
 #
 # For m=0 the factor is w≡1 and v_m≡u_m, so the m=0 block is the original Lap
 # bit-for-bit (and the axisymmetric reduction is unchanged).
+#
+# On a MAPPED angular grid ("abt") the factor's exponent is capped at
+# ABT_FACTOR_M_MAX — see angular_factor_order for why the cap is needed there, why
+# it costs no accuracy there, and why the "cos" grid keeps the full exponent.
+
+#: The largest exponent ``k`` of the angular factor ``(1−B²)^{k/2}`` on a mapped
+#: angular grid; modes ``|m| > ABT_FACTOR_M_MAX`` are factored by ``k = 4`` there.
+#: It equals the largest mode of the production grid (Nφ = 8), so every grid with
+#: Nφ ≤ 9 is bit-for-bit what it was before the cap existed.
+ABT_FACTOR_M_MAX = 4
+
+# The canonical mapped angular nodes per Nb, sorted, for angular_factor_order.
+_MAPPED_B_MEMO: dict = {}
+
+
+def _is_mapped_angular(B) -> bool:
+    """True iff the distinct values of ``B`` are exactly a canonical MAPPED grid's nodes.
+
+    ``bc_factor`` is handed node arrays, not a map name (the flattened 2-D ``Bf`` or
+    the 1-D ``B``, by the dense, separable and curved-leaf constructors alike), so
+    the map is recognised from the values, the same way ``operators_abt.angular_d2``
+    recognises it from ``(B, DB1)``.  A hand-built grid is not recognised and keeps
+    the full exponent.  So does a proper SUBSET of a grid's nodes: a caller must hand
+    in the whole node set (every constructor does), or its factor disagrees with the
+    assembled one.  ``Nb = 1`` is never recognised, because there the two maps share
+    the single node ``B = 0`` and ``"cos"`` must stay uncapped.
+    """
+    u = np.unique(np.asarray(B, dtype=float))
+    if u.size < 2:
+        return False
+    for bmap in ops.B_MAPS:
+        if bmap == "cos":
+            continue
+        key = (u.size, bmap)
+        canon = _MAPPED_B_MEMO.get(key)
+        if canon is None:
+            canon = np.sort(np.asarray(ops.build_grid(1, u.size, bmap, "lobatto")[1]))
+            canon.setflags(write=False)
+            _MAPPED_B_MEMO[key] = canon
+        if np.array_equal(u, canon):
+            return True
+    return False
+
+
+def angular_factor_order(B, m: int) -> int:
+    """The exponent ``k`` of the angular factor ``w = (1−B²)^{k/2}`` for mode ``m``.
+
+    ``k = |m|``, except on a mapped angular grid (``"abt"``, the angular half of
+    ``"v2"``), where ``k = min(|m|, ABT_FACTOR_M_MAX)``.
+
+    **Why the cap.**  The factored block applies ``L_m[w·v]``; next to the axis its
+    rows carry ``w`` and its derivatives, while the nonlinear source's ``m``-th
+    Fourier coefficient there is roundoff, ``~eps·|S|``, not the ``~w·|S|`` a regular
+    mode has.  The collocation equation then sets ``v`` at the near-axis nodes to
+    ``~eps/w_min``, and spectral differentiation of that ``v`` carries it into the
+    interior.  On ``"abt"`` the nodes crowd the axis quadratically,
+    ``1 − B²_max = 3.1e-6`` at Nb = 40 against ``3.5e-3`` on ``"cos"``, so
+    ``w_min = (1 − B²_max)^{|m|/2}`` is ``1e-11`` at m = 4, ``3e-17`` at m = 6 and
+    ``9e-23`` at m = 8 (``"cos"``: ``2e-10`` at m = 8).  Measured at 44 × 40 × 16 on
+    a quasi-circular spinning slice (2026-10-17), uncapped:
+    - GMRES needs 2833–2891 iterations per Newton step (the cap is 3000);
+    - the equilibrated residual stalls at 1.3e-10, above the 1e-11 gate;
+    - the field carries a spurious Nyquist mode, |u_8|/|u_0| = 5e-4;
+    - ψ is 1.1e-4 off a 72 × 72 × 24 TwoPunctures solve.
+
+    Capped at 4, the same solve takes 8 iterations per step, certifies at 1.9e-14 and
+    is 5.7e-9 off the same reference.
+
+    **Why it costs no accuracy on a mapped grid.**  The factor exists to remove the
+    ``(1−B²)^{1/2}`` branch point an odd ``m`` has in ``B``.  On ``"abt"``
+    ``(1−B²)^{1/2} = (1−s²)/(1+s²)`` is rational in the interpolation coordinate
+    ``s``, with poles only at ``s = ±i``, so ``u_m/(1−B²)^{k/2}`` is analytic in ``s``
+    for every ``k ≤ |m|``: the rule ``solver_3d.evaluate_field`` already relies on.
+    Factoring out ``k = 4`` instead of ``|m|`` changes the unknown, not the
+    convergence class (the finite-resolution accuracy is a different discretisation's,
+    measured, not identical).  The centrifugal pole no longer cancels against
+    ``γ w''`` when ``k < |m|``: divided by ``w`` the angular operator reads
+    ``q v'' − 2(k+1)B v' + [(k² − m²)/q − k(k+1)] v`` with ``q = 1 − B²``.  The block
+    applies the UNDIVIDED ``L_m[w v]``, whose coefficients stay bounded for ``k = 4``,
+    and the leftover ``(k² − m²)/q`` is what makes ``v ~ q^{(|m|−k)/2}``, which is
+    analytic in ``s``.  On ``"cos"`` the branch point is real, so there is no cap.
+
+    **Why 4.**  It is the largest mode of the production grid, so nothing at Nφ ≤ 9
+    moves by a bit.  The near-axis amplification ``1/w_min`` it leaves is the one
+    every shipped v2 solve already has.
+    """
+    m = abs(int(m))
+    if m <= ABT_FACTOR_M_MAX or not _is_mapped_angular(B):
+        return m
+    return ABT_FACTOR_M_MAX
+
+
 def bc_factor(Bf, m: int):
-    """The B-factor ``w=(1−B²)^{|m|/2}`` and its analytic B-derivatives ``w', w''``.
+    """The B-factor ``w=(1−B²)^{k/2}`` and its analytic B-derivatives ``w', w''``.
 
     ``Bf`` is the flattened B-node array.  For m=0 returns ``(1, 0, 0)``.
+    ``k = |m|``, capped at :data:`ABT_FACTOR_M_MAX` on a mapped angular grid
+    (:func:`angular_factor_order`).
     """
     Bf = np.asarray(Bf, dtype=float)
     if m == 0:
         return np.ones_like(Bf), np.zeros_like(Bf), np.zeros_like(Bf)
-    s = abs(int(m)) / 2.0
+    s = angular_factor_order(Bf, m) / 2.0
     oa = 1.0 - Bf ** 2
     w = oa ** s
     wp = s * oa ** (s - 1.0) * (-2.0 * Bf)
@@ -552,11 +646,14 @@ def inv_wmin(B, Nphi: int) -> float:
     A ``"lobatto"``-grid identity: on a ``"gauss"`` radial grid ``w`` also carries
     ``A − 1`` (``operators_abt.RADIAL_MAPS``), so the ratio is not this closed form
     there and ``u_row_scales`` must be computed (``separable.row_scales_u`` does).
+    On a mapped angular grid the exponent is the capped one
+    (:func:`angular_factor_order`), so above Nφ = 9 there the ratio stops growing.
     """
     m_max = int(np.max(np.abs(fourier_modes(Nphi))))
     if m_max == 0:
         return 1.0
-    return float((1.0 - float(np.max(np.asarray(B, dtype=float) ** 2))) ** (-0.5 * m_max))
+    k_max = angular_factor_order(B, m_max)
+    return float((1.0 - float(np.max(np.asarray(B, dtype=float) ** 2))) ** (-0.5 * k_max))
 
 
 def clear_block_cache():

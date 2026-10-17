@@ -264,9 +264,13 @@ def test_v2_blocks_m0_oracle_and_factor():
     assert np.array_equal(asm.M0, M2) and np.array_equal(asm.w, fAf)
 
 
-def test_v2_separable_matches_dense():
-    """Equation (2) of ``separable``: apply, solve, both row scales, and a full solve."""
-    prob = s3.make_problem(**GRID, scheme="v2")
+@pytest.mark.parametrize("Nphi", [GRID["Nphi"], 14])
+def test_v2_separable_matches_dense(Nphi):
+    """Equation (2) of ``separable``: apply, solve, both row scales, and a full solve.
+
+    Nφ = 14 reaches modes above ``ABT_FACTOR_M_MAX``, so the capped factor is checked
+    to be the same in both representations (§6)."""
+    prob = s3.make_problem(**dict(GRID, Nphi=Nphi), scheme="v2")
     sl = _slice()
     asm = s3.assemble(prob, sl, separable=False)
     sep = separable.get_separable(prob.Na, prob.Nb, prob.Nphi, "abt", "gauss")
@@ -755,3 +759,105 @@ def test_no_producer_figure_table_or_oracle_relies_on_the_default():
     print(f"\n[source scan] {files} files, {n} grid-building calls, {len(bad)} unnamed")
     assert n >= 40, f"the scan saw only {n} calls: it is not looking where the producers are"
     assert not bad, "grid built on the default (name scheme= or both axes):\n" + "\n".join(bad)
+
+
+# ==========================================================================
+# 6.  The angular factor's exponent is capped on the mapped grid
+# ==========================================================================
+# ``operators_3d.angular_factor_order``: on "abt" the factor (1−B²)^{k/2} uses
+# k = min(|m|, ABT_FACTOR_M_MAX).  Uncapped, the factored block's near-axis rows
+# carry w ~ (1 − B²_max)^{|m|/2} (9e-23 at m = 8, Nb = 40), the source's high-m
+# roundoff then sets v there to ~eps/w, and the solve degrades from Nφ ≈ 12 on.
+# These gates pin the rule, that it moves nothing at Nφ ≤ 9 or on "cos", and the
+# solve it repairs, against the uncapped route as a control.
+
+def test_angular_factor_cap_applies_on_the_mapped_grid_only():
+    cap = ops3.ABT_FACTOR_M_MAX
+    assert cap == 4, "the cap is the production grid's largest mode; moving it re-prices v2"
+    for one in (np.array([0.0]), np.zeros(7)):                 # Nb = 1: both maps agree
+        assert ops3.angular_factor_order(one, 8) == 8
+    _, Babt, _, _ = ops.build_grid(GRID["Na"], GRID["Nb"], scheme="v2")
+    _, Bcos, _, _ = ops.build_grid(GRID["Na"], GRID["Nb"], scheme="paper-v1")
+    hand = np.asarray(Babt) * (1.0 - 1e-9)                    # not a canonical grid
+    Bf = np.tile(np.asarray(Babt), GRID["Na"] + 1)            # flattened: repeats
+    for m in range(0, 11):
+        assert ops3.angular_factor_order(Babt, m) == min(m, cap)
+        assert ops3.angular_factor_order(Bf, m) == min(m, cap)
+        assert ops3.angular_factor_order(Bcos, m) == m
+        assert ops3.angular_factor_order(hand, m) == m
+    # bit-for-bit the closed form up to the cap (the shipped Nφ ≤ 9 blocks), and the
+    # cap's own factor above it
+    for m in range(1, cap + 1):
+        s = m / 2.0
+        oa = 1.0 - np.asarray(Babt) ** 2
+        assert np.array_equal(ops3.bc_factor(Babt, m)[0], oa ** s)
+    for m in range(cap + 1, 11):
+        for a, b in zip(ops3.bc_factor(Babt, m), ops3.bc_factor(Babt, cap)):
+            assert np.array_equal(a, b)
+        assert not np.array_equal(ops3.bc_factor(Bcos, m)[0], ops3.bc_factor(Bcos, cap)[0])
+    # the norm ratio's closed form stops growing with Nφ there
+    assert ops3.inv_wmin(Babt, 16) == ops3.inv_wmin(Babt, 8)
+    assert ops3.inv_wmin(Bcos, 16) > ops3.inv_wmin(Bcos, 8)
+
+
+def _qc_spinning_slice():
+    """A quasi-circular, generically spinning slice of the production box."""
+    from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_box as pbox
+    names = [a["name"] for a in pbox.spin8_box()]
+    theta = [5.314, 1.545, 0.796, -0.33, 0.7, -0.585, 0.711, 0.788]
+    return p3.theta_to_slice3d(theta, names, M_tot=1.0, fixed=dict(pbox.FIXED_QC))
+
+
+def _solve_top_and_probe(sl, Na, Nb, Nphi, pts):
+    prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme="v2")
+    U, info = nk.newton_solve_nk(prob, sl, tol=1e-12, max_iter=40, gmres_rtol=1e-8)
+    U = np.asarray(U)
+    F = np.abs(np.fft.rfft(U, axis=2))
+    spec = np.max(F, axis=(0, 1))
+    return info, spec[-1] / spec[0], np.asarray(s3.evaluate_field(prob, U, *pts, sl.b))
+
+
+def test_v2_high_nphi_solve_is_clean_and_converges_azimuthally(monkeypatch):
+    """At 24×20, Nφ 12 → 16 on a spinning quasi-circular slice.
+
+    Measured 2026-10-17 (this grid, slice and probe set), capped / uncapped:
+    - the top mode |u_8|/|u_0| is 1.7e-9 / 1.2e-6;
+    - max|u₁₆ − u₁₂| at the probes is 7.3e-9 / 5.5e-7.
+
+    At the production 44×40 the uncapped route is far worse: 2.8e3 GMRES iterations
+    per step, the gate missed, ψ 1.1e-4 off TwoPunctures. The thresholds sit between
+    the two routes, and the control asserts that they can fire.
+    """
+    sl = _qc_spinning_slice()
+    rng = np.random.default_rng(3)
+    n = 24
+    rho = rng.uniform(0.3, 2.0, n) * sl.b
+    z = rng.uniform(-1.3, 1.3, n) * sl.b
+    phi = rng.uniform(0.0, 2.0 * np.pi, n)
+    pts = (rho, z, phi)
+
+    def run():
+        ops3.clear_block_cache()
+        separable.clear_separable_cache()
+        i12, _, u12 = _solve_top_and_probe(sl, 24, 20, 12, pts)
+        i16, top16, u16 = _solve_top_and_probe(sl, 24, 20, 16, pts)
+        return i12, i16, top16, float(np.max(np.abs(u16 - u12)))
+
+    try:
+        i12, i16, top16, d = run()
+        print(f"\n[capped]   top |u_8|/|u_0| = {top16:.2e}   max|u16-u12| = {d:.2e}   "
+              f"res {i12.residual_norm:.1e}/{i16.residual_norm:.1e}")
+        assert i12.converged and i16.converged
+        assert top16 < 1e-7, top16
+        assert d < 1e-7, d
+
+        monkeypatch.setattr(ops3, "ABT_FACTOR_M_MAX", 99)       # the uncapped route
+        i12_u, i16_u, top16_u, d_u = run()
+        print(f"[uncapped] top |u_8|/|u_0| = {top16_u:.2e}   max|u16-u12| = {d_u:.2e}   "
+              f"res {i12_u.residual_norm:.1e}/{i16_u.residual_norm:.1e}")
+        # converged, so the contamination is the discretisation's, not a stalled solve
+        assert i12_u.converged and i16_u.converged
+        assert top16_u > 1e-7 and d_u > 1e-7, (top16_u, d_u)
+    finally:
+        ops3.clear_block_cache()
+        separable.clear_separable_cache()
