@@ -74,6 +74,10 @@ from __future__ import annotations
 import os
 import pathlib
 
+# Test tiers from recorded durations (`--tier quick`, `--record-durations`); a
+# byte-identical copy shared by every suite of the family -- see its docstring.
+pytest_plugins = ("pytest_tiers",)
+
 
 def _enable_float64() -> None:
     """``jax_enable_x64`` once, before collection imports the first test module.

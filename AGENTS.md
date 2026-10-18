@@ -100,6 +100,7 @@ one canonical version of each model. Normal engineering hygiene applies.
 
 ```bash
 caffeinate -i pytest -q                        # full acceptance suite
+make test / make test-quick / make dev         # parallel and tiered (family AGENTS.md "Running the suites")
 caffeinate -i pytest tests/test_solver_3d.py -v
 make figures                                   # build any MISSING figure data, then plot
 ```

@@ -281,6 +281,10 @@ def test_chi_wall_soft_and_bernstein_consistent():
 # ==========================================================================
 # P3-T3 — certified evaluation at arbitrary off-node 4-D θ (≤1e-10)
 # ==========================================================================
+# `essential`: ~140 s, over the quick tier's duration threshold, and kept in it on
+# purpose -- a certification gate deselected by default is a comment that costs CPU
+# (the marker note in pyproject.toml).
+@pytest.mark.essential
 def test_certified_polish_4d():
     prob = sa.make_problem(Na=28, Nb=20, P=0.5, scheme="paper-v1")
     axes = [{"name": "b", "min": 3.0, "max": 12.0, "Q": 10},

@@ -1,0 +1,3424 @@
+{
+ "about": "per-test setup+call+teardown seconds; an ordering for `--tier quick`, not a benchmark (see pytest_tiers.py)",
+ "runs": [
+  {
+   "date": "2026-10-18",
+   "commit": "67ee256",
+   "host": "alphard",
+   "machine": "arm64",
+   "cpus": 8,
+   "load": [
+    5.09,
+    6.97,
+    17.94
+   ],
+   "workers": 2,
+   "tests": 849,
+   "args": [
+    "-q",
+    "-n",
+    "2",
+    "--dist",
+    "loadfile"
+   ]
+  }
+ ],
+ "durations": {
+  "tests/test_abt_2c.py::test_P0_exact_fixed_point_abt": {
+   "s": 0.773,
+   "on": "2026-10-18"
+  },
+  "tests/test_abt_2c.py::test_equal_mass_B_even": {
+   "s": 1.194,
+   "on": "2026-10-18"
+  },
+  "tests/test_abt_2c.py::test_geometry_and_inverse": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_abt_2c.py::test_laplacian_closed_form": {
+   "s": 0.829,
+   "on": "2026-10-18"
+  },
+  "tests/test_abt_2c.py::test_manufactured_poisson": {
+   "s": 0.334,
+   "on": "2026-10-18"
+  },
+  "tests/test_abt_2c.py::test_manufactured_poisson_one_over_r": {
+   "s": 0.816,
+   "on": "2026-10-18"
+  },
+  "tests/test_abt_2c.py::test_spatial_spectral_convergence": {
+   "s": 3.541,
+   "on": "2026-10-18"
+  },
+  "tests/test_abt_2c.py::test_tangent_b_consistent": {
+   "s": 0.38,
+   "on": "2026-10-18"
+  },
+  "tests/test_abt_2c.py::test_tangent_q_consistent": {
+   "s": 0.467,
+   "on": "2026-10-18"
+  },
+  "tests/test_abt_2c.py::test_unequal_mass_not_B_even": {
+   "s": 0.43,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_abt_DB1_is_the_chain_rule_derivative": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_abt_map_and_its_inverse": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_abt_midfield_converges_with_the_exact_second_derivative": {
+   "s": 1.61,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_abt_resolves_the_punctures_at_the_production_grid": {
+   "s": 2.507,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_abt_second_derivative_is_exact_on_polynomials_in_s": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_attaching_a_solver_on_the_other_grid_is_refused": {
+   "s": 0.124,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_axisym_reduction_reproduces_2d_on_abt": {
+   "s": 0.592,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_cos_is_paper_v1s_angle_and_the_original_grid": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_evaluate_field_on_abt_is_exact_on_its_discrete_space": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_every_operator_uses_the_exact_second_derivative_on_abt_only": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_export_refuses_a_mapped_grid": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_inverse_map_s_is_accurate_next_to_the_axis": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_m0_block_is_the_2d_operator_on_the_abt_grid": {
+   "s": 0.011,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_operator_cache_serves_each_map_its_own_blocks": {
+   "s": 0.024,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_puncture_readouts_on_abt": {
+   "s": 0.265,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_saved_model_records_a_mapped_grid_and_leaves_cos_artifacts_alone": {
+   "s": 0.151,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_separable_assembly_refuses_a_hand_built_grid": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_separable_route_matches_dense_on_abt": {
+   "s": 0.141,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_solve_store_keys_unchanged_for_cos_and_distinct_for_abt": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_bmap_abt.py::test_unknown_map_is_refused": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_build_cross_model_chi.py::test_cross_rtol_reaches_every_backsolve[3e-09]": {
+   "s": 0.131,
+   "on": "2026-10-18"
+  },
+  "tests/test_build_cross_model_chi.py::test_cross_rtol_reaches_every_backsolve[None]": {
+   "s": 0.143,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_attach_solve_fn_3d_defaults_the_globalization_on": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_cert_tol_is_the_papers_gate": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_certified_solve_refuses_an_uncertified_field": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_eb_certified_refuses_an_uncertified_binding_energy": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_eb_certified_returns_a_certified_binding_energy": {
+   "s": 0.03,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_evaluate_polished_defaults_to_the_gate[HermiteSmolyakSolutionND]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_evaluate_polished_defaults_to_the_gate[HermiteSolution1D]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_evaluate_polished_defaults_to_the_gate[HermiteSolutionND]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_evaluate_polished_defaults_to_the_gate[PODHermiteND]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_evaluate_polished_defaults_to_the_gate[PODHermiteSmolyakCross]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_evaluate_polished_defaults_to_the_gate[PODHermiteSmolyak]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_evaluate_polished_defaults_to_the_gate[ParametricSolutionND]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_evaluate_polished_defaults_to_the_gate[ParametricSolution]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_evaluate_polished_defaults_to_the_gate[SmolyakSolutionND]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_exactly_at_the_gate_passes": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_gauss_newton_target_refuses_to_emit_an_uncertified_configuration": {
+   "s": 0.534,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_nan_residual_fails_the_gate": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_non_strict_still_returns_it[HermiteSmolyakSolutionND]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_non_strict_still_returns_it[HermiteSolution1D]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_non_strict_still_returns_it[HermiteSolutionND]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_non_strict_still_returns_it[PODHermiteND]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_non_strict_still_returns_it[PODHermiteSmolyakCross]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_non_strict_still_returns_it[PODHermiteSmolyak]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_non_strict_still_returns_it[ParametricSolutionND]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_non_strict_still_returns_it[ParametricSolution]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_non_strict_still_returns_it[SmolyakSolutionND]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_polish_tol_defaults_are_the_gate": {
+   "s": 0.073,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_raises_on_an_uncertified_datum[HermiteSmolyakSolutionND]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_raises_on_an_uncertified_datum[HermiteSolution1D]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_raises_on_an_uncertified_datum[HermiteSolutionND]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_raises_on_an_uncertified_datum[PODHermiteND]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_raises_on_an_uncertified_datum[PODHermiteSmolyakCross]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_raises_on_an_uncertified_datum[PODHermiteSmolyak]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_raises_on_an_uncertified_datum[ParametricSolutionND]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_raises_on_an_uncertified_datum[ParametricSolution]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_raises_on_an_uncertified_datum[SmolyakSolutionND]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_returns_a_certified_datum[HermiteSmolyakSolutionND]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_returns_a_certified_datum[HermiteSolution1D]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_returns_a_certified_datum[HermiteSolutionND]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_returns_a_certified_datum[PODHermiteND]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_returns_a_certified_datum[PODHermiteSmolyakCross]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_returns_a_certified_datum[PODHermiteSmolyak]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_returns_a_certified_datum[ParametricSolutionND]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_returns_a_certified_datum[ParametricSolution]": {
+   "s": 0.014,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_strict_returns_a_certified_datum[SmolyakSolutionND]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_certification.py::test_the_gate_follows_the_solver_not_the_container": {
+   "s": 0.106,
+   "on": "2026-10-18"
+  },
+  "tests/test_control.py::test_cold_warm_consistency_spin": {
+   "s": 2.101,
+   "on": "2026-10-18"
+  },
+  "tests/test_control.py::test_interp_guess_cuts_inner_iters": {
+   "s": 14.093,
+   "on": "2026-10-18"
+  },
+  "tests/test_control.py::test_observable_map_matches_adm": {
+   "s": 0.188,
+   "on": "2026-10-18"
+  },
+  "tests/test_control.py::test_roundtrip_cold_mass": {
+   "s": 1.902,
+   "on": "2026-10-18"
+  },
+  "tests/test_control.py::test_roundtrip_cold_spin": {
+   "s": 14.134,
+   "on": "2026-10-18"
+  },
+  "tests/test_control.py::test_scattered_survey_interp_beats_continuation": {
+   "s": 4.23,
+   "on": "2026-10-18"
+  },
+  "tests/test_control.py::test_spin_target_degeneracy_needs_unequal_mass": {
+   "s": 0.798,
+   "on": "2026-10-18"
+  },
+  "tests/test_control.py::test_warm_start_speedup_and_certification[cp_mass]": {
+   "s": 4.534,
+   "on": "2026-10-18"
+  },
+  "tests/test_control.py::test_warm_start_speedup_and_certification[cp_spin]": {
+   "s": 3.246,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_evaluator_exact_at_nodes[paper-v1]": {
+   "s": 0.066,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_evaluator_exact_at_nodes[v2]": {
+   "s": 0.063,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_format4_evaluator_near_the_axis_the_punctures_and_infinity": {
+   "s": 0.053,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_format4_reader_refuses_a_file_without_its_grid_records": {
+   "s": 0.053,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_full_psi_is_BL_plus_u[paper-v1]": {
+   "s": 0.063,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_full_psi_is_BL_plus_u[v2]": {
+   "s": 0.054,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_inverse_abt_s_matches_solver": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_inverse_map_matches_solver": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_phi_mode_layout_nyquist": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_phi_series_reproduces_fourier_interp[16]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_phi_series_reproduces_fourier_interp[1]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_phi_series_reproduces_fourier_interp[2]": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_phi_series_reproduces_fourier_interp[4]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_phi_series_reproduces_fourier_interp[8]": {
+   "s": 0.015,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_phi_series_reproduces_fourier_interp[9]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_psi_BL_and_Ahat_match_solver": {
+   "s": 0.38,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_read_rejects_wrong_format[paper-v1]": {
+   "s": 0.049,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_read_rejects_wrong_format[v2]": {
+   "s": 0.045,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_reference_evaluator_matches_solver[paper-v1]": {
+   "s": 0.055,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_reference_evaluator_matches_solver[v2]": {
+   "s": 0.057,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_reference_table[paper-v1]": {
+   "s": 0.08,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_reference_table[v2]": {
+   "s": 0.055,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_solve_and_export_wiring": {
+   "s": 0.401,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_standalone_imports": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_the_grid_decides_the_format": {
+   "s": 0.104,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_tp_export_queries_every_node_that_is_not_at_infinity[paper-v1]": {
+   "s": 0.404,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_tp_export_queries_every_node_that_is_not_at_infinity[v2]": {
+   "s": 0.342,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_write_read_roundtrip[paper-v1]": {
+   "s": 0.058,
+   "on": "2026-10-18"
+  },
+  "tests/test_export_grteclyn.py::test_write_read_roundtrip[v2]": {
+   "s": 0.054,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_evaluate_batch_matches_scalar_off_node": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_hermite_cardinal_delta_properties": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_hermite_reproduces_poly_2Qp1_off_node[-1.6-1.6-5]": {
+   "s": 1.244,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_hermite_reproduces_poly_2Qp1_off_node[1.5-4.0-6]": {
+   "s": 0.784,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_load_rejects_wrong_kind": {
+   "s": 0.105,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_matches_value_and_deriv_at_nodes_bitforbit": {
+   "s": 0.009,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_numpy_and_jax_value_agree_off_node": {
+   "s": 0.235,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_reduce_to_committed_1d_barycentric_at_nodes": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_reduce_to_committed_value_only_node_set": {
+   "s": 0.02,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_save_load_roundtrip_bitforbit": {
+   "s": 0.078,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_standalone_imports": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_taylor_insufficient_derivs_raises": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_taylor_order0_returns_node_value_exactly": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_taylor_order1_first_order": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite.py::test_taylor_order2_matches_quadratic": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_nd.py::test_evaluate_polished_certifies": {
+   "s": 11.999,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_nd.py::test_gradient_only_exact_for_additive_field": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_nd.py::test_held_out_rate_beats_value_only_b": {
+   "s": 52.998,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_nd.py::test_load_rejects_wrong_kind": {
+   "s": 0.053,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_nd.py::test_multi_enhanced_node_exact_even_nonseparable": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_nd.py::test_reduce_to_hermite1d_bitforbit[-1.6-1.6-5]": {
+   "s": 0.41,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_nd.py::test_reduce_to_hermite1d_bitforbit[1.5-4.0-6]": {
+   "s": 0.126,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_nd.py::test_reduce_to_parametric_nd_zero_enhanced_bitforbit": {
+   "s": 0.188,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_nd.py::test_save_load_roundtrip_bitforbit": {
+   "s": 0.075,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_nd.py::test_single_enhanced_axis_exact_2d": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_nd.py::test_standalone_imports": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_pod.py::test_enhanced_gradient_requires_dense_tangent": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_pod.py::test_level0_enhanced_is_taylor": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_pod.py::test_pod_faithfulness_bitlevel": {
+   "s": 0.034,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_pod.py::test_pod_gradient_preserved": {
+   "s": 1.259,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_pod.py::test_pod_load_rejects_wrong_kind": {
+   "s": 0.042,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_pod.py::test_pod_rank_barely_grows": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_pod.py::test_pod_real_corpus_solver_backed": {
+   "s": 41.418,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_pod.py::test_pod_reproduces_full_hermite_full_rank": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_pod.py::test_pod_reproduces_full_hermite_to_truncation_tail": {
+   "s": 0.034,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_pod.py::test_pod_save_load_roundtrip": {
+   "s": 0.078,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_pod.py::test_pod_value_only_matches_projection": {
+   "s": 0.013,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_pod.py::test_smolyak_value_only_combination_bitforbit": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_pod.py::test_standalone_imports": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak.py::test_anisotropic_build": {
+   "s": 0.384,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak.py::test_certified_polish": {
+   "s": 0.033,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak.py::test_enhanced_axis_validation": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak.py::test_enhanced_tangent_node_reproduction": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak.py::test_reduces_to_smolyak_bitforbit": {
+   "s": 5.412,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak.py::test_save_load_roundtrip": {
+   "s": 0.062,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak.py::test_standalone_imports": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak.py::test_value_node_exact": {
+   "s": 0.795,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak.py::test_value_only_level0_axis_is_interpolated": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak_pod.py::test_certified_polish": {
+   "s": 0.105,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak_pod.py::test_load_rejects_wrong_kind": {
+   "s": 0.061,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak_pod.py::test_pod_faithfulness_bitlevel": {
+   "s": 6.4,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak_pod.py::test_pod_gradient_preserved": {
+   "s": 5.242,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak_pod.py::test_pod_rank_barely_grows": {
+   "s": 0.058,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak_pod.py::test_pod_reproduces_full_at_full_rank": {
+   "s": 0.087,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak_pod.py::test_pod_reproduces_full_to_truncation_tail": {
+   "s": 0.07,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak_pod.py::test_save_load_roundtrip": {
+   "s": 0.135,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak_pod.py::test_standalone_imports": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_hermite_smolyak_pod.py::test_value_only_pool_basis": {
+   "s": 0.047,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_committed_figdata_is_current[fig01_peraxis_hermite]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_committed_figdata_is_current[fig02_walls]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_committed_figdata_is_current[fig03_joint_dist]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_committed_figdata_is_current[fig04_polish_staircase]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_committed_figdata_is_current[fig05_guess_vs_memory]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_committed_figdata_is_current[fig06_targeting]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_committed_figdata_is_current[fig07_eccentricity]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_committed_figdata_is_current[fig08_tp_validation]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_committed_figdata_is_current[fig09_tp_spectrum]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_committed_figdata_is_current[fig10_constraints]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_declared_keys_are_grounded_in_the_plotter": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_every_figure_declares_its_plotter_keys": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_fig05_residual_producers_record_both_row_scales": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_fig05_residual_row_reads_the_scheme_row_scale": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_fig07_eccentricity_ladder_is_measurable_somewhere": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_fig07_per_J_carries_the_numerals_the_paper_quotes": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_fig10_refuses_a_ladder_from_another_grid": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_figdata_of_another_scheme_reads_as_stale": {
+   "s": 0.185,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[effpot_model]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[gvm_4d_cross]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[gvm_4d_cross_field]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[gvm_4d_field]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[gvm_4d_value]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[gvm_8d_cross]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[gvm_8d_cross_field]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[gvm_8d_field]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[gvm_8d_hermite_field]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[gvm_8d_value]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[joint_dist_4d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[joint_dist_8d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[joint_dist_cross_4d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[joint_dist_hermite_8d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[peraxis_dist_chi]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[polish_cold_4d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[polish_cold_8d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[polish_fielderr_4d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[polish_fielderr_8d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[polish_fielderr_value_4d]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[polish_fielderr_value_8d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[polish_pod_4d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[polish_pod_8d]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[polish_table_4d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[polish_table_4d_cross]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[polish_table_8d_value]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[polish_value_pod_4d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[polish_value_pod_8d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[qc_effpot]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[qc_targeting]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[sweep_3d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[tp_band_sweep]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[tp_validation]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model[walls_dense]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_figures.py::test_producer_ranks_are_not_hard_coded": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_cert_tol_is_stated_once_and_correctly_in_the_docs": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_fig03_ratio_is_non_monotonic_so_the_qualifier_is_load_bearing": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_fig07_agreement_bound_is_true_and_tight": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_fig07_box_edge_eccentricity_matches_the_ladder_that_reaches_it": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_fig07_scan_mislocation_matches_the_shallow_well": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_fig08_anchor_numerals_are_also_right_in_DATA_md": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_fig08_anchor_numerals_are_in_the_paper": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_models_md_headline_numbers_come_from_production_model": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_models_md_memory_table_is_the_one_production_model_prints": {
+   "s": 0.009,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_models_md_names_the_grid_the_model_is_built_on": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_models_md_pod_artifact_name_is_exactly_what_pod_stem_emits": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_structure_md_pool_and_slot_counts_are_reproducible": {
+   "s": 0.659,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_the_anchor_is_still_certified": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_the_oracle_meridional_bound_matches_its_artifact": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_numerals.py::test_the_slow_test_count_is_stated_identically_in_both_places": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_tables.py::test_no_orphaned_table_inputs": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_tables.py::test_producer_is_importable_and_standalone": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_paper_tables.py::test_production_box_table_matches_canonical_box": {
+   "s": 0.197,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_3d.py::test_analyticity_wall_b": {
+   "s": 2.515,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_3d.py::test_assemble_cached_byte_identical": {
+   "s": 0.13,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_3d.py::test_certified_prediction_3d": {
+   "s": 1.093,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_3d.py::test_frozen_topology_and_exact_nodes": {
+   "s": 15.178,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_3d.py::test_held_out_b_convergence": {
+   "s": 0.881,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_3d.py::test_joint_convergence": {
+   "s": 3.467,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_3d.py::test_nk_reduction_to_2d_parametric": {
+   "s": 1.928,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_3d.py::test_spin_tilt_parametrisation_convergence": {
+   "s": 2.164,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_3d.py::test_spin_wall_softer_than_merger": {
+   "s": 1.094,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_3d.py::test_tp_cross_check_3d": {
+   "s": 341.448,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_b_axis_reduces_bit_for_bit": {
+   "s": 1.667,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_build_cache_on_equals_off": {
+   "s": 1.744,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_cache_assembly_byte_identical": {
+   "s": 0.561,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_certified_polish_4d": {
+   "s": 451.308,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_chi_wall_soft_and_bernstein_consistent": {
+   "s": 29.09,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_cost_scaling_and_smolyak": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_evaluate_jax_grad_vs_fd": {
+   "s": 3.029,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_joint_held_out_below_1e8": {
+   "s": 863.949,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_nd_barycentric_exact_at_nodes": {
+   "s": 2.83,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_offnode_guard": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_per_axis_convergence_and_b_wall": {
+   "s": 73.566,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_q_axis_reduces_bit_for_bit": {
+   "s": 1.293,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_snake_order_adjacency": {
+   "s": 0.03,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_snake_single_axis_matches_argsort": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_theta_to_slice_convention": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_nd.py::test_warm_start_handful": {
+   "s": 3.567,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_default_evaluate_is_the_pooled_path[cross_model]": {
+   "s": 0.012,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_default_evaluate_is_the_pooled_path[hermite_model]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_default_evaluate_is_the_pooled_path[pod_cross_model]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_default_evaluate_is_the_pooled_path[pod_model]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_default_evaluate_is_the_pooled_path[value_model]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_dense_and_1d_hermite_caches_under_jit": {
+   "s": 0.32,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_evaluate_pooled_methods": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_jax_constants_cached_under_jit_are_concrete[evaluate_jax-cross_model]": {
+   "s": 0.939,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_jax_constants_cached_under_jit_are_concrete[evaluate_jax-hermite_model]": {
+   "s": 1.022,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_jax_constants_cached_under_jit_are_concrete[evaluate_jax-pod_cross_model]": {
+   "s": 0.722,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_jax_constants_cached_under_jit_are_concrete[evaluate_jax-pod_model]": {
+   "s": 0.845,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_jax_constants_cached_under_jit_are_concrete[evaluate_jax-value_model]": {
+   "s": 0.884,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_jax_constants_cached_under_jit_are_concrete[evaluate_jax_subgrid_sum-cross_model]": {
+   "s": 1.803,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_jax_constants_cached_under_jit_are_concrete[evaluate_jax_subgrid_sum-hermite_model]": {
+   "s": 1.521,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_jax_constants_cached_under_jit_are_concrete[evaluate_jax_subgrid_sum-pod_cross_model]": {
+   "s": 1.371,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_jax_constants_cached_under_jit_are_concrete[evaluate_jax_subgrid_sum-pod_model]": {
+   "s": 1.479,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_jax_constants_cached_under_jit_are_concrete[evaluate_jax_subgrid_sum-value_model]": {
+   "s": 0.923,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_batch_matches_singles[cross_model]": {
+   "s": 0.01,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_batch_matches_singles[pod_cross_model]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_jacfwd_matches": {
+   "s": 14.415,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_jax_matches[cross_model]": {
+   "s": 0.678,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_jax_matches[hermite_model]": {
+   "s": 2.279,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_jax_matches[pod_cross_model]": {
+   "s": 0.529,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_jax_matches[pod_model]": {
+   "s": 3.764,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_jax_matches[value_model]": {
+   "s": 4.674,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_matches_oracle[cross_model]": {
+   "s": 0.094,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_matches_oracle[hermite_model]": {
+   "s": 0.194,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_matches_oracle[pod_cross_model]": {
+   "s": 0.08,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_matches_oracle[pod_model]": {
+   "s": 0.145,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_matches_oracle[value_model]": {
+   "s": 0.092,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_node_guard[cross_model]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_node_guard[hermite_model]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_node_guard[pod_cross_model]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_node_guard[pod_model]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_node_guard[value_model]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_pooled_weights_partition_of_unity": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_reference_path_is_still_reachable[cross_model]": {
+   "s": 0.015,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_reference_path_is_still_reachable[hermite_model]": {
+   "s": 0.013,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_reference_path_is_still_reachable[pod_cross_model]": {
+   "s": 0.014,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_reference_path_is_still_reachable[pod_model]": {
+   "s": 0.011,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_reference_path_is_still_reachable[value_model]": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_pooled.py::test_standalone_imports": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak.py::test_adaptive_indicator_options_run": {
+   "s": 0.332,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak.py::test_adaptive_new_kwargs_default_off_equivalence": {
+   "s": 0.148,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak.py::test_certified_prediction_sparse": {
+   "s": 0.313,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak.py::test_d1_reduction_to_dense_tensor": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak.py::test_evaluate_jax_matches_numpy": {
+   "s": 0.133,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak.py::test_nested_cgl_levels": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak.py::test_node_count_matches_smolyak_points": {
+   "s": 0.242,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak.py::test_polynomial_exactness": {
+   "s": 0.073,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak.py::test_sparse_beats_dense_and_adaptive_beats_isotropic": {
+   "s": 0.772,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak.py::test_sparse_beats_dense_solver_family_d4": {
+   "s": 49.656,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak_io.py::test_attach_solve_fn_certifies_both": {
+   "s": 0.685,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak_io.py::test_dense_roundtrip_bitforbit": {
+   "s": 0.055,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak_io.py::test_kind_mismatch_reported": {
+   "s": 0.109,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak_io.py::test_metadata_roundtrip": {
+   "s": 0.095,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak_io.py::test_no_solver_evaluate_polished_raises": {
+   "s": 0.086,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak_io.py::test_robustness_bad_files": {
+   "s": 0.051,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak_io.py::test_smolyak_dedup": {
+   "s": 0.082,
+   "on": "2026-10-18"
+  },
+  "tests/test_parametric_smolyak_io.py::test_smolyak_roundtrip_bitforbit": {
+   "s": 0.158,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_a_filesystem_root_base_stays_a_root": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_create_flags": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_default_is_independent_of_cwd": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_default_is_the_in_package_path": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_env_var_wins": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_figure_side_agrees_with_producers": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_producers_use_the_resolver": {
+   "s": 0.014,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_reports_path_joins": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_require_error_flags_unset_env": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_require_error_is_actionable": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_require_returns_existing": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_root_is_absolute_and_expands_user": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_standalone_imports": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_paths.py::test_the_tree_is_kept_apart_by_scheme": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_production_model.py::test_fig05_meta_pins_the_model_and_ranks": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_production_model.py::test_fig05_recomputes_memory_from_the_shipped_accounting": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_production_model.py::test_fig05_rejects_a_sweep_of_a_different_model": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_production_model.py::test_memory_reproduces_quoted_numbers": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_production_model.py::test_n_feat_is_the_production_grid": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_production_model.py::test_pod_producers_carry_the_source_grid": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_production_model.py::test_shipped_identity": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_production_model.py::test_slim_drops_only_dead_blocks": {
+   "s": 0.076,
+   "on": "2026-10-18"
+  },
+  "tests/test_production_model.py::test_slim_roundtrip_is_lossless": {
+   "s": 0.301,
+   "on": "2026-10-18"
+  },
+  "tests/test_production_model.py::test_stored_blocks_families": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_production_model.py::test_value_only_pod_loader_reads_both_tangent_layouts": {
+   "s": 0.185,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_clean_tree_reports_false_not_none": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_code_stamp_has_a_stable_shape": {
+   "s": 0.232,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_code_stamp_is_deterministic": {
+   "s": 0.758,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_dirty_is_scoped_to_src_not_the_whole_tree": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_dump_creates_meta_when_a_producer_writes_none": {
+   "s": 0.226,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_dump_stamps_meta_without_disturbing_the_producer_payload": {
+   "s": 0.218,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_git_helper_swallows_a_missing_binary": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_run_stamp_is_code_stamp_plus_a_timestamp": {
+   "s": 0.242,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_same_code_says_unknown_rather_than_different[a0-b0-True]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_same_code_says_unknown_rather_than_different[a1-b1-False]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_same_code_says_unknown_rather_than_different[a2-b2-None]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_same_code_says_unknown_rather_than_different[a3-b3-None]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_same_code_says_unknown_rather_than_different[a4-b4-None]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_stamping_survives_a_machine_with_no_git": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_provenance.py::test_the_sweep_producer_actually_stamps": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_chi_tangent.py::test_wrapper_is_passthrough": {
+   "s": 0.852,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_chi_tangent.py::test_wrapper_q_tangent_matches_fd_chi_nonzero": {
+   "s": 0.595,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_autodiff_source_hessian[b-chi_Ay]": {
+   "s": 0.396,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_autodiff_source_hessian[b-chi_By]": {
+   "s": 0.192,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_autodiff_source_hessian[b-q]": {
+   "s": 4.638,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_autodiff_source_hessian[chi_Ay-chi_By]": {
+   "s": 0.153,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_autodiff_source_hessian[q-chi_Ay]": {
+   "s": 0.163,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_autodiff_source_hessian[q-chi_By]": {
+   "s": 0.277,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_fd_gate[b-chi_Ay]": {
+   "s": 0.356,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_fd_gate[b-chi_By]": {
+   "s": 0.419,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_fd_gate[b-q]": {
+   "s": 0.555,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_fd_gate[q-chi_Ay]": {
+   "s": 0.489,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_fd_gate[q-chi_By]": {
+   "s": 0.38,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_operator_scaling": {
+   "s": 0.012,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_reduce_to_committed_spin_pair": {
+   "s": 4.406,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_symmetry[b-chi_Ay]": {
+   "s": 0.514,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_symmetry[b-chi_By]": {
+   "s": 0.615,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_symmetry[b-q]": {
+   "s": 0.612,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_symmetry[q-chi_Ay]": {
+   "s": 0.552,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_cross_bq.py::test_symmetry[q-chi_By]": {
+   "s": 0.426,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_effpot.py::test_inner_apsis_is_measurable_though_the_upper_edge_is_a_node": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_effpot.py::test_outer_apsis_is_measurable_though_the_lower_edge_is_a_node[7.25]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_effpot.py::test_outer_apsis_is_measurable_though_the_lower_edge_is_a_node[8.0]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_effpot.py::test_outer_apsis_is_measurable_though_the_lower_edge_is_a_node[8.9]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_effpot.py::test_the_nudge_costs_a_sliver_at_the_very_edge": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_effpot.py::test_the_potential_is_never_evaluated_on_a_node": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_effpot.py::test_unmeasurable_turning_point_still_returns_nan": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_targeting.py::test_J_jax_matches_numpy": {
+   "s": 0.051,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_targeting.py::test_J_spin_term_is_physical_spin": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_targeting.py::test_axes_are_the_production_chi_box": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_targeting.py::test_dJ_dchi_is_mass_squared_plus_spin_orbit": {
+   "s": 0.01,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_targeting.py::test_dJ_dq_matches_fd_and_dropped_chain_is_wrong": {
+   "s": 0.687,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_targeting.py::test_first_crossing_is_the_cost_metric": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_targeting.py::test_pt_jax_matches_numpy_closed_form": {
+   "s": 0.086,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_targeting.py::test_pt_qc_passes_chi_straight_through": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_wiring.py::test_d4_qc_box_matches_spin8_slice_and_builds": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_wiring.py::test_head_on_families_unchanged_without_qc": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_wiring.py::test_qc_aligned_spin_feeds_so_and_stays_along_y": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_wiring.py::test_qc_box_plugs_into_smolyak_builder": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_wiring.py::test_qc_in_plane_spin_tilts_J_off_y": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_wiring.py::test_qc_nonspinning_matches_qc_momenta": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_wiring.py::test_qc_planar_polar_spin_is_nonspinning_qc": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_wiring.py::test_qc_unequal_mass_matches_qc_momenta": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_qc_wiring.py::test_spin8_qc_box_matches_d4_qc_subslice_and_builds": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_quasicircular.py::test_aligned_spin_is_S_y_and_adds_to_Jy": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_quasicircular.py::test_eccentricity_proxy_small_and_decreasing": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_quasicircular.py::test_in_plane_spin_tilts_J_off_y": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_quasicircular.py::test_momentum_vectors_convention_and_zero_net": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_quasicircular.py::test_newtonian_leading_order_exact": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_quasicircular.py::test_oracle_J_is_2b_pt_along_y[5.0-0.5-0.5-S_A0-S_B0]": {
+   "s": 11.889,
+   "on": "2026-10-18"
+  },
+  "tests/test_quasicircular.py::test_oracle_J_is_2b_pt_along_y[6.0-0.5-0.5-S_A2-S_B2]": {
+   "s": 18.121,
+   "on": "2026-10-18"
+  },
+  "tests/test_quasicircular.py::test_oracle_J_is_2b_pt_along_y[6.0-0.6-0.4-S_A1-S_B1]": {
+   "s": 9.848,
+   "on": "2026-10-18"
+  },
+  "tests/test_quasicircular.py::test_orbital_angular_momentum_along_plus_y": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_quasicircular.py::test_pn_order_series_structure": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_quasicircular.py::test_pt_converges_to_newtonian_at_large_b": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_quasicircular.py::test_radial_momentum_sign_and_leading_form": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_quasicircular.py::test_spin_orbit_reduces_pt_for_prograde": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=abt-SeparableModes]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=abt-build_grid]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=abt-build_grid_3d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=abt-get_separable]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=abt-resolve_scheme]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=abt-solver_3d.make_problem]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=abt-solver_abt.make_problem]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=cos-SeparableModes]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=cos-build_grid]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=cos-build_grid_3d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=cos-get_separable]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=cos-resolve_scheme]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=cos-solver_3d.make_problem]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[bmap=cos-solver_abt.make_problem]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=gauss-SeparableModes]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=gauss-build_grid]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=gauss-build_grid_3d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=gauss-get_separable]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=gauss-resolve_scheme]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=gauss-solver_3d.make_problem]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=gauss-solver_abt.make_problem]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=lobatto-SeparableModes]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=lobatto-build_grid]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=lobatto-build_grid_3d]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=lobatto-get_separable]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=lobatto-resolve_scheme]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=lobatto-solver_3d.make_problem]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_lone_axis_is_refused_at_every_entry_point[radial=lobatto-solver_abt.make_problem]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_a_single_axis_has_no_default_of_its_own": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_angular_factor_cap_applies_on_the_mapped_grid_only": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_export_has_a_format_per_scheme_and_refuses_mixed_grids": {
+   "s": 0.093,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_gauss_radial_nodes": {
+   "s": 0.035,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_lobatto_operators_are_bit_identical_to_the_frozen_assembly[12-10-abt-lobatto]": {
+   "s": 0.022,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_lobatto_operators_are_bit_identical_to_the_frozen_assembly[12-10-paper-v1]": {
+   "s": 0.194,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_lobatto_operators_are_bit_identical_to_the_frozen_assembly[20-14-abt-lobatto]": {
+   "s": 0.129,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_lobatto_operators_are_bit_identical_to_the_frozen_assembly[20-14-paper-v1]": {
+   "s": 0.369,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_lobatto_operators_are_bit_identical_to_the_frozen_assembly[44-32-abt-lobatto]": {
+   "s": 1.223,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_lobatto_operators_are_bit_identical_to_the_frozen_assembly[44-32-paper-v1]": {
+   "s": 2.762,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_mixed_grids_stay_selectable": {
+   "s": 0.476,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_no_producer_figure_table_or_oracle_relies_on_the_default": {
+   "s": 0.443,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_saved_models_record_the_radial_map_and_attaching_checks_it": {
+   "s": 0.193,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_schemes_and_their_resolution": {
+   "s": 0.028,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_separable_assembly_refuses_a_hand_built_radial_grid": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_solve_store_keys": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_solve_store_refuses_a_problem_on_the_other_radial_map": {
+   "s": 0.059,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_the_default_is_read_when_the_grid_is_built": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_the_default_is_v2_at_every_entry_point[SeparableModes]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_the_default_is_v2_at_every_entry_point[build_grid]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_the_default_is_v2_at_every_entry_point[build_grid_3d]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_the_default_is_v2_at_every_entry_point[get_separable]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_the_default_is_v2_at_every_entry_point[solver_3d.make_problem]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_the_default_is_v2_at_every_entry_point[solver_abt.make_problem]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_the_paper_constant_is_v2": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_v2_2d_path_certifies_under_its_own_gate": {
+   "s": 0.268,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_v2_axisym_reduction_reproduces_2d": {
+   "s": 0.902,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_v2_blocks_m0_oracle_and_factor": {
+   "s": 0.504,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_v2_edge_readouts_are_exact_on_its_discrete_space": {
+   "s": 0.72,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_v2_evaluate_field_is_exact_on_its_discrete_space": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_v2_high_nphi_solve_is_clean_and_converges_azimuthally": {
+   "s": 0.84,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_v2_operator_is_exact_on_its_discrete_space": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_v2_psi_is_not_worse_than_abt_lobatto_anywhere": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_v2_reads_the_adm_mass_far_better_at_the_production_grid": {
+   "s": 3.546,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_v2_separable_matches_dense[14]": {
+   "s": 0.208,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_v2_separable_matches_dense[6]": {
+   "s": 0.106,
+   "on": "2026-10-18"
+  },
+  "tests/test_scheme_v2.py::test_v2_slope_at_infinity_is_isotropic": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[__init__.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[applications/__init__.py]": {
+   "s": 0.028,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[applications/control.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[applications/qc_effpot.py]": {
+   "s": 0.016,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[applications/qc_targeting.py]": {
+   "s": 0.02,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[applications/sensitivity.py]": {
+   "s": 0.036,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[applications/sensitivity_3d.py]": {
+   "s": 0.087,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[applications/sensitivity_3d_cross.py]": {
+   "s": 0.02,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[applications/sensitivity_3d_cross_bq.py]": {
+   "s": 0.037,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[applications/sensitivity_3d_qc.py]": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/__init__.py]": {
+   "s": 0.019,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/certification.py]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/hermite.py]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/hermite_nd.py]": {
+   "s": 0.014,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/hermite_pod.py]": {
+   "s": 0.025,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/hermite_smolyak.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/hermite_smolyak_cross.py]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/hermite_smolyak_pod.py]": {
+   "s": 0.025,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/hermite_smolyak_pod_cross.py]": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/parametric.py]": {
+   "s": 0.016,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/parametric_nd.py]": {
+   "s": 0.048,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/parametric_nd_2c.py]": {
+   "s": 0.019,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/parametric_nd_3d.py]": {
+   "s": 0.025,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/parametric_nd_smolyak.py]": {
+   "s": 0.042,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/pooled.py]": {
+   "s": 0.06,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/quasicircular.py]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[parametric/solve_store.py]": {
+   "s": 0.019,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[paths.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/__init__.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/build_cross_model_chi.py]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/build_pod_hermite_chi8d_array.py]": {
+   "s": 0.032,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/build_pod_hermite_model.py]": {
+   "s": 0.019,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/build_pod_hermite_model_chi.py]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/build_pod_hermite_model_chi_8d.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/build_surrogate.py]": {
+   "s": 0.032,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/build_surrogate_chi.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/fielderr_shared.py]": {
+   "s": 0.013,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/production_box.py]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/production_model.py]": {
+   "s": 0.03,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/qc_chi_tangent.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_3d_sweep.py]": {
+   "s": 0.02,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_8d_chi_array.py]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_cross_fielderr_sweep.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_cross_fielderror_chi.py]": {
+   "s": 0.011,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_cross_pod_figuredata.py]": {
+   "s": 0.014,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_cross_pod_r250_8d.py]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_cross_pod_resid_8d.py]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_export_grteclyn.py]": {
+   "s": 0.023,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_guess_vs_memory.py]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_hermite_fielderr_sweep_8d.py]": {
+   "s": 0.011,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_hermite_fielderr_sweep_8d_cross.py]": {
+   "s": 0.125,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_polish_cold.py]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_polish_fielderr.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_polish_fielderr_8d.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_polish_fielderr_value.py]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_polish_fielderr_value_pod.py]": {
+   "s": 0.014,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_polish_podrank.py]": {
+   "s": 0.016,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_polish_table.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_polish_table_qc_chi.py]": {
+   "s": 0.045,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_qc_effpot.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_qc_joint_dist_chi.py]": {
+   "s": 0.017,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_qc_joint_dist_cross_chi.py]": {
+   "s": 0.01,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_qc_joint_dist_hermite_8d.py]": {
+   "s": 0.087,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_qc_peraxis_dist_chi.py]": {
+   "s": 0.056,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_qc_targeting.py]": {
+   "s": 0.026,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_qc_tp_validation.py]": {
+   "s": 0.009,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_qc_walls_sweep_chi.py]": {
+   "s": 0.102,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_qc_walls_sweep_chi_prod.py]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_separable_sweep.py]": {
+   "s": 0.012,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_tangent_verification.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_tp_random_sweep.py]": {
+   "s": 0.081,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_value_pod_gapfill_4d.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[pipeline/run_value_pod_gapfill_8d.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[provenance.py]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[solver/__init__.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[solver/diagnostics_3d.py]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[solver/newton_loop.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[solver/operators_3d.py]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[solver/operators_abt.py]": {
+   "s": 0.017,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[solver/separable.py]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[solver/solver_3d.py]": {
+   "s": 0.009,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[solver/solver_3d_nk.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[solver/solver_abt.py]": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[solver/source.py]": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[solver/source_3d.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[solver/spectral.py]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[validation/__init__.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[validation/adm.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[validation/constraints.py]": {
+   "s": 0.01,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[validation/conventions.py]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[validation/export_grteclyn.py]": {
+   "s": 0.016,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_absolute_family_imports_are_own_leaf[validation/twopunctures.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_lazy_attribute_access": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_namespace_levels_are_not_owned_here": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[__init__.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[applications/__init__.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[applications/control.py]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[applications/qc_effpot.py]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[applications/qc_targeting.py]": {
+   "s": 0.01,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[applications/sensitivity.py]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[applications/sensitivity_3d.py]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[applications/sensitivity_3d_cross.py]": {
+   "s": 0.009,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[applications/sensitivity_3d_cross_bq.py]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[applications/sensitivity_3d_qc.py]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/__init__.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/certification.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/hermite.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/hermite_nd.py]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/hermite_pod.py]": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/hermite_smolyak.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/hermite_smolyak_cross.py]": {
+   "s": 0.009,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/hermite_smolyak_pod.py]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/hermite_smolyak_pod_cross.py]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/parametric.py]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/parametric_nd.py]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/parametric_nd_2c.py]": {
+   "s": 0.009,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/parametric_nd_3d.py]": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/parametric_nd_smolyak.py]": {
+   "s": 0.017,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/pooled.py]": {
+   "s": 0.015,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/quasicircular.py]": {
+   "s": 0.117,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[parametric/solve_store.py]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[paths.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/__init__.py]": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/build_cross_model_chi.py]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/build_pod_hermite_chi8d_array.py]": {
+   "s": 0.037,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/build_pod_hermite_model.py]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/build_pod_hermite_model_chi.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/build_pod_hermite_model_chi_8d.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/build_surrogate.py]": {
+   "s": 0.022,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/build_surrogate_chi.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/fielderr_shared.py]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/production_box.py]": {
+   "s": 0.029,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/production_model.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/qc_chi_tangent.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_3d_sweep.py]": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_8d_chi_array.py]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_cross_fielderr_sweep.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_cross_fielderror_chi.py]": {
+   "s": 0.018,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_cross_pod_figuredata.py]": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_cross_pod_r250_8d.py]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_cross_pod_resid_8d.py]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_export_grteclyn.py]": {
+   "s": 0.028,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_guess_vs_memory.py]": {
+   "s": 0.01,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_hermite_fielderr_sweep_8d.py]": {
+   "s": 0.018,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_hermite_fielderr_sweep_8d_cross.py]": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_polish_cold.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_polish_fielderr.py]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_polish_fielderr_8d.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_polish_fielderr_value.py]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_polish_fielderr_value_pod.py]": {
+   "s": 0.026,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_polish_podrank.py]": {
+   "s": 0.04,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_polish_table.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_polish_table_qc_chi.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_qc_effpot.py]": {
+   "s": 0.009,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_qc_joint_dist_chi.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_qc_joint_dist_cross_chi.py]": {
+   "s": 0.014,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_qc_joint_dist_hermite_8d.py]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_qc_peraxis_dist_chi.py]": {
+   "s": 0.069,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_qc_targeting.py]": {
+   "s": 0.054,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_qc_tp_validation.py]": {
+   "s": 0.056,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_qc_walls_sweep_chi.py]": {
+   "s": 0.03,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_qc_walls_sweep_chi_prod.py]": {
+   "s": 0.047,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_separable_sweep.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_tangent_verification.py]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_tp_random_sweep.py]": {
+   "s": 0.03,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_value_pod_gapfill_4d.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[pipeline/run_value_pod_gapfill_8d.py]": {
+   "s": 0.026,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[provenance.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[solver/__init__.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[solver/diagnostics_3d.py]": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[solver/newton_loop.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[solver/operators_3d.py]": {
+   "s": 0.026,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[solver/operators_abt.py]": {
+   "s": 0.009,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[solver/separable.py]": {
+   "s": 0.044,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[solver/solver_3d.py]": {
+   "s": 0.041,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[solver/solver_3d_nk.py]": {
+   "s": 0.022,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[solver/solver_abt.py]": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[solver/source.py]": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[solver/source_3d.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[solver/spectral.py]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[validation/__init__.py]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[validation/adm.py]": {
+   "s": 0.027,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[validation/constraints.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[validation/conventions.py]": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[validation/export_grteclyn.py]": {
+   "s": 0.072,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_forbidden_imports[validation/twopunctures.py]": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_no_stale_lm_namespace": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_the_package_tree_was_found": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_self_containment.py::test_two_level_namespace_is_live": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity.py::test_F_jax_matches_numpy_observables": {
+   "s": 10.031,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity.py::test_dA2_spin_dS_vs_autodiff": {
+   "s": 1.398,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity.py::test_dF_dtheta_vs_fd": {
+   "s": 1.572,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity.py::test_dU_dtheta_vs_fd": {
+   "s": 0.124,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity.py::test_gradient_target_solve_mass": {
+   "s": 0.744,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity.py::test_gradient_target_solve_spin": {
+   "s": 0.374,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity.py::test_sensitivity_b_rejected": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity.py::test_sensitivity_field_fd_and_physics": {
+   "s": 0.338,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity.py::test_sensitivity_q_includes_background": {
+   "s": 0.088,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity.py::test_standalone_imports": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity.py::test_surrogate_grad_matches_certified_tangent_bq": {
+   "s": 18.837,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity.py::test_surrogate_grad_matches_certified_tangent_chi": {
+   "s": 0.276,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity.py::test_tangent_chi_zero_at_no_spin": {
+   "s": 0.178,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d.py::test_dA2_dtheta_vs_fd_source": {
+   "s": 0.022,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d.py::test_dvec_dtheta_conventions": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d.py::test_modified_vs_nk_solve_gap": {
+   "s": 0.133,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d.py::test_nk_tangent_ift_residual_machine": {
+   "s": 0.216,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d.py::test_nk_tangent_vs_fd_axisymmetric": {
+   "s": 0.143,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d.py::test_nk_tangent_vs_fd_nonaxisymmetric": {
+   "s": 2.074,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d.py::test_node_floor_modified_vs_nk": {
+   "s": 0.225,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d.py::test_reduces_to_solver_abt_bq": {
+   "s": 0.397,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d.py::test_shared_assembly_across_axes": {
+   "s": 0.113,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d.py::test_standalone_imports": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d_qc.py::test_aligned_spin_orbit_chain_rule": {
+   "s": 0.273,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d_qc.py::test_dP_dtheta_conventions": {
+   "s": 0.025,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d_qc.py::test_direct_tangent_is_wrong_for_qc_b_and_q": {
+   "s": 0.33,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d_qc.py::test_planar_spin_reduces_to_direct": {
+   "s": 0.147,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d_qc.py::test_qc_momenta_jax_bitforbit": {
+   "s": 0.065,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d_qc.py::test_qc_q_tangent_chi_nonzero": {
+   "s": 0.706,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d_qc.py::test_qc_tangent_vs_fd": {
+   "s": 1.999,
+   "on": "2026-10-18"
+  },
+  "tests/test_sensitivity_3d_qc.py::test_standalone_imports": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_corrupt_file_is_a_miss_and_atomic_write": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_gauss_store_refuses_modified[modified]": {
+   "s": 0.008,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_identity_reuse_bit_for_bit": {
+   "s": 0.212,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_key_distinguishes_fixed_grid_codetag": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_nesting_reuse_headline": {
+   "s": 0.468,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_no_false_hit_across_grid_and_codetag": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_no_false_hit_full_build_different_fixed": {
+   "s": 0.026,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_no_pipeline_producer_asks_for_modified_newton": {
+   "s": 0.023,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_reuse_tol_admission_regression": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_solver_cross_reuse_certifies": {
+   "s": 11.242,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_store_admits_every_other_pairing[gauss-None]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_store_admits_every_other_pairing[gauss-nk]": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_store_admits_every_other_pairing[lobatto-modified]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_store_admits_every_other_pairing[lobatto-nk]": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_v2_store_built_model_reloads_on_its_own_grid": {
+   "s": 0.568,
+   "on": "2026-10-18"
+  },
+  "tests/test_solve_store.py::test_wrap_solve_fn_keeps_the_base_stamps": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_axisym_P0_zero_spin_exact_fixed_point": {
+   "s": 0.174,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_axisym_reduction_reproduces_2d": {
+   "s": 1.105,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_axisym_source_matches_closed_form": {
+   "s": 0.641,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_manufactured_all_modes_spectral": {
+   "s": 1.631,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_manufactured_odd_m1_spectral": {
+   "s": 2.71,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_misaligned_spin_breaks_axisymmetry": {
+   "s": 3.282,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_nk_P0_exact_fixed_point": {
+   "s": 0.026,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_nk_axisym_reduction_reproduces_2d": {
+   "s": 0.457,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_nk_certified_physical_modes_machine_precision": {
+   "s": 13.665,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_nk_certified_polish": {
+   "s": 1.313,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_nk_matches_modified_newton_field": {
+   "s": 9.355,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_nk_preconditioner_quality": {
+   "s": 0.227,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_nk_quadratic_convergence": {
+   "s": 0.061,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_phi_spectral_convergence_misaligned_spin": {
+   "s": 56.026,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d.py::test_transversality_momentum_plus_spin": {
+   "s": 4.059,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_apply_mode_block_equals_the_promoted_product": {
+   "s": 0.011,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_assembly_unchanged_end_to_end": {
+   "s": 0.303,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_axisym_blocks_still_exists_for_the_curved_leaf": {
+   "s": 0.017,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_cache_ignores_a_non_canonical_grid": {
+   "s": 0.018,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_cached_blocks_equal_a_fresh_build_and_are_read_only": {
+   "s": 0.02,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_curved_leaf_can_build_its_chart": {
+   "s": 2.901,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_default_monitor_norm_is_u_and_the_gate_moved_with_it": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_equil_residual_inf_honours_the_norm_argument": {
+   "s": 0.139,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_equil_residuals_inf_is_equil_residual_inf_per_scale[False-paper-v1]": {
+   "s": 0.301,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_equil_residuals_inf_is_equil_residual_inf_per_scale[False-v2]": {
+   "s": 0.018,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_equil_residuals_inf_is_equil_residual_inf_per_scale[True-paper-v1]": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_equil_residuals_inf_is_equil_residual_inf_per_scale[True-v2]": {
+   "s": 0.016,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_evaluate_field_axisymmetric_matches_the_2d_solver": {
+   "s": 0.005,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_evaluate_field_recovers_the_nodal_values": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_evaluate_field_reproduces_the_truncated_expansion[1]": {
+   "s": 0.034,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_evaluate_field_reproduces_the_truncated_expansion[4]": {
+   "s": 0.176,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_evaluate_field_reproduces_the_truncated_expansion[6]": {
+   "s": 0.286,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_evaluate_field_reproduces_the_truncated_expansion[8]": {
+   "s": 0.425,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_kron_mixed_product_identity": {
+   "s": 0.018,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_m0_block_is_identical_in_both_norms": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_m0_block_is_the_frozen_axisymmetric_operator": {
+   "s": 0.018,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_meridian_geometry_matches_the_operator_route": {
+   "s": 0.03,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_mode_operators_match_dense_assembly": {
+   "s": 0.132,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_operator_cache_returns_the_same_blocks": {
+   "s": 0.02,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_real_split_leaves_the_solve_unchanged": {
+   "s": 0.032,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_repeated_assembly_at_one_separation_is_reused": {
+   "s": 0.016,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_separable_action_matches_the_dense_block": {
+   "s": 0.009,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_separable_assembly_builds_no_dense_block": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_separable_axisym_reduction_reproduces_2d": {
+   "s": 0.223,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_separable_factors_do_not_depend_on_b": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_separable_polish_certifies_and_matches_the_dense_one": {
+   "s": 0.05,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_separable_row_scales_match_block_scales": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_separable_row_scales_u": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_separable_solve_inverts_the_block": {
+   "s": 0.229,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_separable_tangent_matches_the_dense_tangent": {
+   "s": 0.106,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_solve_mode_block_matches_solve_equilibrated": {
+   "s": 0.251,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_u_row_scales_attain_the_inv_wmin_closed_form": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_solver_3d_fast.py::test_w_factor_matches_the_operator_assembly": {
+   "s": 0.029,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_2c.py::test_A2_2c_vs_raw_contraction": {
+   "s": 0.518,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_2c.py::test_A2_self_term_reduces_to_single_centre": {
+   "s": 0.12,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_2c.py::test_BY_sum_transverse": {
+   "s": 0.024,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_2c.py::test_cross_term_O1_at_midpoint": {
+   "s": 0.391,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_2c.py::test_cross_term_grows_as_b_shrinks": {
+   "s": 0.007,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_2c.py::test_psi_BL_two_term": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_2c.py::test_source_vanishes_at_each_puncture": {
+   "s": 0.018,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_gram.py::test_assemble_default_route_is_untouched": {
+   "s": 0.01,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_gram.py::test_certified_solve_on_the_gram_route": {
+   "s": 0.02,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_gram.py::test_exact_tangent_identity": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_gram.py::test_gram_matches_the_tensor_route": {
+   "s": 0.046,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_gram.py::test_gram_tensor_is_cached_and_read_only": {
+   "s": 0.014,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_gram.py::test_masked_nodes_are_exactly_zero": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_spin.py::test_A2_spin_reduces_to_P1_bit_for_bit": {
+   "s": 0.498,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_spin.py::test_A2_spin_vs_raw_contraction": {
+   "s": 2.298,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_spin.py::test_no_momentum_spin_cross": {
+   "s": 0.168,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_spin.py::test_per_puncture_PS_cross_zero": {
+   "s": 0.02,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_spin.py::test_spin_source_vanishes_at_each_puncture": {
+   "s": 0.03,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_spin.py::test_spin_source_vanishes_on_axis": {
+   "s": 0.431,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_spin.py::test_sympy_exact_spin_closed_form": {
+   "s": 7.605,
+   "on": "2026-10-18"
+  },
+  "tests/test_source_spin.py::test_transversality_autodiff": {
+   "s": 1.139,
+   "on": "2026-10-18"
+  },
+  "tests/test_spatial_spin.py::test_S0_reduces_to_P1_bit_for_bit": {
+   "s": 0.46,
+   "on": "2026-10-18"
+  },
+  "tests/test_spatial_spin.py::test_antialigned_equal_spin_is_z_even": {
+   "s": 0.315,
+   "on": "2026-10-18"
+  },
+  "tests/test_spatial_spin.py::test_equal_spin_is_z_even": {
+   "s": 0.443,
+   "on": "2026-10-18"
+  },
+  "tests/test_spatial_spin.py::test_newton_converges_momentum_and_spin": {
+   "s": 0.253,
+   "on": "2026-10-18"
+  },
+  "tests/test_spatial_spin.py::test_newton_converges_spin_only": {
+   "s": 0.336,
+   "on": "2026-10-18"
+  },
+  "tests/test_spatial_spin.py::test_odd_modes_genuinely_populated": {
+   "s": 0.366,
+   "on": "2026-10-18"
+  },
+  "tests/test_spatial_spin.py::test_single_spinning_puncture_breaks_parity": {
+   "s": 0.309,
+   "on": "2026-10-18"
+  },
+  "tests/test_spatial_spin.py::test_spin_spatial_spectral_convergence": {
+   "s": 9.702,
+   "on": "2026-10-18"
+  },
+  "tests/test_spin8_wiring.py::test_full_spin_box_plugs_into_smolyak_builder": {
+   "s": 0.028,
+   "on": "2026-10-18"
+  },
+  "tests/test_spin8_wiring.py::test_full_spin_branch_builds_both_vectors": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_spin8_wiring.py::test_planar_single_spin_family_unchanged": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_3d.py::test_adm_J_misaligned_spin_is_tilted": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_3d.py::test_adm_J_surface_matches_closed_form": {
+   "s": 0.027,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_3d.py::test_adm_J_vector_agreement_3d": {
+   "s": 0.006,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_3d.py::test_aligned_spin_axisymmetric_regression": {
+   "s": 27.938,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_3d.py::test_frame_rotation_consistency": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_3d.py::test_psi_agreement_misaligned_spin_spectral": {
+   "s": 195.088,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_3d.py::test_total_adm_mass_agreement_3d": {
+   "s": 8.288,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_adm.py::test_BY_tensor_matches_source_and_contraction": {
+   "s": 0.01,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_adm.py::test_K_from_A_traceless_and_contraction": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_adm.py::test_adm_mass_extractors_agree": {
+   "s": 0.622,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_adm.py::test_adm_mass_matches_reference": {
+   "s": 0.478,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_adm.py::test_adm_mass_spectral_converges": {
+   "s": 4.428,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_adm.py::test_by_momentum_gauss_recovers_P": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_adm.py::test_gauss_momentum_radius_independent": {
+   "s": 0.004,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_adm.py::test_individual_puncture_masses_equal": {
+   "s": 0.003,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_adm.py::test_total_linear_momentum_zero": {
+   "s": 0.002,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_constraints.py::test_binary_constraints_converge": {
+   "s": 10.115,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_constraints.py::test_generic_ricci_matches_analytic_R": {
+   "s": 0.548,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_constraints.py::test_hamiltonian_FD_order_schwarzschild": {
+   "s": 0.206,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_constraints.py::test_momentum_FD_order_transverse": {
+   "s": 1.501,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_constraints.py::test_momentum_conformal_closed_form_small": {
+   "s": 0.434,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_constraints.py::test_vectorized_evaluator_matches_solver": {
+   "s": 0.046,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_conventions.py::test_cactus_par_render": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_conventions.py::test_lm_initial_data_to_tp_basic_map": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_conventions.py::test_momentum_sign_antiparallel": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_conventions.py::test_point_map_roundtrip": {
+   "s": 0.001,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_conventions.py::test_unequal_mass_assignment": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_spin.py::test_conventions_spin_mapping": {
+   "s": 0.0,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_spin.py::test_spin_angular_momentum_vs_tp": {
+   "s": 18.693,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_spin.py::test_spin_axisymmetry_nphi": {
+   "s": 100.183,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_spin.py::test_spin_psi_agreement_vs_tp": {
+   "s": 21.855,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_twopunctures.py::test_individual_puncture_mass_agreement": {
+   "s": 18.497,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_twopunctures.py::test_no_angular_momentum_head_on": {
+   "s": 8.541,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_twopunctures.py::test_psi_agreement_on_shared_points": {
+   "s": 20.457,
+   "on": "2026-10-18"
+  },
+  "tests/test_validation_twopunctures.py::test_total_adm_mass_agreement": {
+   "s": 18.323,
+   "on": "2026-10-18"
+  }
+ }
+}

@@ -7,7 +7,16 @@ PY ?= python
 # Resolve it once, to the empty string when absent.
 NOSLEEP := $(shell command -v caffeinate >/dev/null 2>&1 && echo caffeinate -i)
 
-.PHONY: install test test-quick fast figdata figures tabdata tables models oracle clean
+# Parallel workers for `test`, `test-quick` and `durations` (pytest-xdist). Four, not
+# one per core: concurrent JAX solves run out of memory before they run out of cores,
+# and peer sessions share this box. `--dist loadfile` keeps a file on one worker, so a
+# module-scoped fixture is built once rather than once per worker. Override with
+# `make test NPROC=1` (or use `test-serial`) when the gates' printed numbers matter:
+# xdist swallows -s output.
+NPROC ?= 4
+XDIST := -n $(NPROC) --dist loadfile
+
+.PHONY: install test test-serial test-quick dev durations fast figdata figures tabdata tables models oracle clean
 
 install:
 	pip install -e ".[dev]" --config-settings editable_mode=compat
@@ -31,16 +40,35 @@ install:
 # 128 s, test_tp_cross_check_3d 126 s and test_spin_axisymmetry_nphi 71 s.  Any
 # future attempt to cut this number has to start there.
 test:
-	$(NOSLEEP) $(PY) -m pytest -q
+	$(NOSLEEP) $(PY) -m pytest -q $(XDIST)
+
+# The same suite in one process, for reading what the gates print (-s).
+test-serial:
+	$(NOSLEEP) $(PY) -m pytest -q -s
 
 # The development loop for anything that touches the solver or the ROM: every
-# test except the 30 that need an external oracle or are minutes-long by nature.
-# 4.5x faster than the full suite for 95 % of the coverage.
+# test except those marked `slow` and those recorded slower than 60 s in
+# tests/durations.json, but never a test marked `essential` (tests/pytest_tiers.py).
+# Until 2026-10-17 this was `-m "not slow"` alone, 4.5x faster than the full suite for
+# 95 % of the coverage; the duration threshold keeps it from drifting as tests are
+# added, and the run warns when it exceeds its 600 s budget.
 #
 # It is not a substitute for `make test` before a commit — see the marker note in
 # pyproject.toml for what `slow` is and is not allowed to mean.
 test-quick:
-	$(NOSLEEP) $(PY) -m pytest -q -m "not slow"
+	$(NOSLEEP) $(PY) -m pytest -q --tier quick $(XDIST)
+
+# The edit loop: only the quick-tier tests whose executed lines changed since the
+# last `make dev` (pytest-testmon; its database is .testmondata, gitignored). The
+# first run executes the whole quick tier. Blind to data files, committed artifacts
+# and edits in sibling leaves, so it never replaces `make test` before a commit.
+dev:
+	$(NOSLEEP) $(PY) -m pytest -q --testmon --tier quick
+
+# Re-measure every test and rewrite tests/durations.json, which `--tier quick` reads.
+# Commit the result. Re-run when a test is added or a solve changes cost markedly.
+durations:
+	$(NOSLEEP) $(PY) -m pytest -q $(XDIST) --record-durations
 
 # The structural tier: seconds, no solves, and the CI job.  It covers the
 # invariants a refactor breaks silently — standalone-ness and namespace ownership

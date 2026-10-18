@@ -59,7 +59,9 @@ Family = "https://github.com/LemaitreModels/Lemaitre"
 # It is not importable from src/ — the standalone guard forbids that — and the
 # test does not skip without it, it fails, so leaving it undeclared made a clean
 # environment report a failure unrelated to whatever was being changed.
-dev = ["pytest", "sympy"]
+# pytest-xdist and pytest-testmon drive the Makefile's tiers (`make test` runs in
+# parallel, `make dev` re-runs only what an edit touched); see tests/pytest_tiers.py.
+dev = ["pytest", "sympy", "pytest-xdist", "pytest-testmon"]
 
 # src/ layout.  This distribution owns ONLY its own leaf package: the `lemaitre`
 # root belongs to the `lemaitre` core and `lemaitre.initial_data` to the
@@ -104,4 +106,8 @@ markers = [
     # kept a red gate for six weeks exactly that way. Mark for "needs an external
     # oracle or is minutes-long by nature", never for "makes my loop slower".
     "slow: needs an external oracle, or is minutes-long by nature (30 tests, ~1167 s)",
+    # `essential` is the converse, and exists for the case the note above names: a
+    # gate that must run in every tier, including `make test-quick`, which also drops
+    # every test recorded slower than 60 s (tests/durations.json).
+    "essential: kept by `--tier quick` whatever it costs (certification gates)",
 ]
