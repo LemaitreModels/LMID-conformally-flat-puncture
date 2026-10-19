@@ -676,7 +676,10 @@ def evaluate_field(prob: Problem3D, U, rho, z, phi, b):
     That is the ``"cos"`` grid.  On a mapped grid (``prob.bmap != "cos"``, see
     ``operators_abt.B_MAPS``) the angular rule is barycentric in the map's
     coordinate ``s`` and acts on ``û_m`` directly — there ``u_m`` is analytic in
-    ``s`` including its ``w_m``, so there is nothing to divide out.
+    ``s`` including its ``w_m``, so there is nothing to divide out.  That holds where
+    ``√(1 − B²)`` is rational in ``s`` (``operators_abt.axis_rational``); on a caller's
+    ``AngularMap`` without it, ``w_m`` is divided out and restored as on ``"cos"`` and
+    only the interpolation moves to ``s``.
 
     On a ``"gauss"`` radial grid (``prob.radial``, ``operators_abt.RADIAL_MAPS``)
     the polynomial in ``A`` is ``V = u/(A − 1)``: each mode is divided by ``A − 1``
@@ -701,7 +704,7 @@ def evaluate_field(prob: Problem3D, U, rho, z, phi, b):
     else:
         fq = None
 
-    if bmap != "cos":
+    if bmap != "cos" and ops.axis_rational(bmap):
         # On a mapped grid every mode u_m = w_m·v_m is itself analytic in the
         # interpolation coordinate s (w_m = sin^m η is rational in s), so û_m is
         # interpolated directly, with nothing divided out.  Dividing by w_m at the
@@ -719,7 +722,14 @@ def evaluate_field(prob: Problem3D, U, rho, z, phi, b):
             out += wt[mi] * np.real(vq * np.exp(1j * int(m) * phi))
         return out
 
-    MB = _bary_matrix(B_q, prob.B, _bary_weights(prob.B))     # (M, Nb)
+    if bmap == "cos":
+        MB = _bary_matrix(B_q, prob.B, _bary_weights(prob.B))     # (M, Nb)
+    else:
+        # A caller's operators_abt.AngularMap with B′(±1) ≠ 0: w_m = (1−B²)^{|m|/2}
+        # keeps the axis branch point it has on "cos", so it is divided out and restored
+        # exactly as there; only the polynomial v_m lives in s instead of B.
+        _, s_q = ops.inverse_map_s(rho, z, b, bmap)
+        MB = _bary_matrix(s_q, prob.Bs, _bary_weights(prob.Bs))   # (M, Nb)
     out = np.zeros(A_q.shape[0])
     for mi, m in enumerate(prob.m_vals):
         m = int(m)

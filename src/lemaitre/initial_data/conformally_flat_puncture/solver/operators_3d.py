@@ -203,12 +203,16 @@ def _is_mapped_angular(B) -> bool:
     in the whole node set (every constructor does), or its factor disagrees with the
     assembled one.  ``Nb = 1`` is never recognised, because there the two maps share
     the single node ``B = 0`` and ``"cos"`` must stay uncapped.
+
+    Only maps whose ``√(1 − B²)`` is rational in ``s`` count (``operators_abt.axis_rational``):
+    the cap below is justified there and nowhere else.  A caller's
+    ``operators_abt.AngularMap`` with ``B′(±1) ≠ 0`` is mapped but keeps the full exponent.
     """
     u = np.unique(np.asarray(B, dtype=float))
-    if u.size < 2:
+    if u.size < 2 or ops._is_cos_grid(u):
         return False
-    for bmap in ops.B_MAPS:
-        if bmap == "cos":
+    for bmap in ops.mapped_angular_maps():
+        if not ops.axis_rational(bmap):
             continue
         key = (u.size, bmap)
         canon = _MAPPED_B_MEMO.get(key)
@@ -472,7 +476,7 @@ def _canonical_grid(A, B, DA1, DB1):
     cache".
     """
     for radial in ops.RADIAL_MAPS:
-        for bmap in ops.B_MAPS:
+        for bmap in ("cos",) + ops.mapped_angular_maps():
             key = (A.size - 1, B.size, bmap, radial)
             canon = _CANON_GRID_MEMO.get(key)
             if canon is None:

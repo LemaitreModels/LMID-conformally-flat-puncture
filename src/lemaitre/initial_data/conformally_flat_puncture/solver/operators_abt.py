@@ -206,6 +206,81 @@ def build_grid(Na, Nb, bmap=None, radial=None, scheme=None):
 B_MAPS = ("cos", "abt")
 
 
+class AngularMap:
+    """An angular node map defined OUTSIDE this module: the hook for a caller's own map.
+
+    Every function here that takes ``bmap`` accepts an instance in place of a name in
+    :data:`B_MAPS`, and treats it as a mapped grid: Gauss–Legendre nodes in ``s``,
+    ``B = b_of_s(s)``, the exact chain-rule ``d²/dB²`` (:func:`d2_dB2_1d`), barycentric
+    interpolation in ``s``.  Nothing about ``"cos"`` or ``"abt"`` changes, and this
+    package defines no instance: the conformally curved sibling owns its map (a
+    separation-dependent angle, 2026-10-19) and hands it in.
+
+    A subclass provides:
+
+    * ``key`` — a string naming the map **and its parameters**, unique per map.  It is
+      the map's identity: equality, hashing, every cache and the recognition of a bare
+      ``(B, DB1)`` grid (:func:`angular_d2`, ``operators_3d``) go through it.
+    * ``axis_rational`` — ``True`` only if ``√(1 − B²)`` is rational in ``s`` (as on
+      ``"abt"``, where ``B′(±1) = 0``).  It decides two things that are wrong if it is
+      wrong: ``operators_3d.angular_factor_order``'s cap, and whether
+      ``solver_3d.evaluate_field`` may interpolate the physical modes directly.  A map
+      with ``B′(±1) ≠ 0`` keeps the axis branch point of ``"cos"`` and must say ``False``.
+    * ``b_of_s``, ``dB_ds``, ``d2B_ds2`` — the map and its two derivatives, odd/even/odd,
+      ``B(±1) = ±1``, ``B′ > 0`` on ``(−1, 1)``.
+    * ``s_of_b(B, one_minus_B, one_plus_B)`` — the inverse, with ``1 ∓ B`` passed in so
+      it can be accurate a hair off the axis (:func:`inverse_map_s` computes them
+      without cancellation).
+
+    Instances are registered on first use (:func:`check_bmap`), which is what lets a
+    constructor handed bare arrays recognise the grid; two instances with the same
+    ``key`` are the same map.
+    """
+    key: str = ""
+    axis_rational: bool = False
+
+    def b_of_s(self, s):
+        raise NotImplementedError
+
+    def dB_ds(self, s):
+        raise NotImplementedError
+
+    def d2B_ds2(self, s):
+        raise NotImplementedError
+
+    def s_of_b(self, B, one_minus_B, one_plus_B):
+        raise NotImplementedError
+
+    def __eq__(self, other):
+        if not isinstance(other, AngularMap):
+            return NotImplemented
+        return self.key == other.key
+
+    def __hash__(self):
+        return hash(("AngularMap", self.key))
+
+    def __repr__(self):
+        return f"AngularMap({self.key!r})"
+
+
+# Every AngularMap seen so far, by key (check_bmap registers them).
+_ANGULAR_MAPS: dict = {}
+
+
+def mapped_angular_maps():
+    """Every MAPPED angle a grid can be on: the mapped names in :data:`B_MAPS`, then the
+    registered :class:`AngularMap` instances — what the value-recognition loops scan."""
+    return tuple(m for m in B_MAPS if m != "cos") + tuple(_ANGULAR_MAPS.values())
+
+
+def axis_rational(bmap) -> bool:
+    """``True`` iff ``√(1 − B²)`` is rational in the map coordinate: ``"abt"``, or an
+    :class:`AngularMap` that says so.  ``"cos"`` and every other map: ``False``."""
+    if isinstance(bmap, AngularMap):
+        return bool(bmap.axis_rational)
+    return check_bmap(bmap) == "abt"
+
+
 # --------------------------------------------------------------------------
 # The radial representation: which A nodes, and which edges carry a row
 # --------------------------------------------------------------------------
@@ -441,6 +516,11 @@ def check_bmap(bmap):
     if bmap is None:
         raise ValueError("bmap=None: an angular node map has no default on its own; name "
                          "scheme= or both axes (operators_abt.resolve_scheme)")
+    if isinstance(bmap, AngularMap):
+        if not bmap.key or bmap.key in B_MAPS:
+            raise ValueError(f"an AngularMap needs its own non-empty key, not {bmap.key!r}")
+        _ANGULAR_MAPS.setdefault(bmap.key, bmap)
+        return bmap
     bmap = str(bmap)
     if bmap not in B_MAPS:
         raise ValueError(f"unknown angular node map {bmap!r}; expected one of {B_MAPS}")
@@ -450,6 +530,8 @@ def check_bmap(bmap):
 def b_of_s(s, bmap):
     """``B`` (= cos η) at interpolation coordinate ``s``."""
     s = np.asarray(s, dtype=float)
+    if isinstance(check_bmap(bmap), AngularMap):
+        return np.asarray(bmap.b_of_s(s), dtype=float)
     if check_bmap(bmap) == "cos":
         return s
     return 2.0 * s / (1.0 + s * s)
@@ -458,6 +540,8 @@ def b_of_s(s, bmap):
 def dB_ds(s, bmap):
     """``dB/ds`` — zero at ``s = ±1`` for ``"abt"``, never at an interior node."""
     s = np.asarray(s, dtype=float)
+    if isinstance(check_bmap(bmap), AngularMap):
+        return np.asarray(bmap.dB_ds(s), dtype=float)
     if check_bmap(bmap) == "cos":
         return np.ones_like(s)
     return 2.0 * (1.0 - s * s) / (1.0 + s * s) ** 2
@@ -466,6 +550,8 @@ def dB_ds(s, bmap):
 def d2B_ds2(s, bmap):
     """``d²B/ds²`` — what the exact chain rule for ``d²/dB²`` needs besides ``dB/ds``."""
     s = np.asarray(s, dtype=float)
+    if isinstance(check_bmap(bmap), AngularMap):
+        return np.asarray(bmap.d2B_ds2(s), dtype=float)
     if check_bmap(bmap) == "cos":
         return np.zeros_like(s)
     return 4.0 * s * (s * s - 3.0) / (1.0 + s * s) ** 3
@@ -509,6 +595,24 @@ def d2_dB2_1d(Nb, bmap):
 _ANGULAR_D2_MEMO: dict = {}
 
 
+_COS_MEMO: dict = {}
+
+
+def _is_cos_grid(B, DB1=None):
+    """``True`` iff ``B`` (and ``DB1``, when given) are exactly the canonical ``"cos"``
+    angular grid of their size — the grid no recognition loop may claim for a map."""
+    B = np.asarray(B)
+    hit = _COS_MEMO.get(B.size)
+    if hit is None:
+        hit = tuple(np.asarray(x) for x in gl_nodes_diffmat(B.size))
+        for a in hit:
+            a.setflags(write=False)
+        _COS_MEMO[B.size] = hit
+    if not np.array_equal(B, hit[0]):
+        return False
+    return DB1 is None or np.array_equal(np.asarray(DB1), hit[1])
+
+
 def angular_d2(B, DB1):
     """The exact 1-D ``d²/dB²`` for this angular grid, or ``None``.
 
@@ -526,9 +630,11 @@ def angular_d2(B, DB1):
     B = np.asarray(B)
     DB1 = np.asarray(DB1)
     Nb = B.size
-    for bmap in B_MAPS:
-        if bmap == "cos":
-            continue
+    if _is_cos_grid(B, DB1):
+        # checked first: a registered map whose nodes round to "cos"'s (a vanishing
+        # parameter) must not change paper-v1's operator in the same process
+        return None
+    for bmap in mapped_angular_maps():
         key = (Nb, bmap)
         hit = _ANGULAR_D2_MEMO.get(key)
         if hit is None:
@@ -567,6 +673,8 @@ def s_of_b(B, bmap, one_minus_B=None, one_plus_B=None):
         return B
     om = 1.0 - B if one_minus_B is None else np.asarray(one_minus_B, dtype=float)
     op = 1.0 + B if one_plus_B is None else np.asarray(one_plus_B, dtype=float)
+    if isinstance(bmap, AngularMap):
+        return np.asarray(bmap.s_of_b(B, om, op), dtype=float)
     return B / (1.0 + np.sqrt(np.clip(om * op, 0.0, None)))
 
 

@@ -72,6 +72,7 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import numpy as np
 
+from ..solver import operators_abt as _ops_abt
 from ..solver.solver_3d import Slice3D
 from .parametric_nd_3d import theta_to_slice3d, make_solve_fn
 from .parametric_nd import _git_commit
@@ -182,6 +183,10 @@ class SolveStore:
     def __init__(self, root_dir, grid_meta: Sequence[int],
                  code_tag: Optional[str] = None, reuse_tol: float = 1e-6,
                  bmap: str = "cos", radial: str = "lobatto"):
+        if isinstance(bmap, _ops_abt.AngularMap):
+            # its key is not a grid name this store (or a reader of its files) can rebuild
+            raise NotImplementedError(f"a caller-supplied angular map ({bmap!r}) is not "
+                                      "persisted by the solve store")
         self.root_dir = str(root_dir)
         self.grid_meta = tuple(int(g) for g in grid_meta)
         self.bmap = str(bmap)

@@ -214,6 +214,14 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   > - `tests/test_scheme_v2.py` §6 pins the rule and the repaired solve, against an
   >   uncapped control.
   >
+  > **A caller can hand in its own angle**: `operators_abt.AngularMap` (a `key` naming map and
+  > parameters, `axis_rational`, `B(s)`, `B′`, `B″` and the inverse). Every `bmap=` accepts an
+  > instance, which is then a mapped grid with the exact `d²/dB²`, recognised from its node values like
+  > `"abt"`. `axis_rational` is load-bearing: only where `√(1 − B²)` is rational in `s` may the
+  > factor cap apply and `evaluate_field` interpolate the physical modes directly; otherwise `w_m` is
+  > divided out as on `"cos"`. This package defines no instance; the curved sibling's
+  > `angular_map.CabMap` is the user. Gates: `tests/test_angular_map_hook.py`.
+  >
   > **`"abt"` is the angular half of the default scheme `"v2"`** (below) and of `production_model.SCHEME`; `"cos"` is the angular half of
   > `"paper-v1"`, the first submitted paper's grid, which the curved sibling's chart is
   > on by name. The GRTeclyn export has one format per scheme — 2 for `"paper-v1"` (a

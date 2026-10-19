@@ -41,6 +41,7 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import jax.numpy as jnp
 
+from ..solver import operators_abt as _ops_abt
 from .parametric import cheb_param_nodes   # reused verbatim (the 1-D CGL layer)
 from .certification import (                # the residual gate + shared polish (one place)
     CERT_TOL_U,
@@ -379,6 +380,9 @@ def _save_npz_owned(owner, path, arrays: dict, base_meta: dict, meta, **kw) -> s
     key is a ``"paper-v1"`` artifact.
     """
     bmap = grid_bmap_of(owner)
+    if isinstance(bmap, _ops_abt.AngularMap):
+        raise NotImplementedError(f"a model on a caller-supplied angular map ({bmap!r}) "
+                                  "cannot be saved: its key is not a grid a loader can rebuild")
     given = (meta or {}).get("bmap")
     if given is not None and bmap is not None and str(given) != str(bmap):
         raise ValueError(f"meta says bmap={given!r} but the model's solver runs on "
