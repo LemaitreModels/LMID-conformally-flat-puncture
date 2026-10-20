@@ -282,7 +282,10 @@ def test_fig08_anchor_numerals_are_in_the_paper():
         assert f"${want}$" in paper, (
             f"fig08's {what} is {a[key]:.4e}, so the appendix should quote "
             f"${want}$ and does not")
+    current = {_sci_tex(a[k]) for k in ANCHOR}
     for stale in ("2.6\\times10^{-10}", "5.0\\times10^{-11}", "1.2\\times10^{-12}"):
+        if stale in current:      # a superseded paper-v1 value the v2 grid happens to hit
+            continue
         assert stale not in paper, (
             f"{stale} is back in paper.tex: that is a pre-2026-08-20 anchor "
             "value, superseded by the sweep re-run")
@@ -303,7 +306,10 @@ def test_fig08_anchor_numerals_are_also_right_in_DATA_md():
         assert want in doc, (
             f"docs/DATA.md should quote fig08's {what} as {want} "
             f"(measured {a[key]:.4e}) and does not")
+    current = {f"{a[k]:.1e}".replace("e-0", "e-") for k in ANCHOR}
     for stale in ("2.6e-10", "5.0e-11", "1.2e-12"):
+        if stale in current:      # a superseded paper-v1 value the v2 grid happens to hit
+            continue
         assert stale not in doc, (
             f"{stale} is back in docs/DATA.md: a pre-2026-08-20 anchor value")
 

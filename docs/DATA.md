@@ -338,12 +338,11 @@ Two diagnostics that no longer have a panel of their own:
 - the **axisymmetric-limit code-to-code anchor** at `b=3`, `P=0.5` head-on, quoted in the
   appendix text — the most stringent TwoPunctures number in the paper, and not obtainable
   from a quasi-circular configuration, which is never axisymmetric. It is measured by this
-  same producer and read out of fig08's committed figdata meta (`anchor`): ψ to 2.5e-10 in
-  the supremum norm, `M_ADM` to 1.2e-11 relative, certified residual 9.3e-15 (against the
-  `v`-norm `1e-10` stamp the artifact carries — pre-`1eec8c7`, see the provenance note
-  above; the value clears both rulers). The older
-  4.7e-12 / 1.0e-11 pair came from the superseded `tp_validation` source and no longer
-  appears anywhere in the manuscript.
+  same producer and read out of fig08's committed figdata meta (`anchor`). On the v2 grid
+  (64 × 56 × 8 top rung) it is ψ to 4.9e-14 in the supremum norm, `M_ADM` to 1.2e-12
+  relative, certified residual 2.7e-16 in `u` (gate `CERT_TOL_U` = 1e-11). The paper-v1
+  values (2.5e-10, 1.2e-11, 9.3e-15 in `v`) and the older 4.7e-12 / 1.0e-11 pair from the
+  superseded `tp_validation` source no longer appear in the manuscript.
 - the **ADM-`J` tilt against the spin tilt** (measured, θ_J tracked θ_S to ~1e-14 deg for
   every |S| and every TP anchor, so the panel was three coincident curves on the line
   y=x). This one is *not* quoted in the manuscript at all; it survives only as a
