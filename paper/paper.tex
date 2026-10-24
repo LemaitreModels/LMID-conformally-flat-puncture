@@ -104,6 +104,8 @@ Recent developments have addressed complementary aspects of this problem.
 Mendes \emph{et al.}~\cite{Mendes2025} accelerate para\-meter targeting through a Broyden iteration that repeatedly re-solves the constraint equations.
 Tommasini \emph{et al.}~\cite{Tommasini2026} use Gaussian-process regression trained on the SXS catalog to predict low-eccentricity orbital para\-meters, reducing the number of trial evolutions required for eccentricity reduction.
 Zhou \emph{et al.}~\cite{Zhou2026} introduce a physics-informed neural-network solver for the puncture Hamiltonian constraint on a single physical configuration and identify parameterized initial-data solvers as an important direction for future work.
+\newtext{Assump\c{c}\~ao \emph{et al.}~\cite{Assumpcao2026} solve the same constraint with physics-informed neural networks trained without an analytic guiding solution, in axisymmetry and in three dimensions.}
+\newtext{They also train a network that takes the common spin of an axisymmetric binary as an input, and use its prediction as an initial guess that shortens the relaxation of a conventional elliptic solver by a factor of about $4.6$.}
 Analytic perturbative constructions~\cite{Ogurol2025} and neural representations of spacetime metrics~\cite{Cranganore2025} provide additional complementary approaches.
 None of these methods, however, constructs a parametric solver that can certify the constraint satisfaction, and provide analytic derivatives of the resulting initial data with respect to the physical parameters.
 
