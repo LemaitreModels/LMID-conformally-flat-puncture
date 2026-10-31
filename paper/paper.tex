@@ -1210,9 +1210,7 @@ grid's finest level ($33$ nodes per axis) would require $\sim\!10^3 \times$ more
 Evaluating the interpolant is cheap. A bare query is a single contraction over
 the stored nodal solves, with no Newton iteration and no factorization, and its
 cost is dominated by streaming those stored fields; the reduced-basis
-re-encoding of Sec.~\ref{sec:model:pod} is therefore what makes it small. A query costs a fraction of a Newton--Krylov step of the
-elliptic solve, so the warm start is essentially free relative to the solve it
-seeds. \newtext{A certified query is that same warm-started solve, and its saving over a cold solve}
+re-encoding of Sec.~\ref{sec:model:pod} is therefore what makes it small. \newtext{A certified query is that same warm-started solve, and its saving over a cold solve}
 \newtext{is the reduced step count: a median of two polish steps in both dimensions, against three and four from cold starts in four and eight dimensions, respectively (Fig.\ \ref{fig:polish}).}
 Because the model is nothing but its stored nodal solves, its memory is
 \emph{linear} in the node count.
