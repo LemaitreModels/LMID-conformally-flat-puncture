@@ -301,7 +301,9 @@ def mark(sub, cur):
             env_start.append(len(out))
         if in_display:
             env_line.append((env_id, len(out)))
-        if not in_doc or not any(fl) or body.lstrip().startswith("%"):
+        # a float's placement option ([tp]) is not text: \newtext inside it breaks the float
+        float_open = re.match(r"\s*\\begin\{(figure|table)\*?\}", body)
+        if not in_doc or not any(fl) or body.lstrip().startswith("%") or float_open:
             out.append(line)
         else:
             # flagged runs, merging gaps of pure whitespace

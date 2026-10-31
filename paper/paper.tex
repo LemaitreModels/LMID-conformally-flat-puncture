@@ -21,6 +21,12 @@
 \hypersetup{colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue}
 
 \graphicspath{{figures/}}
+% Ten figures, five of them two-column, in a short paper: the default float limits
+% leave them queued pages behind their text and out of order.
+\renewcommand{\topfraction}{0.9}\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.7}\renewcommand{\dblfloatpagefraction}{0.7}
+\setcounter{topnumber}{3}\setcounter{dbltopnumber}{2}\setcounter{totalnumber}{4}
 
 % --- editorial placeholder marker (remove before submission) ---
 \newcommand{\todo}[1]{{\color{red}\textbf{[TODO: #1]}}}
@@ -1074,7 +1080,7 @@ Jacobian. Because the joint held-out error is governed by the
 slowest of these axes, it is the spin directions that set the offline cost of the
 model (Fig.~\ref{fig:joint} and Sec.~\ref{sec:model:joint}).
 
-\begin{figure*}[t]
+\begin{figure*}[tp]
   \centering
   \includegraphics[width=\textwidth]{fig01_peraxis_hermite.pdf}
   \caption{\label{fig:peraxis}%
@@ -1166,10 +1172,9 @@ the \emph{distance} of the nearest singularity and not its hardness: the family'
 only hard wall lies on one of its two fastest axes, while its slowest axes carry
 only soft, receding ones.
 
-% [!t]: the three stacked panels exceed the default \topfraction, so a plain [t]
-% can never place this float and defers it past the end of the section.  The `!'
-% overrides the size test and puts it back beside its discussion.
-\begin{figure}[!t]
+% The three stacked panels exceed the default \topfraction; the raised float
+% limits in the preamble let [tbp] place it beside its discussion.
+\begin{figure}[tbp]
   \centering
   \includegraphics[width=\columnwidth]{fig02_walls.pdf}
   \caption{\label{fig:walls}%
@@ -1222,7 +1227,7 @@ model. Neither choice changes the interpolant, but both reorder its
 floating-point summation, so a query differs from the direct subgrid-by-subgrid
 sum by less than $10^{-14}$ relative.
 
-\begin{figure*}[t]
+\begin{figure*}[tp]
   \centering
   \includegraphics[width=\textwidth]{fig03_joint_dist.pdf}
   \caption{\label{fig:joint}%
@@ -1237,7 +1242,7 @@ sum by less than $10^{-14}$ relative.
     \emph{Right (eight-dimensional model):} the same two curves.}
 \end{figure*}
 
-\begin{figure*}[t]
+\begin{figure*}[tp]
   \centering
   \includegraphics[width=\textwidth]{fig04_polish_staircase.pdf}
   \newtextbegin \caption{\label{fig:polish}%\newtextend{}
@@ -1292,7 +1297,7 @@ Figure~\ref{fig:pod} shows the resulting memory--accuracy tradeoff. \newtext{At 
 \newtext{These floors remain above the certification gate, so every decoded guess still undergoes Newton refinement.}
 \newtext{Over $200$ test points of the four-dimensional gradient-enhanced model, every tested rank $r\ge150$ certifies in two or three Newton steps, as at full rank, whereas at $r=42$ every point needs three; compression to the shipped rank therefore adds no Newton step on balance.}
 
-\begin{figure*}[t]
+\begin{figure*}[tp]
   \centering
   \includegraphics[width=\textwidth]{fig05_guess_vs_memory.pdf}
   \newtextbegin \caption{\label{fig:pod}%\newtextend{}
@@ -1378,7 +1383,7 @@ gradient removes those per-iteration solves outright, running the search entirel
 the parametric model and leaving only the last-mile certification.
 This saving, moreover, widens with the number of parameters.
 
-\begin{figure}[t]
+\begin{figure}[tbp]
   \centering
   \includegraphics[width=\columnwidth]{fig06_targeting.pdf}
   \caption{\label{fig:targeting}%
@@ -1424,7 +1429,7 @@ reads the orbital eccentricity off the turning points, from $e=0$ at the circula
 orbit to $e\approx0.42$ at the box edge, and so exposes
 $\partial e/\partial\theta$ for gradient-based eccentricity reduction.
 
-\begin{figure}[t]
+\begin{figure}[tbp]
   \centering
   \includegraphics[width=\columnwidth]{fig07_eccentricity.pdf}
   \caption{\label{fig:ecc}%
@@ -1522,7 +1527,7 @@ evolution code's constraint diagnostic, on an evolution grid
 axi\-symmetric limit the two codes agree to near machine precision.
 
 
-\begin{figure}[t]
+\begin{figure}[tbp]
   \centering
   \includegraphics[width=\columnwidth]{fig08_tp_validation.pdf}
   \caption{\label{fig:tpval}%
@@ -1571,7 +1576,7 @@ factor is compared directly at common physical points.
 
 \newtext{The integral (ADM mass) comparison behaves in the same way (Fig.~\ref{fig:tpval}): at $N_\phi=8$ it improves only slowly beyond the production grid, while at $N_\phi=12$ and $16$ it keeps decreasing along the whole ladder.}
 
-\begin{figure}[t]
+\begin{figure}[tbp]
   \centering
   \includegraphics[width=\columnwidth]{fig09_tp_spectrum.pdf}
   \caption{\label{fig:tpspec}%
@@ -1613,7 +1618,7 @@ solver.
 \subsection{Constraint violation on an evolution grid}
 \label{sec:validation:constraints}
 
-\begin{figure}[t]
+\begin{figure}[tbp]
   \centering
   \includegraphics[width=\columnwidth]{fig10_constraints.pdf}
   \caption{\label{fig:constraints}%
