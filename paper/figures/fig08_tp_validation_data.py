@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """Data for fig08_tp_validation: distill the resolution-ladder bands to figdata/.
 
-Source (raw): reports/3D_parametric/qc/tp_band_sweep.json (key ``tp_band_sweep``,
-produced by ``run_tp_random_sweep.py``).
+Sources (raw): reports/3D_parametric/qc/tp_band_sweep.json (key ``tp_band_sweep``) and
+reports/3D_parametric/qc/tp_band_sweep_nphi.json (key ``tp_band_sweep_nphi``), both
+produced by ``run_tp_random_sweep.py``.
 
 This is the RESOLUTION-LADDER half of the TwoPunctures validation: how the agreement with
 the oracle behaves as the meridional grid is refined, as a min/median/max distribution over
@@ -11,9 +12,13 @@ point.  The AZIMUTHAL-SPECTRUM half of the same sweep (which has a different abs
 mode index, not the grid -- and answers a different question, how many phi modes the data
 need) is distilled separately by ``fig09_tp_spectrum_data.py`` from this same source.
 
-Keeps three blocks:
+Keeps four blocks:
   * ``ladder``   per rung: the psi, ADM-mass and certified-residual bands + how many
                  configurations fail the certification gate at that rung;
+  * ``nphi_lines`` the same three bands per meridional rung at Nphi = 8, 12, 16, from the
+                 second source ``tp_band_sweep_nphi`` (same sample, 72x72x24 oracle) -- what
+                 the figure PLOTS, since it shows the Nphi = 8 plateaus to be azimuthal.
+                 ``ladder`` stays for the meta statistics and the numerals that read it;
   * ``edge``     the same bands for the deliberate box-edge stress set, kept out of the
                  interior statistics;
   * ``meta``     sample size, ladder, oracle resolution and its self-convergence floor,
@@ -76,6 +81,45 @@ def _max_nonmonotone_steps(rows, value):
     return best
 
 
+def _nphi_lines(R0):
+    """All three panels: the psi, ADM-mass and residual bands per meridional rung, per Nphi.
+
+    From ``tp_band_sweep_nphi``, the same interior sample as ``tp_band_sweep`` solved at
+    Nphi = 8, 12, 16 against a 72x72x24 oracle.  ``R0`` is ``tp_band_sweep``, used only to
+    check that claim configuration by configuration (equal seed is not enough: the sampler
+    or box could have moved underneath it).
+    """
+    R = load_source("tp_band_sweep_nphi")
+    m, I = R["meta"], R["summary"]["interior"]
+
+    def thetas(S):
+        return [r["theta"] for r in sorted(S["rows"], key=lambda r: r["idx"])
+                if r.get("label") is None]
+
+    if thetas(R) != thetas(R0):
+        raise ValueError("tp_band_sweep_nphi is not the interior sample of tp_band_sweep")
+    bad = [r["grid"] for r in I["ladder"] if r["n_uncertified"]]
+    if R["summary"].get("n_failed", 0) or bad:
+        raise ValueError(f"tp_band_sweep_nphi: n_failed={R['summary'].get('n_failed')}, "
+                         f"uncertified rungs {bad}")
+    lines = {}
+    for r in I["ladder"]:
+        lines.setdefault(r["grid"][2], []).append(
+            dict(grid=r["grid"], psi=_band(r["psi"]), M_ADM=_band(r["M_ADM"]),
+                 residual=_band(r["residual"]), n_uncertified=r["n_uncertified"]))
+    rows = [r for r in R["rows"] if r.get("ok") and r.get("label") is None]
+
+    def n_nonmonotone(nphi):     # per Nphi; same definition as ``_n_nonmonotone``
+        return sum(1 for r in rows if (lambda v: any(v[i + 1] > v[i]
+                                                     for i in range(len(v) - 1)))(
+            [g["max_dpsi"] for g in r["rungs"] if g["grid"][2] == nphi]))
+
+    return dict(lines=[dict(nphi=k, rungs=v, n_nonmonotone_psi=n_nonmonotone(k))
+                       for k, v in sorted(lines.items())],
+                meta=dict(n_interior=I["n"], tp_res=m["tp_res"], ladder=m["ladder"],
+                          sampler=m["sampler"], seed=m["seed"], code=m["code"]))
+
+
 def build():
     R = load_source("tp_band_sweep")
     m, s = R["meta"], R["summary"]
@@ -98,8 +142,10 @@ def build():
                  residual=_band(r["residual"]))
             for r in (E.get("ladder") or [])]
 
+    nphi_lines = _nphi_lines(R)
+
     p = dump("fig08_tp_validation", dict(
-        ladder=ladder, edge=edge,
+        ladder=ladder, edge=edge, nphi_lines=nphi_lines,
         meta=dict(n_interior=I["n"], n_edge=E.get("n", 0), ladder=m["ladder"],
                   tp_res=m["tp_res"], cert_tol=m["cert_tol"], box=m["box"],
                   sampler=m["sampler"], seed=m["seed"],

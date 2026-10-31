@@ -30,8 +30,17 @@ as an ordinary single-column float instead of a top-of-page-only ``figure*``.  T
 spectrum, which has a different abscissa and a different question, is its own figure
 (fig09_tp_spectrum).
 
-COLOURS/LINES follow the paper convention (see README): one series per panel, so all three
-are the first non-model colour C2, solid.
+EVERY PANEL HAS THREE SERIES, one per azimuthal resolution Nphi = 8, 12, 16, all against one
+72x72x24 TwoPunctures solve per configuration (the figdata ``nphi_lines`` block).  The
+meridional ladder alone cannot tell an azimuthal plateau from a meridional one; the Nphi lines
+show that both the field and the ADM-mass differences level off at Nphi = 8 and keep converging
+at Nphi = 16, and that every one of the 1 500 solves is certified.  (Until 2026-10-30 the figure
+was the Nphi = 8 ladder alone, against 72x72x12, whose ~2e-8 azimuthal floor sat just below
+the plateau it would have had to judge; the ``ladder`` block still carries that sweep.)
+
+COLOURS/LINES follow the paper convention (see README): the three series step C2, C3, C4 with
+Nphi in every panel, nudged apart in x so the whiskers stay readable; one legend, in the
+middle panel, names them for all three.
 
 Reads ONLY figdata/fig08_tp_validation.json (build it with fig08_tp_validation_data.py).
 No reports/, no jax.
@@ -62,33 +71,46 @@ PANELS = (
     ("psi",      "Field vs TP",        r"$\|\psi-\psi_{\rm TP}\|_\infty$"),
     ("M_ADM",    "ADM mass vs TP",     r"$|M_{\rm ADM}-E_{\rm TP}|/E_{\rm TP}$"),
 )
+LEGEND_KEY = "psi"     # the one panel carrying the legend (its lower left is empty)
+NPHI_OFF = 0.12        # x nudge between its series (README: +-0.10 for two)
 
 
 def _gridlabels(ladder):
-    """Meridional labels only; Nphi is fixed along the ladder and goes in the axis label."""
+    """Meridional labels only; Nphi is the legend."""
     return [rf"${g[0]}\times{g[1]}$" for g in [r["grid"] for r in ladder]]
 
 
-def _whisker(ax, x, rows, key):
+def _whisker(ax, x, rows, key, color=SERIES_C, label=None):
     """Median marker with min--max whiskers (the paper's distribution idiom, cf. Figs. 1, 3-6)."""
     lo = np.array([r[key]["min"] for r in rows])
     md = np.array([r[key]["median"] for r in rows])
     hi = np.array([r[key]["max"] for r in rows])
-    ax.errorbar(x, md, yerr=[md - lo, hi - md], fmt="-o", color=SERIES_C,
-                ms=5, lw=1.7, capsize=3.5, elinewidth=1.1, capthick=1.1)
+    ax.errorbar(x, md, yerr=[md - lo, hi - md], fmt="-o", color=color,
+                ms=5, lw=1.7, capsize=3.5, elinewidth=1.1, capthick=1.1, label=label)
 
 
 def main():
     d = load("fig08_tp_validation")
-    L, meta = d["ladder"], d["meta"]
-    x = np.arange(len(L))
+    meta, NL = d["meta"], d["nphi_lines"]["lines"]
+    rungs0 = NL[0]["rungs"]
+    x = np.arange(len(rungs0))
+    # the shared abscissa is valid only if every Nphi line walks the same meridional rungs
+    merid = [r["grid"][:2] for r in rungs0]
+    for line in NL:
+        assert [r["grid"][:2] for r in line["rungs"]] == merid, line["nphi"]
+    offs = NPHI_OFF * (np.arange(len(NL)) - (len(NL) - 1) / 2)
 
     fig, axes = plt.subplots(len(PANELS), 1, figsize=figdims(len(PANELS), 1,
                                                              panel_h=PANEL_H_STACK),
                              sharex=True)
 
     for ax, (key, title, ylab) in zip(axes, PANELS):
-        _whisker(ax, x, L, key)
+        for i, (line, off) in enumerate(zip(NL, offs)):
+            _whisker(ax, x + off, line["rungs"], key, color=f"C{2 + i}",
+                     label=rf"$N_\phi={line['nphi']}$")
+        if key == LEGEND_KEY:
+            # lower left is empty: every line starts high on the coarsest grid
+            ax.legend(fontsize=8, loc="lower left", handlelength=1.5)
         ax.set_yscale("log")
         ax.set_ylabel(ylab, fontsize=9)
         ax.set_title(title, fontsize=10)
@@ -104,11 +126,9 @@ def main():
                 color="0.3", va="top", transform=ax_res.get_yaxis_transform())
 
     # shared abscissa: the rotated grid labels are drawn once, on the bottom panel
-    nphi = sorted({r["grid"][2] for r in L})
     axes[-1].set_xticks(x)
-    axes[-1].set_xticklabels(_gridlabels(L), fontsize=8, rotation=20)
-    axes[-1].set_xlabel(rf"grid $N_A\times N_B$ ($N_\phi={nphi[0]}$)" if len(nphi) == 1
-                        else r"grid $N_A\times N_B\times N_\phi$")
+    axes[-1].set_xticklabels(_gridlabels(rungs0), fontsize=8, rotation=20)
+    axes[-1].set_xlabel(r"grid $N_A\times N_B$")
 
     fig.tight_layout()
     stem = os.path.join(HERE, "fig08_tp_validation")

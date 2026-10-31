@@ -40,6 +40,12 @@
 \newcommand{\newtext}[1]{\ifshownew{\color{red}#1}\else#1\fi}
 \newcommand{\newtextbegin}{\ifshownew\color{red}\fi}
 \newcommand{\newtextend}{\ifshownew\color{black}\fi}
+% purple = changed in reply to the referee (hand-written \refereetext / \refereebegin..\refereeend)
+\newif\ifshowreferee \showrefereetrue
+\definecolor{refereepurple}{rgb}{0.45,0.1,0.75}
+\newcommand{\refereetext}[1]{\ifshowreferee{\color{refereepurple}#1}\else#1\fi}
+\newcommand{\refereebegin}{\ifshowreferee\color{refereepurple}\fi}
+\newcommand{\refereeend}{\ifshowreferee\color{black}\fi}
 % --- end new-since-submission markup ---
 \begin{document}
 
@@ -62,11 +68,11 @@
 \date{\today}
 
 \begin{abstract}
-Constraint-satisfying initial data for binary black holes require the repeated solution of a nonlinear elliptic boundary-value problem throughout the physical parameter space.
+\newtext{Initial data for simulations of binary-black-hole evolution require the repeated solution of a nonlinear elliptic boundary-value problem throughout the physical parameter space.}
 We present a para\-metric, differentiable initial-data model that combines sparse-grid spectral interpolation with Newton refinement over a family of binary configurations.
 Interpolation is used only to provide warm starts for the underlying elliptic solver, rather than to replace it.
-\newtextbegin A small number of Newton iterations refines each interpolated solution to a discrete, row-equilibrated constraint residual $\|R\|^{(u)}_\infty\le10^{-11}$, so that every returned initial-data set satisfies the discretized constraint to that tolerance.\newtextend{}
-Our JAX implementation provides analytic derivatives with respect to the physical parameters, enabling gradient-based parameter targeting, optimization, and sensitivity analysis.
+\newtext{A few Newton iterations refines each interpolated solution to a discrete, row-equilibrated constraint residual $\|R\|^{(u)}_\infty\le10^{-11}$, so that every returned initial-data set satisfies the discretized constraint to that tolerance.}
+\newtext{Our JAX implementation of the parametric map provides analytic derivatives with respect to the physical parameters, enabling gradient-based parameter targeting, optimization, and sensitivity analysis.}
 We demonstrate the method for quasi-circular binary-black-hole initial data using conformally flat Bowen--York punctures by constructing four-dimensional aligned-spin and eight-dimensional general-spin models.
 The resulting initial data are validated against TwoPunctures, and the method is applied to certified targeting of the physical Arnowitt--Deser--Misner mass and angular momentum and to effective-potential eccentricity reduction using a dedicated separation--tangential-momentum model.
 \end{abstract}
@@ -84,8 +90,7 @@ This problem must be solved once for each configuration.
 
 Modern applications, however, rarely require a single solution.
 Parameter surveys, waveform catalogs, eccentricity reduction, and mass and spin targeting all require the same elliptic problem to be solved repeatedly across the binary-black-hole parameter space.
-The repeated solution of the constraint equations therefore becomes a recurring computational cost~\cite{Mendes2025}.
-The computational challenge is therefore not solving a single elliptic problem, but efficiently solving a family of closely related elliptic problems across the physical parameter space.
+\refereetext{A single constraint solve is inexpensive compared with the evolution it initializes, but these workflows require the solution, and its dependence on the physical parameters, across a family of closely related configurations~\cite{Mendes2025}.}
 
 
 Reduced-order modeling is a mature response to exactly this kind of repeated computation.
@@ -103,9 +108,8 @@ These results suggest that binary-black-hole puncture initial data should also a
 Recent developments have addressed complementary aspects of this problem.
 Mendes \emph{et al.}~\cite{Mendes2025} accelerate para\-meter targeting through a Broyden iteration that repeatedly re-solves the constraint equations.
 Tommasini \emph{et al.}~\cite{Tommasini2026} use Gaussian-process regression trained on the SXS catalog to predict low-eccentricity orbital para\-meters, reducing the number of trial evolutions required for eccentricity reduction.
-Zhou \emph{et al.}~\cite{Zhou2026} introduce a physics-informed neural-network solver for the puncture Hamiltonian constraint on a single physical configuration and identify parameterized initial-data solvers as an important direction for future work.
-\newtext{Assump\c{c}\~ao \emph{et al.}~\cite{Assumpcao2026} solve the same constraint with physics-informed neural networks trained without an analytic guiding solution, in axisymmetry and in three dimensions.}
-\newtext{They also train a network that takes the common spin of an axisymmetric binary as an input, and use its prediction as an initial guess that shortens the relaxation of a conventional elliptic solver by a factor of about $4.6$.}
+\newtext{Zhou \emph{et al.}~\cite{Zhou2026} and Assump\c{c}\~ao \emph{et al.}~\cite{Assumpcao2026} solve the puncture Hamiltonian constraint for individual binary configurations using physics-informed neural networks, with and without an approximate analytic guiding solution embedded in the ansatz, respectively.}
+\newtext{The latter also train a network over the common axial spin of axisymmetric, equal-mass binaries and use its prediction to seed a hyperbolic-relaxation elliptic solver, shortening the relaxation by a factor of about $4.6$.}
 Analytic perturbative constructions~\cite{Ogurol2025} and neural representations of spacetime metrics~\cite{Cranganore2025} provide additional complementary approaches.
 None of these methods, however, constructs a parametric solver that can certify the constraint satisfaction, and provide analytic derivatives of the resulting initial data with respect to the physical parameters.
 
@@ -116,10 +120,11 @@ We demonstrate the approach for both a four-dimensional aligned-spin model and a
 
 
 The proposed solver is \emph{parametric} and \emph{analytically differentiable} with respect to the physical parameters, a combination that, to our knowledge, has not previously been demonstrated for binary-black-hole initial data.
-The entire construction is implemented in JAX~\cite{Jax2018}, so the resulting parameter-to-solution map is differentiable with respect to the physical parameters, and these derivatives are obtained automatically through algorithmic differentiation rather than by finite differencing.
+\newtext{The parametric map is implemented in JAX~\cite{Jax2018}, so its derivatives with respect to the physical parameters are obtained by algorithmic differentiation rather than by finite differencing; along the gradient-enhanced axes they coincide at the nodes with the certified sensitivities of the elliptic solve (Sec.~\ref{sec:param:diff}).}
 Neither property is bought at the cost of accuracy.
-\newtextbegin Every queried parameter is refined by Newton iterations of the elliptic solver until the discrete, row-equilibrated constraint residual (Sec.~\ref{sec:solve:newton}) satisfies $\|R\|^{(u)}_\infty \le 10^{-11}$, a gate checked before the datum is returned; the corresponding continuum constraint violation is verified independently on an evolution grid (App.~\ref{sec:validation:constraints}).\newtextend{}
-The sparse interpolant therefore accelerates the computation but does not replace the underlying elliptic solver.
+\newtext{Every queried parameter is refined by Newton iterations of the elliptic solver until the discrete, row-equilibrated constraint residual (Sec.~\ref{sec:solve:newton}) satisfies $\|R\|^{(u)}_\infty \le 10^{-11}$; the corresponding continuum constraint violation is verified independently on an evolution grid (App.~\ref{sec:validation:constraints}).}
+\newtext{The Newton iteration continues one decade past this gate (Sec.~\ref{sec:solve:newton}). As a result, every certified datum in Figs.~\ref{fig:polish}, \ref{fig:targeting}, \ref{fig:ecc}, and~\ref{fig:tpval} has $\|R\|^{(u)}_\infty<10^{-12}$.}
+\refereetext{The sparse interpolant therefore supplies a parameter-dependent initial guess and its derivatives, but does not replace the underlying elliptic solver.}
 
 
 The remainder of this paper is organized as follows.
@@ -298,13 +303,13 @@ The edge $A=1$ represents spatial infinity, the edge $A=0$ maps to the inner seg
 Their intersections $(A=0,B=\pm1)$ are the punctures.
 These are degeneracies of the cylindrical chart rather than physical inner boundaries; the construction introduces no excision surface.
 
-\newtextbegin We place $N_A{+}1$ Chebyshev--Gauss nodes in $A$, $N_B$ Gauss--Legendre nodes in an angular coordinate $s\in(-1,1)$, and $N_\phi$ equispaced nodes in $\phi$.\newtextend{}
-\newtextbegin The angular map is $B=2s/(1+s^2)$, equivalent up to orientation to Eq.~(61) of Ref.~\cite{AnsorgBruegmannTichy2004}.\newtextend{}
-\newtextbegin Since $1-B=(1-s)^2/(1+s^2)$ exactly, a neighborhood of the puncture at $B=1$ ($s=1$) of width $1-B$ is stretched to width $\simeq\sqrt{2(1-B)}$ in $s$, and similarly at the other puncture through $1+B=(1+s)^2/(1+s^2)$.\newtextend{}
+\newtext{We place $N_A{+}1$ Chebyshev--Gauss nodes in $A$, $N_B$ Gauss--Legendre nodes in an angular coordinate $s\in(-1,1)$, and $N_\phi$ equispaced nodes in $\phi$.}
+\newtext{The angular map is $B=2s/(1+s^2)$, equivalent up to orientation to Eq.~(61) of Ref.~\cite{AnsorgBruegmannTichy2004}.}
+\newtext{Since $1-B=(1-s)^2/(1+s^2)$ exactly, a neighborhood of the puncture at $B=1$ ($s=1$) of width $1-B$ is stretched to width $\simeq\sqrt{2(1-B)}$ in $s$, and similarly at the other puncture through $1+B=(1+s)^2/(1+s^2)$.}
 \newtext{Neither radial edge nor either angular edge is a node, so the puncture corners are excluded.}
-\newtext{Both signs of $s$} are retained\newtext{;} no $z$-reflection symmetry is imposed.
-\newtext{Following Eqs.~(5) and (8) of Ref.~\cite{AnsorgBruegmannTichy2004}, we represent $u=(A-1)V$ and solve for $V$ on} the \newtext{interior radial nodes.}
-\newtext{We denote} the \newtext{corresponding physical field} values \newtext{by} $U_{ijk}\equiv u(A_i,B_j,\phi_k)$.
+\newtext{Both signs of $s$ are retained; no $z$-reflection symmetry is imposed.}
+\newtext{Following Eqs.~(5) and (8) of Ref.~\cite{AnsorgBruegmannTichy2004}, we represent $u=(A-1)V$ and solve for $V$ on the interior radial nodes.}
+\newtext{We label the nodes $A_i$, $s_j$ and $\phi_k$, write $B_j\equiv B(s_j)$, and denote the corresponding physical field values by $U_{ijk}\equiv u(A_i,B_j,\phi_k)$.}
 
 The approximation space is most transparent in modal form,
 \begin{equation}
@@ -319,25 +324,25 @@ with basis functions,
   \label{eq:basis}
 \end{equation}\newtextend{}
 \newtext{where $k_m\equiv\min(|m|,4)$, for the reason given below.}
-The basis consists of a Fourier expansion in the azimuthal angle $\phi$ (with
-$c^{-m}_{nl}=(c^{m}_{nl})^{*}$ since $u$ is real, and, for even $N_\phi$, with the
-Nyquist term $|m|=N_\phi/2$ counted once, since on $N_\phi$ equispaced nodes it
-retains only its cosine part; see also Fig.~\ref{fig:tpspec}), Chebyshev polynomials $T_n$ in the compactified radial coordinate
-\newtextbegin $A$, and Legendre polynomials $P_l$ in the angular interpolation coordinate $s$.\newtextend{}
+\newtext{The basis consists of a Fourier expansion in the azimuthal angle $\phi$ (with}
+\newtext{$c^{-m}_{nl}=(c^{m}_{nl})^{*}$ since $u$ is real, and, for even $N_\phi$, with the}
+\newtext{Nyquist term $|m|=N_\phi/2$ counted once, since on $N_\phi$ equispaced nodes it}
+\newtext{retains only its cosine part; see also Fig.~\ref{fig:tpspec}), Chebyshev polynomials $T_n$ in the compactified radial coordinate}
+\newtext{$A$, and Legendre polynomials $P_l$ in the angular interpolation coordinate $s$.}
 The implementation stores the real-FFT half-spectrum $m=0,\dots,N_\phi/2$, the negative modes following from the reality condition.
 The coefficients $c_{nl}^m$ are not formed explicitly.
-The azimuthal FFT maps the $N_\phi$ node values to the modes $m$\newtext{.}
-\newtextbegin Within each meridian block, polynomial differentiation acts in $A$ and $s$; derivatives with respect to $B$ use the exact chain rule, including its second-derivative term.\newtextend{}
+\newtext{The azimuthal FFT maps the $N_\phi$ node values to the modes $m$.}
+\newtext{Within each meridian block, polynomial differentiation acts in $A$ and $s$; derivatives with respect to $B$ use the exact chain rule, including its second-derivative term.}
 
-\newtext{Asymptotic decay} and \newtext{axis} regularity shape this basis.
+\newtext{The two prefactors in Eq.~\eqref{eq:basis} build the boundary behavior of $u$ into the basis: $A-1$ makes it vanish at spatial infinity, and $(1-B^2)^{k_m/2}$ keeps each azimuthal mode regular on the axis.}
 Regularity on the azimuthal axis requires the $m$th Fourier mode to vanish as $\rho^{|m|}$.
-At fixed $A$, $\rho\propto\sqrt{1-B^2}$ near $B=\pm1$, \newtext{giving} the associated-Legendre \newtext{factor in} Eq.~\eqref{eq:basis}.
-\newtext{Here $\sqrt{1-B^2}=(1-s^2)/(1+s^2)$ is rational in $s$, so even} odd\newtext{-}$m$ \newtext{modes have no} square\newtext{-}root \newtext{branch} at the \newtext{angular edges in this coordinate.}
-\newtext{For the same reason} a \newtext{mode with $|m|>4$ needs only the factor $(1-B^2)^{2}$: the remaining $(1-B^2)^{(|m|-4)/2}$ is analytic in $s$} and \newtext{is carried by the} polynomial \newtext{part, whereas the full factor would reach $\sim10^{-22}$ at the nodes next to the axis and amplify roundoff there.}
-\newtext{Such modes occur} only \newtext{in the azimuthal refinement of App.~\ref{sec:validation:qc}.}
+\newtext{At fixed $A$, $\rho\propto\sqrt{1-B^2}$ near $B=\pm1$, giving the associated-Legendre factor in Eq.~\eqref{eq:basis}.}
+\newtext{Here $\sqrt{1-B^2}=(1-s^2)/(1+s^2)$ is rational in $s$, so even odd-$m$ modes have no square-root branch at the angular edges in this coordinate.}
+\newtext{For the same reason a mode with $|m|>4$ needs only the factor $(1-B^2)^{2}$: the remaining $(1-B^2)^{(|m|-4)/2}$ is analytic in $s$ and is carried by the polynomial part, whereas the full factor would reach $\sim10^{-22}$ at the nodes next to the axis and amplify roundoff there.}
+\newtext{Such modes occur only in the azimuthal refinement of App.~\ref{sec:validation:qc}.}
 \newtext{For operator assembly we combine the radial and angular factors as}
-\newtext{$w_m(A,B)\equiv(A-1)(1-B^2)^{k_m/2}$ and write $u_m=w_m v_m$}.
-We differentiate \newtext{these factors} analytically and apply the polynomial differentiation matrices to the smooth factor \newtext{$v_m$}.
+\newtext{$w_m(A,B)\equiv(A-1)(1-B^2)^{k_m/2}$ and write $u_m=w_m v_m$.}
+\newtext{We differentiate these factors analytically and apply the polynomial differentiation matrices to the smooth factor $v_m$.}
 
 The chart also removes the puncture obstruction of Sec.~\ref{sec:problem:regularity}.
 Inverting Eq.~\eqref{eq:abt_map} gives the distance to each puncture,
@@ -349,7 +354,7 @@ with $r_{+}$ the distance to the puncture at $z=+b$ and $r_{-}$ that to the punc
 Each is rational in the chart variables and vanishes only at its own corner, so the odd powers of $r_X$ generated there, including the $r_X^3$ term responsible for the limited Cartesian differentiability, are analytic at that corner.
 The limited Cartesian differentiability at a puncture therefore does not limit regularity in $(A,B)$ there, and together with $w_m$ the representation also enforces regularity on the azimuthal axis.
 It does not make $u$ smooth on the whole patch: for nonvanishing puncture momenta the solution carries logarithmic terms at the $A=1$ edge, entering at order $(1-A)^5\log(1-A)$ when the total linear momentum vanishes~\cite{AnsorgBruegmannTichy2004}.
-Regularity at the punctures is what the chart buys; the edge at infinity sets the rate at which the expansion of Eq.~\eqref{eq:expansion} converges.
+\newtext{The chart thus removes the punctures as a limit on convergence, and the rate at which the expansion of Eq.~\eqref{eq:expansion} converges is set instead by these terms at spatial infinity.}
 
 Because the ABT coordinates are orthogonal, the flat-space Laplacian contains no mixed $A$--$B$ derivatives,
 \begin{equation}
@@ -363,33 +368,34 @@ Because the ABT coordinates are orthogonal, the flat-space Laplacian contains no
 \end{equation}
 with $\mathcal{D} \equiv (1+A^2)^2 - B^2(1-A^2)^2$ and $\rho$ from
 Eq.~\eqref{eq:abt_map}.
-True Kronecker separability requires the further row scaling of Sec.~\ref{sec:solve:newton}.
+\newtext{Apart from the common prefactor $(1-A^2)^2/(b^2\mathcal{D})$ and the centrifugal term, every coefficient depends on $A$ or on $B$ alone.}
+\newtext{A row scaling removes both couplings, so that the operator for each azimuthal mode becomes a Kronecker sum of one-dimensional operators (Sec.~\ref{sec:solve:newton}).}
 
 In a Fourier basis in $\phi$ the azimuthal derivative dia\-gonalizes, $\partial_\phi^2\!\rightarrow\!-m^2$, so the discretized flat Laplacian is block diagonal in $m$, with one two-dimensional $(A,B)$ block per retained mode.
 The full three-dimensional dense matrix is therefore never assembled.
 The nonlinear source is evaluated on the azimuthal collocation grid and generally couples these blocks; Sec.~\ref{sec:solve:newton} treats that coupling in the full Newton Jacobian.
 
-\newtext{Every collocation row enforces the PDE; there} are \newtext{no boundary rows or} row \newtext{replacements}.
-The \newtext{radial factor enforces} $u=0$ at $A=1$ \newtext{by construction}.
-\newtext{On} the inner axis\newtext{, regularity is selected by} the \newtext{PDE's own $1/A$ and $1/A^2$ coefficients at the interior nodes.}
-\newtext{The angular nodes exclude $B=\pm1$, where $w_m$ supplies the regular} mode \newtext{behavior}.
+\newtext{Every collocation row enforces the PDE; there are no boundary rows or row replacements.}
+\newtext{The radial factor enforces $u=0$ at $A=1$ by construction.}
+\newtext{On the inner axis, regularity is selected by the PDE's own $1/A$ and $1/A^2$ coefficients at the interior nodes.}
+\newtext{The angular nodes exclude $B=\pm1$, where $w_m$ supplies the regular mode behavior.}
 No separate puncture or excision condition is imposed.
-\newtextbegin Boundary observables are obtained by extrapolation: $\partial_A u|_{A=1}=V(1,B)$ gives the ADM-mass slope, and extrapolating $V$ to $A=0$ supplies the puncture values.\newtextend{}
+\newtext{Boundary observables are obtained by extrapolation: $\partial_A u|_{A=1}=V(1,B)$ gives the ADM-mass slope, and extrapolating $V$ to $A=0$ supplies the puncture values.}
 
-\newtextbegin Let $M_0^{(m)}$ denote the resulting Laplacian block acting on $v_m$.\newtextend{}
-Its rows span a \newtext{wide} dynamic range: the $(1-A^2)^4$ factor is tiny near infinity and the $1/A$ factor
-large near the inner axis\newtext{.}
-\newtextbegin On the production grid the raw condition number is $\gtrsim10^{18}$, beyond what float64 resolves reliably.\newtextend{}
-Left-scaling each row by the reciprocal of its largest-magnitude entry, an exact
-rescaling of the equations that leaves the discrete solution unchanged, collapses the
-\newtextbegin condition number to $1.2\times10^2$--$5.5\times10^3$ for $b=3$ and $10$, $m=0,\ldots,4$, and permits accurate row-equilibrated linear solves.\newtextend{}
+\newtext{Let $M_0^{(m)}$ denote the resulting Laplacian block acting on $v_m$.}
+\newtext{Its rows span a wide dynamic range: the $(1-A^2)^4$ factor is tiny near infinity and the $1/A$ factor}
+\newtext{large near the inner axis.}
+\newtext{On the production grid the raw condition number is $\gtrsim10^{18}$, beyond what float64 resolves reliably.}
+\newtext{Left-scaling each row by the reciprocal of its largest-magnitude entry, an exact}
+\newtext{rescaling of the equations that leaves the discrete solution unchanged, collapses the}
+\newtext{condition number to $1.2\times10^2$--$5.5\times10^3$ for $b=3$ and $10$, $m=0,\ldots,4$, and permits accurate row-equilibrated linear solves.}
 
-A solved field must also be evaluated \emph{off} the collocation grid.
-\newtextbegin For an off-grid query we invert Eq.~\eqref{eq:abt_map} to recover $A$ and the angular interpolation coordinate $s$.\newtextend{}
+\newtext{Handing the data to an evolution code, or comparing it with another solver, requires the solved field at arbitrary points, not only at the collocation nodes.}
+\newtext{For an off-grid query we invert Eq.~\eqref{eq:abt_map} to recover $A$ and the angular interpolation coordinate $s$.}
 \newtext{We compute $s$ directly from the cylindrical point, since recovering it from $B$ is ill-conditioned next to the axis.}
-\newtextbegin After transforming the nodal field to azimuthal modes, evaluation uses tensor-product barycentric-Lagrange interpolation in $A$ and $s$~\cite{Trefethen2019}, followed by summation of the retained Fourier series.\newtextend{}
-\newtext{The radial} factor \newtext{$A-1$ in} Eqs.~\eqref{eq:expansion} and~\eqref{eq:basis} is \newtext{handled analytically, so} the \newtext{evaluated field vanishes at infinity by construction.}
-\newtextbegin Queries at $A=0$ use barycentric extrapolation from the interior Gauss nodes.\newtextend{}
+\newtext{After transforming the nodal field to azimuthal modes, evaluation uses tensor-product barycentric-Lagrange interpolation in $A$ and $s$~\cite{Trefethen2019}, followed by summation of the retained Fourier series.}
+\newtext{The radial factor $A-1$ in Eqs.~\eqref{eq:expansion} and~\eqref{eq:basis} is handled analytically, so the evaluated field vanishes at infinity by construction.}
+\newtext{Queries at $A=0$ use barycentric extrapolation from the interior Gauss nodes.}
 
 
 \subsection{Newton iteration with an analytic Jacobian}
@@ -421,9 +427,8 @@ The residual and its Jacobian $J = \partial{R} / \partial U$ are
   J(U) \ &\equiv \ M_0 \ - \ \tfrac{7}{8}\,\mathrm{diag}\!\big[(\psiBL+U)^{-8}\,\Ahat^2\big],
   \label{eq:jacobian}
 \end{align}
-where $M_0$ is the discretized Laplacian of Eq.~\eqref{eq:abt_laplacian},
-and the nonlinear source enters on \newtext{every row}. The
-derivative of the nonlinear source is multiplication by the local coefficient
+\newtext{where $M_0$ is the discretized Laplacian of Eq.~\eqref{eq:abt_laplacian}.}
+The derivative of the nonlinear source is multiplication by the local coefficient
 \begin{equation}
 D_{\rm nl}(A,B,\phi)
 \ \equiv \
@@ -452,13 +457,13 @@ natural representation,
     \big]\Big\}^{(m)},
   \label{eq:jacobian_action}
 \end{equation}
-with $\hat v=\mathcal{F}_\phi(v)$. The stored factored block evaluates the first
-\newtextbegin term by acting on $\hat v^{(m)}/w_m$, where $w_m(A,B)=(A-1)(1-B^2)^{k_m/2}$ is the\newtextend{}
-\newtext{combined radial and} associated-Legendre factor of Eq.~\eqref{eq:basis}. The second term is
+with $\hat v=\mathcal{F}_\phi(v)$. \newtext{The stored factored block evaluates the first}
+\newtext{term by acting on $\hat v^{(m)}/w_m$, where $w_m(A,B)=(A-1)(1-B^2)^{k_m/2}$ is the}
+\newtext{combined radial and associated-Legendre factor of Eq.~\eqref{eq:basis}.} The second term is
 transformed to the collocation grid, multiplied pointwise by $D_{\rm nl}$, and
-transformed back. Equation~\eqref{eq:jacobian_action} applies the exact discrete
-Jacobian of Eq.~\eqref{eq:jacobian}; ``matrix-free'' describes how $J$ is applied
-and introduces no approximation.
+transformed back. \newtext{Equation~\eqref{eq:jacobian_action} reproduces the action of the}
+\newtext{discrete Jacobian of Eq.~\eqref{eq:jacobian} exactly: $J$ is never assembled, but}
+\newtext{it is not approximated either.}
 
 
 \paragraph{Separable preconditioner.}
@@ -470,25 +475,25 @@ Jacobian action, this approximation affects the convergence rate but not the
 Newton system or its converged solution.
 
 Each Fourier block $M_0^{(m)}$ of the linear operator becomes separable after a
-simple row scaling. Dividing \newtext{every row} by the common prefactor
-$(1-A^2)^2/(b^2\mathcal{D})$ in Eq.~\eqref{eq:abt_laplacian} removes the only
-coefficient that depends jointly on $A$ and $B$. The centrifugal term separates in the same way: with $\rho$ from
+simple row scaling. \newtext{Dividing every row by the common prefactor}
+\newtext{$(1-A^2)^2/(b^2\mathcal{D})$ in Eq.~\eqref{eq:abt_laplacian} removes the only}
+\newtext{coefficient that depends jointly on $A$ and $B$.} The centrifugal term separates in the same way: with $\rho$ from
 Eq.~\eqref{eq:abt_map},
 \begin{equation}
   \frac{m^2}{\rho^2}\bigg/\frac{(1-A^2)^2}{b^2\,\mathcal{D}}
  \ = \ m^2\left[\,\frac{1}{1-B^2} \ + \ \frac{(1-A^2)^2}{4A^2}\,\right],
   \label{eq:centrifugal_split}
 \end{equation}
-a function of $B$ alone plus a function of $A$ alone. Together with the
-\newtext{radial and} associated-Legendre \newtext{factors}, the scaled block \newtext{has the form}
-\newtextbegin $L_A^{(m)}\otimes W+F\otimes C_B^{(m)}$, where\newtextend{}
-\newtextbegin $F=\mathrm{diag}(A_i-1)$ and $W=\mathrm{diag}[(1-B_j^2)^{k_m/2}]$.\newtextend{}
-\newtext{Both} diagonal \newtext{factors are invertible at every node, so left multiplication by}
-\newtext{$F^{-1}\otimes W^{-1}$ gives} a true Kronecker sum \newtext{of one-dimensional operators}.
-\newtext{Fast} diagonalization then
+a function of $B$ alone plus a function of $A$ alone. \newtext{Together with the}
+\newtext{radial and associated-Legendre factors, the scaled block has the form}
+\newtext{$L_A^{(m)}\otimes W+F\otimes C_B^{(m)}$, where}
+\newtext{$F=\mathrm{diag}(A_i-1)$ and $W=\mathrm{diag}[(1-B_j^2)^{k_m/2}]$.}
+\newtext{Both diagonal factors are invertible at every node, so left multiplication by}
+\newtext{$F^{-1}\otimes W^{-1}$ gives a true Kronecker sum of one-dimensional operators.}
+Fast diagonalization then
 replaces a full two-dimensional factorization with two one-dimensional
-eigendecompositions per mode. Appendix~\ref{sec:separable} gives the algebra and
-\newtext{radial factoring}.
+eigendecompositions per mode. \newtext{Appendix~\ref{sec:separable} gives the algebra and}
+\newtext{radial factoring.}
 
 Although $M_0$ contains the coordinate parameter $b$, this dependence enters only
 through a diagonal left scaling that row equilibration cancels. The
@@ -503,9 +508,10 @@ preconditioner. There is then no azimuthal coupling, so the block is the full
 Jacobian and preconditioned GMRES converges already in a single iteration.
 
 \paragraph{Convergence and certification.}
-\newtext{We monitor} the \newtext{residual in} the \newtext{physical field's $u$ row normalization.}
-\newtext{The rows} span the wide dynamic range described in Sec.~\ref{sec:solve:abt}\newtext{, and} the \newtext{stored blocks act on $v_m=u_m/w_m$} rather than \newtext{on $u_m$.}
-\newtext{To normalize the equations in $u$, we first undo that factoring on the operator columns and then take} each \newtext{row's maximum} magnitude\newtext{:}
+\newtext{We monitor the residual in the physical field's $u$ row normalization.}
+\newtext{The rows span the wide dynamic range described in Sec.~\ref{sec:solve:abt}, and the stored blocks act on $v_m=u_m/w_m$ rather than on $u_m$.}
+\newtext{A row maximum taken on these stored blocks would retain the angular part of $w_m$, which varies with $m$ and hence with $N_\phi$, so residuals would depend on the factoring rather than on the equations.}
+\newtext{To normalize the equations in $u$, we first undo that factoring on the operator columns and then take each row's maximum magnitude:}
 \newtextbegin \begin{align}
   s^{(u,m)}_i
   \ &\equiv \
@@ -518,8 +524,8 @@ Jacobian and preconditioned GMRES converges already in a single iteration.
   \label{eq:equil_residual}
 \end{align}\newtextend{}
 \newtext{Here $k$ indexes the meridional nodes and $w_{m,k}$ includes both the radial and angular factors of Eq.~\eqref{eq:basis}.}
-\newtextbegin Dividing each equation by the scale in Eq.~\eqref{eq:row_scale} is an exact left scaling and leaves the discrete root unchanged.\newtextend{}
-\newtextbegin Every residual and tolerance quoted in this paper uses Eq.~\eqref{eq:equil_residual}, with the certification gate $\|R\|^{(u)}_\infty\le10^{-11}$.\footnote{A row maximum taken directly on the factored $v_m$ operator retains an angular factor that grows without bound with $N_\phi$, making residual comparisons depend on the factoring. We therefore normalize in $u$.}\newtextend{}
+\newtext{Dividing each equation by the scale in Eq.~\eqref{eq:row_scale} is an exact left scaling and leaves the discrete root unchanged.}
+\newtext{Every residual and tolerance quoted in this paper uses Eq.~\eqref{eq:equil_residual}, with the certification gate $\|R\|^{(u)}_\infty\le10^{-11}$.}
 
 The nonlinear iteration drives the residual to an internal target one decade
 below the requested tolerance, and terminates when that target is reached, when
@@ -621,9 +627,9 @@ $[\theta_k^{\min},\theta_k^{\max}]$.
 
 The tensor-product interpolant is evaluated by contracting one parameter axis at a time, requiring $O(\prod_k(Q_k+1))$ operations per query.
 More important than the per-query cost is that the interpolant provides an
-accurate initial guess throughout parameter space. Consequently, the certified
-polish of Sec.~\ref{sec:polish} reaches tolerance in a median of two Newton
-iterations, against \newtext{medians of three and} four from a cold start \newtext{in four and eight dimensions, respectively}.
+accurate initial guess throughout parameter space. \newtext{Consequently, the certified}
+\newtext{polish of Sec.~\ref{sec:polish} reaches tolerance in a median of two Newton}
+\newtext{iterations, against medians of three and four from a cold start in four and eight dimensions, respectively.}
 Because the parameter-to-solution map is analytic, the
 interpolation error decays exponentially in the number of parameter nodes, at a
 rate fixed by the nearest singularity in the complex parameter plane.
@@ -639,23 +645,15 @@ The parametric model of Eq.~\eqref{eq:surrogate} supplies only a
 solver of Sec.~\ref{sec:solve:newton}. Taking the barycentric prediction as the
 initial iterate, $U^{(0)} = \mathcal{I}[u](\theta)$, we then apply the Newton
 iteration of Eq.~\eqref{eq:newton}, with the residual $R$ and analytic Jacobian $J$ of
-Eqs.~(\ref{eq:residual}, \ref{eq:jacobian}). Because the guess is already close,
-\newtextbegin a few steps drive the constraint residual to $\|R\|^{(u)}_\infty \le 10^{-11}$,\newtextend{}
-\emph{independent} of the interpolation error, and that residual is checked before
-the datum is returned, so a query cannot be silently wrong.
+Eqs.~(\ref{eq:residual}, \ref{eq:jacobian}). \newtext{Because the guess is already close,}
+\newtext{a few steps drive the constraint residual to $\|R\|^{(u)}_\infty \le 10^{-11}$,}
+\newtext{\emph{independent} of the interpolation error, and that residual is checked before}
+\newtext{the datum is returned, so a query cannot be silently wrong.}
 Section~\ref{sec:model:joint} makes this quantitative for the
 shipped models.
 
-\newtext{Field error and constraint residual serve} different \newtext{purposes in assessing} a guess $U^{(0)}$\newtext{.}
-\newtextbegin The relative field error $\|U^{(0)}-U_{\rm true}\|_2/\|U_{\rm true}\|_2$ measures its distance from the converged field; certification requires $\|R(U)\|^{(u)}_\infty\le10^{-11}$ after Newton refinement~\eqref{eq:newton}.\newtextend{}
-\newtextbegin For the four-dimensional gradient-enhanced model, both diagnostics decrease toward their full-rank floors as the number $r$ of retained spatial modes grows (Fig.~\ref{fig:pod}): a median relative field error of $1.2\times10^{-5}$ and a median residual of $9.8\times10^{-7}$.\newtextend{}
-\newtext{Even at this plateau}, \newtext{the guess requires the certified polish.}
-\newtext{The practical test of compression is therefore the number of} Newton steps \newtext{needed to reach} the \newtext{prescribed tolerance.}
-\newtext{Over $200$ test points}, \newtext{every tested $r\ge150$ gives two or three steps}, with \newtext{$23$--$30$ points taking} two\newtext{, compared with $24$ at full rank}.
-\newtext{Individual points shift by one step in either direction;} the \newtext{distribution} is \newtext{nearly preserved, rather than the count at each point.}
-\newtext{At $r=42$, all points require three steps.}
-\newtext{Substantial compression thus adds no Newton step} on \newtext{balance}, \newtext{enabling} the reduced-basis re-encoding of Sec.~\ref{sec:param:pod}\newtext{.}
-\newtext{The interpolant and its reduced basis supply the warm start; the polish delivers the certified answer by checking the refined field's residual}.
+\newtext{The accuracy of the guess therefore affects only how many Newton steps are needed to reach the gate, not the returned datum, which passes the same residual check however close the guess was.}
+\newtext{This is what permits the lossy reduced-basis re-encoding of Sec.~\ref{sec:param:pod}: compression may degrade the guess, and its cost is counted in Newton steps (Sec.~\ref{sec:model:pod}).}
 
 
 \subsection{Differentiability}
@@ -685,9 +683,9 @@ certified solve uses. The desired parameter tangent, $\partial U / \partial{\the
 block-diagonal preconditioner (Sec.~\ref{sec:solve:newton}), costing one
 preconditioned GMRES solve and no further nonlinear solve.
 What each axis needs is its own right-hand side, and on every axis of the
-box that derivative is closed-form. On \newtext{every row,}
-$\partial R/\partial\theta_k =
-\tfrac{1}{8}\bigl[(\psiBL+u)^{-7}\,\partial\Ahat^2/\partial\theta_k
+box that derivative is closed-form. \newtext{On every row,}
+\newtextbegin $\partial R/\partial\theta_k =\newtextend{}
+\newtext{\tfrac{1}{8}\bigl[(\psiBL+u)^{-7}\,\partial\Ahat^2/\partial\theta_k}
 \newtextbegin -7(\psiBL+u)^{-8}\,(\partial\psiBL/\partial\theta_k)\,\Ahat^2\bigr]$.\newtextend{}
 Because each Bowen--York tensor is
 linear in its own $\vect{P}_X$ or $\vect{S}^{X}$, every $\partial\Ahat^2/\partial\theta_k$
@@ -860,11 +858,11 @@ while only the first solve requires a cold start.
 The full tensor-product interpolant of Eq.~\eqref{eq:surrogate} requires one
 expensive elliptic solve per parameter node, so its off\-line cost $\prod_k(Q_k{+}1)$
 grows exponentially with the number of parameters~$d$. This scaling is unnecessary
-because the parameter-to-solution map is analytic. Analytic dependence makes the
-interpolation error decay geometrically with the per-axis resolution
-(Sec.~\ref{sec:param:interp}), so refining every direction to high order is
-wasteful: the accuracy is dominated by a few finely resolved parameters rather than
-by resolving all of them simultaneously. A \emph{Smolyak sparse
+because the parameter-to-solution map is analytic. \newtext{Analytic dependence makes the}
+\newtext{interpolation error decay exponentially with the per-axis resolution}
+\newtext{(Sec.~\ref{sec:param:interp}), so refining every direction to high order is}
+\newtext{wasteful: the accuracy is dominated by a few finely resolved parameters rather than}
+\newtext{by resolving all of them simultaneously.} A \emph{Smolyak sparse
 grid}~\cite{Smolyak1963,NobileTemponeWebster2008} retains only these dominant
 tensor-product contributions.
 
@@ -875,15 +873,15 @@ Clenshaw--Curtis doubling nodes\footnote{The Clenshaw--Curtis nodes $\cos(\pi j/
 These node sets are \emph{nested}, and the
 levels telescope through the hierarchical surpluses
 $\Delta_{l}\equiv I_{l}-I_{l-1}$ (with $\Delta_0\equiv I_0$), so that
-$I_{L}=\sum_{l\le L}\Delta_{l}$. For an analytic map the surpluses decay
-geometrically, through the same Bernstein-ellipse mechanism that governs the
-interpolation error (Sec.~\ref{sec:model:walls}).
+$I_{L}=\sum_{l\le L}\Delta_{l}$. \newtext{For an analytic map the surpluses decay}
+\newtext{exponentially, through the same Bernstein-ellipse mechanism that governs the}
+\newtext{interpolation error (Sec.~\ref{sec:model:walls}).}
 
 In $d$ dimensions the interpolant telescopes into a sum of mixed surpluses over all
 levels, $\bigotimes_k I_{L}=\sum_{\vect{l}}\bigotimes_k\Delta_{l_k}$, recovering
-the $O(Q^d)$ cost. For an analytic map these mixed contributions decay geometrically
-in the total level $|\vect{l}|_1=\sum_k l_k$, so resolving fine structure in
-several para\-meters at once is exponentially redundant. Retaining the \emph{simplex}
+the $O(Q^d)$ cost. \newtext{For an analytic map these mixed contributions decay exponentially}
+\newtext{in the total level $|\vect{l}|_1=\sum_k l_k$, so resolving fine structure in}
+\newtext{several para\-meters at once is exponentially redundant.} Retaining the \emph{simplex}
 $|\vect{l}|_1\le\ell$ captures nearly all of the interpolation accuracy and
 discards only exponentially small contributions. The retained surpluses recombine
 into the Smolyak combination technique,
@@ -943,17 +941,17 @@ coefficient vector at each node, i.e.\ $r$ numbers per node instead of the full 
 barycentric/Smolyak machinery of Eq.~\eqref{eq:surrogate} and decode
 $u(\theta)=\bar u+\Phi\,c(\theta)$.
 
-Two properties \newtext{make} the truncation \newtext{compatible with certified refinement}. First,
+\newtext{Two properties make the truncation compatible with certified refinement.} First,
 interpolation is linear, so interpolating the projected coefficients is
 \emph{identical} to projecting the full-field interpolant onto the $r$ leading
 modes: the compressed model is exactly the rank-$r$ truncation of
 Eq.~\eqref{eq:surrogate}, differing from it only by a controllable truncation tail.
-Second, the certified polish of Sec.~\ref{sec:polish} \newtext{solves} the \newtext{full discrete constraint from} the \newtext{decoded guess, and accepts the refined field only after checking its residual}.
+\newtext{Second, the certified polish of Sec.~\ref{sec:polish} solves the full discrete constraint from the decoded guess, and accepts the refined field only after checking its residual.}
 \newtext{Compression therefore changes the initial guess, not the certification criterion; its effect on Newton cost is measured in Sec.~\ref{sec:model:pod}.}
-The differentiable evaluation of Sec.~\ref{sec:param:diff} also survives: the \newtext{compressed interpolant's} parameter Jacobian is the full \newtext{interpolant's} Jacobian projected onto $\Phi$\newtext{.}
-\newtext{Differentiability is preserved algebraically}, \newtext{while derivative accuracy depends on} the \newtext{discarded tail}.
+\newtext{The differentiable evaluation of Sec.~\ref{sec:param:diff} also survives: the compressed interpolant's parameter Jacobian is the full interpolant's Jacobian projected onto $\Phi$.}
+\newtext{Differentiability is preserved algebraically, while derivative accuracy depends on the discarded tail.}
 The decomposition is computed once from the existing corpus, with no
-new solves; Sec.~\ref{sec:model:pod} reports the compression achieved on the quasi-circular demonstration
+new solves; Sec.~\ref{sec:model:pod} reports the compression on the quasi-circular demonstration
 models.
 
 
@@ -986,11 +984,11 @@ Bowen--York free-data parameters rather than horizon spins.
   \input{tables/tab01_production_box.tex}
 \end{table}
 
-The accuracy metric throughout is the \emph{held-out} interpolation error: at a
-parameter point that is \emph{not} a collocation node we compare the interpolant
-to a direct elliptic solve on the \emph{same} frozen spatial grid ($N_A=44$,
-\newtextbegin $N_B=40$, $N_\phi=8$) and take the largest nodal difference between the two\newtextend{}
-fields. Because both are represented on the same grid, the spatial
+\newtext{The accuracy metric throughout is the \emph{held-out} interpolation error: at a}
+\newtext{parameter point that is \emph{not} a collocation node we compare the interpolant}
+\newtext{to a direct elliptic solve on the \emph{same} frozen spatial grid ($N_A=44$,}
+\newtext{$N_B=40$, $N_\phi=8$) and take the largest nodal difference between the two}
+\newtext{fields.} Because both are represented on the same grid, the spatial
 discretization error cancels and what remains is the pure
 parameter-interpolation error. We report it in two ways. The \emph{per-axis}
 error sweeps a single parameter through $21$ off-node points with the other axes
@@ -1149,10 +1147,10 @@ mild undershoot of the measured rate below the pure-coincidence prediction at th
 smallest $b_{\min}$, i.e.\ the momentum divergence makes the wall marginally
 \emph{stronger}, not closer.
 
-The \emph{mass-ratio} wall is soft. Widening the sampled interval degrades the rate
-\newtextbegin only mildly, from $0.62$ to $0.50$ decades per node between $q_{\max}=3$ and\newtextend{}
-$q_{\max}=4$, while the inferred nearest real singularity recedes from
-\newtextbegin $q_\ast=4.22$ to $5.11$, with $q_\ast/q_{\max}$ between $1.28$ and $1.41$ throughout. A\newtextend{}
+The \emph{mass-ratio} wall is soft. \newtext{Widening the sampled interval degrades the rate}
+\newtext{only mildly, from $0.62$ to $0.50$ decades per node between $q_{\max}=3$ and}
+\newtext{$q_{\max}=4$, while the inferred nearest real singularity recedes from}
+\newtext{$q_\ast=4.22$ to $5.11$, with $q_\ast/q_{\max}$ between $1.28$ and $1.41$ throughout.} A
 feature that retreats in proportion to the interval is a complex-conjugate pair
 rather than a real branch point.
 
@@ -1209,8 +1207,8 @@ the stored nodal solves, with no Newton iteration and no factorization, and its
 cost is dominated by streaming those stored fields; the reduced-basis
 re-encoding of Sec.~\ref{sec:model:pod} is therefore what makes it small. A query costs a fraction of a Newton--Krylov step of the
 elliptic solve, so the warm start is essentially free relative to the solve it
-seeds. A certified query is that same warm-started solve, and its saving over a cold solve
-is the reduced step count: \newtext{a median of} two polish steps \newtext{in both dimensions, against three and} four \newtext{from} cold \newtext{starts in four and eight dimensions, respectively} (Fig.\ \ref{fig:polish}).
+seeds. \newtext{A certified query is that same warm-started solve, and its saving over a cold solve}
+\newtext{is the reduced step count: a median of two polish steps in both dimensions, against three and four from cold starts in four and eight dimensions, respectively (Fig.\ \ref{fig:polish}).}
 Because the model is nothing but its stored nodal solves, its memory is
 \emph{linear} in the node count.
 
@@ -1222,9 +1220,7 @@ the subgrids overlap heavily, the eight-dimensional model's $15{,}713$ distinct
 nodes filling $101{,}575$ subgrid slots. The evaluator is then compiled once per
 model. Neither choice changes the interpolant, but both reorder its
 floating-point summation, so a query differs from the direct subgrid-by-subgrid
-sum by less than $10^{-14}$ relative (far below the interpolation error).
-We retain the direct sum in the released code as
-the reference implementation against which the default path is tested.
+sum by less than $10^{-14}$ relative.
 
 \begin{figure*}[t]
   \centering
@@ -1244,21 +1240,21 @@ the reference implementation against which the default path is tested.
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{fig04_polish_staircase.pdf}
-  \caption{\label{fig:polish}%
-    \newtextbegin \textbf{Certified refinement.} Row-equilibrated constraint residual $\|R\|^{(u)}_\infty$ (top row)\newtextend{}
-    and relative field error $\|U-U_{\rm true}\|_2/\|U_{\rm true}\|_2$ (bottom
-    row) over $1000$ uniformly-random off-node points of the quasi-circular models
-    (left column four-dimensional
-    aligned-spin, right column eight-dimensional general-spin), before the polish
-    (``guess'') and after each Newton step. Each curve is the median with
+  \newtextbegin \caption{\label{fig:polish}%\newtextend{}
+    \newtext{\textbf{Certified refinement.} Row-equilibrated constraint residual $\|R\|^{(u)}_\infty$ (top row)}
+    \newtext{and relative field error $\|U-U_{\rm true}\|_2/\|U_{\rm true}\|_2$ (bottom}
+    \newtext{row) over $1000$ uniformly-random off-node points of the quasi-circular models}
+    \newtext{(left column four-dimensional}
+    \newtext{aligned-spin, right column eight-dimensional general-spin), before the polish}
+    \newtext{(``guess'') and after each Newton step.} Each curve is the median with
     min--max whiskers over the $1000$ points, the field error measured against the
-    converged certified iterate. \emph{Dotted:} the certification threshold
-    \newtextbegin $10^{-11}$ in the row-equilibrated norm $\|R\|^{(u)}_\infty$ of\newtextend{}
-    \newtext{Eq.~\eqref{eq:equil_residual}}. Both value-only and gradient-enhanced models are POD-compressed onto the
-    same reduced basis at \newtext{rank $250$ in four} dimensions \newtext{and $500$ in eight.}
-    \newtext{Both} warm starts \newtext{have a median of two Newton steps.}
-    \newtextbegin Every point certifies to $\|R\|^{(u)}_\infty\le10^{-11}$ by step two for both gradient-enhanced models and the four-dimensional value-only model, and by step three for the eight-dimensional value-only model.\newtextend{}
-    \newtext{Cold starts have medians of three and four} steps \newtext{and maxima of four and five, respectively}.}
+    converged certified iterate. \newtext{\emph{Dotted:} the certification threshold}
+    \newtext{$10^{-11}$ in the row-equilibrated norm $\|R\|^{(u)}_\infty$ of}
+    \newtext{Eq.~\eqref{eq:equil_residual}. Both value-only and gradient-enhanced models are POD-compressed onto the}
+    \newtext{same reduced basis at rank $250$ in four dimensions and $500$ in eight.}
+    \newtext{Both warm starts have a median of two Newton steps.}
+    \newtext{Every point certifies to $\|R\|^{(u)}_\infty\le10^{-11}$ by step two for both gradient-enhanced models and the four-dimensional value-only model, and by step three for the eight-dimensional value-only model.}
+    \newtextbegin Cold starts have medians of three and four steps and maxima of four and five, respectively.}\newtextend{}
 \end{figure*}
 
 \subsection{How many axes to gradient-enhance?}
@@ -1281,33 +1277,32 @@ measured.
 \subsection{Reduced-basis compression of the model}
 \label{sec:model:pod}
 
-The corpora are correspondingly large: the gradient-enhanced four-dimensional
-$\ell=5$ corpus (values, the two enhanced-axis node tangents, \emph{and} their
-\newtextbegin bilinear cross tangent) is $486$~MiB and the eight-dimensional one $6.7$~GiB.\newtextend{}
-\newtext{The} reduced-basis (POD) re-encoding of Sec.~\ref{sec:param:pod} \newtext{reduces this storage by sharing one spatial basis between the values and parameter tangents}.
-\newtextbegin For the four-dimensional corpus, a reconstruction tail of $10^{-6}$ is reached at $r=76$ for the gradient-enhanced model, compared with $r=71$ for the value-only model: about $7\%$ more modes despite the additional tangent fields.\newtextend{}
-\newtext{Smolyak sampling and POD compression address different costs:} the \newtext{former sets} the \newtext{parameter nodes and offline solve count (}Sec.~\ref{sec:param:smolyak}\newtext{), while} the \newtext{latter sets} the \newtext{number of} spatial \newtext{coefficients stored per field}.
+\newtext{The gradient-enhanced four-dimensional}
+\newtext{$\ell=5$ corpus (values, the two enhanced-axis node tangents, \emph{and} their}
+\newtext{bilinear cross tangent) is $486$~MiB and the eight-dimensional one $6.7$~GiB.}
+\newtext{The reduced-basis (POD) re-encoding of Sec.~\ref{sec:param:pod} reduces this storage by sharing one spatial basis between the values and parameter tangents.}
+\newtext{For the four-dimensional corpus, a reconstruction tail of $10^{-6}$ is reached at $r=76$ for the gradient-enhanced model, compared with $r=71$ for the value-only model: about $7\%$ more modes despite the additional tangent fields.}
+\newtext{Smolyak sampling and POD compression address different costs: the former sets the parameter nodes and offline solve count (Sec.~\ref{sec:param:smolyak}), while the latter sets the number of spatial coefficients stored per field.}
 
-Figure~\ref{fig:pod} shows the resulting memory--accuracy tradeoff. At the shipped
-ranks ($r=250$ and $r=500$) the four-dimensional model shrinks by a factor of $13$
-\newtextbegin ($486$~MiB to $36.0$~MiB) and the eight-dimensional one by $23$ ($6.7$~GiB to $295$~MiB).\newtextend{}
+Figure~\ref{fig:pod} shows the resulting memory--accuracy tradeoff. \newtext{At the shipped}
+\newtext{ranks ($r=250$ and $r=500$) the four-dimensional model shrinks by a factor of $13$}
+\newtext{($486$~MiB to $36.0$~MiB) and the eight-dimensional one by $23$ ($6.7$~GiB to $295$~MiB).}
 \newtext{The bare-guess field error and residual decrease together toward their full-rank interpolation floors.}
-\newtextbegin Gradient enhancement lowers the median residual floor from $3.45\times10^{-6}$ to $9.77\times10^{-7}$ in four dimensions, and from $1.01\times10^{-4}$ to $6.45\times10^{-5}$ in eight.\newtextend{}
+\newtext{Gradient enhancement lowers the median residual floor from $3.45\times10^{-6}$ to $9.77\times10^{-7}$ in four dimensions, and from $1.01\times10^{-4}$ to $6.45\times10^{-5}$ in eight.}
 \newtext{These floors remain above the certification gate, so every decoded guess still undergoes Newton refinement.}
-The \newtext{step-count test} of Sec.~\ref{sec:polish} \newtext{shows that substantial compression nearly preserves the distribution of Newton costs, while the returned field must pass the same residual check at every rank.}
-\newtext{Evaluation interpolates $r$ coefficients before decoding the field}, and \newtext{parameter differentiation commutes with this linear projection} (Sec.~\ref{sec:param:diff}).
+\newtext{Over $200$ test points of the four-dimensional gradient-enhanced model, every tested rank $r\ge150$ certifies in two or three Newton steps, as at full rank, whereas at $r=42$ every point needs three; compression to the shipped rank therefore adds no Newton step on balance.}
 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{fig05_guess_vs_memory.pdf}
-  \caption{\label{fig:pod}%
-    \textbf{Reduced-basis (POD) compression versus stored memory.}
-    \newtextbegin Constraint residual $\|R(U^{(0)})\|^{(u)}_\infty$ (top row) and relative field error $\|U^{(0)}-U_{\rm true}\|_2/\|U_{\rm true}\|_2$ (bottom row) of the bare value-only and gradient-enhanced guesses, before Newton polish.\newtextend{}
-    \newtext{Stored memory is the horizontal axis} as the POD truncation rank $r$ is swept.
-    \newtext{Lines show medians} with min--max whiskers over $1000$ uniformly-random off-node query points; each point is labeled by $r$\newtext{,} and $\star$ marks the full-rank model.
-    \newtext{The left column shows} the four-dimensional \newtext{aligned-spin model} and \newtext{the} right \newtext{column} the eight-dimensional \newtext{general}-\newtext{spin} model.
-    \newtext{In both dimensions, field error and residual decrease together toward their full-rank floors; gradient enhancement lowers} the residual \newtext{floor} by \newtext{factors of about $3.5$ and $1.6$, respectively.}
-    \newtext{The subsequent} Newton \newtext{polish delivers the certified field} (Fig.~\ref{fig:polish}).}
+  \newtextbegin \caption{\label{fig:pod}%\newtextend{}
+    \newtext{\textbf{Reduced-basis (POD) compression versus stored memory.}}
+    \newtext{Constraint residual $\|R(U^{(0)})\|^{(u)}_\infty$ (top row) and relative field error $\|U^{(0)}-U_{\rm true}\|_2/\|U_{\rm true}\|_2$ (bottom row) of the bare value-only and gradient-enhanced guesses, before Newton polish.}
+    \newtext{Stored memory is the horizontal axis as the POD truncation rank $r$ is swept.}
+    \newtext{Lines show medians with min--max whiskers over $1000$ uniformly-random off-node query points; each point is labeled by $r$, and $\star$ marks the full-rank model.}
+    \newtext{The left column shows the four-dimensional aligned-spin model and the right column the eight-dimensional general-spin model.}
+    \newtext{In both dimensions, field error and residual decrease together toward their full-rank floors; gradient enhancement lowers the residual floor by factors of about $3.5$ and $1.6$, respectively.}
+    \newtextbegin The subsequent Newton polish delivers the certified field (Fig.~\ref{fig:polish}).}\newtextend{}
 \end{figure*}
 
 \subsection{External validation}
@@ -1327,12 +1322,13 @@ The two payoffs of the method are that it is differentiable and
 constraint-certified, and we
 demonstrate both in two applications: certified parameter targeting on a
 four-dimensional quasi-circular model, and eccentricity reduction on a
-purpose-built two-dimensional $(b,P_{\rm t})$ model. Each targets
-a standard numerical-relativity initial-data workflow, and in each the honest cost
-metric is the number of \emph{certified} elliptic solves, i.e.\ full nonlinear solves
-\newtextbegin whose returned field has passed the $\|R\|^{(u)}_\infty\le10^{-11}$ gate. This is the unit used in every cost statement and figure\newtextend{}
+purpose-built two-dimensional $(b,P_{\rm t})$ model. \newtext{Each targets}
+\newtext{a standard numerical-relativity initial-data workflow, and in each the honest cost}
+\newtext{metric is the number of \emph{certified} elliptic solves, i.e.\ full nonlinear solves}
+\newtext{whose returned field has passed the $\|R\|^{(u)}_\infty\le10^{-11}$ gate.} This is the unit used in every cost statement and figure
 below; the Newton steps and linear solves inside one such solve are not counted
 separately.
+\refereetext{A certified solve is itself negligible in cost compared with the evolution it initializes, so these counts measure how many iterations a workflow needs, not the total cost of a simulation.}
 
 Both applications read physical observables off that certified field. The
 Arnowitt--Deser--Misner (ADM) mass is the monopole of the solved conformal factor,
@@ -1352,11 +1348,11 @@ Appendix~\ref{sec:validation:qc}.
 The first workflow is parameter control~\cite{Mendes2025}: find the free data that
 realize a chosen physical configuration. The standard tool is a black-box control
 loop, i.e.\ an outer Newton/Broyden iteration that adjusts the free data and performs a
-full constraint solve at every step to measure the resulting physical parameters. We
-target the ADM mass and angular momentum $(\Madm,J)$ by adjusting $(b,q)$ at zero
-spin, over $100$ random known-answer targets, and compare three strategies, all on
-\newtextbegin the four-dimensional value-only sparse-grid model of Sec.~\ref{sec:param:smolyak},\newtextend{}
-\newtext{on which the targeting loop is} model\newtext{-agnostic}. A \emph{cold} black box
+full constraint solve at every step to measure the resulting physical parameters. \newtext{We}
+\newtext{target the ADM mass and angular momentum $(\Madm,J)$ by adjusting $(b,q)$ at zero}
+\newtext{spin, over $100$ random known-answer targets, and compare three strategies, all on}
+\newtext{the four-dimensional value-only sparse-grid model of Sec.~\ref{sec:param:smolyak},}
+\newtext{on which the targeting loop is model-agnostic.} A \emph{cold} black box
 solves the constraints from scratch at each control evaluation. A \emph{warm} black
 box seeds each solve from the interpolant, so every constraint solve begins close to
 its answer. The \emph{differentiable} method runs the entire Gauss--Newton control
@@ -1367,7 +1363,7 @@ a short last-mile correction whose every step is re-certified, so the target res
 is always measured on a certified field. That certification and its last-mile
 correction are the certified solves counted below.
 
-Differentiability changes the cost class here
+\refereetext{Differentiability reduces the number of certified solves here}
 (Fig.~\ref{fig:targeting}). The gradient method reaches every target in at most
 three certified solves, with a median of two, whereas both black-box variants take a
 target-dependent seven to fourteen, with a median of ten.
@@ -1380,7 +1376,7 @@ which sidesteps the $d$ extra solves a finite-difference Jacobian would cost~\ci
 the iteration count but cannot remove the one solve per iteration. The analytic
 gradient removes those per-iteration solves outright, running the search entirely on
 the parametric model and leaving only the last-mile certification.
-This saving, moreover, widens with the number of controlled parameters.
+This saving, moreover, widens with the number of parameters.
 
 \begin{figure}[t]
   \centering
@@ -1432,7 +1428,7 @@ $\partial e/\partial\theta$ for gradient-based eccentricity reduction.
   \centering
   \includegraphics[width=\columnwidth]{fig07_eccentricity.pdf}
   \caption{\label{fig:ecc}%
-    \textbf{Accelerated eccentricity reduction.} At fixed angular momentum $J$ the
+    \textbf{\refereetext{Gradient-based} eccentricity reduction.} At fixed angular momentum $J$ the
     binding energy $E_{\rm b}(b)$ has a minimum at the circular orbit; sweeping $J$ the
     minimum shifts outward, tracing the circular-orbit sequence. For each $J$ the
     differentiable $\partial E_{\rm b}/\partial b$ locates that minimum in three certified
@@ -1454,11 +1450,11 @@ We have introduced a differentiable parametric solver for binary-black-hole punc
 that combines sparse interpolation with Newton refinement. The interpolation
 supplies an inexpensive parameter-dependent initial guess, while the subsequent
 elliptic solve certifies every returned datum to a prescribed constraint tolerance.
-Because the construction is implemented in JAX, the resulting parameter-to-solution
-map is also analytically differentiable with respect to the physical parameters. The
+\newtext{Because the parametric map is implemented in JAX, it is also analytically}
+\newtext{differentiable with respect to the physical parameters.} The
 four-dimensional aligned-spin and eight-dimensional general-spin models demonstrate
 that this construction remains practical across the aligned- and general-spin
-parameter spaces of moving-puncture practice, while the parameter-targeting and
+parameter spaces, while the parameter-targeting and
 eccentricity-reduction examples show how its derivatives can reduce the number of
 certified elliptic solves required in downstream workflows.
 
@@ -1469,14 +1465,13 @@ What remains is scope. The most natural extension is
 independent radial momentum adds an eccentricity axis on top of the orbiting family, by the same
 machinery.
 
-One limitation is inherited from the free data themselves, not from the
-parametric method. Bowen--York, conformally flat data carry spurious (``junk'')
-radiation that the early evolution must shed~\cite{Lovelace2009}, and cannot
-represent near-extremal black holes: the \emph{horizon} spin of a Bowen--York
-puncture saturates at $\chi\approx0.93$ no matter how large the free-data spin
-parameter~\cite{CookYork1990,DainLoustoZlochower2008}, which is why
-nearly-extremal-spin simulations use conformally curved (e.g.\ superposed
-Kerr--Schild) initial data~\cite{Lovelace2008}. Within the moving-puncture
+\newtext{One limitation is inherited from the free data: Bowen--York, conformally flat data carry spurious (``junk'')}
+\newtext{radiation that the early evolution must shed~\cite{Lovelace2009}, and cannot}
+\newtext{represent near-extremal black holes: the \emph{horizon} spin of a Bowen--York}
+\newtext{puncture saturates at $\chi\approx0.93$ no matter how large the free-data spin}
+\newtext{parameter~\cite{CookYork1990,DainLoustoZlochower2008}, which is why}
+\newtext{nearly-extremal-spin simulations use conformally curved (e.g.\ superposed}
+\newtext{Kerr--Schild) initial data~\cite{Lovelace2008}.} Within the moving-puncture
 mainstream ($\chi\lesssim0.9$) the family built here is the standard input; and
 because the parametric layer is solver-agnostic, a conformally curved solver could be swapped in
 under the same interpolation, certification, and compression machinery.
@@ -1487,20 +1482,19 @@ is quantitative only within the physical range ($\chi_{\max}\lesssim0.8$): pushi
 the sampling interval toward and past extremal spin mixes the genuine (complex,
 far) singularity with pre-asymptotic and spatial-floor effects, so the clean
 single-$\chi_\ast$ characterization is reported for the physical regime, not
-\newtextbegin extrapolated beyond it. Second, the certified $\|R\|^{(u)}_\infty\le10^{-11}$ gate concerns the discrete constraint, not the continuum discretization error.\newtextend{}
-\newtextbegin It is verified on the production grid ($44\times40\times8$) and throughout the meridional ladder from $28\times24$ to $64\times56$ at fixed $N_\phi=8$ (App.~\ref{sec:validation:qc}).\newtextend{}
-\newtext{A separate sample of $12$ configurations also passes} the \newtext{gate through $N_\phi=24$; spatial accuracy must still be assessed separately from} the \newtext{certified residual}.
+extrapolated beyond it. \newtext{Second, the certified $\|R\|^{(u)}_\infty\le10^{-11}$ gate concerns the discrete constraint, not the continuum discretization error.}
+\newtext{The gate holds at every resolution we tested, along the meridional ladder at $N_\phi=8$, $12$, and $16$, while the accuracy of the field is measured separately against TwoPunctures (App.~\ref{sec:validation:qc}).}
 
-Finally, beyond the immediate use cases, the method supplies what a data-driven
-model of binary-black-hole spacetimes needs at its input: a fast,
-\emph{differentiable} initial-data generator across a physical parameter space
-whose output satisfies the constraints to a checked tolerance. Such a generator can
-serve as a training source and a warm-start oracle for those models, supplying
-gradients $\dID$ for end-to-end parameter inference.
+\refereebegin
+Finally, the method provides a classical benchmark for learned initial-data solvers, such as the physics-informed neural networks discussed in Sec.~\ref{sec:intro}.
+It is parametric and differentiable, as a trained network can be, and in addition certifies every returned datum against the discrete constraint residual.
+A learned solver should improve on it at matched accuracy, with the cost of building the model included.
+More broadly, this work is a first step toward a differentiable, parametric model of the full binary-black-hole spacetime, for which it supplies the initial slice together with its parameter gradients $\dID$.
+\refereeend{}
 
 % ===========================================================================
 \begin{acknowledgments}
-The authors would like to thank Miguel Bezares Figueroa, Thiago Assump\c{c}\~ao, Ignacio Brevis, and Lli\-bert Arest\'e Sal\'o for encouraging and interesting discussions.
+\newtext{We thank Miguel Bezares Figueroa, Thiago Assump\c{c}\~ao, Ignacio Brevis, and Lli\-bert Arest\'e Sal\'o for interesting discussions.}
 This work was developed with the assistance of Claude Code (Anthropic).
 This research was supported by the Research Foundation -- Flanders (FWO; Grant No.\ I000725N and I002123N).
 \end{acknowledgments}
@@ -1508,8 +1502,8 @@ This research was supported by the Research Foundation -- Flanders (FWO; Grant N
 % ===========================================================================
 \section*{Data and code availability}
 % ===========================================================================
-The whole implementation is publicly available at
-\url{https://github.com/LemaitreModels/LMID-conformally-flat-puncture}.
+\newtext{The source code for the models in this paper is publicly available at}
+\newtext{\url{https://github.com/LemaitreModels/LMID-conformally-flat-puncture}.}
 
 
 \appendix
@@ -1536,11 +1530,11 @@ axi\-symmetric limit the two codes agree to near machine precision.
     production box.} Each point is a median over $100$ quasi-circular
     configurations drawn from the production box by a Latin hypercube, with
     whiskers spanning the sample minimum to maximum; the shared resolution axis
-    is the meridional sequence at fixed $N_\phi=8$, and every configuration is
-    compared with one TwoPunctures solve at $72\times72\times12$.
+    is the meridional sequence.
     The panels are, from top to bottom, the certified residual; the pointwise field difference; and
     the ADM mass comparison.
-    The field difference \newtext{decreases to the production grid $44\times40\times8$ and then plateaus,} while the \newtext{ADM-mass difference continues to decrease.}
+\newtext{Every panel shows $N_\phi=8$, $12$, and $16$, each configuration compared with one TwoPunctures solve at $72\times72\times24$.}
+\newtext{At $N_\phi=8$ the field and ADM-mass differences level off beyond the production grid $44\times40$; at $N_\phi=16$ both keep decreasing with the meridional grid, so the plateau is azimuthal.}
     \newtextbegin The certified residual stays near roundoff throughout the ladder: every configuration passes the $\|R\|^{(u)}_\infty\le10^{-11}$ gate (dotted) at every resolution.}\newtextend{}
 \end{figure}
 
@@ -1559,31 +1553,24 @@ circular-orbit result, which fixes the separation and momentum conventions.
 Both codes employ the decomposition $\psi=\psi_{\rm BL}+u$, so the conformal
 factor is compared directly at common physical points.
 
-So that the comparison does not rest on one arbitrary parameter point, we draw
-$100$ configurations from the production box by a Latin hypercube and walk the
-same meridional resolution sequence for each\newtext{: $28\times24$, $36\times32$, $44\times40$, $52\times48$, and $64\times56$}, at fixed $N_\phi=8$. Every
-configuration is compared with a single TwoPunctures solve at
-$72\times72\times12$, which out-resolves the finest of our own grids in every
-direction. Ten further configurations placed deliberately at the box edges are
+\newtext{So that the comparison does not rest on one arbitrary parameter point, we draw}
+\newtext{$100$ configurations from the production box by a Latin hypercube and walk the}
+\newtext{same meridional resolution sequence for each: $28\times24$, $36\times32$, $44\times40$, $52\times48$, and $64\times56$, at $N_\phi=8$, $12$, and $16$. Every}
+\newtext{configuration is compared with a single TwoPunctures solve at}
+\newtext{$72\times72\times24$, which out-resolves the finest of our own grids in every}
+\newtext{direction.} Ten further configurations placed deliberately at the box edges are
 reported separately, so that they do not bias the sample statistics.
 
-\newtextbegin The pointwise field difference decreases to the production grid and then plateaus (Fig.~\ref{fig:tpval}).\footnote{We estimate pointwise differences on $70$ fixed interior probe points, clear of both punctures and covering the full azimuthal range. The reference solve's own meridional truncation is negligible: its field moves by below $10^{-11}$ across the sampled box between its own $72\times72$ and $96\times96$ meridional resolutions.}\newtextend{}
-\newtextbegin Its median falls from $2.4\times10^{-6}$ to $3.9\times10^{-7}$ and then $3.6\times10^{-7}$, remaining at that level on the finer grids.\newtextend{}
-The \newtext{sample} maximum \newtext{is $6.7\times10^{-6}$ from $36\times32$ onward, while} the \newtext{minimum reaches $5.6\times10^{-9}$ at} the \newtext{production grid.}
-\newtextbegin Small variations on the plateau make $88$ of the $100$ individual sequences non-monotone somewhere; we do not claim monotone convergence for every configuration.\newtextend{}
-\newtextbegin The reference's azimuthal self-comparison between $N_\phi=12$ and $16$ gives $2.0\times10^{-8}$, below the median plateau.\newtextend{}
-\newtextbegin Our own azimuthal truncation at $N_\phi=8$ sets this plateau: in a separate sample of $12$ configurations, the change in our solution from $N_\phi=8$ to $10$ accounts for each configuration's difference from TwoPunctures to within $5\%$.\newtextend{}
-\newtext{At $44\times40$,} the \newtext{median (maximum)} field difference \newtext{from a $72\times72\times24$ TwoPunctures reference is $1.27\times10^{-8}$ ($9.4\times10^{-8}$) for $N_\phi=10$, $4.8\times10^{-9}$ ($2.2\times10^{-8}$) for $N_\phi=12$, and $4.2\times10^{-9}$ ($1.5\times10^{-8}$)} at \newtext{each of $N_\phi=16,20,24$.}
-\newtext{This last level is not set by azimuthal truncation: our field changes by at most $1.5\times10^{-10}$ from $N_\phi=16$ to $20$ and $8.3\times10^{-14}$ from $20$ to $24$}.
+\newtext{The pointwise field difference decreases to the production grid and then plateaus at $N_\phi=8$ (Fig.~\ref{fig:tpval}).\footnote{We estimate pointwise differences on $70$ fixed interior probe points, clear of both punctures and covering the full azimuthal range. The reference solve's own meridional truncation is negligible: its field moves by below $10^{-11}$ across the sampled box between its own $72\times72$ and $96\times96$ meridional resolutions.}}
+\newtext{Small variations on the plateau make most individual sequences non-monotone somewhere, so we do not claim monotone convergence for every configuration.}
+\newtext{The plateau is set by our azimuthal resolution, not by the meridional grid or by the reference: at $N_\phi=12$ and $16$ the same configurations show no plateau.}
+\newtext{At $N_\phi=16$ the difference keeps decreasing with the meridional grid, and at the production grid it is already about two orders of magnitude below the plateau.}
+\newtext{At $N_\phi=12$ the largest differences stop decreasing beyond the production grid, so for some configurations $N_\phi=12$ still limits the agreement.}
 
-The certified residual \newtext{stays near roundoff} along the \newtext{entire meridional ladder.}
-\newtextbegin Its median lies between $8\times10^{-16}$ and $1.2\times10^{-15}$, and its maximum never exceeds $9.4\times10^{-14}$.\newtextend{}
-\newtextbegin Every sampled configuration therefore satisfies $\|R\|^{(u)}_\infty\le10^{-11}$ at every resolution.\newtextend{}
-\newtext{There is no systematic} residual rise \newtext{with meridional refinement.}
-\newtext{The residual check establishes convergence} of the \newtext{nonlinear solve on each grid; it does not determine} the \newtext{source of} the \newtext{field-difference plateau}.
+\newtext{The certified residual stays near roundoff at every resolution and every $N_\phi$, orders of magnitude below the gate, with no systematic rise under refinement.}
+\newtext{Every sampled configuration therefore satisfies $\|R\|^{(u)}_\infty\le10^{-11}$ at every resolution.}
 
-The integral (ADM mass) comparison \newtext{continues to improve beyond that plateau (}Fig.~\ref{fig:tpval}\newtext{).}
-\newtextbegin Its median relative difference falls from $8.1\times10^{-7}$ at the coarsest grid to $1.1\times10^{-8}$ at production resolution and $7.8\times10^{-9}$ at the finest grid.\newtextend{}
+\newtext{The integral (ADM mass) comparison behaves in the same way (Fig.~\ref{fig:tpval}): at $N_\phi=8$ it improves only slowly beyond the production grid, while at $N_\phi=12$ and $16$ it keeps decreasing along the whole ladder.}
 
 \begin{figure}[t]
   \centering
@@ -1605,21 +1592,21 @@ non-axisymmetry sits. These data are non-axisymmetric by construction: the
 tangential momentum populates $m=2$ and generic spins populate $m=1$. Across the
 sample both sit at the percent level. The spectrum then falls by more than two decades; $m=4$ is the
 Nyquist amplitude of the $N_\phi=8$ grid and bounds rather than resolves the
-high-$m$ content. \newtext{The separate azimuthal} refinement above \newtext{quantifies the pointwise error left by this truncation}.
+high-$m$ content. \newtext{The separate azimuthal refinement above quantifies the pointwise error left by this truncation.}
 
 Two checks that the quasi-circular family cannot supply, because it is never
-axisymmetric, complete the picture. First, for four head-on configurations with
-both spins along the collision axis, $(b,\,q,\,\chi^{A}_{z}=\chi^{B}_{z}) =
-(4,1,0)$, $(4,1,0.5)$, $(4,3,0.5)$ and $(3,3,0.9)$,
-\newtextbegin all $m\ge1$ modes are at most $3.9\times10^{-15}$ relative to $m=0$, confirming that the Fourier-in-$\phi$\newtextend{}
-operator \newtext{preserves axisymmetry to roundoff}. Second, in this
-axisymmetric limit the pointwise field agreement approaches machine precision:
-for a non-spinning equal-mass configuration with $b=3$ and axial momentum
-$P=0.5$, solved on \newtext{$64\times56\times8$} and compared against the same reference, the two
-\newtextbegin independently discretized spectral codes agree in $\psi$ to $4.9\times10^{-14}$\newtextend{}
-in the supremum norm, and in the
-\newtextbegin total ADM mass to a relative difference of $1.2\times10^{-12}$; the certified\newtextend{}
-\newtextbegin residual there is $2.7\times10^{-16}$. With no azimuthal structure to limit\newtextend{}
+axisymmetric, complete the picture. \newtext{First, for four head-on configurations with}
+\newtextbegin both spins along the collision axis, $(b,\,q,\,\chi^{A}_{z}=\chi^{B}_{z}) =\newtextend{}
+\newtextbegin (4,1,0)$, $(4,1,0.5)$, $(4,3,0.5)$ and $(3,3,0.9)$,\newtextend{}
+\newtext{all $m\ge1$ modes are at most $3.9\times10^{-15}$ relative to $m=0$, confirming that the Fourier-in-$\phi$}
+\newtext{operator preserves axisymmetry to roundoff. Second, in this}
+\newtext{axisymmetric limit the pointwise field agreement approaches machine precision:}
+\newtext{for a non-spinning equal-mass configuration with $b=3$ and axial momentum}
+\newtext{$P=0.5$, solved on $64\times56\times8$ and compared against the same reference, the two}
+\newtext{independently discretized spectral codes agree in $\psi$ to $4.9\times10^{-14}$}
+\newtext{in the supremum norm, and in the}
+\newtext{total ADM mass to a relative difference of $1.2\times10^{-12}$; the certified}
+\newtext{residual there is $2.7\times10^{-16}$.} With no azimuthal structure to limit
 either code, this is the most stringent code-to-code reference available for the
 solver.
 
@@ -1641,7 +1628,7 @@ solver.
     masses $m_A=m_B=0.5$, zero spins, half-separation $b=3$ and axial momentum
     $P=0.5$.
     \newtext{Both sources are transferred on the production spectral grid $44\times40\times8$.}
-    Black open markers repeat the measurement with the conformal factor supplied by Two\-Punctures \newtext{and lie on our curves at every resolution}.}
+    \newtextbegin Black open markers repeat the measurement with the conformal factor supplied by Two\-Punctures and lie on our curves at every resolution.}\newtextend{}
 \end{figure}
 
 As a final validation, we hand the initial data to GR\-Teclyn~\cite{GRTeclyn}, an
@@ -1656,46 +1643,45 @@ The data are transferred as the solved conformal factor on its spectral grid and
 evaluated in the evolution code by a direct port of the interpolation used here.
 Since the transfer accepts a conformal factor from any source, we also run the TwoPunctures solution through
 it, on the same spectral grid, so that the initial data is the only difference
-between the two measurements. Figure~\ref{fig:constraints} shows both norms
-falling at \newtext{approximately} fourth order\newtext{,} with \newtext{local orders between $3.3$ and $4.3$ and} the TwoPunctures points lying on our curves \newtext{at every resolution.}
-\newtextbegin At $h=0.094\,M$, the Hamiltonian norm reaches $2.49\times10^{-7}$.\newtextend{}
-\newtext{Across the ladder, changing the conformal-factor source changes that norm by only $1.1\times10^{-7}$--$1.7\times10^{-5}$ relative, and the momentum norm by at most $3\times10^{-9}$ relative.}
-\newtextbegin The two conformal factors themselves agree to $1.6\times10^{-13}$ relative.\newtextend{}
+between the two measurements. \newtext{Figure~\ref{fig:constraints} shows both norms}
+\newtext{falling at approximately fourth order, with local orders between $3.3$ and $4.3$ and the TwoPunctures points lying on our curves at every resolution.}
+\newtext{At $h=0.094\,M$, the Hamiltonian norm reaches $2.49\times10^{-7}$.}
+\newtext{At every resolution of the ladder, replacing our conformal factor by the TwoPunctures one changes the Hamiltonian norm by only $1.1\times10^{-7}$--$1.7\times10^{-5}$ relative, and the momentum norm by at most $3\times10^{-9}$ relative.}
+\newtext{The conformal factors themselves agree to $1.6\times10^{-13}$ relative.}
 
 
 % ===========================================================================
 \section{Separable form of the per-mode block}
 \label{sec:separable}
 
-This appendix records the reduction quoted in Sec.~\ref{sec:solve:newton} \newtext{for the interior Gauss grid of Sec}.\newtext{~\ref{sec:solve:abt}.}
-\newtext{Let} $\mathcal{P}\equiv(1-A^2)^2/(b^2\mathcal{D})$ denote the common prefactor of Eq.~\eqref{eq:abt_laplacian}, and \newtext{set}
-\newtextbegin $F\equiv\mathrm{diag}(A_i-1)$ and $W\equiv\mathrm{diag}[(1-B_j^2)^{k_m/2}]$.\newtextend{}
-\newtext{These are} the \newtext{radial and} associated-Legendre \newtext{factors} of Eq.~\eqref{eq:basis}.
-\newtextbegin With $A$ indexing rows and $s$ columns, the smooth factored mode array is\newtextend{}
+\newtext{This appendix records the reduction quoted in Sec.~\ref{sec:solve:newton} for the interior Gauss grid of Sec.~\ref{sec:solve:abt}.}
+\newtext{Let $\mathcal{P}\equiv(1-A^2)^2/(b^2\mathcal{D})$ denote the common prefactor of Eq.~\eqref{eq:abt_laplacian}, and set}
+\newtext{$\omega_m(B)\equiv(1-B^2)^{k_m/2}$, $F\equiv\mathrm{diag}(A_i-1)$ and $W\equiv\mathrm{diag}[\omega_m(B_j)]$.}
+\newtext{These are the radial and associated-Legendre factors of Eq.~\eqref{eq:basis}.}
+\newtext{With $A$ indexing rows and $s$ columns, the smooth factored mode array is}
 \newtextbegin \begin{equation}
   v^{(m)} \ = \ F^{-1}\,\widehat U^{(m)}\,W^{-1},
   \label{eq:smooth_mode}
 \end{equation}\newtextend{}
-of shape $(N_A{+}1)\times N_B$\newtext{.}
-\newtextbegin Equivalently, $\widehat U^{(m)}=Fv^{(m)}W$; neither diagonal factor vanishes at a collocation node.\newtextend{}
+\newtext{of shape $(N_A{+}1)\times N_B$.}
+\newtext{Equivalently, $\widehat U^{(m)}=Fv^{(m)}W$; neither diagonal factor vanishes at a collocation node.}
 
-\newtext{Dividing} Eq.~\eqref{eq:abt_laplacian} \newtext{by} $\mathcal{P}$ \newtext{removes the joint} $A$\newtext{--}$B$ \newtext{dependence from its coefficients;} Eq.~\eqref{eq:centrifugal_split} \newtext{does the same for the centrifugal term}.
-\newtextbegin Define $L_A^{(m)}$ to act on the radial dependence of the smooth factor as\newtextend{}
+\newtext{Dividing Eq.~\eqref{eq:abt_laplacian} by $\mathcal{P}$ removes the joint $A$--$B$ dependence from its coefficients; Eq.~\eqref{eq:centrifugal_split} does the same for the centrifugal term.}
+\newtext{Define $L_A^{(m)}$ to act on the radial dependence of the smooth factor as}
 \newtextbegin \begin{equation*}
 \begin{aligned}
-  L_A^{(m)}v \, &= \frac{(1-A^2)^2}{4A}\,
+  L_A^{(m)}v \ &\equiv \ \frac{(1-A^2)^2}{4A}\,
   \partial_A\!\big[A\,\partial_A((A-1)v)\big] \\
-  &\quad -\frac{m^2(1-A^2)^2}{4A^2}(A-1)v,
+  &\quad \ \ -\frac{m^2(1-A^2)^2}{4A^2}(A-1)v,
 \end{aligned}
 \end{equation*}\newtextend{}
 \newtext{and $C_B^{(m)}$ to act on its angular dependence as}
 \newtextbegin \begin{equation*}
-  C_B^{(m)}v = \partial_B\!\big[(1-B^2)\partial_B(Wv)\big]
-  -\frac{m^2}{1-B^2}Wv.
+  C_B^{(m)}v \ \equiv \ \partial_B\!\big[(1-B^2)\partial_B(\omega_m v)\big]
+  -\frac{m^2}{1-B^2}\,\omega_m v.
 \end{equation*}\newtextend{}
-\newtext{Here $W$ denotes its diagonal entries when used inside a derivative.}
-\newtextbegin The radial derivatives include the analytic factor $A-1$; the angular derivatives include $W$ analytically and use polynomial differentiation in $s$ with the exact chain rule.\newtextend{}
-\newtext{On} row-\newtext{major vectorizations of Eq.~\eqref{eq:smooth_mode}}, the block \newtext{is}
+\newtext{The radial derivatives include the analytic factor $A-1$; the angular derivatives include $\omega_m$ analytically and use polynomial differentiation in $s$ with the exact chain rule.}
+\newtext{On row-major vectorizations of Eq.~\eqref{eq:smooth_mode}, the block is}
 \newtextbegin \begin{equation*}
   \mathrm{diag}(\mathcal{P}^{-1})M_0^{(m)}
   = L_A^{(m)}\otimes W + F\otimes C_B^{(m)}.
@@ -1710,24 +1696,23 @@ of shape $(N_A{+}1)\times N_B$\newtext{.}
 \end{aligned}
   \label{eq:kronecker_sum}
 \end{equation}\newtextend{}
-\newtextbegin where $\mathcal{L}_A^{(m)}=F^{-1}L_A^{(m)}$ has size $N_A{+}1$ and\newtextend{}
-\newtextbegin $\mathcal{L}_B^{(m)}=W^{-1}C_B^{(m)}$ has size $N_B$.\newtextend{}
-\newtextbegin Equation~\eqref{eq:kronecker_sum} is a true Kronecker sum on the full grid.\newtextend{}
-\newtext{Every row is a PDE row,} so \newtext{there are no boundary equations to eliminate or condense}.
+\newtext{where $\mathcal{L}_A^{(m)}=F^{-1}L_A^{(m)}$ has size $N_A{+}1$ and}
+\newtext{$\mathcal{L}_B^{(m)}=W^{-1}C_B^{(m)}$ has size $N_B$.}
+\newtext{Equation~\eqref{eq:kronecker_sum} is a true Kronecker sum on the full grid, because every collocation row is a PDE row (Sec.~\ref{sec:solve:abt}).}
 
-\newtextbegin The right-hand side of Eq.~\eqref{eq:kronecker_sum} acts on $v^{(m)}$ as the Sylvester operator\newtextend{}
-\newtextbegin $\mathcal{L}_A^{(m)}v^{(m)}+v^{(m)}(\mathcal{L}_B^{(m)})^T$.\newtextend{}
-Diagonalizing each one-dimensional factor once,
-\newtextbegin $\mathcal{L}_A^{(m)}=S_A\Lambda_AS_A^{-1}$ and\newtextend{}
-\newtextbegin $(\mathcal{L}_B^{(m)})^T=S_B\Lambda_BS_B^{-1}$, reduces the solve to division by $\lambda^A_i+\lambda^B_j$ in the transformed variables.\newtextend{}
-\newtextbegin The right-hand side first receives the same $\mathcal{P}^{-1}$, $F^{-1}$, and $W^{-1}$ row scalings.\newtextend{}
+\newtext{The right-hand side of Eq.~\eqref{eq:kronecker_sum} acts on $v^{(m)}$ as the Sylvester operator}
+\newtext{$\mathcal{L}_A^{(m)}v^{(m)}+v^{(m)}(\mathcal{L}_B^{(m)})^T$.}
+\newtext{Diagonalizing each one-dimensional factor once,}
+\newtext{$\mathcal{L}_A^{(m)}=S_A\Lambda_AS_A^{-1}$ and}
+\newtext{$(\mathcal{L}_B^{(m)})^T=S_B\Lambda_BS_B^{-1}$, reduces the solve to division by $\lambda^A_i+\lambda^B_j$ in the transformed variables.}
+\newtext{The right-hand side first receives the same $\mathcal{P}^{-1}$, $F^{-1}$, and $W^{-1}$ row scalings.}
 One apply then costs
 $O\big(N_AN_B(N_A{+}N_B)\big)$ after an $O(N_A^3+N_B^3)$ setup. Both eigenproblems
 are nonsymmetric, and the conditioning of $S_A$ and $S_B$ is what limits the
 attainable accuracy of the inverse.
 
-Every coefficient carries exactly one factor $b^{-2}$, through
-$\mathcal{P}$ and through the centrifugal term alike\newtext{.}
+\newtext{Every coefficient carries exactly one factor $b^{-2}$, through}
+\newtext{$\mathcal{P}$ and through the centrifugal term alike.}
 Hence $M_0^{(m)}(b)=D(b)\,M_0^{(m)}(1)$ with $D$ diagonal, a left scaling
 that row equilibration cancels identically. The one-dimensional factors are
 therefore built once per grid, and the separation enters only as a scalar row

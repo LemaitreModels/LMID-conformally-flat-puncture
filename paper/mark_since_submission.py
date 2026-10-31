@@ -1,7 +1,8 @@
 """Mark in red, inside paper.tex itself, every piece of text that is not in the submitted paper.
 
     python mark_since_submission.py            # re-mark paper.tex against the submission
-    python mark_since_submission.py --strip    # remove the markup, leaving the clean source
+    python mark_since_submission.py --strip    # remove ALL markup (red and purple): the clean source
+    python mark_since_submission.py --words    # mark only the changed words, not whole sentences
 
 Run it from ``paper/``.  The submitted text is read from git, commit ``SUBMITTED``
 (b0f2f39, the PRD submission of 2026-08-24); ``--submitted FILE`` and ``--paper FILE``
@@ -11,9 +12,15 @@ override the two inputs.
   the submission (text you add later is then red as well).
 * The source is otherwise untouched: stripping the markup gives back the input BYTE FOR BYTE,
   and the script refuses to write unless that holds.
+* Granularity: a sentence of running text with any change is red as a whole (``--words``
+  marks only the changed words).  Display math is coloured as a whole block.
 * Markup: ``\\newtext{...}`` around a changed span that is safe to wrap; otherwise the whole
   line is bracketed by the switches ``\\newtextbegin`` ... ``\\newtextend``.  A
   ``\\shownewfalse`` in the preamble turns all of it black.
+* Referee changes are PURPLE and written by hand: ``\\refereetext{...}`` inline, or
+  ``\\refereebegin`` ... ``\\refereeend{}`` around a block or a display.  They are part of the
+  source, so a re-mark keeps them and never colours red inside them (purple wins);
+  ``\\showrefereefalse`` turns them black, and ``--strip`` removes them with the red markup.
 """
 import difflib
 import re
@@ -25,6 +32,12 @@ DEFS = (
     "\\newcommand{\\newtext}[1]{\\ifshownew{\\color{red}#1}\\else#1\\fi}\n"
     "\\newcommand{\\newtextbegin}{\\ifshownew\\color{red}\\fi}\n"
     "\\newcommand{\\newtextend}{\\ifshownew\\color{black}\\fi}\n"
+    "% purple = changed in reply to the referee (hand-written \\refereetext / \\refereebegin..\\refereeend)\n"
+    "\\newif\\ifshowreferee \\showrefereetrue\n"
+    "\\definecolor{refereepurple}{rgb}{0.45,0.1,0.75}\n"
+    "\\newcommand{\\refereetext}[1]{\\ifshowreferee{\\color{refereepurple}#1}\\else#1\\fi}\n"
+    "\\newcommand{\\refereebegin}{\\ifshowreferee\\color{refereepurple}\\fi}\n"
+    "\\newcommand{\\refereeend}{\\ifshowreferee\\color{black}\\fi}\n"
     "% --- end new-since-submission markup ---\n"
 )
 OPEN, B, E = "\\newtext{", "\\newtextbegin ", "\\newtextend "
@@ -32,31 +45,66 @@ EL = "\\newtextend{}"   # at a line end: the {} keeps the newline a space
 NOWRAP = {"\\label", "\\ref", "\\eqref", "\\cite", "\\citep", "\\citet", "\\includegraphics",
           "\\begin", "\\end", "\\input", "\\url", "\\href", "\\bibliography", "\\bibliographystyle",
           "\\documentclass", "\\usepackage", "\\newcommand", "\\renewcommand", "\\label"}
+R_OPEN, R_B, R_E = "\\refereetext{", "\\refereebegin", "\\refereeend"
 TOK = re.compile(r"\s+|\\[A-Za-z@]+\*?|\\.|[A-Za-z0-9]+|.", re.S)
 
 
-def strip(t):
-    t = t.replace(DEFS, "")
-    t = t.replace(B, "").replace(EL, "").replace(E, "").replace(E.rstrip(), "")
+def _close(t, k):
+    """Index just past the brace that closes the group opened right before ``k``."""
+    d = 1
+    while d:
+        c = t[k]
+        if c == "\\":
+            k += 2
+            continue
+        d += (c == "{") - (c == "}")
+        k += 1
+    return k
+
+
+def referee_mask(t):
+    """True on every character of a hand-written referee (purple) span, macros included."""
+    mask = [False] * len(t)
+    for m in re.finditer(re.escape(R_OPEN), t):
+        for c in range(m.start(), _close(t, m.end())):
+            mask[c] = True
+    for m in re.finditer(re.escape(R_B) + r"\b", t):
+        e = t.find(R_E, m.end())
+        assert e >= 0, f"\\refereebegin at offset {m.start()} has no \\refereeend"
+        end = e + len(R_E) + (2 if t.startswith("{}", e + len(R_E)) else 0)
+        for c in range(m.start(), end):
+            mask[c] = True
+    return mask
+
+
+def strip_referee(t):
+    t = re.sub(re.escape(R_B) + r"\s?", "", t)
+    t = t.replace(R_E + "{}", "").replace(R_E + " ", "").replace(R_E, "")
+    return _unwrap(t, R_OPEN)
+
+
+def _unwrap(t, opener):
     out, i = [], 0
     while True:
-        j = t.find(OPEN, i)
+        j = t.find(opener, i)
         if j < 0:
             out.append(t[i:])
             break
         out.append(t[i:j])
-        k, d = j + len(OPEN), 1
-        start = k
-        while d:
-            c = t[k]
-            if c == "\\":
-                k += 2
-                continue
-            d += (c == "{") - (c == "}")
-            k += 1
-        out.append(t[start:k - 1])
+        k = _close(t, j + len(opener))
+        out.append(t[j + len(opener):k - 1])
         i = k
     return "".join(out)
+
+
+DEFS_RX = re.compile(r"% --- new-since-submission markup.*?% --- end new-since-submission markup ---\n",
+                     re.S)
+
+
+def strip(t):
+    t = DEFS_RX.sub("", t)
+    t = t.replace(B, "").replace(EL, "").replace(E, "").replace(E.rstrip(), "")
+    return _unwrap(t, OPEN)
 
 
 def _depth_and_cmd(line, pos):
@@ -118,21 +166,123 @@ def _safe(line, a, b, in_display):
     return True
 
 
-def mark(sub, cur):
-    old, new = TOK.findall(sub), TOK.findall(cur)
-    assert "".join(new) == cur
-    starts, p = [], 0
-    for t in new:
-        starts.append(p)
-        p += len(t)
-    flag = [False] * len(cur)
-    sm = difflib.SequenceMatcher(None, old, new, autojunk=False)
-    for tag, i1, i2, j1, j2 in sm.get_opcodes():
-        if tag in ("insert", "replace"):
-            for j in range(j1, j2):
-                if new[j].strip():
-                    for c in range(starts[j], starts[j] + len(new[j])):
+STRUCT = re.compile(r"\s*(%|\\(begin|end|section|subsection|subsubsection|paragraph|label|"
+                    r"includegraphics|centering|maketitle|appendix|bibliography|item)\b|\\\[|\\\])")
+ABBREV = re.compile(r"(\b(al|Eq|Eqs|Ref|Refs|Fig|Figs|Sec|Secs|App|Tab|cf|vs|resp)|e\.g|i\.e)\.$")
+SENT_END = re.compile(r"[.?!](?=\s)")
+
+
+def _whole_sentences(cur, flag, sub=None, purple=None):
+    """Widen every change in running text to the whole sentence that contains it.
+
+    Running text is split into blocks at blank lines, display math and structural lines
+    (``\\begin``, ``\\section``, ``\\label``, comments, ...), which are never widened into;
+    within a block a sentence ends at ``.``/``?``/``!`` followed by whitespace, except after
+    the abbreviations in ``ABBREV``.  A ``\\caption{`` opens a sentence.
+    """
+    flag = flag[:]
+    lines = cur.splitlines(True)
+    text, pos, in_doc, display = [], 0, False, 0
+    for line in lines:
+        body = line.rstrip("\n")
+        if "\\begin{document}" in body:
+            in_doc = True
+        opens = len(re.findall(r"\\begin\{(equation|align|gather|multline|eqnarray)\*?\}|\\\[", body))
+        closes = len(re.findall(r"\\end\{(equation|align|gather|multline|eqnarray)\*?\}|\\\]", body))
+        is_text = (in_doc and body.strip() and display == 0 and opens == 0 and closes == 0
+                   and not STRUCT.match(body))
+        text.append((pos, pos + len(line), is_text))
+        display += opens - closes
+        pos += len(line)
+    blocks, k = [], 0
+    while k < len(text):
+        if not text[k][2]:
+            k += 1
+            continue
+        a = text[k][0]
+        while k < len(text) and text[k][2]:
+            k += 1
+        blocks.append((a, text[k - 1][1]))
+    for a, b in blocks:
+        cuts = [a]
+        for m in re.finditer(r"\\caption\{", cur[a:b]):
+            cuts.append(a + m.end())
+        for m in SENT_END.finditer(cur, a, b):
+            if not ABBREV.search(cur[max(a, m.start() - 8):m.end()]):
+                cuts.append(m.end())
+        cuts = sorted(set(cuts)) + [b]
+        for s, e in zip(cuts, cuts[1:]):
+            if any(flag[s:e]):
+                if sub is not None and _unchanged_outside(cur, s, e, sub, purple):
+                    for c in range(s, e):
+                        flag[c] = False
+                    continue
+                for c in range(s, e):
+                    if not cur[c].isspace():
                         flag[c] = True
+    return flag
+
+
+def _unchanged_outside(cur, s, e, sub, purple):
+    """Whether the sentence cur[s:e] occurs in the submitted text, purple spans aside.
+
+    The token diff can pair a common word at a line start ("The") with the same word of a
+    neighbouring new line, and so flag a sentence nobody changed; and a sentence changed only
+    inside a referee span is not a red change.  Both are settled by looking the sentence up:
+    its text outside purple spans, whitespace-insensitive, with each purple span as a wildcard.
+    """
+    parts, k = [], s
+    while k < e:
+        p = purple[k] if purple else False
+        j = k
+        while j < e and (purple[j] if purple else False) == p:
+            j += 1
+        parts.append((p, cur[k:j]))
+        k = j
+    rx = []
+    for p, txt in parts:
+        if p:
+            rx.append(r"[\s\S]*?")
+        else:
+            words = txt.split()
+            if words:
+                rx.append(r"\s+".join(re.escape(w) for w in words))
+            rx.append(r"\s*")
+    pat = "".join(rx).strip()
+    return bool(pat) and re.search(pat, sub) is not None
+
+
+def mark(sub, cur):
+    # Anchor on whole lines first, then diff tokens only inside each changed block: a single
+    # token-level diff over the whole file can pair a common word ("The") with a far-away
+    # occurrence and flag it in an otherwise unchanged sentence.
+    old_l, new_l = sub.splitlines(True), cur.splitlines(True)
+    line_start, p = [], 0
+    for ln in new_l:
+        line_start.append(p)
+        p += len(ln)
+    flag = [False] * len(cur)
+    lsm = difflib.SequenceMatcher(None, old_l, new_l, autojunk=False)
+    for ltag, a1, a2, b1, b2 in lsm.get_opcodes():
+        if ltag == "equal" or b1 == b2:
+            continue
+        old, new = TOK.findall("".join(old_l[a1:a2])), TOK.findall("".join(new_l[b1:b2]))
+        starts, q = [], line_start[b1]
+        for tk in new:
+            starts.append(q)
+            q += len(tk)
+        sm = difflib.SequenceMatcher(None, old, new, autojunk=False)
+        for tag, i1, i2, j1, j2 in sm.get_opcodes():
+            if tag in ("insert", "replace"):
+                for j in range(j1, j2):
+                    if new[j].strip():
+                        for c in range(starts[j], starts[j] + len(new[j])):
+                            flag[c] = True
+    purple = referee_mask(cur)
+    flag = [f and not p for f, p in zip(flag, purple)]
+    if WHOLE_SENTENCES:
+        flag = _whole_sentences(cur, flag, sub, purple)
+        flag = [f and not p for f, p in zip(flag, purple)]
     lines = cur.splitlines(True)
     out, pos, in_doc, display = [], 0, False, 0
     env_start, env_line, env_hit, env_id = [], [], set(), -1
@@ -202,6 +352,7 @@ def mark(sub, cur):
 
 
 SUBMITTED = "b0f2f39"
+WHOLE_SENTENCES = "--words" not in sys.argv
 
 
 def _arg(name, default):
@@ -215,6 +366,7 @@ if __name__ == "__main__":
     cur_path = _arg("--paper", os.path.join(here, "paper.tex"))
     cur = strip(open(cur_path).read())
     if "--strip" in sys.argv:
+        cur = strip_referee(cur)
         open(cur_path, "w").write(cur)
         print("markup removed")
         sys.exit(0)

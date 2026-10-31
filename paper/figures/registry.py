@@ -356,6 +356,23 @@ SOURCES = {
                                                 "--workers", "6"),
                                  where="cluster", status="ready",
                                  figures=["fig08_tp_validation", "fig09_tp_spectrum"]),
+    # ---- fig08's plotted data: the same interior sample at three azimuthal resolutions ----
+    # The meridional ladder of `tp_band_sweep` repeated at Nphi = 8, 12, 16, against an oracle
+    # (72x72x24) that out-resolves all three in phi -- `tp_band_sweep`'s 72x72x12 oracle floors
+    # at ~2e-8 in phi.  All three fig08 panels plot this source (since 2026-10-30).  A SEPARATE
+    # source rather than a replacement: fig09 indexes `tp_band_sweep`'s rungs by position, and
+    # fig08's meta statistics, edge set, axisymmetry check and anchor still come from there.
+    "tp_band_sweep_nphi":   dict(reports="3D_parametric/qc/tp_band_sweep_nphi.json",
+                                 producer=_prod("run_tp_random_sweep", "--n", "100",
+                                                "--ladder",
+                                                "28,24,8;36,32,8;44,40,8;52,48,8;64,56,8;"
+                                                "28,24,12;36,32,12;44,40,12;52,48,12;64,56,12;"
+                                                "28,24,16;36,32,16;44,40,16;52,48,16;64,56,16",
+                                                "--tp-res", "72", "72", "24", "--selfconv", "0",
+                                                "--no-edges", "--no-axisym", "--no-anchor",
+                                                "--workers", "48"),
+                                 where="cluster", status="ready",
+                                 figures=["fig08_tp_validation"]),
 }
 
 # --- figure -> the source keys it distills + its data-script filename -------------------------
@@ -414,8 +431,10 @@ FIGURES = {
                                            "meta"]),
     # one shared source, two figures: the resolution ladder and the azimuthal spectrum share
     # no abscissa, so each distills its own block of tp_band_sweep (see SOURCES above)
-    "fig08_tp_validation":      dict(sources=["tp_band_sweep"],
-                                     keys=["ladder", "meta"]),
+    # ``nphi_lines`` (what all three panels plot) comes from tp_band_sweep_nphi; ``ladder``
+    # and ``meta`` (statistics, anchor) from tp_band_sweep
+    "fig08_tp_validation":      dict(sources=["tp_band_sweep", "tp_band_sweep_nphi"],
+                                     keys=["ladder", "nphi_lines", "meta"]),
     "fig09_tp_spectrum":        dict(sources=["tp_band_sweep"],
                                      keys=["spectrum", "meta"]),
     # DISTILLATION of an EXTERNAL run tree, not a recompute: the constraint norms are measured

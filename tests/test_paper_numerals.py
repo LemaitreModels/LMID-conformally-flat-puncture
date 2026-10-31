@@ -291,6 +291,55 @@ def test_fig08_anchor_numerals_are_in_the_paper():
             "value, superseded by the sweep re-run")
 
 
+def test_fig08_appendix_claims_hold_in_the_figdata():
+    """App. A 1 and the fig08 caption describe the figure in words; each claim is checked here.
+
+    Frederik (2026-10-30) asked for the figure to carry the numbers and the text to
+    describe them, so there is no numeral to match -- but every qualitative statement
+    is still a claim about the committed figdata (``nphi_lines``, which is what fig08
+    plots), and a re-distill that breaks one must fail here rather than leave the prose
+    wrong.
+    """
+    d = _figdata("fig08_tp_validation.json")
+    lines = {l["nphi"]: l for l in d["nphi_lines"]["lines"]}
+    N = {k: {tuple(r["grid"][:2]): r for r in l["rungs"]} for k, l in lines.items()}
+    assert sorted(N) == [8, 12, 16]
+    grids = list(N[8])
+    prod = (44, 40)
+    i_prod = grids.index(prod)
+    beyond = grids[i_prod:]
+    med = lambda k, g, q="psi": N[k][g][q]["median"]
+    decreasing = lambda v: all(v[i + 1] < v[i] for i in range(len(v) - 1))
+    # "decreases to the production grid and then plateaus at Nphi = 8"
+    assert decreasing([med(8, g) for g in grids[:i_prod + 1]])
+    plateau = [med(8, g) for g in beyond]
+    assert max(plateau) / min(plateau) < 1.01, plateau
+    # "most individual sequences non-monotone somewhere" (the Nphi = 8 plateau)
+    assert lines[8]["n_nonmonotone_psi"] > d["nphi_lines"]["meta"]["n_interior"] / 2
+    # "at Nphi = 12 and 16 ... no plateau"; "at Nphi = 16 keeps decreasing"
+    assert decreasing([med(16, g) for g in grids])
+    assert decreasing([med(12, g) for g in grids])
+    # "... at the production grid already about two orders of magnitude below the plateau"
+    ratio = med(8, prod) / med(16, prod)
+    assert 30 < ratio < 300, ratio
+    # "at Nphi = 12 the largest differences stop decreasing beyond the production grid"
+    x12 = [N[12][g]["psi"]["max"] for g in beyond]
+    assert max(x12) / min(x12) < 1.01, x12
+    # "the residual stays near roundoff at every resolution and every Nphi, orders of
+    # magnitude below the gate"; caption: "every configuration passes ... at every resolution"
+    assert all(r["n_uncertified"] == 0 for rows in N.values() for r in rows.values())
+    rmax = max(r["residual"]["max"] for rows in N.values() for r in rows.values())
+    assert rmax < d["meta"]["cert_tol"] / 100, rmax
+    # ADM mass "behaves in the same way": at Nphi = 8 it improves only slowly beyond the
+    # production grid (less than one decade over the last two rungs, where Nphi = 12 and
+    # 16 gain more than two), while at Nphi = 12 and 16 it decreases along the whole ladder
+    m8 = [med(8, g, "M_ADM") for g in beyond]
+    assert decreasing(m8) and m8[0] / m8[-1] < 10, m8
+    for k in (12, 16):
+        mk = [med(k, g, "M_ADM") for g in grids]
+        assert decreasing(mk) and mk[i_prod] / mk[-1] > 100, (k, mk)
+
+
 def test_fig08_anchor_numerals_are_also_right_in_DATA_md():
     """``docs/`` quotes them too, and drifted for a day without anyone noticing.
 
