@@ -105,6 +105,15 @@ caffeinate -i pytest tests/test_solver_3d.py -v
 make figures                                   # build any MISSING figure data, then plot
 ```
 
+**The documentation** is Sphinx (furo + MyST) in `docs/`, published on Read the Docs
+(`.readthedocs.yaml`): `make docs` builds it into `docs/_site/` in ~10 s (needs the `[docs]`
+extra). The existing `docs/*.md` pages are rendered as they are, and the API reference is
+autosummary over `solver`, `parametric`, `applications` and `validation` (not `pipeline/`).
+Docstrings are reST: Sphinx roles (`:func:` …) become links, and a docstring that is not valid
+reST shows up as a build warning. `docs/_static/lemaitre-tokens.css` and `docs/_static/fonts/`
+are copies of LemaitreArtwork's `style/`; re-copy them, never edit them here. The paper links to
+these pages for implementation details, so do not rename a page without updating those links.
+
 Installing needs the two namespace parents in order, and `--no-deps`: both parents
 are on PyPI, so a bare `pip install -e .` here silently resolves them from there
 instead of from your checkout — see the `README.md` install block.

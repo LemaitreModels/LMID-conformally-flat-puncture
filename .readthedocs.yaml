@@ -1,0 +1,20 @@
+# Read the Docs build for the LMID-conformally-flat-puncture documentation.
+# The two namespace parents (lemaitre, LM-initial-data) come from PyPI here, which is
+# right for a docs build; for development install from the family checkout (README).
+version: 2
+
+build:
+  os: ubuntu-24.04
+  tools:
+    python: "3.12"
+
+python:
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs
+
+sphinx:
+  configuration: docs/conf.py
+  fail_on_warning: false

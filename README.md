@@ -69,6 +69,7 @@ tests/            acceptance suite (float64, CPU)
 paper/            paper.tex + figures/ (recompute + plot scripts)
 docs/             DATA.md (data regeneration + oracle) · STRUCTURE.md (package map)
                   · MODELS.md (which surrogate is shipped, and what it stores)
+                  · conf.py + index.md: the Sphinx site (`make docs`, Read the Docs)
 ```
 
 Only `lemaitre/initial_data/conformally_flat_puncture/` is shipped by this distribution —

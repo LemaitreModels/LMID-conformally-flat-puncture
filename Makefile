@@ -16,7 +16,7 @@ NOSLEEP := $(shell command -v caffeinate >/dev/null 2>&1 && echo caffeinate -i)
 NPROC ?= 4
 XDIST := -n $(NPROC) --dist loadfile
 
-.PHONY: install test test-serial test-quick dev durations fast figdata figures tabdata tables models oracle clean
+.PHONY: install test test-serial test-quick dev durations fast figdata figures tabdata tables models oracle docs clean
 
 install:
 	pip install -e ".[dev]" --config-settings editable_mode=compat
@@ -111,3 +111,7 @@ oracle:
 clean:
 	rm -rf build dist *.egg-info .pytest_cache
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +
+
+# The documentation: HTML into docs/_site/ (gitignored). Needs the [docs] extra.
+docs:
+	$(PY) -m sphinx -b html -j auto docs docs/_site

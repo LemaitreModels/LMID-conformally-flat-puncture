@@ -62,6 +62,9 @@ Family = "https://github.com/LemaitreModels/Lemaitre"
 # pytest-xdist and pytest-testmon drive the Makefile's tiers (`make test` runs in
 # parallel, `make dev` re-runs only what an edit touched); see tests/pytest_tiers.py.
 dev = ["pytest", "sympy", "pytest-xdist", "pytest-testmon"]
+# The Sphinx documentation (docs/, built by `make docs` and on Read the Docs).
+# Keep in step with the workspace environment.yml (sphinx, furo, myst-parser).
+docs = ["sphinx", "furo", "myst-parser"]
 
 # src/ layout.  This distribution owns ONLY its own leaf package: the `lemaitre`
 # root belongs to the `lemaitre` core and `lemaitre.initial_data` to the
