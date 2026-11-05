@@ -7,6 +7,10 @@ solution map θ ↦ u(θ) built into a reduced-order model with cheap tangents
 dU/dθ. It is the `conformally_flat_puncture` model of the Lemaître package
 family, `lemaitre.initial_data.conformally_flat_puncture`.
 
+```{raw} html
+<div class="lm-spin"></div>
+```
+
 These pages hold the implementation: the grids, the solver settings, the
 certification gate, the shipped models, the export format and how every
 figure in the paper is regenerated. The paper explains the method; it links

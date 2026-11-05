@@ -1,0 +1,14 @@
+/* Controls for spin.js, drawn with the Lemaitre style tokens. The sliders sit in a grid, two
+   per row, so they line up vertically: name (right-aligned), slider, value. One per row on a
+   narrow screen. */
+.lm-spin { width: 100%; margin: 1.5rem 0 3.5rem; }
+.lm-spin canvas { display: block; width: 100%; }
+.lm-spin-controls { display: grid; grid-template-columns: repeat(2, max-content 9rem max-content);
+  justify-content: center; align-items: center; gap: 0.75rem 0.6rem;
+  font-family: var(--lm-font-text, system-ui, sans-serif); font-size: 1rem; color: var(--lm-ink, #1f1e1c);
+  margin-top: 0.75rem; }
+.lm-spin-controls label { display: contents; }
+.lm-spin-controls label span { justify-self: end; }
+.lm-spin-controls input[type=range] { width: 9rem; accent-color: var(--lm-accent, #2c5a85); }
+.lm-spin-controls output { font-variant-numeric: tabular-nums; white-space: nowrap; padding-right: 1.5rem; }
+@media (max-width: 40rem) { .lm-spin-controls { grid-template-columns: max-content 9rem max-content; } }
