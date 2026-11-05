@@ -53,4 +53,5 @@ logs/
 
 # Sphinx output (`make docs`) and the API pages autosummary generates on every build.
 docs/_site/
+docs/_build/
 docs/_autosummary/
