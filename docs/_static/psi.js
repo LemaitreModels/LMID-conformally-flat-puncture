@@ -186,10 +186,10 @@
       // Label, top right above the disc's rim, in the accent blue: "LM's psi".
       const x0 = W * 0.93, y0 = cy - 0.12 * W;
       ctx.fillStyle = token(root, "--lm-accent", "#2c5a85"); ctx.textBaseline = "alphabetic"; ctx.textAlign = "right";
-      ctx.font = "italic 1.2rem " + token(root, "--lm-font-math", "'Latin Modern Math', serif");
+      ctx.font = "italic " + 1.15 * parseFloat(getComputedStyle(root).fontSize) + "px " + token(root, "--lm-font-math", "'Latin Modern Math', serif");
       ctx.fillText("\u03C8", x0, y0);
       const wpsi = ctx.measureText("\u03C8").width;
-      ctx.font = "italic 1.05rem " + token(root, "--lm-font-text", "system-ui, sans-serif");
+      ctx.font = "italic " + getComputedStyle(root).fontSize + " " + token(root, "--lm-font-text", "system-ui, sans-serif");
       ctx.fillText("LM\u2019s ", x0 - wpsi, y0);
 
     }
