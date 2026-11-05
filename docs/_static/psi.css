@@ -1,0 +1,5 @@
+/* The conformal-factor panel psi.js adds inside figure 10's .lm-spin. It is pulled up under the
+   sheet (a percentage margin is a fraction of the width, as the canvas heights are), and the
+   sheet, whose canvas is transparent, is drawn over it. */
+.lm-spin canvas:first-child { position: relative; z-index: 1; }
+.lm-spin .lm-psi-canvas { display: block; width: 100%; margin-top: -22%; position: relative; z-index: 0; }

@@ -51,8 +51,8 @@ intersphinx_mapping = {
 html_theme = "furo"
 html_title = "LMID-conformally-flat-puncture"
 html_static_path = ["_static"]
-html_css_files = ["lemaitre-tokens.css", "lemaitre.css", "spin.css"]
-html_js_files = ["spin.js"]
+html_css_files = ["lemaitre-tokens.css", "lemaitre.css", "spin.css", "psi.css"]
+html_js_files = ["psi-data.js", "psi.js", "spin.js"]
 html_theme_options = {
     "source_repository": "https://github.com/LemaitreModels/LMID-conformally-flat-puncture",
     "source_branch": "main",

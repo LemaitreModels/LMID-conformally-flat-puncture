@@ -1,6 +1,7 @@
 /* Interactive spinning binary black hole on one time slice: the see-through sheet of figure 08,
    with each hole's spin shown as frame dragging, a twist of the grid lines about that hole.
-   Sliders: mass ratio, separation and the two aligned spins. Mounts into every element with
+   Sliders: mass ratio, separation and the two aligned spins. With psi.js (figure 11) loaded first,
+   the parametric model's conformal factor is drawn below the sheet, on the same sliders. Mounts into every element with
    class "lm-spin". No dependencies. Colours come from the
    Lemaitre style tokens (--lm-ink, --lm-rule) when present. */
 (function () {
@@ -20,10 +21,10 @@
     controls.className = "lm-spin-controls";
     root.append(canvas, controls);
 
-    const P = { q: 2.0, d: 6.0, chiA: 0.6, chiB: -0.4 };
+    const P = { q: 2.0, d: 8.0, chiA: 0.6, chiB: -0.4 };
     const sliders = [
-      ["q", "mass ratio", 1, 4, 0.05, (v) => "q = " + v.toFixed(2)],
-      ["d", "separation", 3, 10, 0.1, (v) => "d = " + v.toFixed(1) + " M"],
+      ["q", "mass ratio", 1, 3, 0.05, (v) => "q = " + v.toFixed(2)],
+      ["d", "separation", 6, 20, 0.1, (v) => "d = " + v.toFixed(1) + " M"],
       ["chiA", "spin A", -0.9, 0.9, 0.05, (v) => "\u03C7A = " + (v >= 0 ? "+" : "\u2212") + Math.abs(v).toFixed(2)],
       ["chiB", "spin B", -0.9, 0.9, 0.05, (v) => "\u03C7B = " + (v >= 0 ? "+" : "\u2212") + Math.abs(v).toFixed(2)],
     ];
@@ -35,10 +36,14 @@
       Object.assign(input, { type: "range", min: lo, max: hi, step: step, value: P[key] });
       const out = document.createElement("output");
       out.textContent = fmt(P[key]);
-      input.addEventListener("input", () => { P[key] = +input.value; out.textContent = fmt(P[key]); });
+      input.addEventListener("input", () => { P[key] = +input.value; out.textContent = fmt(P[key]); if (redrawPsi) redrawPsi(); });
       lab.append(name, input, out);
       controls.append(lab);
     }
+    // Figure 11, when loaded: the model's conformal factor on the orbital plane, drawn below the
+    // sheet and driven by the same sliders. The ranges above are inside its model's box.
+    let redrawPsi = null;
+    if (window.LMPsi) redrawPsi = window.LMPsi.attach(root, P, controls);
 
 
     const ctx = canvas.getContext("2d");
@@ -144,6 +149,11 @@
         ctx.globalAlpha = alphaOf(k) * zAlpha(j); ctx.stroke(bands[k * NZ + j]);
       }
       ctx.globalAlpha = 1;
+
+      // Label, top right above the sheet's rim.
+      ctx.font = "italic 1.05rem " + token(root, "--lm-font-text", "system-ui, sans-serif");
+      ctx.fillStyle = ink; ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
+      ctx.fillText("AI\u2019s impression", W * 0.93, H * 0.46 - 0.12 * W);
 
       // Horizons: black balls of the isolated isotropic radius m_i/2, sitting in their funnels,
       // drawn far one first. The rim keeps them visible in dark mode.
