@@ -25,7 +25,7 @@ docs/             this file · MODELS.md (shipped model) · DATA.md (data regene
 
 ## Namespace
 
-`lemaitre` is a shared namespace across the LemaitreModels family, and it is
+`lemaitre` is a shared namespace across the LemaîtreModels family, and it is
 **two levels deep** here. Both `lemaitre/__init__.py` and
 `lemaitre/initial_data/__init__.py` use `pkgutil.extend_path` (so sibling repos
 merge under one `lemaitre`) and a PEP 562 `__getattr__` for lazy submodule
