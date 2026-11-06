@@ -230,26 +230,46 @@ def _unchanged_outside(cur, s, e, sub, purple):
     neighbouring new line, and so flag a sentence nobody changed; and a sentence changed only
     inside a referee span is not a red change.  Both are settled by looking the sentence up:
     its text outside purple spans, whitespace-insensitive, with each purple span as a wildcard.
+
+    The lookup finds the non-purple pieces in order with ``str.find``, each starting where the
+    previous one ended: the leftmost occurrence of each piece leaves the most room for the
+    rest, so this answers the same question as one regex with a lazy wildcard per purple span,
+    in linear time.  That regex backtracked without end when a "sentence" held several purple
+    spans and did not occur in the submission (two purple sentences end in ``.}``, which is no
+    sentence end, so they and the next red sentence form one span).
     """
-    parts, k = [], s
+    pieces, k = [], s
     while k < e:
         p = purple[k] if purple else False
         j = k
         while j < e and (purple[j] if purple else False) == p:
             j += 1
-        parts.append((p, cur[k:j]))
+        if not p:
+            piece = " ".join(cur[k:j].split())
+            if piece:
+                pieces.append(piece)
         k = j
-    rx = []
-    for p, txt in parts:
-        if p:
-            rx.append(r"[\s\S]*?")
-        else:
-            words = txt.split()
-            if words:
-                rx.append(r"\s+".join(re.escape(w) for w in words))
-            rx.append(r"\s*")
-    pat = "".join(rx).strip()
-    return bool(pat) and re.search(pat, sub) is not None
+    if not pieces:
+        return False
+    hay = _normalized(sub)
+    at = 0
+    for piece in pieces:
+        hit = hay.find(piece, at)
+        if hit < 0:
+            return False
+        at = hit + len(piece)
+    return True
+
+
+_NORMALIZED = {}
+
+
+def _normalized(t):
+    """``t`` with every whitespace run collapsed to one space, computed once per text."""
+    key = id(t)
+    if _NORMALIZED.get(key, (None,))[0] is not t:
+        _NORMALIZED[key] = (t, " ".join(t.split()))
+    return _NORMALIZED[key][1]
 
 
 def mark(sub, cur):

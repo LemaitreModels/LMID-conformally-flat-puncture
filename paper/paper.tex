@@ -79,13 +79,14 @@
 \date{\today}
 
 \begin{abstract}
-\newtext{Initial data for simulations of binary-black-hole evolution require the repeated solution of a nonlinear elliptic boundary-value problem throughout the physical parameter space.}
-We present a para\-metric, differentiable initial-data model that combines sparse-grid spectral interpolation with Newton refinement over a family of binary configurations.
+\newtext{Gravitational-wave astronomy relies on waveform models calibrated against numerical-relativity simulations of binary black holes, which must densely cover the parameter space.}
+\refereetext{As a first step toward modeling the full binary-black-hole spacetime as a differentiable function of its physical parameters, we present a para\-metric, differentiable solver for its initial data that combines sparse-grid spectral interpolation with Newton refinement over a family of binary configurations.}
 Interpolation is used only to provide warm starts for the underlying elliptic solver, rather than to replace it.
-\newtext{A few Newton iterations refines each interpolated solution to a discrete, row-equilibrated constraint residual $\|R\|^{(u)}_\infty\le10^{-11}$, so that every returned initial-data set satisfies the discretized constraint to that tolerance.}
+\newtext{A few Newton iterations refine each interpolated solution to a discrete, row-equilibrated constraint residual $\|R\|^{(u)}_\infty\le10^{-11}$, so that every returned initial-data set satisfies the discretized constraint to that tolerance.}
+\newtext{This certification is affordable because we introduce a new separable, parameter-independent preconditioner for the elliptic solver, inverted by fast diagonalization, with which even a solve from a trivial initial guess takes about $45$\,ms on a single CPU core.}
 \newtext{Our JAX implementation of the parametric map provides analytic derivatives with respect to the physical parameters, enabling gradient-based parameter targeting, optimization, and sensitivity analysis.}
 We demonstrate the method for quasi-circular binary-black-hole initial data using conformally flat Bowen--York punctures by constructing four-dimensional aligned-spin and eight-dimensional general-spin models.
-The resulting initial data are validated against TwoPunctures, and the method is applied to certified targeting of the physical Arnowitt--Deser--Misner mass and angular momentum and to effective-potential eccentricity reduction using a dedicated separation--tangential-momentum model.
+\newtext{The resulting initial data are validated against TwoPunctures, and the method is applied to targeting of the physical ADM mass and angular momentum and to effective-potential eccentricity reduction.}
 \end{abstract}
 
 \maketitle
@@ -94,23 +95,28 @@ The resulting initial data are validated against TwoPunctures, and the method is
 \section{Introduction}
 \label{sec:intro}
 % ===========================================================================
-Every numerical-relativity simulation of a binary black hole begins by solving the Einstein constraint equations on the initial time slice.
+\newtext{Gravitational-wave astronomy relies on waveform models calibrated against numerical-relativity (NR) simulations of binary black holes~\cite{Pompili2023,Pratten2020,Varma2019}.}
+\newtext{These simulations must cover the parameter space of mass ratios and spins densely enough to ensure accurate interpolation~\cite{Scheel2025}.}
+\refereetext{Rather than sampling this space one simulation at a time, we ultimately aim to model the full binary-black-hole spacetime as a differentiable function of its physical parameters.}
+\refereetext{The initial data are the first component of such a parametric model, and the subject of this paper.}
+\newtext{Every NR simulation begins by solving the Einstein constraint equations on the initial time slice.}
 For conformally flat, maximally sliced puncture data, this is a nonlinear elliptic boundary-value problem: the Hamiltonian constraint for the conformal factor in Lichnerowicz--York form~\cite{York1979,BowenYork1980,BrandtBruegmann1997,Cook2000}.
 This problem must be solved once for each configuration.
 
 
-Modern applications, however, rarely require a single solution.
-Parameter surveys, waveform catalogs, eccentricity reduction, and mass and spin targeting all require the same elliptic problem to be solved repeatedly across the binary-black-hole parameter space.
-\refereetext{A single constraint solve is inexpensive compared with the evolution it initializes, but these workflows require the solution, and its dependence on the physical parameters, across a family of closely related configurations~\cite{Mendes2025}.}
+\refereetext{Parametric initial data also serve current practice, in which a single solution rarely suffices.}
+\refereetext{Parameter surveys, waveform catalogs, eccentricity reduction, and mass and spin targeting all solve the same elliptic problem repeatedly across the binary-black-hole parameter space.}
+\refereetext{A single solve is inexpensive compared with the evolution it initializes, so the cost of these repetitions is not the issue.}
+\refereetext{What these workflows need is the solution, and its dependence on the physical parameters, across a family of closely related configurations~\cite{Mendes2025}, that is, the parameter-to-solution map itself.}
 
 
-Reduced-order modeling is a mature response to exactly this kind of repeated computation.
-In gravitational-wave physics, however, it has been developed almost exclusively for \emph{waveforms}: reduced-basis template banks and surrogate models reproduce waveforms across para\-meter space at a tiny fraction of the cost~\cite{FieldGalley2011,Field2014,Blackman2015,Varma2019}.
-The elliptic initial-data solve that precedes every numerical-relativity evolution has largely remained outside this development.
+\refereetext{Reduced-order modeling constructs exactly such maps.}
+In gravitational-wave physics, however, it has been developed almost exclusively for \emph{waveforms}: reduced-basis template banks and surrogate models reproduce waveforms across para\-meter space at a fraction of the cost~\cite{FieldGalley2011,Field2014,Blackman2015,Varma2019}.
+\newtext{The initial-data solve that precedes every NR evolution has largely remained outside this development.}
 Reduced-basis emulation does exist for the neutron-star sector, for example through Tolman--Oppenheimer--Volkoff emulators over equation-of-state parameters~\cite{Reed2024}, but no comparable parametric solver exists for binary-black-hole initial data.
 
 
-From the perspective of numerical analysis, this gap is somewhat surprising.
+From the perspective of numerical analysis, this gap is surprising.
 Parametric collocation, sparse interpolation, and reduced-basis methods for parameter-dependent elliptic partial differential equations are well-established~\cite{BabuskaNobileTempone2007,XiuHesthaven2005,NobileTemponeWebster2008,Haasdonk2017,HesthavenRozzaStamm2016}.
 When the parameter-to-solution map is analytic, the interpolation error decays exponentially with the number of samples at a rate determined by the nearest singularity in the complex para\-meter plane through the Bernstein-ellipse estimate~\cite{Trefethen2019}.
 These results suggest that binary-black-hole puncture initial data should also admit efficient parametric representations over suitable regions of parameter space.
@@ -122,20 +128,24 @@ Tommasini \emph{et al.}~\cite{Tommasini2026} use Gaussian-process regression tra
 \newtext{Zhou \emph{et al.}~\cite{Zhou2026} and Assump\c{c}\~ao \emph{et al.}~\cite{Assumpcao2026} solve the puncture Hamiltonian constraint for individual binary configurations using physics-informed neural networks, with and without an approximate analytic guiding solution embedded in the ansatz, respectively.}
 \newtext{The latter also train a network over the common axial spin of axisymmetric, equal-mass binaries and use its prediction to seed a hyperbolic-relaxation elliptic solver, shortening the relaxation by a factor of about $4.6$.}
 Analytic perturbative constructions~\cite{Ogurol2025} and neural representations of spacetime metrics~\cite{Cranganore2025} provide additional complementary approaches.
-None of these methods, however, constructs a parametric solver that can certify the constraint satisfaction, and provide analytic derivatives of the resulting initial data with respect to the physical parameters.
+\newtext{None of these methods, however, constructs a certified, differentiable parameter-to-solution map, that is, a parametric solver that certifies the constraint satisfaction of every returned datum and provides analytic derivatives of the initial data with respect to the physical parameters.}
 
 
-This paper addresses this gap by introducing a parametric solver for binary-black-hole puncture initial data that is analytically differentiable with respect to the physical parameters and whose every returned datum satisfies the \proposedtext{discretized} constraints to a checked tolerance.
-Rather than replacing the elliptic solve with an approximation, the method constructs a sparse interpolant that provides a high-quality initial guess for the nonlinear solve, after which a small number of Newton iterations recover a fully converged solution \proposedtext{of the discretized} Einstein constraint equations.
-We demonstrate the approach for both a four-dimensional aligned-spin model and an eight-dimensional general-spin quasi-circular model, and apply it to two representative tasks: targeting physical parameters and reducing orbital eccentricity.
+\newtext{This paper addresses this gap by introducing a parametric solver for binary-black-hole puncture initial data that is analytically differentiable with respect to the physical parameters and whose every returned datum satisfies the \proposedtext{discretized} constraints to a checked tolerance.}
+\newtext{To our knowledge, this combination has not previously been demonstrated for binary-black-hole initial data.}
+\newtext{Rather than replacing the elliptic solve with an approximation, the method constructs a sparse interpolant that provides a high-quality initial guess for the nonlinear solve, after which a small number of Newton iterations recover a fully converged solution \proposedtext{of the discretized} Einstein constraint equations.}
+\newtext{A datum is returned only once its discrete, row-equilibrated constraint residual (Sec.~\ref{sec:solve:newton}) satisfies $\|R\|^{(u)}_\infty \le 10^{-11}$.}
+\newtext{\proposedtext{This gate measures how completely the discretized equations are solved. The accuracy of the returned field is set by the spectral resolution, and we measure it against TwoPunctures (App.~\ref{sec:validation:qc}) and, through its constraint violation, on an evolution grid (App.~\ref{sec:validation:constraints}).}}
+\newtext{To make this certification affordable, we also introduce a new preconditioner for the elliptic solver.}
+\newtext{We show that, after a row scaling, each azimuthal-mode block of the linear operator becomes a Kronecker sum of one-dimensional operators that depend only on the grid, not on the binary parameters (Sec.~\ref{sec:solve:newton}).}
+\newtext{The preconditioner is therefore built once for all configurations and inverted by fast diagonalization, rather than refactorized for each one.}
+\newtext{With it, a certified solve from a trivial initial guess takes about $45$\,ms on a single CPU core, more than $50$ times less than with dense factorizations of the same blocks.}
 
 
-The proposed solver is \emph{parametric} and \emph{analytically differentiable} with respect to the physical parameters, a combination that, to our knowledge, has not previously been demonstrated for binary-black-hole initial data.
-\newtext{The parametric map is implemented in JAX~\cite{Jax2018}, so its derivatives with respect to the physical parameters are obtained by algorithmic differentiation rather than by finite differencing; along the gradient-enhanced axes they coincide at the nodes with the certified sensitivities of the elliptic solve (Sec.~\ref{sec:param:diff}).}
-Neither property is bought at the cost of accuracy.
-\newtext{Every queried parameter is refined by Newton iterations of the elliptic solver until the discrete, row-equilibrated constraint residual (Sec.~\ref{sec:solve:newton}) satisfies $\|R\|^{(u)}_\infty \le 10^{-11}$\proposedtext{. This gate measures how completely the discretized equations are solved. The accuracy of the returned field is set by the spectral resolution, and we measure it against TwoPunctures (App.~\ref{sec:validation:qc}) and, through its constraint violation, on an evolution grid (App.~\ref{sec:validation:constraints}).}}
-\newtext{The Newton iteration continues one decade past this gate (Sec.~\ref{sec:solve:newton}). As a result, every certified datum in Figs.~\ref{fig:polish}, \ref{fig:targeting}, \ref{fig:ecc}, and~\ref{fig:tpval} has $\|R\|^{(u)}_\infty<10^{-12}$.}
-\refereetext{The sparse interpolant therefore supplies a parameter-dependent initial guess and its derivatives, but does not replace the underlying elliptic solver.}
+\newtext{The parametric map is implemented in JAX~\cite{Jax2018}, so its derivatives with respect to the physical parameters are obtained by algorithmic differentiation rather than by finite differencing.}
+\newtext{Along the gradient-enhanced axes they coincide at the nodes with the certified sensitivities of the elliptic solve (Sec.~\ref{sec:param:diff}).}
+\newtext{We demonstrate the approach for both a four-dimensional aligned-spin model and an eight-dimensional general-spin quasi-circular model, and apply it to two representative tasks: targeting physical parameters and effective-potential eccentricity reduction.}
+\refereetext{Together with its parameter derivatives, this solver supplies the initial slice of the parametric binary-black-hole model described above.}
 
 
 The remainder of this paper is organized as follows.
@@ -143,9 +153,8 @@ Section~\ref{sec:problem} reviews the puncture initial-data formulation and the 
 Section~\ref{sec:solve} describes the spectral elliptic solver that produces a single constraint-satisfying datum.
 Section~\ref{sec:param} builds the parametric solver over it, combining sparse interpolation, Newton refinement, and a differentiable JAX implementation.
 Section~\ref{sec:model} characterizes the aligned-spin and general-spin quasi-circular models, including their convergence and the analyticity limits of the para\-meter map.
-Section~\ref{sec:applications} applies the method to certified para\-meter targeting and eccentricity reduction.
-Finally, Section~\ref{sec:conclusions} discusses the limitations, implications, and conclusions of this work.
-Validation of the initial data against TwoPunctures is collected in Appendix~\ref{sec:validation}.
+\newtext{Section~\ref{sec:applications} applies the method to certified para\-meter targeting and effective-potential eccentricity reduction.}
+\newtext{Section~\ref{sec:conclusions} discusses the limitations, implications, and conclusions of this work, and Appendix~\ref{sec:validation} validates the initial data against TwoPunctures and on an evolution grid.}
 
 
 % ===========================================================================
@@ -501,9 +510,9 @@ a function of $B$ alone plus a function of $A$ alone. \newtext{Together with the
 \newtext{$F=\mathrm{diag}(A_i-1)$ and $W=\mathrm{diag}[(1-B_j^2)^{k_m/2}]$.}
 \newtext{Both diagonal factors are invertible at every node, so left multiplication by}
 \newtext{$F^{-1}\otimes W^{-1}$ gives a true Kronecker sum of one-dimensional operators.}
-Fast diagonalization then
-replaces a full two-dimensional factorization with two one-dimensional
-eigendecompositions per mode. \newtext{Appendix~\ref{sec:separable} gives the algebra and}
+\newtext{Fast diagonalization~\cite{Lynch1964} then}
+\newtext{replaces a full two-dimensional factorization with two one-dimensional}
+\newtext{eigendecompositions per mode. Appendix~\ref{sec:separable} gives the algebra and}
 \newtext{radial factoring.}
 
 Although $M_0$ contains the coordinate parameter $b$, this dependence enters only
@@ -513,6 +522,9 @@ once and reused for all physical configurations and Newton iterates. Per mode,
 storage falls from $O\big((N_AN_B)^2\big)$ to $O(N_A^2+N_B^2)$. Their parameter
 independence also means that differentiation in Sec.~\ref{sec:param:diff} need
 not pass through the eigendecompositions.
+\newtext{On the production grid ($44\times40\times8$), a certified solve from $u=0$ takes a median of $44$\,ms over $50$ random points of the four-dimensional box and $47$\,ms over $50$ points of the eight-dimensional box, on one core of an AMD EPYC 7643 processor.}
+\newtext{With dense LU factorizations of the per-mode blocks in place of fast diagonalization, rebuilt for each configuration and refactorized at every Newton step, the same solves take a median of $2.6$\,s in both boxes.}
+\newtext{The separable preconditioner thus reduces the cost of a certified solve by a factor of $56$ to $58$ (medians over the two boxes), while both routes certify every point and their solutions agree to better than $10^{-9}$ in relative terms.}
 
 For $N_\phi=1$, we instead retain the nonlinear diagonal in the block
 preconditioner. There is then no azimuthal coupling, so the block is the full
@@ -542,7 +554,8 @@ The nonlinear iteration drives the residual to an internal target one decade
 below the requested tolerance, and terminates when that target is reached, when
 the best residual fails to halve on two consecutive iterations, or when the
 budget of Newton steps is exhausted, returning the lowest-residual iterate
-encountered. Termination alone does not constitute
+encountered. \newtext{Every certified datum in Figs.~\ref{fig:polish}, \ref{fig:targeting}, \ref{fig:ecc}, and~\ref{fig:tpval} has $\|R\|^{(u)}_\infty<10^{-12}$.}
+Termination alone does not constitute
 certification: the interface of Sec.~\ref{sec:polish} returns a datum only if
 Eq.~\eqref{eq:equil_residual} satisfies the prescribed tolerance; otherwise the
 attempt remains uncertified. This equilibrated residual is an internal diagnostic
@@ -724,9 +737,9 @@ interpolation does. Differentiating an interpolant is not the same operation as
 interpolating a derivative: this error is the derivative of the field interpolation
 error, and is not bounded by it.
 
-Certification and differentiability therefore coexist rather than compete: every
-returned datum satisfies the \proposedtext{discretized} constraints to tolerance, and an analytic parameter gradient is available at once, anchored at the nodes
-to the certified sensitivity of Eq.~\eqref{eq:tangent}. This is what separates these
+\newtext{Certification and differentiability therefore coexist rather than compete: every}
+\newtext{returned datum satisfies the \proposedtext{discretized} constraints to tolerance, and an analytic parameter gradient is available at once, anchored at the nodes}
+\newtext{to the certified sensitivity of Eq.~\eqref{eq:tangent}.} This is what separates these
 sensitivities from those of a bare interpolant or a neural-network surrogate, and
 what makes the gradient-based applications of Sec.~\ref{sec:applications} possible.
 
@@ -1315,11 +1328,11 @@ Figure~\ref{fig:pod} shows the resulting memory--accuracy tradeoff. \newtext{At 
 
 \subsection{External validation}
 \label{sec:model:validation}
-The underlying initial data reproduce the established
-TwoPunctures~\cite{AnsorgBruegmannTichy2004} solver to spectral accuracy on the
-most demanding, genuinely non-axisymmetric configurations, and they are
-evolution-ready: on an evolution grid their finite-difference constraint violation
-is indistinguishable from \proposedtext{that of TwoPunctures data transferred through the same spectral grid}. Appendix~\ref{sec:validation} gives the full
+\newtext{The underlying initial data reproduce the established}
+\newtext{TwoPunctures~\cite{AnsorgBruegmannTichy2004} solver to spectral accuracy on the}
+\newtext{most demanding, genuinely non-axisymmetric configurations, and they are}
+\newtext{evolution-ready: on an evolution grid their finite-difference constraint violation}
+\newtext{is indistinguishable from \proposedtext{that of TwoPunctures data transferred through the same spectral grid}.} Appendix~\ref{sec:validation} gives the full
 comparison.
 
 % ===========================================================================
@@ -1455,9 +1468,9 @@ solves, where the black box instead pays a full certified elliptic solve at ever
 \label{sec:conclusions}
 % ===========================================================================
 We have introduced a differentiable parametric solver for binary-black-hole puncture initial data
-that combines sparse interpolation with Newton refinement. The interpolation
-supplies an inexpensive parameter-dependent initial guess, while the subsequent
-elliptic solve certifies every returned datum to a prescribed \proposedtext{discrete} constraint tolerance.
+that combines sparse interpolation with Newton refinement. \newtext{The interpolation}
+\newtext{supplies an inexpensive parameter-dependent initial guess, while the subsequent}
+\newtext{elliptic solve certifies every returned datum to a prescribed \proposedtext{discrete} constraint tolerance.}
 \newtext{Because the parametric map is implemented in JAX, it is also analytically}
 \newtext{differentiable with respect to the physical parameters.} The
 four-dimensional aligned-spin and eight-dimensional general-spin models demonstrate
