@@ -1,11 +1,7 @@
 # Conformally flat puncture ID
 
-A certified, differentiable, parametric model of conformally flat
-binary-black-hole puncture initial data: Bowen–York punctures solved by
-spectral collocation on a single Ansorg–Brügmann–Tichy patch, and the
-solution map θ ↦ u(θ) built into a reduced-order model with cheap tangents
-dU/dθ. It is the `conformally_flat_puncture` model of the Lemaître package
-family, `lemaitre.initial_data.conformally_flat_puncture`.
+A differentiable parametric model for binary-black-hole initial data:\
+I.Conformally flat Bowen-York punctures.
 
 ```{raw} html
 <div class="lm-spin"></div>
