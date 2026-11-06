@@ -22,6 +22,14 @@
     root.append(canvas, controls);
 
     const P = { q: 2.0, d: 8.0, chiA: 0.6, chiB: -0.4 };
+    // The sliders drift on their own: each parameter runs lo -> hi -> lo as (1 - cos theta)/2, the
+    // four with incommensurate periods so the binary never repeats. Touching a slider stops the
+    // drift for PAUSE_MS, after which it eases back in over RAMP_MS from where the visitor left it.
+    // Visitors who ask for reduced motion get no drift.
+    const PERIOD = { q: 41, d: 53, chiA: 29, chiB: 37 };   // seconds
+    const PAUSE_MS = 8000, RAMP_MS = 4000;
+    const auto = { theta: {}, ui: {}, pauseUntil: 0, last: performance.now(), psiAt: 0 };
+    const stillMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const sliders = [
       ["q", "mass ratio", 1, 3, 0.05, (v) => "q = " + v.toFixed(2)],
       ["d", "separation", 6, 20, 0.1, (v) => "d = " + v.toFixed(1) + " M"],
@@ -36,14 +44,36 @@
       Object.assign(input, { type: "range", min: lo, max: hi, step: step, value: P[key] });
       const out = document.createElement("output");
       out.textContent = fmt(P[key]);
-      input.addEventListener("input", () => { P[key] = +input.value; out.textContent = fmt(P[key]); if (redrawPsi) redrawPsi(); });
+      input.addEventListener("input", () => {
+        P[key] = +input.value; out.textContent = fmt(P[key]); if (redrawPsi) redrawPsi();
+        auto.pauseUntil = performance.now() + PAUSE_MS;
+        auto.theta[key] = Math.acos(1 - 2 * (P[key] - lo) / (hi - lo));   // resume from here
+      });
       lab.append(name, input, out);
       controls.append(lab);
+      auto.ui[key] = { input, out, fmt, lo, hi };
     }
     // Figure 11, when loaded: the model's conformal factor on the orbital plane, drawn below the
     // sheet and driven by the same sliders. The ranges above are inside its model's box.
     let redrawPsi = null;
     if (window.LMPsi) redrawPsi = window.LMPsi.attach(root, P, controls);
+    for (const k in auto.ui) {
+      const u = auto.ui[k];
+      auto.theta[k] = Math.acos(Math.min(1, Math.max(-1, 1 - 2 * (P[k] - u.lo) / (u.hi - u.lo))));
+    }
+    function drift(now) {
+      const dt = Math.min(0.1, (now - auto.last) / 1000); auto.last = now;
+      if (stillMotion || now < auto.pauseUntil) return;
+      const ease = Math.min(1, (now - auto.pauseUntil) / RAMP_MS), speed = ease * ease * (3 - 2 * ease);
+      for (const k in auto.ui) {
+        const u = auto.ui[k];
+        auto.theta[k] += speed * dt * 2 * Math.PI / PERIOD[k];
+        P[k] = u.lo + (u.hi - u.lo) * 0.5 * (1 - Math.cos(auto.theta[k]));
+        u.input.value = P[k]; u.out.textContent = u.fmt(P[k]);
+      }
+      // The psi panel costs a few tens of ms; redraw it at ~8 Hz while drifting.
+      if (redrawPsi && now - auto.psiAt > 120) { auto.psiAt = now; redrawPsi(); }
+    }
 
 
     const ctx = canvas.getContext("2d");
@@ -66,6 +96,7 @@
     const phase = 0;               // initial data: the holes sit still, side by side on the x axis
 
     function frame(now) {
+      drift(now);
       const m1 = P.q / (1 + P.q), m2 = 1 / (1 + P.q);
       const r1 = P.d * m2, r2 = P.d * m1;                    // distances from the centre of mass
       const c = Math.cos(phase), sn = Math.sin(phase);
