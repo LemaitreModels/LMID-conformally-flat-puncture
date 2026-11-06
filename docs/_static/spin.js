@@ -27,9 +27,9 @@
     // incommensurate periods, so the motion is smooth and never repeats. Touching a slider makes it
     // the new centre and stops the drift for PAUSE_MS; then it eases back in over RAMP_MS, starting
     // exactly at the centre. Visitors who ask for reduced motion get no drift.
-    const PERIOD = { q: [23, 61], d: [29, 71], chiA: [17, 43], chiB: [19, 53] };   // seconds
+    const PERIOD = { q: [14, 37], d: [17, 43], chiA: [11, 27], chiB: [12, 31] };   // seconds
     const AMP = 0.12, PAUSE_MS = 2500, RAMP_MS = 3000;
-    const auto = { theta: {}, centre: {}, ui: {}, pauseUntil: 0, last: performance.now(), psiAt: 0 };
+    const auto = { theta: {}, centre: {}, ui: {}, pauseUntil: 0, last: performance.now(), psiAt: 0, psiCost: 20 };
     const stillMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const sliders = [
       ["q", "mass ratio", 1, 3, 0.05, (v) => "q = " + v.toFixed(2)],
@@ -42,7 +42,8 @@
       const name = document.createElement("span");
       name.textContent = label;
       const input = document.createElement("input");
-      Object.assign(input, { type: "range", min: lo, max: hi, step: step, value: P[key] });
+      // step "any": the drift moves the thumb continuously, not in slider steps.
+      Object.assign(input, { type: "range", min: lo, max: hi, step: "any", value: P[key] });
       const out = document.createElement("output");
       out.textContent = fmt(P[key]);
       input.addEventListener("input", () => {
@@ -72,8 +73,12 @@
         P[k] = Math.min(u.hi, Math.max(u.lo, auto.centre[k] + off));
         u.input.value = P[k]; u.out.textContent = u.fmt(P[k]);
       }
-      // The psi panel costs a few tens of ms; redraw it at ~8 Hz while drifting.
-      if (redrawPsi && now - auto.psiAt > 120) { auto.psiAt = now; redrawPsi(); }
+      // The psi panel costs a few ms to tens of ms: redraw it as often as it keeps up, leaving
+      // at least as much time again for the sheet.
+      if (redrawPsi && now - auto.psiAt > 2 * auto.psiCost) {
+        const t0 = performance.now(); redrawPsi();
+        auto.psiCost = 0.8 * auto.psiCost + 0.2 * (performance.now() - t0); auto.psiAt = now;
+      }
     }
 
 
