@@ -28,7 +28,7 @@
     // the new centre and stops the drift for PAUSE_MS; then it eases back in over RAMP_MS, starting
     // exactly at the centre. Visitors who ask for reduced motion get no drift.
     const PERIOD = { q: [23, 61], d: [29, 71], chiA: [17, 43], chiB: [19, 53] };   // seconds
-    const AMP = 0.12, PAUSE_MS = 8000, RAMP_MS = 4000;
+    const AMP = 0.12, PAUSE_MS = 2500, RAMP_MS = 3000;
     const auto = { theta: {}, centre: {}, ui: {}, pauseUntil: 0, last: performance.now(), psiAt: 0 };
     const stillMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const sliders = [
