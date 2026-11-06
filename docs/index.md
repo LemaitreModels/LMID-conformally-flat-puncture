@@ -1,4 +1,4 @@
-# LMID-conformally-flat-puncture
+# Conformally flat puncture ID
 
 A certified, differentiable, parametric model of conformally flat
 binary-black-hole puncture initial data: Bowen–York punctures solved by
