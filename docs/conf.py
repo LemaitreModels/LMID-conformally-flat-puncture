@@ -53,7 +53,7 @@ html_title = "LMID-conformally-flat-puncture"
 html_static_path = ["_static"]
 templates_path = ["_templates"]
 html_css_files = ["lemaitre-tokens.css", "lemaitre.css", "spin.css", "psi.css"]
-html_js_files = ["psi-data.js", "psi.js", "spin.js"]
+html_js_files = ["lemaitre.js", "psi-data.js", "psi.js", "spin.js"]
 html_theme_options = {
     "source_repository": "https://github.com/LemaitreModels/LMID-conformally-flat-puncture",
     "source_branch": "main",
