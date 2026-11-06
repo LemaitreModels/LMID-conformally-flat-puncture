@@ -22,13 +22,14 @@
     root.append(canvas, controls);
 
     const P = { q: 2.0, d: 8.0, chiA: 0.6, chiB: -0.4 };
-    // The sliders drift on their own: each parameter runs lo -> hi -> lo as (1 - cos theta)/2, the
-    // four with incommensurate periods so the binary never repeats. Touching a slider stops the
-    // drift for PAUSE_MS, after which it eases back in over RAMP_MS from where the visitor left it.
-    // Visitors who ask for reduced motion get no drift.
-    const PERIOD = { q: 41, d: 53, chiA: 29, chiB: 37 };   // seconds
-    const PAUSE_MS = 8000, RAMP_MS = 4000;
-    const auto = { theta: {}, ui: {}, pauseUntil: 0, last: performance.now(), psiAt: 0 };
+    // The sliders drift on their own around a centre: the default, or wherever the visitor last
+    // left that slider. Each wanders by up to AMP of its range as a sum of two slow sines with
+    // incommensurate periods, so the motion is smooth and never repeats. Touching a slider makes it
+    // the new centre and stops the drift for PAUSE_MS; then it eases back in over RAMP_MS, starting
+    // exactly at the centre. Visitors who ask for reduced motion get no drift.
+    const PERIOD = { q: [23, 61], d: [29, 71], chiA: [17, 43], chiB: [19, 53] };   // seconds
+    const AMP = 0.12, PAUSE_MS = 8000, RAMP_MS = 4000;
+    const auto = { theta: {}, centre: {}, ui: {}, pauseUntil: 0, last: performance.now(), psiAt: 0 };
     const stillMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const sliders = [
       ["q", "mass ratio", 1, 3, 0.05, (v) => "q = " + v.toFixed(2)],
@@ -47,7 +48,7 @@
       input.addEventListener("input", () => {
         P[key] = +input.value; out.textContent = fmt(P[key]); if (redrawPsi) redrawPsi();
         auto.pauseUntil = performance.now() + PAUSE_MS;
-        auto.theta[key] = Math.acos(1 - 2 * (P[key] - lo) / (hi - lo));   // resume from here
+        for (const k in auto.ui) { auto.centre[k] = P[k]; auto.theta[k] = [0, 0]; }   // resume from here
       });
       lab.append(name, input, out);
       controls.append(lab);
@@ -57,18 +58,18 @@
     // sheet and driven by the same sliders. The ranges above are inside its model's box.
     let redrawPsi = null;
     if (window.LMPsi) redrawPsi = window.LMPsi.attach(root, P, controls);
-    for (const k in auto.ui) {
-      const u = auto.ui[k];
-      auto.theta[k] = Math.acos(Math.min(1, Math.max(-1, 1 - 2 * (P[k] - u.lo) / (u.hi - u.lo))));
-    }
+    for (const k in auto.ui) { auto.centre[k] = P[k]; auto.theta[k] = [0, 0]; }
     function drift(now) {
       const dt = Math.min(0.1, (now - auto.last) / 1000); auto.last = now;
       if (stillMotion || now < auto.pauseUntil) return;
       const ease = Math.min(1, (now - auto.pauseUntil) / RAMP_MS), speed = ease * ease * (3 - 2 * ease);
       for (const k in auto.ui) {
         const u = auto.ui[k];
-        auto.theta[k] += speed * dt * 2 * Math.PI / PERIOD[k];
-        P[k] = u.lo + (u.hi - u.lo) * 0.5 * (1 - Math.cos(auto.theta[k]));
+        const th = auto.theta[k];
+        th[0] += speed * dt * 2 * Math.PI / PERIOD[k][0];
+        th[1] += speed * dt * 2 * Math.PI / PERIOD[k][1];
+        const off = AMP * (u.hi - u.lo) * (0.65 * Math.sin(th[0]) + 0.35 * Math.sin(th[1]));
+        P[k] = Math.min(u.hi, Math.max(u.lo, auto.centre[k] + off));
         u.input.value = P[k]; u.out.textContent = u.fmt(P[k]);
       }
       // The psi panel costs a few tens of ms; redraw it at ~8 Hz while drifting.
