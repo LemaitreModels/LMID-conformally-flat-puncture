@@ -1,7 +1,6 @@
 # Conformally flat puncture ID
 
-A differentiable parametric model for binary-black-hole initial data:\
-I.Conformally flat Bowen-York punctures.
+A differentiable parametric model for binary-black-hole initial data.
 
 ```{raw} html
 <div class="lm-spin"></div>
