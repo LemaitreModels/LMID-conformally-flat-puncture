@@ -157,8 +157,8 @@ stored cross term, and dropping that term forces
 $\partial_A \partial_B \tilde U = 0$ at every node, which is wrong. The same holds
 in more enhanced axes, where all $2^k$ mixed derivatives are needed. The paper
 measures the consequence: enhancing all four axes of the aligned-spin model with
-tangents and only the pairwise cross terms makes the held-out error about a
-hundred times worse than enhancing none [5]. These are the same mixed terms that
+tangents alone makes the held-out median about a hundred times worse than
+enhancing none, and adding the pairwise cross terms does not repair it [5]. These are the same mixed terms that
 decide whether a [sparse grid](smolyak.md) pays off.
 
 ## References

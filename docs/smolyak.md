@@ -34,8 +34,9 @@ $$
 $$
 
 and the levels telescope, $I_L = \sum_{l \le L} \Delta_l$. A surplus is the
-difference of two interpolation errors, so it is no larger than the error of the
-level below. For an analytic map it therefore shrinks geometrically in the number
+difference of two interpolation errors, $\Delta_l = (I_l - f) - (I_{l-1} - f)$, so
+it is at most the sum of the two, and of the order of the error of the level
+below. For an analytic map it therefore shrinks geometrically in the number
 of nodes, at the rate set by the Bernstein ellipse.
 
 ## Products, and the simplex
