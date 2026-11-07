@@ -177,9 +177,12 @@ The fitted rate is only as good as the window it is fitted over.
   the fit. The window must stop where the saturation starts.
 - **The rate is asymptotic.** The theorem bounds the error for large $Q$. At small
   $Q$ the error can fall faster or slower than $\rho^{-Q}$, and other floors, such
-  as the spatial resolution of each solve, can enter before the float64 one. Near
-  extremal spin both effects mix into the fit, so the paper treats its spin-wall
-  characterization as quantitative only for $\chi_{\max} \lesssim 0.8$.
+  as the spatial resolution of each solve, can enter before the float64 one. The
+  paper locates the spin wall by sampling past extremal spin, up to
+  $\chi_{\max} = 3.2$, where both effects mix into the fit. Its inferred
+  $\chi_\ast$ values are therefore indicative only, but the qualitative result
+  holds: the inferred feature recedes as the range grows and stays far beyond the
+  physical box.
 
 The theorem rests on assumptions that are worth keeping in view.
 
