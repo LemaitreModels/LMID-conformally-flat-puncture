@@ -52,8 +52,8 @@ html_theme = "furo"
 html_title = "LMID-conformally-flat-puncture"
 html_static_path = ["_static"]
 templates_path = ["_templates"]
-html_css_files = ["lemaitre-tokens.css", "lemaitre.css", "spin.css", "psi.css"]
-html_js_files = ["lemaitre.js", "psi-data.js", "psi.js", "spin.js"]
+html_css_files = ["lemaitre-tokens.css", "lemaitre.css", "spin.css", "psi.css", "bernstein.css", "smolyak.css", "hermite.css"]
+html_js_files = ["lemaitre.js", "psi-data.js", "psi.js", "spin.js", "bernstein.js", "smolyak.js", "hermite.js"]
 html_theme_options = {
     "source_repository": "https://github.com/LemaitreModels/LMID-conformally-flat-puncture",
     "source_branch": "main",

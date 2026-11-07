@@ -20,6 +20,15 @@ overview
 
 ```{toctree}
 :maxdepth: 1
+:caption: Background
+
+bernstein
+sensitivities
+smolyak
+```
+
+```{toctree}
+:maxdepth: 1
 :caption: Implementation
 
 MODELS

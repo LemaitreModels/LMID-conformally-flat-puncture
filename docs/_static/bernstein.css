@@ -1,0 +1,8 @@
+/* Controls for bernstein.js, drawn with the Lemaitre style tokens. */
+.lm-bern { width: 100%; margin: 1.5rem 0 2.5rem; }
+.lm-bern canvas { display: block; width: 100%; touch-action: pan-y; }
+.lm-bern-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem 2rem;
+  align-items: center; font-family: var(--lm-font-text, system-ui, sans-serif); font-size: 1rem; color: var(--lm-ink, #1f1e1c); margin-top: 0.75rem; }
+.lm-bern-controls label { display: flex; align-items: center; gap: 0.5rem; }
+.lm-bern-controls input[type=range] { width: 11rem; accent-color: var(--lm-accent, #2c5a85); }
+.lm-bern-controls output { font-variant-numeric: tabular-nums; min-width: 2.6rem; }
