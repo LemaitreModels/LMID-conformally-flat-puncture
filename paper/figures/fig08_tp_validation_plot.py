@@ -112,7 +112,7 @@ def main():
             # lower left is empty: every line starts high on the coarsest grid
             ax.legend(fontsize=8, loc="lower left", handlelength=1.5)
         ax.set_yscale("log")
-        ax.set_ylabel(ylab, fontsize=9)
+        ax.set_ylabel(ylab, fontsize=10)
         ax.set_title(title, fontsize=10)
         ax.yaxis.set_minor_locator(NullLocator())  # no y sub-ticks (matches Figs. 2, 3)
         ax.grid(True, which="major", alpha=0.3)
@@ -122,12 +122,12 @@ def main():
     # is smallest, so it clears the rising whiskers
     ax_res = axes[0]
     ax_res.axhline(meta["cert_tol"], ls=":", color="0.35", lw=1.1)
-    ax_res.text(0.02, meta["cert_tol"] / 1.08, "certification gate", fontsize=8.5,
+    ax_res.text(0.02, meta["cert_tol"] / 1.08, "certification gate", fontsize=7,
                 color="0.3", va="top", transform=ax_res.get_yaxis_transform())
 
     # shared abscissa: the rotated grid labels are drawn once, on the bottom panel
     axes[-1].set_xticks(x)
-    axes[-1].set_xticklabels(_gridlabels(rungs0), fontsize=8, rotation=20)
+    axes[-1].set_xticklabels(_gridlabels(rungs0), fontsize=10, rotation=20)
     axes[-1].set_xlabel(r"grid $N_A\times N_B$")
 
     fig.tight_layout()

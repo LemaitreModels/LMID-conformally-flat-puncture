@@ -51,7 +51,7 @@ def _levels(ax, bare, cross, levels):
     # The log node axis spaces the levels evenly, so no per-label nudging is needed.
     top = np.maximum(bare["worst"], cross["worst"])
     for x, w, lev in zip(bare["nodes"], top, levels):
-        ax.annotate(rf"$\ell={lev}$", (x, w), fontsize=8, color="0.3",
+        ax.annotate(rf"$\ell={lev}$", (x, w), fontsize=7, color="0.3",
                     ha="center", va="bottom", xytext=(0, 4),
                     textcoords="offset points", zorder=5)
 
@@ -79,7 +79,7 @@ def main():
     bL, cL = _panel(axL, d["left"], MODEL_TITLES[4])
     bR, cR = _panel(axR, d["right"], MODEL_TITLES[8])
     axL.set_ylabel("joint held-out error")
-    axL.legend(fontsize=9, loc="lower left")
+    axL.legend(fontsize=8, loc="lower left")
 
     # common y-limits spanning both panels, with headroom for the level labels
     lo = min(bL["best"].min(), cL["best"].min(), bR["best"].min(), cR["best"].min())

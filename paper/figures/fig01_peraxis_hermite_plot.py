@@ -52,17 +52,21 @@ def _series(ax, Qs, st, color, marker, label):
     """Median (marker) with min-max whiskers spanning best..worst (cf. Fig. 3)."""
     med, best, worst = _arr(st["median"]), _arr(st["best"]), _arr(st["worst"])
     ax.errorbar(Qs, med, yerr=[med - best, worst - med],
-                fmt=marker + "-", color=color, ms=5, lw=1.7, elinewidth=1.0,
-                capsize=4, capthick=1.0, zorder=3, label=label)
+                fmt=marker + "-", color=color, ms=3, lw=1.1, elinewidth=0.7,
+                capsize=2.2, capthick=0.7, zorder=3, label=label)
 
 
+# CANVAS.  Drawn on a 9 x 3.6 in canvas, the width of Figs. 3-5, so that LaTeX scales it to
+# \textwidth by the same ~0.79 as those figures and its text prints at comparable sizes.  It was
+# drawn at figdims(2, 4) = 18 x 6 in until 2026-11-08, which printed every label at 0.39x
+# (ticks 5.4 pt, legends 4.7 pt); the font sizes below are set for the 9 in canvas.
 def main():
     A = load("fig01_peraxis_hermite")["A_per_axis"]
     names = [n for n in A]
 
     ncol = 4
     nrow = int(np.ceil(len(names) / ncol))
-    fig, axs = plt.subplots(nrow, ncol, figsize=figdims(nrow, ncol),
+    fig, axs = plt.subplots(nrow, ncol, figsize=(9.0, 3.6),
                             squeeze=False, sharex=True, sharey=True)
     k_names = ncol * (nrow - 1)  # panel that carries the series-name legend
     for k, name in enumerate(names):
@@ -73,13 +77,13 @@ def main():
         for key, color, mk, lab in SERIES:
             _series(ax, Qs, d[key], color, mk,
                     rf"$\zeta={d['rate_' + key]:.2f}$ dec/$Q$")
-        ax.set_title(LBL.get(name, name), fontsize=18)
+        ax.set_title(LBL.get(name, name), fontsize=10, pad=2)
         ax.grid(True, which="both", alpha=0.3)
         ax.set_ylim(*YLIM)
         ax.set_xticks(Qs)
-        ax.tick_params(labelsize=14)
+        ax.tick_params(labelsize=10)
         handles, _ = ax.get_legend_handles_labels()  # errorbar containers (with whiskers)
-        rates = ax.legend(fontsize=12, loc="upper right")
+        rates = ax.legend(fontsize=8, loc="upper right", handlelength=1.2, borderpad=0.25, labelspacing=0.25, handletextpad=0.3, borderaxespad=0.3)
         # the two series are named once, in the first panel of the bottom row, so that
         # the per-panel legends carry only the fitted rates.  That panel's lower-left
         # corner is the one that is free of data in every axis (the b panel's is not).
@@ -89,18 +93,18 @@ def main():
         if k == k_names:
             ax.add_artist(rates)
             ax.legend(handles, [lab for *_, lab in SERIES],
-                      fontsize=12, loc="lower left", handlelength=1.1,
+                      fontsize=8, loc="lower left", handlelength=1.1,
                       borderpad=0.25, labelspacing=0.3, handletextpad=0.35,
                       borderaxespad=0.3)
         # shared x: label only the bottom-most populated panel in each column
         if k + ncol >= len(names):
-            ax.set_xlabel("parameter nodes  $Q$", fontsize=17)
+            ax.set_xlabel("parameter nodes  $Q$", fontsize=10)
     for k in range(len(names), nrow * ncol):
         axs[k // ncol][k % ncol].axis("off")
     # shared y: label only the left column
     for r in range(nrow):
-        axs[r][0].set_ylabel("held-out error", fontsize=17)
-    fig.tight_layout()
+        axs[r][0].set_ylabel("held-out error", fontsize=10)
+    fig.tight_layout(pad=0.3, w_pad=0.4, h_pad=0.5)
     stem = os.path.join(HERE, "fig01_peraxis_hermite")
     fig.savefig(stem + ".pdf")
     plt.close(fig)

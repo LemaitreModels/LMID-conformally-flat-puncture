@@ -51,9 +51,9 @@ from _figstyle import PANEL_W
 PANEL_H_SHORT = 2.4
 
 # The mass-ratio wall's CHARACTER, now measured (block Q_wall_q): q* MARCHES with the
-# sampled range -- 4.19, 4.78, 5.22 as q_max goes 3.0, 3.5, 4.0 -- rather than sitting
+# sampled range -- 4.22, 4.80, 5.11 as q_max goes 3.0, 3.5, 4.0 -- rather than sitting
 # at a fixed q, so the limiting singularity is not a real branch point pinned inside
-# the box.  That is the SPIN panel's behaviour (chi* 2.2, 3.0, 4.1), not the
+# the box.  That is the SPIN panel's behaviour (chi* 2.11, 2.98, 3.79), not the
 # separation panel's (b* pinned near merger).  The panel titles name the axis only;
 # each wall's soft/hard CHARACTER is stated in the caption of Fig. 2.
 Q_TITLE = "Mass-ratio wall"

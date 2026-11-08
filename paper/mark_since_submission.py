@@ -156,7 +156,10 @@ def _safe(line, a, b, in_display):
         return False
     if "&" in seg.replace("\\&", "") or "\\\\" in seg:
         return False
-    if any(cmd in seg for cmd in ("\\begin", "\\end", "\\label", "\\item", "\\caption")):
+    # a sectioning command inside a brace group would number in a local scope, so the
+    # \label after it reads a stale counter: colour those lines with the switches instead
+    if any(cmd in seg for cmd in ("\\begin", "\\end", "\\label", "\\item", "\\caption",
+                                  "\\section", "\\subsection", "\\subsubsection")):
         return False
     stack = _depth_and_cmd(line, a)
     if any(c in NOWRAP for c in stack if c):
@@ -261,6 +264,34 @@ def _unchanged_outside(cur, s, e, sub, purple):
     return True
 
 
+def _moved_displays(cur, flag, sub):
+    """Unflag every display environment that occurs verbatim (whitespace aside) in the submission.
+
+    The line diff is sequential, so a display moved unchanged to another place (e.g. into an
+    appendix) reads as deleted and re-inserted and would be coloured.  Moved running text is
+    settled by the sentence lookup in ``_whole_sentences``; this is the same lookup for a
+    display, taken as one block from its ``\\begin`` line to its ``\\end`` line.
+    """
+    flag = flag[:]
+    pos, display, start = 0, 0, None
+    hay = _normalized(sub)
+    for line in cur.splitlines(True):
+        body = line.rstrip("\n")
+        opens = len(re.findall(r"\\begin\{(equation|align|gather|multline|eqnarray)\*?\}|\\\[", body))
+        closes = len(re.findall(r"\\end\{(equation|align|gather|multline|eqnarray)\*?\}|\\\]", body))
+        if display == 0 and opens > 0:
+            start = pos
+        display += opens - closes
+        pos += len(line)
+        if start is not None and display == 0:
+            s, e = start, pos
+            start = None
+            if any(flag[s:e]) and " ".join(cur[s:e].split()) in hay:
+                for c in range(s, e):
+                    flag[c] = False
+    return flag
+
+
 _NORMALIZED = {}
 
 
@@ -303,6 +334,7 @@ def mark(sub, cur):
     if WHOLE_SENTENCES:
         flag = _whole_sentences(cur, flag, sub, purple)
         flag = [f and not p for f, p in zip(flag, purple)]
+    flag = _moved_displays(cur, flag, sub)
     lines = cur.splitlines(True)
     out, pos, in_doc, display = [], 0, False, 0
     env_start, env_line, env_hit, env_id = [], [], set(), -1

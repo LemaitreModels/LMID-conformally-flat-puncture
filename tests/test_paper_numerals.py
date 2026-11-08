@@ -81,6 +81,32 @@ def _sci_tex(x, digits=1):
 
 
 # --------------------------------------------------------------------------
+# fig01 -- the per-axis value-only rates quoted in Sec. V B
+# --------------------------------------------------------------------------
+
+def test_fig01_per_axis_rates_are_the_ones_the_paper_quotes():
+    """Sec. V B quotes the value-only per-axis rates: b, q, and the range of the six spins.
+
+    It said "the spins are somewhat slower" until 2026-11-08; the numbers replace the
+    hedge, so a re-distilled fig01 must move the sentence with it.  The "roughly doubles
+    every rate" claim beside it is checked here too, since it rides on the same fits.
+    """
+    a = _figdata("fig01_peraxis_hermite.json")["A_per_axis"]
+    tex = _text(PAPER)
+    rb, rq = a["b"]["rate_value"], a["q"]["rate_value"]
+    spins = [a[k]["rate_value"] for k in a if k.startswith("chi_")]
+    assert len(spins) == 6
+    lo, hi = f"{min(spins):.2f}", f"{max(spins):.2f}"
+    for s in (f"${rb:.2f}$", f"${rq:.2f}$", f"${lo}$--${hi}$"):
+        assert s in tex, f"Sec. V B no longer quotes the fig01 rate {s}"
+    assert "somewhat slower" not in tex, "the hedge the rates replaced is back"
+    assert max(spins) < min(rb, rq), "the spins are no longer the slowest axes"
+    for k, v in a.items():
+        ratio = v["rate_hermite"] / v["rate_value"]
+        assert 1.7 < ratio < 2.3, f"{k}: enhancement multiplies the rate by {ratio:.2f}, not ~2"
+
+
+# --------------------------------------------------------------------------
 # fig03 -- the joint held-out convergence ratio
 # --------------------------------------------------------------------------
 

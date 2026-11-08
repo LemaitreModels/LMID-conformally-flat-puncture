@@ -63,7 +63,7 @@ def plot_family(ax, spec, label):
 
     def _r_label(x, hi_i, lo_i, r):
         xy, va, dy = ((x, hi_i), "bottom", 3) if ann == "above" else ((x, lo_i), "top", -3)
-        a = ax.annotate(f"{r}", xy, fontsize=6.4, color=color, ha="center", va=va,
+        a = ax.annotate(f"{r}", xy, fontsize=7, color=color, ha="center", va=va,
                         xytext=(0, dy), textcoords="offset points", zorder=5)
         a.set_gid(RANK_GID)
     for x, hi_i, lo_i, r in zip(mem, hi, lo, rs):
@@ -136,7 +136,7 @@ def main():
     # ONE legend, in the top-left panel: all four panels carry the same two families, and on the
     # flatter stacked panel (PANEL_H_STACK) a per-panel box sits on the rank labels of the
     # bottom-left panel.  The top-left panel's lower-left corner is empty in every rank sweep.
-    axes[0, 0].legend(fontsize=8.2, loc="lower left", framealpha=0.92)
+    axes[0, 0].legend(fontsize=8, loc="lower left", framealpha=0.92)
     for ax in (axes[1, 0], axes[1, 1]):
         ax.set_xlabel("stored model memory (MB)")
     # No "bare-guess" qualifier and no formula on the axis labels: that both quantities are read at

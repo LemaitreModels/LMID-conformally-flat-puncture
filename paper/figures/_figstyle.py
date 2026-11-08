@@ -56,6 +56,12 @@ render width and fixed every figure's text to the 9 pt caption size was REJECTED
 large and unnatural.  So: keep the per-element ``fontsize=`` values in the plotters, and let LaTeX's
 mild downscale of the ``figdims`` size make the effective text a little smaller than the caption
 (the usual, natural look).
+
+The hierarchy is nevertheless the SAME in every figure (2026-11-08, measured with pypdf on the
+printed scale): titles, axis labels and tick labels at 10, legends at 8, small in-panel labels at 7.
+Every canvas is 4.5 in per column-width panel or 9 in for a full-width figure, so LaTeX scales all
+of them by 0.76--0.79 and these print at ~7.8, ~6.2 and ~5.5 pt.  A figure drawn on a wider canvas
+(Fig. 1 was 18 in) prints everything at half that size, so keep new figures on these widths.
 """
 import matplotlib as _mpl
 

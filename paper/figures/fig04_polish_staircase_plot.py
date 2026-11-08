@@ -106,7 +106,7 @@ def _plot_residual(ax, col):
     # by them or by the descending staircases above. It is identified in the caption instead.
     ax.axhline(THRESH, ls=":", color="k", alpha=0.7, lw=1.1)
     ax.set_yscale("log")
-    ax.set_title(TITLES[col["dim"]], fontsize=9.5)
+    ax.set_title(TITLES[col["dim"]], fontsize=10)
     ax.grid(True, which="both", alpha=0.3)
     return xmax
 
@@ -136,7 +136,7 @@ def _plot_field(ax, col):
                     elinewidth=1.1, capthick=1.1, zorder=z, label=label)
     ax.set_yscale("log")
     ax.grid(True, which="both", alpha=0.3)
-    ax.legend(title=title, fontsize=8.8, title_fontsize=8.8,
+    ax.legend(title=title, fontsize=8, title_fontsize=8,
               loc="upper right", framealpha=0.93)
 
 
@@ -158,7 +158,7 @@ def main():
         ax.set_xlim(-0.5, xmax + 0.5)
         ax.set_xticks(range(xmax + 1))
         ax.set_xticklabels(["guess"] + [str(k) for k in range(1, xmax + 1)])
-        ax.set_xlabel("Newton polish steps")
+        ax.set_xlabel("Newton steps")
     axes[0, 0].set_ylabel("constraint residual")
     axes[1, 0].set_ylabel("field error")
     fig.tight_layout()

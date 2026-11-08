@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 """Generates fig09_tp_spectrum.pdf (the azimuthal spectrum of the quasi-circular data).
 
-A 1x1 figure at \\columnwidth (same geometry as Figs. 6 and 7): the azimuthal Fourier
+A 1x1 figure at \\columnwidth, flatter than the standard 3:2 panel, which left most of a column
+blank for four points.  Its height, PANEL_H_FIG9, is set so the printed axes box is as tall as each
+of Fig. 8's three (88 pt at \\columnwidth, measured from the tight bounding boxes), because the
+two figures print side by side.  The azimuthal Fourier
 spectrum |u_m|/|u_0| at the best-resolved rung, as a median with min--max whiskers over the
 same sampled configurations as fig08.  It shows how many phi modes the quasi-circular data
 actually need, i.e. what sets the azimuthal truncation N_phi.
@@ -23,8 +26,9 @@ m = 0..Nphi//2, so the production Nphi=8 grid carries m<=4 and every mode it rep
 plotted.  That last point is the grid's Nyquist mode and is not comparable like-for-like
 with the modes below it: on Nphi equispaced nodes sin(4 phi) vanishes identically, so that
 bin holds only the cos(4 phi) component (one real degree of freedom against two for
-m=1..3).  Consistently it is the one point that does not continue the decay.  That is a
-caption statement, not a plotted feature -- the panel is left unannotated.
+m=1..3).  Consistently it is the one point that does not continue the decay.  It is joined to the rest by
+a DOTTED segment (Frederik, 2026-11-08), which the caption names; it was drawn solid, unannotated,
+while the caption said "(dotted)", from the split of the figure until then.
 
 COLOURS follow the paper convention (see README): C0--C1 are reserved for the standard
 surrogate models, so this non-model diagnostic starts the cycle at C2.
@@ -48,6 +52,10 @@ sys.path.insert(0, HERE)
 from _figdata import load
 from _figstyle import figdims
 
+# Matches the printed axes-box height of each Fig. 8 panel (87.8 pt; this gives 87.7 pt) --
+# re-measure both if either plotter's labels, titles or panel height change.
+PANEL_H_FIG9 = 2.39
+
 SPEC_C = "C2"          # non-model diagnostic: the cycle starts at C2 (see README)
 
 
@@ -60,9 +68,13 @@ def main():
     md = np.array([r["median"] for r in S])
     hi = np.array([r["max"] for r in S])
 
-    fig, ax = plt.subplots(1, 1, figsize=figdims(1, 1))
-    ax.errorbar(mm, md, yerr=[md - lo, hi - md], fmt="-o", color=SPEC_C,
-                ms=5, lw=1.7, capsize=3.5, elinewidth=1.1, capthick=1.1)
+    fig, ax = plt.subplots(1, 1, figsize=figdims(1, 1, panel_h=PANEL_H_FIG9))
+    ax.errorbar(mm, md, yerr=[md - lo, hi - md], fmt="o", color=SPEC_C,
+                ms=5, capsize=3.5, elinewidth=1.1, capthick=1.1)
+    # The Nyquist mode (the last point) holds only its cosine part, so it is joined DOTTED: the
+    # caption names that as the marker of a point not comparable with the modes below it.
+    ax.plot(mm[:-1], md[:-1], "-", color=SPEC_C, lw=1.7)
+    ax.plot(mm[-2:], md[-2:], ":", color=SPEC_C, lw=1.7)
 
     ax.set_yscale("log")
     ax.set_xticks(mm)

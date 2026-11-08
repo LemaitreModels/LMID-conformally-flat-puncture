@@ -76,7 +76,12 @@ def _solve(prob, sl, separable):
     U, info = s3nk.newton_solve_nk(prob, sl, tol=CERT_TOL_U, max_iter=MAX_ITER,
                                    separable=separable)
     wall = time.perf_counter() - t
+    # ``info.iters`` counts residual measurements, the zero-field guess included, so
+    # the Newton steps taken are one fewer (``newton_loop.LoopRun``).  The loop runs
+    # to ``tol/10``, so this can be one step more than the first crossing of ``tol``
+    # that fig04 counts.
     return np.asarray(U), dict(wall=wall, iters=int(info.iters),
+                               steps=int(info.iters) - 1,
                                gmres=int(np.sum(info.gmres_iters)),
                                resid=float(info.residual_norm),
                                certified=bool(info.converged
@@ -118,12 +123,12 @@ def run(dim=4, n=20, routes=("separable", "dense"), verbose=True):
             out["rows"][i][route] = row
             if verbose:
                 print(f"  {route:9s} [{i + 1:3d}/{n}] {1e3 * row['wall']:9.1f} ms  "
-                      f"{row['iters']} Newton  {row['gmres']:3d} GMRES  "
+                      f"{row['steps']} Newton  {row['gmres']:3d} GMRES  "
                       f"R = {row['resid']:.1e}", flush=True)
         walls = [r[route]["wall"] for r in out["rows"]]
         out["summary"][route] = dict(
             wall=_stats(walls),
-            iters=_stats([r[route]["iters"] for r in out["rows"]]),
+            steps=_stats([r[route]["steps"] for r in out["rows"]]),
             all_certified=all(r[route]["certified"] for r in out["rows"]))
     if len(routes) == 2:
         diff = [float(np.max(np.abs(a - b)) / max(np.max(np.abs(b)), 1e-300))
