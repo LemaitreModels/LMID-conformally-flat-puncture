@@ -34,8 +34,9 @@
 \setcounter{topnumber}{3}\setcounter{dbltopnumber}{2}\setcounter{totalnumber}{4}
 % Ragged bottom: with RevTeX's flush bottom a short column was stretched, opening gaps between its
 % paragraphs (p. 10). No single first or last line of a paragraph at a column edge, and no column
-% that ends on a hyphenated word (one split "cer-tification" across pp. 12-13).
-\raggedbottom\clubpenalty=10000\widowpenalty=10000\brokenpenalty=10000
+% that ends on a hyphenated word (one split "cer-tification" across pp. 12-13), and no footnote
+% split across two pages (App. C's probe-point footnote was).
+\raggedbottom\clubpenalty=10000\widowpenalty=10000\brokenpenalty=10000\interfootnotelinepenalty=10000
 
 % --- editorial placeholder marker (remove before submission) ---
 \newcommand{\todo}[1]{{\color{red}\textbf{[TODO: #1]}}}
@@ -119,7 +120,8 @@ In gravitational-wave physics, however, it has been developed almost exclusively
 
 
 Parametric collocation, sparse interpolation, and reduced-basis methods for parameter-dependent elliptic partial differential equations are well-established~\cite{BabuskaNobileTempone2007,XiuHesthaven2005,NobileTemponeWebster2008,Haasdonk2017,HesthavenRozzaStamm2016}.
-When the parameter-to-solution map is analytic, the interpolation error decays exponentially with the number of samples at a rate determined by the nearest singularity in the complex para\-meter plane through the Bernstein-ellipse estimate~\cite{Trefethen2019}.
+\refereetext{When the parameter-to-solution map is analytic, the a priori Bernstein-ellipse estimate gives exponential decay of the interpolation error with the number of samples, at a rate determined by the nearest singularity in the complex para\-meter plane~\cite{Trefethen2019}.}
+\refereetext{The convergence rate therefore also indicates where the map is harder to approximate.}
 These results suggest that binary-black-hole puncture initial data should also admit efficient parametric representations over suitable regions of parameter space.
 
 
@@ -130,17 +132,17 @@ Tommasini \emph{et al.}~\cite{Tommasini2026} use Gaussian-process regression tra
 \newtext{The latter also train a network over the common axial spin of axisymmetric, equal-mass binaries and use its prediction to seed a hyperbolic-relaxation elliptic solver, shortening the relaxation by a factor of about $4.6$.}
 \newtext{Analytic perturbative constructions~\cite{Ogurol2026} and neural representations of spacetime metrics~\cite{Cranganore2025} provide additional complementary approaches.}
 \newtext{None of these methods, however, constructs a certified, differentiable parameter-to-solution map.}
-\refereetext{Spectral interpolation adds properties that a trained network does not have by construction.}
-\refereetext{Its error follows an a priori convergence theory, decaying exponentially at a rate set by the analyticity of the map, so the convergence itself shows where the map is hard.}
-\refereetext{It reproduces every stored solution exactly and is linear in them, which makes gradient enhancement, sparse grids, and reduced-basis compression exact operations.}
-\refereetext{It is built from a known number of solves, with no training.}
 
 
 \newtext{This paper addresses this gap with a parametric solver for binary-black-hole puncture initial data.}
-\newtext{Its key idea is to use interpolation only for the initial guess: a sparse interpolant over the parameters supplies a guess close enough that a few Newton iterations converge it to a solution of the discretized Einstein constraint equations.}
+\refereetext{Its key idea is to use interpolation only for the initial guess: a sparse spectral interpolant over the parameters supplies a guess close enough that a few Newton iterations converge it to a solution of the discretized Einstein constraint equations.}
 \newtext{A datum is returned only once its discrete constraint residual (Sec.~\ref{sec:solve:newton}) satisfies $\|R\|^{(u)}_\infty \le 10^{-11}$, so every returned datum is certified, and the solver is analytically differentiable with respect to the physical parameters.}
 \newtext{To our knowledge, this combination has not previously been demonstrated for binary-black-hole initial data.}
 \newtext{This gate measures how completely the discretized equations are solved. The accuracy of the returned field is set by the spectral resolution, and we measure it against TwoPunctures (App.~\ref{sec:validation:qc}) and, through its constraint violation, on an evolution grid (App.~\ref{sec:validation:constraints}).}
+
+\refereetext{We choose spectral interpolation for its a priori convergence theory and algebraic properties, which a trained neural network does not provide by construction.}
+\refereetext{The interpolant reproduces every stored solution exactly and is linear in those solutions, making gradient enhancement, sparse grids, and reduced-basis compression exact operations.}
+\refereetext{It is constructed from a known number of solves, with no training.}
 
 
 \newtext{The parametric solver is implemented in JAX~\cite{Jax2018}, so its derivatives with respect to the physical parameters are obtained by algorithmic differentiation rather than by finite differencing.}
@@ -556,7 +558,7 @@ barycentric differentiation matrix. \newtext{They satisfy}
 \newtext{the interpolant reproduces the certified value \emph{and} tangents at every node by}
 \newtext{construction.} Because the
 parameter-to-solution map is analytic, matching the tangent raises the per-node
-convergence order, so the same warm-start quality is reached with fewer expensive
+convergence order, so the same warm-start quality is reached with fewer
 elliptic solves.
 
 For both shipped models the enhanced set is the pair of aligned spin components,
@@ -763,7 +765,7 @@ Sweeping one parameter at a time, every axis converges exponentially
 \newtext{rate for the price of one extra linear solve per node.}
 \newtext{Because the joint held-out error is governed by the slowest of these axes, the spin directions set the offline cost of the model (Sec.~\ref{sec:model:joint}).}
 
-\begin{figure*}[tp]
+\begin{figure*}[t]
   \newtext{\centering}
   \newtext{\includegraphics[width=\textwidth]{fig01_peraxis_hermite.pdf}}
   \newtextbegin \caption{\label{fig:peraxis}%\newtextend{}
@@ -819,7 +821,7 @@ only soft, receding ones.
 
 % One row of three panels (fig02_walls_row.pdf).  The stacked one-column original,
 % fig02_walls.pdf, is kept: revert by restoring figure[tbp] at \columnwidth.
-\begin{figure*}[tp]
+\begin{figure*}[t]
   \newtext{\centering}
   \newtext{\includegraphics[width=\textwidth]{fig02_walls_row.pdf}}
   \caption{\label{fig:walls}%
@@ -831,6 +833,22 @@ only soft, receding ones.
     and the inferred nearest real singularity $\theta_\ast$.
     \newtext{\emph{Left (separation $b$):} $b_\ast$ stays at $b_\ast\approx0$ as the interval approaches coincidence, a hard, real wall.}
     \newtextbegin \emph{Middle (mass ratio $q$) and right (spin $\chi$):} the rate degrades only mildly and $\theta_\ast$ recedes as the range grows, a complex-conjugate pair, so both walls are soft.}\newtextend{}
+\newtextbegin \end{figure*}\newtextend{}
+
+% Fig. 3 sits before its subsection so it floats onto the page after Fig. 2, next to its text.
+\begin{figure*}[tp]
+  \newtext{\centering}
+  \newtext{\includegraphics[width=\textwidth]{fig03_joint_dist.pdf}}
+  \caption{\label{fig:joint}%
+    \textbf{Joint held-out convergence.} Joint held-out error over $1000$ random
+    off-node points against solver node count (logarithmic, shared between
+    panels), with the Smolyak level $\ell=1$--$5$ labeled at each point, shown as
+    the best, median, and worst of the distribution.
+    \newtext{\emph{Left (four-dimensional model):} the}
+    \newtext{value-only sparse interpolant against the gradient-enhanced}
+    \newtext{model enhanced on the two spin axes, whose median error is lower}
+    \newtext{at every level.}
+    \emph{Right (eight-dimensional model):} the same two curves.}
 \newtextbegin \end{figure*}\newtextend{}
 
 \newtextbegin \subsection{Offline cost and certified refinement}\newtextend{}
@@ -857,22 +875,8 @@ not. \newtext{Enhancing a \emph{single} axis always improves on the value interp
 \newtext{A certified query is the same contraction followed by a warm-started solve.}
 \newtext{Its saving over a cold solve is the reduced number of Newton steps: a median of two in both dimensions, against three and four from cold starts in four and eight dimensions, respectively (Fig.~\ref{fig:polish}).}
 
-\begin{figure*}[tp]
-  \newtext{\centering}
-  \newtext{\includegraphics[width=\textwidth]{fig03_joint_dist.pdf}}
-  \caption{\label{fig:joint}%
-    \textbf{Joint held-out convergence.} Joint held-out error over $1000$ random
-    off-node points against solver node count (logarithmic, shared between
-    panels), with the Smolyak level $\ell=1$--$5$ labeled at each point, shown as
-    the best, median, and worst of the distribution.
-    \newtext{\emph{Left (four-dimensional model):} the}
-    \newtext{value-only sparse interpolant against the gradient-enhanced}
-    \newtext{model enhanced on the two spin axes, whose median error is lower}
-    \newtext{at every level.}
-    \emph{Right (eight-dimensional model):} the same two curves.}
-\newtextbegin \end{figure*}\newtextend{}
 
-% Figs. 4 and 5 are [t], not [tp]: allowed a float page, Fig. 5 took one to itself, half empty.
+% Figs. 1, 2, 4 and 5 are [t], not [tp]: allowed a float page, they took one, part empty.
 \begin{figure*}[t]
   \newtext{\centering}
   \newtext{\includegraphics[width=\textwidth]{fig04_polish_staircase.pdf}}
@@ -1440,9 +1444,9 @@ first rotate both data sets to a common Cartesian frame. \newtext{We verified th
 \newtext{same meridional resolution sequence for each: $28\times24$, $36\times32$, $44\times40$, $52\times48$, and $64\times56$, at $N_\phi=8$, $12$, and $16$. Every}
 \newtext{configuration is compared with a single TwoPunctures solve at}
 \newtext{$72\times72\times24$, which out-resolves the finest of our own grids in every}
-\newtext{direction.}
+\newtext{direction.\footnote{We estimate pointwise differences on $70$ fixed interior probe points, clear of both punctures and covering the full azimuthal range. The reference solve's own meridional truncation is negligible: its field moves by below $10^{-11}$ across the sampled box between its own $72\times72$ and $96\times96$ meridional resolutions.}}
 
-\newtext{The pointwise field difference decreases to the production grid and then plateaus at $N_\phi=8$ (Fig.~\ref{fig:tpval}).\footnote{We estimate pointwise differences on $70$ fixed interior probe points, clear of both punctures and covering the full azimuthal range. The reference solve's own meridional truncation is negligible: its field moves by below $10^{-11}$ across the sampled box between its own $72\times72$ and $96\times96$ meridional resolutions.}}
+\newtext{The pointwise field difference decreases to the production grid and then plateaus at $N_\phi=8$ (Fig.~\ref{fig:tpval}).}
 \newtext{Small variations on the plateau make most individual sequences non-monotone somewhere, so we do not claim monotone convergence for every configuration.}
 \newtext{The plateau is set by our azimuthal resolution, not by the meridional grid or by the reference: at $N_\phi=12$ and $16$ the same configurations show no plateau.}
 \newtext{At $N_\phi=16$ the difference keeps decreasing with the meridional grid, and at the production grid it is already about two orders of magnitude below the plateau.}
