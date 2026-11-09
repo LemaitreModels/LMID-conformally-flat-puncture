@@ -7,6 +7,33 @@ a 1-D B-operator**, so it can be applied with two small matmuls and inverted
 exactly by two one-dimensional eigendecompositions — the Fast Diagonalization
 Method (Lynch, Rice & Thomas, *Numer. Math.* **6**, 185 (1964)).
 
+Names in the paper
+------------------
+The paper derives this construction in its appendix on the separable preconditioner,
+for the ``"gauss"`` radial grid of the production scheme only (equation (2) below;
+the ``"lobatto"`` grid of equation (1) and its static condensation are not in the
+paper).  The code keeps the leaf's own array names; they map onto the paper's symbols
+as follows:
+
+* ``G_A``, ``G_B`` (returned by ``kron_factors``, held per mode in ``SeparableModes.G_A`` and
+  ``.G_B``): the one-dimensional operators :math:`G_A^{(m)}` and :math:`G_B^{(m)}`.
+* the array ``W`` (``operators_3d.bc_factor``, ``SeparableModes.W``): the diagonal
+  of :math:`W_B`, with entries :math:`\\omega_m(B_j)=(1-B_j^2)^{k_m/2}`.
+* the array ``fA`` (``f`` in the formulas below, ``SeparableModes.fA``): the
+  diagonal of :math:`W_A`, with entries :math:`A_i-1`.
+* ``pref`` (``pref1`` at ``b = 1``): the common prefactor :math:`\\mathcal{P}`.
+* ``G_red`` on ``"gauss"``, i.e. ``G_A / fA[:, None]``:
+  :math:`\\mathcal{G}_A^{(m)}=W_A^{-1}G_A^{(m)}`.
+* ``G_B / W[:, None]``: :math:`\\mathcal{G}_B^{(m)}=W_B^{-1}G_B^{(m)}`.
+* ``V`` (shape ``(Na+1, Nb)``): the smooth mode array :math:`v^{(m)}`.
+* ``M0_m`` and ``Mv``: the Fourier block :math:`M_0^{(m)}`.
+
+``W`` and ``fA`` hold the diagonal *entries* (vectors); the paper's ``W_A`` and
+``W_B`` are the diagonal *matrices* built from them, and the formulas below use
+``W_A = diag(fA)`` and ``W_B = diag(W)`` in that sense.  ``fA`` keeps the name the
+radial factor has throughout the family (``operators_3d``, the curved sibling's
+charts), so it is not renamed here.
+
 Why the block separates
 -----------------------
 ``operators_abt._coeffs`` returns all four prolate Laplacian coefficients as a
@@ -37,12 +64,12 @@ prolate spheroidal harmonics exist — and it splits the centrifugal coefficient
 into a pure-A piece and a pure-B piece.  It is an identity, not an approximation.
 
 With the associated-Legendre factoring ``u_m = W v_m``, ``W = (1−B²)^{|m|/2}`` (a
-function of B alone, see ``operators_3d.bc_factor``), the whole interior block is
-therefore, exactly::
+function of B alone, see ``operators_3d.bc_factor``) and ``W_B = diag(W)``, the whole
+interior block is therefore, exactly::
 
-    diag(1/pref) · Mv = kron(L_A^m, diag(W)) + kron(I, C_B^m)                (1)
+    diag(1/pref) · Mv = kron(G_A^m, W_B) + kron(I, G_B^m)                    (1)
 
-with ``L_A^m`` of size (Na+1)² and ``C_B^m`` of size Nb².  Kronecker rank 2, for
+with ``G_A^m`` of size (Na+1)² and ``G_B^m`` of size Nb².  Kronecker rank 2, for
 every m.  Regime of validity: this is read off the FLAT prolate Laplacian of
 ``operators_abt._coeffs``.  It does not automatically carry over to a
 non-conformally-flat operator — a successor with a different meridian operator
@@ -50,13 +77,13 @@ must re-derive (1) rather than assume it.
 
 Why that gives an exact inverse
 -------------------------------
-Left-multiplying (1) by ``kron(I, W^-1)`` turns it into a true Kronecker SUM::
+Left-multiplying (1) by ``kron(I, W_B^-1)`` turns it into a true Kronecker SUM::
 
-    kron(L_A^m, I) + kron(I, W^-1 C_B^m)
+    kron(G_A^m, I) + kron(I, W_B^-1 G_B^m)
 
 whose action on the array form ``V`` (shape (Na+1, Nb)) is the Sylvester operator
-``L_A V + V (W^-1 C_B)^T``.  Diagonalising each 1-D factor once,
-``L_A = S_A Λ_A S_A^-1`` and ``(W^-1 C_B)^T = S_B Λ_B S_B^-1``, turns the solve
+``G_A V + V (W_B^-1 G_B)^T``.  Diagonalising each 1-D factor once,
+``G_A = S_A Λ_A S_A^-1`` and ``(W_B^-1 G_B)^T = S_B Λ_B S_B^-1``, turns the solve
 into a division by ``λ_A^i + λ_B^j``: ``O(Na·Nb·(Na+Nb))`` per apply after an
 ``O(Na³+Nb³)`` setup, storing ``O(Na²+Nb²)`` numbers instead of ``O((Na·Nb)²)``.
 
@@ -70,16 +97,16 @@ matrix whose raw condition number is ~1e13–1e15.
 The ``"gauss"`` radial grid
 ---------------------------
 On a ``"gauss"`` radial grid (``operators_abt.RADIAL_MAPS``) the unknown is ``V``
-with ``u_m = f W V``, ``f = A − 1``, there is no boundary row, and the same
-reading of ``_coeffs`` gives, with ``F = diag(f)``::
+with ``u_m = f W V``, ``f = A − 1`` (the array ``fA``), there is no boundary row,
+and the same reading of ``_coeffs`` gives, with ``W_A = diag(f)``::
 
-    diag(1/pref) · Mv = kron(L_A^m, diag(W)) + kron(F, C_B^m)                (2)
+    diag(1/pref) · Mv = kron(G_A^m, W_B) + kron(W_A, G_B^m)                  (2)
 
-where ``L_A^m`` is built from the ``A``-derivatives of ``f V``
+where ``G_A^m`` is built from the ``A``-derivatives of ``f V``
 (``operators_abt.radial_derivs``) and its centrifugal piece is ``f·oa2²/(4A²)``.
-``f ≠ 0`` at every Gauss node, so left-multiplying by ``kron(F⁻¹, W⁻¹)`` gives the
-Kronecker sum ``kron(F⁻¹ L_A^m, I) + kron(I, W⁻¹ C_B^m)`` directly — the same
-Sylvester solve with ``F⁻¹ L_A^m`` in place of the condensed ``L_red``, and
+``f ≠ 0`` at every Gauss node, so left-multiplying by ``kron(W_A⁻¹, W_B⁻¹)`` gives the
+Kronecker sum ``kron(W_A⁻¹ G_A^m, I) + kron(I, W_B⁻¹ G_B^m)`` directly — the same
+Sylvester solve with ``W_A⁻¹ G_A^m`` in place of the condensed ``G_red``, and
 nothing to condense.
 
 Why the setup is done once for the whole model
@@ -134,16 +161,16 @@ def pref_rows(A, B, b: float) -> np.ndarray:
 
 
 def kron_factors(A, B, DA1, DB1, m: int):
-    """The pair ``(L_A^m, C_B^m)`` of equation (1), plus the B-factor ``W``.
+    """The pair ``(G_A^m, G_B^m)`` of equation (1), plus the B-factor ``W``.
 
-    ``L_A^m`` is (Na+1)², ``C_B^m`` is Nb², ``W`` is (Nb,).  Both matrices are
+    ``G_A^m`` is (Na+1)², ``G_B^m`` is Nb², ``W`` is (Nb,).  Both matrices are
     independent of the separation ``b`` — that is the whole point (see the module
     docstring) — and of every physical parameter.
 
     On a ``"gauss"`` radial grid (``operators_abt.RADIAL_MAPS``) the block is
-    equation (2) of the module docstring instead: ``L_A^m`` is built from the
+    equation (2) of the module docstring instead: ``G_A^m`` is built from the
     ``A``-derivatives of ``u = (A − 1) V`` (``operators_abt.radial_derivs``) and its
-    centrifugal piece carries ``A − 1``; ``C_B^m`` and ``W`` are unchanged.
+    centrifugal piece carries ``A − 1``; ``G_B^m`` and ``W`` are unchanged.
     """
     A = np.asarray(A, dtype=float)
     B = np.asarray(B, dtype=float)
@@ -159,9 +186,9 @@ def kron_factors(A, B, DA1, DB1, m: int):
     fA = None
     if ops.radial_of(A, DA1) == "gauss":
         fA, DAu1, DAAu1 = ops.radial_derivs(A, DA1)
-        L_A = (oa2 ** 2 / 4.0)[:, None] * DAAu1 + (oa2 ** 2 / (4.0 * Asafe))[:, None] * DAu1
+        G_A = (oa2 ** 2 / 4.0)[:, None] * DAAu1 + (oa2 ** 2 / (4.0 * Asafe))[:, None] * DAu1
     else:
-        L_A = ((oa2 ** 2 / 4.0)[:, None] * (DA1 @ DA1)
+        G_A = ((oa2 ** 2 / 4.0)[:, None] * (DA1 @ DA1)
                + (oa2 ** 2 / (4.0 * Asafe))[:, None] * DA1)
 
     # --- B direction.  The associated-Legendre factoring u_m = W v_m, expanded
@@ -173,16 +200,16 @@ def kron_factors(A, B, DA1, DB1, m: int):
     DBB1 = ops.angular_d2(B, DB1)
     if DBB1 is None:
         DBB1 = DB1 @ DB1
-    C_B = (ob2[:, None] * (np.diag(Wpp) + 2.0 * Wp[:, None] * DB1 + W[:, None] * DBB1)
+    G_B = (ob2[:, None] * (np.diag(Wpp) + 2.0 * Wp[:, None] * DB1 + W[:, None] * DBB1)
            + (-2.0 * B)[:, None] * (np.diag(Wp) + W[:, None] * DB1))
 
     # --- centrifugal: exactly separable, so it folds into the two factors above
     # (on a "gauss" grid its A-half multiplies V, so it carries the factor A − 1)
     if m:
         cA = oa2 ** 2 / (4.0 * Asafe ** 2)
-        L_A = L_A - (m ** 2) * np.diag(cA if fA is None else fA * cA)
-        C_B = C_B - (m ** 2) * np.diag(W / ob2)
-    return L_A, C_B, W
+        G_A = G_A - (m ** 2) * np.diag(cA if fA is None else fA * cA)
+        G_B = G_B - (m ** 2) * np.diag(W / ob2)
+    return G_A, G_B, W
 
 
 # --------------------------------------------------------------------------
@@ -194,50 +221,50 @@ class _FastDiagonalization:
     Built at ``b=1``; the separation enters ``solve`` as a scalar row factor.
     """
 
-    def __init__(self, L_A, C_B, W, DA1, m: int, pref1: np.ndarray, fA=None):
-        n = L_A.shape[0]
+    def __init__(self, G_A, G_B, W, DA1, m: int, pref1: np.ndarray, fA=None):
+        n = G_A.shape[0]
         # ``fA`` (the radial factor A − 1 of a "gauss" grid) means equation (2):
-        # no boundary rows, and the Sylvester A-operator is F⁻¹ L_A.
+        # no boundary rows, and the Sylvester A-operator is W_A⁻¹ G_A.
         self.fA = None if fA is None else np.asarray(fA, dtype=float)
         if self.fA is not None:
             self.i_bc = np.array([], dtype=int)
             self.i_in = np.arange(n)
-            L_red = np.asarray(L_A, dtype=float) / self.fA[:, None]
+            G_red = np.asarray(G_A, dtype=float) / self.fA[:, None]
         else:
             self.i_bc = np.array([0, n - 1])
             self.i_in = np.arange(1, n - 1)
 
             # --- impose the two A-only boundary rows inside the 1-D A operator ---
-            L = np.array(L_A, dtype=float)
-            L[0, :] = 0.0
-            L[0, 0] = 1.0                               # A=1 (infinity): Dirichlet
+            G = np.array(G_A, dtype=float)
+            G[0, :] = 0.0
+            G[0, 0] = 1.0                               # A=1 (infinity): Dirichlet
             if m == 0:
-                L[-1, :] = np.asarray(DA1, dtype=float)[-1, :]   # A=0: Neumann
+                G[-1, :] = np.asarray(DA1, dtype=float)[-1, :]   # A=0: Neumann
             else:
-                L[-1, :] = 0.0
-                L[-1, -1] = 1.0                         # A=0: Dirichlet for m≠0
+                G[-1, :] = 0.0
+                G[-1, -1] = 1.0                         # A=0: Dirichlet for m≠0
 
             # --- exact static condensation of those two rows ---
-            # They are A-only, so in the array form they read  L_bb V_b + L_bi V_i = F_b
+            # They are A-only, so in the array form they read  G_bb V_b + G_bi V_i = F_b
             # with no B coupling at all; eliminating V_b leaves a Sylvester equation in
             # V_i alone.  This is what preserves the Kronecker structure — a boundary
             # condition that mixed A and B would destroy it.
-            Lbb = L[np.ix_(self.i_bc, self.i_bc)]
-            Lbi = L[np.ix_(self.i_bc, self.i_in)]
-            Lib = L[np.ix_(self.i_in, self.i_bc)]
-            Lii = L[np.ix_(self.i_in, self.i_in)]
-            self.Lbb_inv = np.linalg.inv(Lbb)
-            self.Kb = self.Lbb_inv @ Lbi                # V_b = Lbb⁻¹ F_b − Kb V_i
-            self.Lib_Lbbinv = Lib @ self.Lbb_inv
-            L_red = Lii - self.Lib_Lbbinv @ Lbi
+            Gbb = G[np.ix_(self.i_bc, self.i_bc)]
+            Gbi = G[np.ix_(self.i_bc, self.i_in)]
+            Gib = G[np.ix_(self.i_in, self.i_bc)]
+            Gii = G[np.ix_(self.i_in, self.i_in)]
+            self.Gbb_inv = np.linalg.inv(Gbb)
+            self.Kb = self.Gbb_inv @ Gbi                # V_b = Gbb⁻¹ F_b − Kb V_i
+            self.Gib_Gbbinv = Gib @ self.Gbb_inv
+            G_red = Gii - self.Gib_Gbbinv @ Gbi
 
         # --- the two 1-D eigendecompositions (the entire setup cost) ---
         # Both operators are NON-symmetric (first-derivative terms), so these are
         # general eigendecompositions and the eigenvector matrices are not
         # orthogonal.  cond(S_A), cond(S_B) are recorded: they bound how much the
         # double diagonalization can amplify roundoff, and cond(S_B) grows with m.
-        lamA, SA = np.linalg.eig(L_red)
-        lamB, SB = np.linalg.eig((C_B / W[:, None]).T)   # (W⁻¹ C_B)ᵀ
+        lamA, SA = np.linalg.eig(G_red)
+        lamB, SB = np.linalg.eig((G_B / W[:, None]).T)   # (W⁻¹ G_B)ᵀ
         # NumPy 2 returns complex from eig unconditionally; these spectra are
         # real (imaginary parts EXACTLY zero — checked, not assumed), so the
         # factors are cast back to real.  The cast alone would be a REGRESSION:
@@ -284,26 +311,26 @@ class _FastDiagonalization:
     def _solve_one(self, Y: np.ndarray, b: float) -> np.ndarray:
         """One pass of the fast-diagonalization solve, dtype following ``Y``."""
         if self.fA is not None:
-            # equation (2): every row is a PDE row; undo pref, then F⁻¹ (rows) and
-            # W⁻¹ (columns) turn it into the Kronecker sum — nothing to condense.
+            # equation (2): every row is a PDE row; undo pref, then W_A⁻¹ (rows) and
+            # W_B⁻¹ (columns) turn it into the Kronecker sum — nothing to condense.
             F = ((Y * (b ** 2) / self.pref_in) / self.W[None, :]) / self.fA[:, None]
             return self.SA @ ((self.SAi @ F @ self.SB) / self.den) @ self.SBi
         rhs_b = Y[self.i_bc]                            # BC rows carry no pref factor
 
         # Interior rows: undo the row factor pref = pref1/b², then divide by W,
-        # which turns kron(L_A, W) + kron(I, C_B) into the Kronecker SUM
-        # kron(L_A, I) + kron(I, W⁻¹C_B).  The static-condensation correction
-        # −L_ib L_bb⁻¹ F_b enters AFTER that division: it comes from eliminating
+        # which turns kron(G_A, W) + kron(I, G_B) into the Kronecker SUM
+        # kron(G_A, I) + kron(I, W⁻¹G_B).  The static-condensation correction
+        # −G_ib G_bb⁻¹ F_b enters AFTER that division: it comes from eliminating
         # V_b out of the already-W-divided interior equation, so dividing it by W
         # as well would be wrong for every m≠0 (and invisible at m=0, where W=1).
         F = (Y[self.i_in] * (b ** 2) / self.pref_in) / self.W[None, :]
-        F = F - self.Lib_Lbbinv @ rhs_b
+        F = F - self.Gib_Gbbinv @ rhs_b
 
-        # Sylvester solve  L_red V + V (W⁻¹C_B)ᵀ = F  by double diagonalization
+        # Sylvester solve  G_red V + V (W⁻¹G_B)ᵀ = F  by double diagonalization
         V_i = self.SA @ ((self.SAi @ F @ self.SB) / self.den) @ self.SBi
         out = np.empty((self.n, Y.shape[1]), dtype=V_i.dtype)
         out[self.i_in] = V_i
-        out[self.i_bc] = self.Lbb_inv @ rhs_b - self.Kb @ V_i
+        out[self.i_bc] = self.Gbb_inv @ rhs_b - self.Kb @ V_i
         return out
 
 
@@ -335,13 +362,13 @@ class SeparableModes:
         # on "lobatto", where the two edge rows are boundary conditions instead
         self.fA = ops.radial_factor(A)
 
-        self.L_A, self.C_B, self.W, self.fdm = [], [], [], []
+        self.G_A, self.G_B, self.W, self.fdm = [], [], [], []
         for m in self.m_vals:
-            L_A, C_B, W = kron_factors(A, B, DA1, DB1, int(m))
-            self.L_A.append(L_A)
-            self.C_B.append(C_B)
+            G_A, G_B, W = kron_factors(A, B, DA1, DB1, int(m))
+            self.G_A.append(G_A)
+            self.G_B.append(G_B)
             self.W.append(W)
-            self.fdm.append(_FastDiagonalization(L_A, C_B, W, DA1, int(m), self.pref1,
+            self.fdm.append(_FastDiagonalization(G_A, G_B, W, DA1, int(m), self.pref1,
                                                  fA=self.fA))
 
         # Grid-only pieces of a separable ASSEMBLY, shared by every slice built
@@ -390,9 +417,9 @@ class SeparableModes:
         """
         m = int(self.m_vals[mi])
         if self.fA is not None:                         # equation (2): no BC rows
-            out = (self.L_A[mi] @ V) * self.W[mi][None, :] + self.fA[:, None] * (V @ self.C_B[mi].T)
+            out = (self.G_A[mi] @ V) * self.W[mi][None, :] + self.fA[:, None] * (V @ self.G_B[mi].T)
             return out * self._pref_at(b)
-        out = (self.L_A[mi] @ V) * self.W[mi][None, :] + V @ self.C_B[mi].T
+        out = (self.G_A[mi] @ V) * self.W[mi][None, :] + V @ self.G_B[mi].T
         out = out * self._pref_at(b)
         out[0, :] = V[0, :]                             # A=1 Dirichlet, every m
         out[-1, :] = (self.DA1[-1, :] @ V) if m == 0 else V[-1, :]
@@ -408,8 +435,8 @@ class SeparableModes:
         """``[max|M0_m row|]`` per mode — the same numbers as
         ``solver_3d_nk._block_scales``, in ``O(Na·Nb)`` instead of ``O((Na·Nb)²)``.
 
-        Row ``(i,j)`` of the interior block has entries ``pref_ij·L_A[i,k]·W_j`` at
-        columns ``(k,j)`` and ``pref_ij·C_B[j,l]`` at columns ``(i,l)``; the two
+        Row ``(i,j)`` of the interior block has entries ``pref_ij·G_A[i,k]·W_j`` at
+        columns ``(k,j)`` and ``pref_ij·G_B[j,l]`` at columns ``(i,l)``; the two
         overlap only at ``(i,j)``, where they add.  So the row maximum is the
         largest of three quantities that are cheap to precompute per row and per
         column, and no ``(Na·Nb)²`` array is ever touched.
@@ -423,10 +450,10 @@ class SeparableModes:
             return self._memo(self._scales, key, self._row_scales_gauss(pref, u=False))
         scales = []
         for mi, m in enumerate(self.m_vals):
-            L_A, C_B, W = self.L_A[mi], self.C_B[mi], self.W[mi]
-            offA = np.max(np.abs(L_A - np.diag(np.diag(L_A))), axis=1)        # (Na+1,)
-            offB = np.max(np.abs(C_B - np.diag(np.diag(C_B))), axis=1)        # (Nb,)
-            both = np.abs(np.diag(L_A)[:, None] * W[None, :] + np.diag(C_B)[None, :])
+            G_A, G_B, W = self.G_A[mi], self.G_B[mi], self.W[mi]
+            offA = np.max(np.abs(G_A - np.diag(np.diag(G_A))), axis=1)        # (Na+1,)
+            offB = np.max(np.abs(G_B - np.diag(np.diag(G_B))), axis=1)        # (Nb,)
+            both = np.abs(np.diag(G_A)[:, None] * W[None, :] + np.diag(G_B)[None, :])
             s = np.maximum(np.maximum(offA[:, None] * np.abs(W)[None, :],
                                       offB[None, :]), both) * pref
             # the two BC row-blocks, written out as apply_bcs_m sets them
@@ -457,7 +484,7 @@ class SeparableModes:
         ``bc_factor(Bf, m)`` and so depends on the ``B`` index alone — asserted
         below, because the whole shortcut rests on it.  Writing a node index as
         ``(i, j)`` for ``(A_i, B_j)``, row ``(i,j)`` of the interior block has
-        entries ``pref_ij·L_A[i,k]·W_j`` at columns ``(k,j)`` and ``pref_ij·C_B[j,l]``
+        entries ``pref_ij·G_A[i,k]·W_j`` at columns ``(k,j)`` and ``pref_ij·G_B[j,l]``
         at columns ``(i,l)``, overlapping only at ``(i,j)`` where they add.  The
         two families sit at different ``B`` indices, so they divide by different
         ``w``:
@@ -465,7 +492,7 @@ class SeparableModes:
         * columns ``(k,j)`` all share ``B_j``  -> one factor ``1/w_j``, and the row
           maximum over ``k != i`` is ``offA[i]·|W_j|/w_j`` as before;
         * columns ``(i,l)`` run over ``B_l``   -> the max over ``l != j`` must be
-          taken of ``|C_B[j,l]|/w_l``, which is a **different vector** from
+          taken of ``|G_B[j,l]|/w_l``, which is a **different vector** from
           ``offB``, not a rescaling of it;
         * the overlap at ``(i,j)`` divides by ``w_j``.
 
@@ -488,17 +515,17 @@ class SeparableModes:
             return self._memo(self._scales_u, key, self._row_scales_gauss(pref, u=True))
         scales_u = []
         for mi, m in enumerate(self.m_vals):
-            L_A, C_B, W = self.L_A[mi], self.C_B[mi], self.W[mi]
+            G_A, G_B, W = self.G_A[mi], self.G_B[mi], self.W[mi]
             wR = np.asarray(self.w_nodes[mi]).reshape(self.Na1, self.Nb1)
             wB = wR[0, :]
             assert np.array_equal(wR, np.broadcast_to(wB, wR.shape)), (
                 "row_scales_u assumes w depends on the B index alone (bc_factor(Bf, m)); "
                 "it does not on this grid, so the O(Na·Nb) shortcut is invalid here")
             wB = np.where(np.abs(wB) > 0.0, np.abs(wB), 1.0)
-            offA = np.max(np.abs(L_A - np.diag(np.diag(L_A))), axis=1)        # (Na+1,)
-            CB_off = np.abs(C_B - np.diag(np.diag(C_B)))                      # (Nb, Nb)
-            offB_u = np.max(CB_off / wB[None, :], axis=1)                     # (Nb,)
-            both = np.abs(np.diag(L_A)[:, None] * W[None, :] + np.diag(C_B)[None, :])
+            offA = np.max(np.abs(G_A - np.diag(np.diag(G_A))), axis=1)        # (Na+1,)
+            GB_off = np.abs(G_B - np.diag(np.diag(G_B)))                      # (Nb, Nb)
+            offB_u = np.max(GB_off / wB[None, :], axis=1)                     # (Nb,)
+            both = np.abs(np.diag(G_A)[:, None] * W[None, :] + np.diag(G_B)[None, :])
             s = np.maximum(np.maximum(offA[:, None] * np.abs(W)[None, :] / wB[None, :],
                                       offB_u[None, :]), both / wB[None, :]) * pref
             # the two BC row-blocks: every entry of each sits at one B index, so
@@ -524,34 +551,34 @@ class SeparableModes:
         """:meth:`row_scales` (``u=False``) or :meth:`row_scales_u` (``u=True``) on a
         ``"gauss"`` grid, from equation (2), still without forming a row.
 
-        Row ``(i,j)`` has entries ``pref_ij·L_A[i,k]·W_j`` at columns ``(k,j)`` and
-        ``pref_ij·f_i·C_B[j,l]`` at columns ``(i,l)``, overlapping at ``(i,j)`` where
+        Row ``(i,j)`` has entries ``pref_ij·G_A[i,k]·W_j`` at columns ``(k,j)`` and
+        ``pref_ij·f_i·G_B[j,l]`` at columns ``(i,l)``, overlapping at ``(i,j)`` where
         they add; there are no boundary rows.  The ``u`` norm divides column
         ``(k,l)`` by ``|w_kl| = |f_k|·|W_l|`` (``w`` now depends on both indices, which
         is why the ``"lobatto"`` shortcut's assertion would not hold here):
 
-        * columns ``(k,j)``, ``k != i``: ``|L_A[i,k]|·|W_j| / (|f_k|·|W_j|)`` — the ``W``
-          cancels, leaving ``max_k |L_A[i,k]|/|f_k|``;
-        * columns ``(i,l)``, ``l != j``: ``|f_i|·|C_B[j,l]| / (|f_i|·|W_l|)`` — the
-          ``f`` cancels, leaving ``max_l |C_B[j,l]|/|W_l|``;
+        * columns ``(k,j)``, ``k != i``: ``|G_A[i,k]|·|W_j| / (|f_k|·|W_j|)`` — the ``W``
+          cancels, leaving ``max_k |G_A[i,k]|/|f_k|``;
+        * columns ``(i,l)``, ``l != j``: ``|f_i|·|G_B[j,l]| / (|f_i|·|W_l|)`` — the
+          ``f`` cancels, leaving ``max_l |G_B[j,l]|/|W_l|``;
         * the overlap divides by ``|f_i|·|W_j|``.
         """
         fa = np.abs(self.fA)
         out = []
         for mi in range(self.m_vals.size):
-            L_A, C_B, W = self.L_A[mi], self.C_B[mi], self.W[mi]
+            G_A, G_B, W = self.G_A[mi], self.G_B[mi], self.W[mi]
             Wa = np.abs(W)
-            LA_off = np.abs(L_A - np.diag(np.diag(L_A)))
-            CB_off = np.abs(C_B - np.diag(np.diag(C_B)))
-            both = np.abs(np.diag(L_A)[:, None] * W[None, :]
-                          + self.fA[:, None] * np.diag(C_B)[None, :])
+            GA_off = np.abs(G_A - np.diag(np.diag(G_A)))
+            GB_off = np.abs(G_B - np.diag(np.diag(G_B)))
+            both = np.abs(np.diag(G_A)[:, None] * W[None, :]
+                          + self.fA[:, None] * np.diag(G_B)[None, :])
             if u:
-                s = np.maximum(np.maximum(np.max(LA_off / fa[None, :], axis=1)[:, None],
-                                          np.max(CB_off / Wa[None, :], axis=1)[None, :]),
+                s = np.maximum(np.maximum(np.max(GA_off / fa[None, :], axis=1)[:, None],
+                                          np.max(GB_off / Wa[None, :], axis=1)[None, :]),
                                both / (fa[:, None] * Wa[None, :]))
             else:
-                s = np.maximum(np.maximum(np.max(LA_off, axis=1)[:, None] * Wa[None, :],
-                                          fa[:, None] * np.max(CB_off, axis=1)[None, :]),
+                s = np.maximum(np.maximum(np.max(GA_off, axis=1)[:, None] * Wa[None, :],
+                                          fa[:, None] * np.max(GB_off, axis=1)[None, :]),
                                both)
             s = (s * pref).ravel()
             out.append(np.where(s > 0.0, s, 1.0))

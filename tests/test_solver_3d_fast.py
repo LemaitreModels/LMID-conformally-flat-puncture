@@ -523,7 +523,7 @@ def test_separable_row_scales_u():
     ``operators_3d.u_row_scales``'s definition.  It is a genuine derivation and not
     a rescaling of :meth:`row_scales`: the ``u`` norm divides by column while a row
     scale maxes over columns, so the B-block's off-diagonal term needs its own
-    ``max_l |C_B[j,l]|/w_l`` and is not ``offB[j]/w_j``.  Getting it wrong is
+    ``max_l |G_B[j,l]|/w_l`` and is not ``offB[j]/w_j``.  Getting it wrong is
     invisible on the default norm — nothing divides by these until the norm is
     selected — so this gate is what makes it visible.
     """

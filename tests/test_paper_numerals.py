@@ -140,7 +140,7 @@ def test_the_oracle_meridional_bound_matches_its_artifact():
         "paper states; re-derive the footnote rather than widening the assert")
 
     tex = _text(PAPER)
-    assert "moves by below $10^{-11}$ across the sampled box" in tex, (
+    assert "moves by less than $10^{-11}$ across the sampled box" in tex, (
         f"App. A's footnote no longer states the {stated:.0e} box-wide bound that "
         f"oracle/meridional_selfconv.json supports (measured max {mx:.3e})")
     assert "9\\times10^{-16}" not in tex, (

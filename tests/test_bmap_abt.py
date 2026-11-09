@@ -201,9 +201,9 @@ def test_every_operator_uses_the_exact_second_derivative_on_abt_only():
     assert ops.angular_d2(*ops.build_grid(Na, Nb, "cos", radial="lobatto")[1::2]) is None
     assert ops.d2_dB2_1d(Nb, "cos") is None
     assert ops.angular_d2(B * (1 + 1e-15), DB1) is None
-    # separable, m = 0: C_B = (1 − B²) d²/dB² − 2B d/dB with exactly that matrix
-    _, C_B, _ = separable.kron_factors(A, B, DA1, DB1, 0)
-    assert np.array_equal(C_B, (1.0 - B ** 2)[:, None] * DBB1 + (-2.0 * B)[:, None] * DB1)
+    # separable, m = 0: G_B = (1 − B²) d²/dB² − 2B d/dB with exactly that matrix
+    _, G_B, _ = separable.kron_factors(A, B, DA1, DB1, 0)
+    assert np.array_equal(G_B, (1.0 - B ** 2)[:, None] * DBB1 + (-2.0 * B)[:, None] * DB1)
     # dense 3-D pieces and the 2-D operator carry the same B-squaring
     p = ops3._mode_independent_pieces(A, B, DA1, DB1, 3.0)
     assert np.array_equal(p["DBB"], np.kron(np.eye(Na + 1), DBB1))

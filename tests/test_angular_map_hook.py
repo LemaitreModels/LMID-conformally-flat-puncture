@@ -125,8 +125,8 @@ def test_second_derivative_is_exact_and_every_operator_uses_it():
     err_nested = np.max(np.abs(DB1 @ (DB1 @ p) - ref)) / np.max(np.abs(ref))
     print(f"\n[blend d2] exact {err_exact:.1e}, nested square {err_nested:.1e}")
     assert err_exact < 1e-11 and err_nested > 1e-6
-    _, C_B, _ = separable.kron_factors(A, B, DA1, DB1, 0)
-    assert np.array_equal(C_B, (1.0 - B ** 2)[:, None] * DBB1 + (-2.0 * B)[:, None] * DB1)
+    _, G_B, _ = separable.kron_factors(A, B, DA1, DB1, 0)
+    assert np.array_equal(G_B, (1.0 - B ** 2)[:, None] * DBB1 + (-2.0 * B)[:, None] * DB1)
     pc = ops3._mode_independent_pieces(A, B, DA1, DB1, 3.0)
     assert np.array_equal(pc["DBB"], np.kron(np.eye(Na + 1), DBB1))
 

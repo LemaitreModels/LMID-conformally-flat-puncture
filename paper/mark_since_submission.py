@@ -397,7 +397,9 @@ def mark(sub, cur):
         lead = len(ln) - len(ln.lstrip())
         out[first] = ln[:lead] + B + ln[lead:]
         lb = out[last].rstrip("\n")
-        out[last] = lb + EL + out[last][len(lb):]
+        # no {} here: after a display the newline must vanish, and an unexpandable {} would
+        # stop LaTeX's \ignorespacesafterend and indent the next line by a space
+        out[last] = lb + E.rstrip() + out[last][len(lb):]
         stats["display_blocks"] += 1
     res = "".join(out)
     i = res.index("\\begin{document}")
