@@ -84,6 +84,18 @@ def scheme_of(d):
     return (meta or {}).get("scheme", "paper-v1") if isinstance(meta, dict) else "paper-v1"
 
 
+def qc_prescription_of(d):
+    """The quasi-circular momentum prescription a figdata was distilled under
+    (``meta.code.qc_prescription``), or ``None`` for one written before the stamp existed.
+
+    It is the stamp of the code that DISTILLED the figdata, so it vouches for the inputs only
+    when they were produced under the same prescription — a rebuild reads a fresh
+    ``$LM_REPORTS`` base for exactly that reason."""
+    meta = d.get("meta") if isinstance(d, dict) else None
+    code = (meta or {}).get("code") if isinstance(meta, dict) else None
+    return (code or {}).get("qc_prescription") if isinstance(code, dict) else None
+
+
 def missing_keys(stem, d):
     """Declared plotter keys (registry.FIGURES[stem]['keys']) absent from a loaded figdata."""
     return [k for k in _reg.keys_for(stem) if k not in d]

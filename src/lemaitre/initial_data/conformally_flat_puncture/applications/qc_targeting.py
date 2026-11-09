@@ -158,7 +158,9 @@ def _pt_jax(b, q, chi_Ay, chi_By, M_tot=1.0, pn_order=3, spin_orbit=True):
     mu = m_A * m_B / M
     nu = mu / M
     x = M / (2.0 * b)
-    s = jnp.sqrt(x) + 2.0 * x ** 1.5
+    s = jnp.sqrt(x)
+    if pn_order >= 1:
+        s = s + 2.0 * x ** 1.5
     if pn_order >= 2:
         s = s + (1.0 / 16.0) * (42.0 - 43.0 * nu) * x ** 2.5
     if pn_order >= 3:
@@ -166,11 +168,12 @@ def _pt_jax(b, q, chi_Ay, chi_By, M_tot=1.0, pn_order=3, spin_orbit=True):
         s = s + (1.0 / 128.0) * c3 * x ** 3.5
     p_t = mu * s
     if spin_orbit:
+        from ..parametric import quasicircular as qc
         chi_A = chi_Ay
         chi_B = chi_By
         qh = m_B / m_A                                     # m1 = m_A (larger), q≥1
-        coeff = (2.0 / (3.0 * (1.0 + qh) ** 2)) * ((4.0 + 3.0 * qh) * chi_A
-                                                    + qh * (3.0 + 4.0 * qh) * chi_B)
+        coeff = (qc.SO_COEFF / (1.0 + qh) ** 2) * ((4.0 + 3.0 * qh) * chi_A
+                                                 + qh * (3.0 + 4.0 * qh) * chi_B)
         p_t = p_t - mu * coeff * x ** 2
     return p_t
 

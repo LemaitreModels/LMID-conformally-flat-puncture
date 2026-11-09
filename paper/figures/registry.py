@@ -385,6 +385,16 @@ SOURCES = {
 # producer loads fine and then fails deep inside the plotter with a bare KeyError.  That is
 # exactly how fig02 broke — its committed PDF carries the mass-ratio panel while an older local
 # figdata (no ``Q_wall_q``) cannot rebuild it.  Keep this list in step with the plotter.
+#: Figures whose numbers ride on the SPINNING quasi-circular family, i.e. on the 1.5PN
+#: spin-orbit momentum term.  Their figdata must carry the current
+#: ``quasicircular.QC_PRESCRIPTION`` (``meta.code.qc_prescription``); one without it predates
+#: the 2026-11-09 fix (2/3 -> 3/4) and is STALE (make_figdata.py --check).  fig06 (zero spin:
+#: only zero-spin nodes enter), fig07 (no spin) and fig10 (axisymmetric anchor) do not ride
+#: on it.
+SPIN_QC_FIGURES = ("fig01_peraxis_hermite", "fig02_walls", "fig03_joint_dist",
+                   "fig04_polish_staircase", "fig05_guess_vs_memory",
+                   "fig08_tp_validation", "fig09_tp_spectrum")
+
 FIGURES = {
     "fig01_peraxis_hermite":    dict(sources=["peraxis_dist_chi"], keys=["A_per_axis"]),
     "fig02_walls":              dict(sources=["walls_dense"],

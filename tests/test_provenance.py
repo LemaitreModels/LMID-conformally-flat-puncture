@@ -25,9 +25,9 @@ sys.path.insert(0, os.path.join(REPO, "paper", "figures"))
 
 
 def test_code_stamp_has_a_stable_shape():
-    """All three keys always present, so a consumer never confuses absent with clean."""
+    """All four keys always present, so a consumer never confuses absent with clean."""
     s = pv.code_stamp()
-    assert set(s) == {"src_tree", "src_dirty", "version"}
+    assert set(s) == {"src_tree", "src_dirty", "version", "qc_prescription"}
 
 
 def test_code_stamp_is_deterministic():
@@ -43,7 +43,7 @@ def test_code_stamp_is_deterministic():
 
 def test_run_stamp_is_code_stamp_plus_a_timestamp():
     r = pv.run_stamp()
-    assert set(r) == {"src_tree", "src_dirty", "version", "utc"}
+    assert set(r) == {"src_tree", "src_dirty", "version", "qc_prescription", "utc"}
     assert r["utc"].endswith("Z")
 
 
@@ -55,7 +55,7 @@ def test_stamping_survives_a_machine_with_no_git(monkeypatch):
     monkeypatch.setattr(pv, "_git", lambda *a, **k: None)
     s = pv.code_stamp()
     assert s["src_tree"] is None and s["src_dirty"] is None
-    assert set(s) == {"src_tree", "src_dirty", "version"}
+    assert set(s) == {"src_tree", "src_dirty", "version", "qc_prescription"}
     pv.run_stamp()          # must not raise either
 
 
@@ -123,7 +123,7 @@ def test_dump_stamps_meta_without_disturbing_the_producer_payload():
             fd.FIGDATA = old
     assert d["x"] == [1, 2]
     assert d["meta"]["seed"] == 7 and d["meta"]["box"] == "spin8_qc_chi_prod"
-    assert set(d["meta"]["code"]) == {"src_tree", "src_dirty", "version"}
+    assert set(d["meta"]["code"]) == {"src_tree", "src_dirty", "version", "qc_prescription"}
 
 
 def test_dump_creates_meta_when_a_producer_writes_none():
@@ -139,7 +139,7 @@ def test_dump_creates_meta_when_a_producer_writes_none():
             fd.FIGDATA = old
     assert d["y"] == [3]
     assert d["meta"]["code"]["version"] is not None or True   # shape, not value
-    assert set(d["meta"]["code"]) == {"src_tree", "src_dirty", "version"}
+    assert set(d["meta"]["code"]) == {"src_tree", "src_dirty", "version", "qc_prescription"}
 
 
 def test_the_sweep_producer_actually_stamps():

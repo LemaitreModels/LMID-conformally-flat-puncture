@@ -120,6 +120,9 @@ def _common_args(ap):
     ap.add_argument("--tangent-gmres-rtol", type=float, default=1e-8)
 
 
+from ..parametric.quasicircular import QC_PRESCRIPTION  # noqa: E402
+
+
 def _setup(args):
     """Shared setup: names/enhanced/prob + the loaded value model + its dedup pool."""
     names = [a["name"] for a in bh.BOX]
@@ -132,6 +135,13 @@ def _setup(args):
     if list(vm.axes) and len(vm.axes) != len(names):
         raise ValueError(f"value model dim {len(vm.axes)} != 8-D box dim {len(names)} "
                          f"— wrong --reuse-value (must be the 8-D spin8 corpus)")
+    # The tangents are solved now, with the installed momentum prescription, at the
+    # value model's nodes and from its fields: refuse a value model built under another.
+    from ..parametric.quasicircular import QC_PRESCRIPTION
+    got = (getattr(vm, "meta", None) or {}).get("qc_prescription")
+    if got != QC_PRESCRIPTION:
+        raise ValueError(f"{args.reuse_value}: value model built with momentum prescription "
+                         f"{got!r}, the code is on {QC_PRESCRIPTION!r}; rebuild it first")
     pool_v = vm._dedup_pool()                          # key -> (theta, U, iters, resid)
     keys = list(pool_v)                                # deterministic (npz insertion order)
     return names, enhanced, prob, vm, pool_v, keys
@@ -163,7 +173,7 @@ def run_chunk(args):
     out = os.path.join(args.partial_dir, f"tangents_task{taskid}.npz")
     tmp = out + ".tmp"
     with open(tmp, "wb") as fh:                        # file handle → no .npz auto-append
-        np.savez(fh, thetas=np.asarray(thetas), dUs=np.asarray(dUs),
+        np.savez(fh, qc_prescription=np.array(QC_PRESCRIPTION), thetas=np.asarray(thetas), dUs=np.asarray(dUs),
                  taskid=taskid, ntasks=ntasks)
     os.replace(tmp, out)                               # atomic
     _t(f"[S7-chunk] task {taskid} DONE → {out}  ({_human(os.path.getsize(out))}, "
@@ -185,6 +195,10 @@ def run_merge(args):
     pool = {}
     for p in parts:
         d = np.load(p, allow_pickle=False)
+        got = str(d["qc_prescription"]) if "qc_prescription" in d else None
+        if got != QC_PRESCRIPTION:          # a chunk from another prescription or an older run
+            raise ValueError(f"{p}: tangent chunk built with momentum prescription {got!r}, "
+                             f"the code is on {QC_PRESCRIPTION!r}; delete it and rerun the chunk")
         th, dU = d["thetas"], d["dUs"]
         for j in range(th.shape[0]):
             k = _node_key(th[j])

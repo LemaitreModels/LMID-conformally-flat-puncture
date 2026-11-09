@@ -30,7 +30,7 @@
 
 @article{AnsorgBruegmannTichy2004,
   author  = {Ansorg, Marcus and Br{\"u}gmann, Bernd and Tichy, Wolfgang},
-  title   = {A single-domain spectral method for black hole puncture data},
+  title   = {Single-domain spectral method for black hole puncture data},
   journal = {Phys. Rev. D},
   volume  = {70},
   pages   = {064011},
@@ -109,11 +109,14 @@
   doi     = {10.1103/PhysRevD.79.124040}
 }
 
-@misc{Healy2024,
-  author  = {Ciarfella, Alessandro and Healy, James and Lousto, Carlos O.
-  and Nakano, Hiroyuki},
-  title   = {Quasicircular Orbital Parameters for Numerical Relativity Revisited},
+@article{Ciarfella2024,
+  author  = {Ciarfella, Alessandro and Healy, James and Lousto, Carlos O. and Nakano, Hiroyuki},
+  title   = {Quasicircular orbital parameters for numerical relativity revisited},
+  journal = {Phys. Rev. D},
+  volume  = {110},
+  pages   = {084031},
   year    = {2024},
+  doi     = {10.1103/PhysRevD.110.084031},
   eprint  = {2406.11564},
   archivePrefix = {arXiv},
   primaryClass  = {gr-qc}
@@ -149,11 +152,14 @@
   doi     = {10.1103/zh31-bbtm}
 }
 
-@misc{Tommasini2026,
+@article{Tommasini2026,
   author  = {Tommasini, Vittoria and Vu, Nils L. and Scheel, Mark A. and Teukolsky, Saul A.},
-  title   = {Data-Driven Acceleration of Eccentricity Reduction for Binary Black Hole Simulations},
-  journal = {arXiv e-prints},
+  title   = {Data-driven acceleration of eccentricity reduction for binary black hole simulations},
+  journal = {Phys. Rev. D},
+  volume  = {114},
+  pages   = {044071},
   year    = {2026},
+  doi     = {10.1103/1q92-j84n},
   eprint  = {2604.22021},
   archivePrefix = {arXiv},
   primaryClass  = {gr-qc}
@@ -316,7 +322,7 @@
   title   = {Sur l'ordre de la meilleure approximation des fonctions continues par des polyn\^omes de degr\'e donn\'e},
   journal = {M\'em. Acad. Roy. Belg. (2)},
   volume  = {4},
-  pages   = {1--103},
+  pages   = {1--104},
   year    = {1912}
 }
 
@@ -341,9 +347,10 @@
   title        = {{GRTeclyn}: a code for numerical relativity built on {AMReX}},
   year         = {2026},
   url          = {https://github.com/GRTLCollaboration/GRTeclyn},
-  note         = {Software available from
-                  \url{https://github.com/GRTLCollaboration/GRTeclyn};
-                  commit \texttt{2bfd19e}}
+  note         = {Used here from the fork
+                  \url{https://github.com/LemaitreModels/GRTeclyn}, branch
+                  \texttt{lm-initial-data-constraints}, commit \texttt{087f827},
+                  which adds the reader for the initial data of this paper}
 }
 
 @misc{Jax2018,
@@ -377,15 +384,17 @@
 
 % ---------------- Concurrent / related ML and parametric work ----------------
 
-@misc{Zhou2026,
-  title = {Solving {Hamiltonian} Constraint Equation with Physics-Informed Neural Networks},
-  author = {Zhou, Y.-C. and Ma, H. and Cao, Z. and Wu, T. and Jin, H.-B. and Feng, X. and Huang, S. and Zhao, Z.-C. and Wu, Y.-L.},
-  year = {2026},
-  journal = {arXiv e-prints},
-  eprint = {2607.06002},
+@article{Zhou2026,
+  author  = {Zhou, Yu-Chen and Ma, Hao and Cao, Zhoujian and Wu, Tailin and Jin, Hong-Bo and Feng, Xuefeng and Huang, Shuanglin and Zhao, Zhi-Chao and Wu, Yue-Liang},
+  title   = {Solving {Hamiltonian} constraint equation with physics-informed neural networks},
+  journal = {Phys. Rev. D},
+  volume  = {114},
+  pages   = {023032},
+  year    = {2026},
+  doi     = {10.1103/619s-p6md},
+  eprint  = {2607.06002},
   archivePrefix = {arXiv},
-  primaryClass = {gr-qc},
-  note = {Accepted for publication in Phys. Rev. D}
+  primaryClass  = {gr-qc}
 }
 
 @misc{Assumpcao2026,
@@ -422,14 +431,18 @@
   note = {Accepted at ICLR 2026}
 }
 
-@misc{Ogurol2025,
-  title = {Analytical Perturbative Construction of Initial Data for Binary Black Holes up to Third Order in Spin and Momentum},
-  author = {Ogurol, L. and Boybeyi, T. and Tekin, B.},
-  year = {2025},
-  journal = {arXiv e-prints},
-  eprint = {2509.11144},
+@article{Ogurol2026,
+  author  = {Ogurol, Leyla and Boybeyi, Tore and Tekin, Bayram},
+  title   = {Perturbative Analytical Construction of {Bowen--York} Initial Data for Binary Black Holes up to Third Order in Spin and Linear Momentum},
+  journal = {Fortschr. Phys.},
+  volume  = {74},
+  number  = {8},
+  pages   = {e70136},
+  year    = {2026},
+  doi     = {10.1002/prop.70136},
+  eprint  = {2509.11144},
   archivePrefix = {arXiv},
-  primaryClass = {gr-qc}
+  primaryClass  = {gr-qc}
 }
 
 @article{DainLoustoZlochower2008,
@@ -446,7 +459,7 @@
 }
 
 @article{Lovelace2008,
-  title = {Binary-black-hole initial data with nearly-extremal spins},
+  title = {Binary-black-hole initial data with nearly extremal spins},
   author = {Lovelace, G. and Owen, R. and Pfeiffer, H. P. and Chu, T.},
   journal = {Phys. Rev. D},
   volume = {78},
@@ -501,4 +514,28 @@
   publisher = {Network Theory Ltd.},
   year      = {2009},
   isbn      = {0954612078}
+}
+
+@article{GerstnerGriebel2003,
+  author  = {Gerstner, Thomas and Griebel, Michael},
+  title   = {Dimension-Adaptive Tensor-Product Quadrature},
+  journal = {Computing},
+  volume  = {71},
+  number  = {1},
+  pages   = {65--87},
+  year    = {2003},
+  doi     = {10.1007/s00607-003-0015-5}
+}
+
+@article{Bruegmann2008,
+  author  = {Br{\"u}gmann, Bernd and Gonz{\'a}lez, Jos{\'e} A. and Hannam, Mark and Husa, Sascha and Sperhake, Ulrich and Tichy, Wolfgang},
+  title   = {Calibration of moving puncture simulations},
+  journal = {Phys. Rev. D},
+  volume  = {77},
+  pages   = {024027},
+  year    = {2008},
+  doi     = {10.1103/PhysRevD.77.024027},
+  eprint  = {gr-qc/0610128},
+  archivePrefix = {arXiv},
+  primaryClass  = {gr-qc}
 }

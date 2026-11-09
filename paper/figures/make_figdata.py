@@ -72,6 +72,12 @@ def _figdata_tag(stem):
     if fd.scheme_of(d) != pm.SCHEME:
         return "figdata STALE", (f"built on the {fd.scheme_of(d)!r} grid; the paper is on "
                                  f"{pm.SCHEME!r}")
+    if stem in reg.SPIN_QC_FIGURES:
+        from lemaitre.initial_data.conformally_flat_puncture.provenance import qc_prescription
+        now = qc_prescription()
+        if fd.qc_prescription_of(d) != now:
+            return "figdata STALE", (f"momentum prescription {fd.qc_prescription_of(d)!r}; the "
+                                     f"code is on {now!r} (2026-11-09 spin-orbit fix)")
     return "figdata OK", None
 
 

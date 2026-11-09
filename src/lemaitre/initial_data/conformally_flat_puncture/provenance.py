@@ -98,6 +98,22 @@ def package_version():
     return None
 
 
+def qc_prescription():
+    """The quasi-circular momentum prescription the installed code builds slices with.
+
+    ``parametric.quasicircular.QC_PRESCRIPTION``; ``None`` if it cannot be imported.  A
+    source tree pins it too, but a figure built from a model carries the model's
+    prescription, not the tree's — and the 2026-11-09 spin-orbit fix (2/3 → 3/4) changed
+    every spinning slice without changing the grid or the scheme, so a stale artifact is
+    otherwise invisible to every check.
+    """
+    try:
+        from .parametric.quasicircular import QC_PRESCRIPTION
+    except Exception:
+        return None
+    return QC_PRESCRIPTION
+
+
 def code_stamp():
     """Deterministic record of the code that produced an artifact.
 
@@ -108,7 +124,8 @@ def code_stamp():
     """
     return {"src_tree": src_tree(),
             "src_dirty": src_dirty(),
-            "version": package_version()}
+            "version": package_version(),
+            "qc_prescription": qc_prescription()}
 
 
 def run_stamp():

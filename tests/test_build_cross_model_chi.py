@@ -36,8 +36,12 @@ def _tiny_model(path, grid=(4, 4, 2)):
     model = hsm.HermiteSmolyakSolverND(solve, [(a["min"], a["max"]) for a in box],
                                        tangent_fn=tangent, enhanced_axes=enh
                                        ).build_isotropic(1)
+    # the stand-in carries the current prescription, as a model solved today would
+    # (build_cross_model_chi refuses a quasi-circular input without it)
+    from lemaitre.initial_data.conformally_flat_puncture.parametric.quasicircular import (
+        QC_PRESCRIPTION)
     model.save(path, meta=dict(axis_names=names, Na=grid[0], Nb=grid[1], Nphi=grid[2],
-                               fixed=dict(pb.FIXED_QC)))
+                               fixed=dict(pb.FIXED_QC), qc_prescription=QC_PRESCRIPTION))
     return model.n_solver_nodes
 
 

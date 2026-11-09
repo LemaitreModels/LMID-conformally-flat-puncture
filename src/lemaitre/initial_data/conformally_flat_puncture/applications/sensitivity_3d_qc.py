@@ -47,6 +47,7 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import jax.numpy as jnp
 
+from ..parametric import quasicircular as _qc
 from ..solver import solver_3d as s3
 from ..solver import source_3d
 from . import sensitivity_3d as s3d
@@ -86,8 +87,8 @@ def _qc_momenta_jax(args):
     chi1 = jnp.where(swap, chiA, chiB)
     chi2 = jnp.where(swap, chiB, chiA)
     qq = m2 / m1
-    coeff = (2.0 / (3.0 * (1.0 + qq) ** 2)) * ((4.0 + 3.0 * qq) * chi1
-                                               + qq * (3.0 + 4.0 * qq) * chi2)
+    coeff = (_qc.SO_COEFF / (1.0 + qq) ** 2) * ((4.0 + 3.0 * qq) * chi1
+                                              + qq * (3.0 + 4.0 * qq) * chi2)
     pt = pt - mu * coeff * x ** 2
     pr = (64.0 / 5.0) * mu ** 2 * M ** 2 / D ** 3
     return jnp.array([pt, 0.0, -pr, -pt, 0.0, pr])

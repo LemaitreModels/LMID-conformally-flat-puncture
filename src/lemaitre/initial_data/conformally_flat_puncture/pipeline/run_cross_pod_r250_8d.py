@@ -127,7 +127,7 @@ def main(rank=pm.SHIPPED_RANK[8], project_rank=None):
         # attached, so the save cannot read it off one (_save_npz_owned): carry the
         # source model's keys, or a "v2" POD is saved as a "paper-v1" one and every
         # consumer that attaches a solver refuses it.
-        **{k: meta[k] for k in ("bmap", "radial") if k in meta}})
+        **{k: meta[k] for k in ("bmap", "radial", "qc_prescription") if k in meta}})
     print(f"[r250-8d] wrote r={rank} cross POD "
           f"({os.path.getsize(out)/1e6:.0f} MB) -> {os.path.basename(out)}",
           flush=True)

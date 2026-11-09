@@ -398,6 +398,21 @@ def _save_npz_owned(owner, path, arrays: dict, base_meta: dict, meta, **kw) -> s
     if radial is not None and radial != "lobatto" and given_r is None:
         meta = dict(meta or {})
         meta["radial"] = radial
+    # The quasi-circular momentum prescription, so a loader can tell a pre-2026-11-09
+    # spin-orbit corpus (no key; coefficient 2/3) from a current one
+    # (attach_solve_fn_3d refuses the mismatch).  It is taken from where the FIELDS came
+    # from, never from the installed code: a caller's ``meta``, else the metadata of the
+    # loaded model this object was saved from, else the solver that solved its nodes
+    # (``make_solve_fn`` stamps it for a quasi-circular family).  Unknown stays absent,
+    # which reads as "before the fix" — a re-encoding of a legacy corpus must not come
+    # out labelled current.  Re-encoders of a loaded model forward the key in ``meta``.
+    if (meta or {}).get("qc_prescription") is None:
+        qcp = (getattr(owner, "meta", None) or {}).get("qc_prescription")
+        if qcp is None and not getattr(owner, "meta", None):
+            qcp = getattr(getattr(owner, "_solve_fn", None), "qc_prescription", None)
+        if qcp is not None:
+            meta = dict(meta or {})
+            meta["qc_prescription"] = qcp
     return _save_npz(path, arrays, base_meta, meta, **kw)
 
 
@@ -497,6 +512,16 @@ def attach_solve_fn_3d(sol, prob, axis_names, *, M_tot: float = 1.0, fixed=None,
         raise ValueError(
             f"this model's fields live on the {model_radial!r} radial grid but the "
             f"problem uses {prob_radial!r}; build the problem with {hint}")
+    # A quasi-circular model's nodes carry the momentum prescription they were solved
+    # with; certifying a query under a different one would polish toward other data.
+    if (fixed or {}).get("qc"):
+        from .quasicircular import QC_PRESCRIPTION
+        model_qc = (getattr(sol, "meta", None) or {}).get("qc_prescription")
+        if model_qc != QC_PRESCRIPTION:
+            raise ValueError(
+                f"this quasi-circular model was built with momentum prescription "
+                f"{model_qc!r} (None = before 2026-11-09, spin-orbit coefficient 2/3) but "
+                f"the code now uses {QC_PRESCRIPTION!r}; rebuild the model")
     from .parametric_nd_3d import make_solve_fn
     solve_fn, _ = make_solve_fn(prob, list(axis_names), M_tot=M_tot, fixed=fixed,
                                 use_cache=use_cache, solver=solver, gmres_rtol=gmres_rtol,

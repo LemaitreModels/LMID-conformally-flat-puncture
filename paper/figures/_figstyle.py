@@ -42,7 +42,7 @@ that exercises both.  Literal non-ASCII in a plotter's *rendered* strings will s
 write it as mathtext (``$\times$``, ``$\chi$``), as the plotters already do.
 
 Two glyphs still fall back to STIX, and they are the only ones: matplotlib bundles no bold math
-italic and no ``cmex``-side star, so ``\boldsymbol{\chi}`` (``MODEL_TITLES[8]``, Figs. 3--5) draws
+italic and no ``cmex``-side star, so ``\boldsymbol{\theta}`` and ``\boldsymbol{\chi}`` (``MODEL_TITLES``, Figs. 3--5) draw
 from STIXGeneral-BoldItalic and ``\star`` (Fig. 6's ``\|F-F_\star\|_\infty``) from
 STIXGeneral-Regular — while ``paper.tex`` sets the same two from CMMIB10 and CMSY10.  Plain
 ``\chi`` is unaffected: mathtext resolves it through the TeX name into ``cmmi10``, not by codepoint.
@@ -84,6 +84,6 @@ def figdims(nrow=1, ncol=1, panel_h=PANEL_H):
 # Model titles are shared by Figs. 3, 4 and 5, which draw the same two models side by side; keeping
 # them here rather than per-plotter is what stops the three from drifting apart (they had).
 MODEL_TITLES = {
-    4: r"4D quasi-circular model: $\theta=(b,q,\chi^{A}_{y},\chi^{B}_{y})$",
-    8: r"8D quasi-circular model: $\theta=(b,q,\boldsymbol{\chi}^{A},\boldsymbol{\chi}^{B})$",
+    4: r"4D quasi-circular model: $\boldsymbol{\theta}=(b,q,\chi^{A}_{y},\chi^{B}_{y})$",
+    8: r"8D quasi-circular model: $\boldsymbol{\theta}=(b,q,\boldsymbol{\chi}^{A},\boldsymbol{\chi}^{B})$",
 }

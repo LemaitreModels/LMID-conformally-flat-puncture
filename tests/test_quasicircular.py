@@ -151,6 +151,47 @@ def test_spin_orbit_reduces_pt_for_prograde():
     assert so_big > so_small
 
 
+
+def test_spin_orbit_coefficient_is_the_separation_form():
+    """The 1.5PN spin-orbit term of ``p_t`` at fixed SEPARATION has coefficient 3/4.
+
+    The paper and this module used 2/3 until 2026-11-09: the coefficient of
+    (MΩ)^{4/3} in Ciarfella et al.'s FREQUENCY series (their Eq. 6), with x put in
+    for (MΩ)^{2/3}.  That drops the spin-orbit shift of Kepler's law and makes the
+    term 11 % too small.  Two independent checks, neither reading the module's
+    formula:
+
+    * their SEPARATION series, Eq. (A1), carries −96/128 inside its braces;
+    * the circular-orbit condition of the 1.5PN ADM-TT Hamiltonian
+      H = L²/(2μD²) − μM/D + L·K/D³, K = (2 + 3m_B/2m_A) S_A + (2 + 3m_A/2m_B) S_B,
+      solved exactly for L at fixed D (∂H/∂D|_L = 0 is a quadratic in L), gives
+      p_t = L/D; its spin part must match ``pt_spin_orbit`` as D → ∞, where the
+      neglected O(S²) and higher-PN cross terms vanish relative to it.
+    """
+    assert qc.SO_COEFF == pytest.approx(96.0 / 128.0, abs=0.0)
+    for m_A, m_B, cA, cB in [(0.5, 0.5, 0.7, -0.3), (0.75, 0.25, -0.9, 0.4),
+                             (0.25, 0.75, 0.2, 0.9)]:
+        M, mu = m_A + m_B, m_A * m_B / (m_A + m_B)
+        K = (2 + 1.5 * m_B / m_A) * cA * m_A ** 2 + (2 + 1.5 * m_A / m_B) * cB * m_B ** 2
+        for D in (1e3, 1e4):
+            # -L²/(μD³) + μM/D² - 3LK/D⁴ = 0  →  L² + (3μK/D) L - μ²MD = 0
+            a, bq, c = 1.0, 3.0 * mu * K / D, -mu ** 2 * M * D
+            L = (-bq + math.sqrt(bq * bq - 4 * a * c)) / 2
+            so_ham = L / D - mu * math.sqrt(M / D)
+            so_mod = qc.pt_spin_orbit(D / 2, m_A, m_B, cA, cB)
+            assert so_mod == pytest.approx(so_ham, rel=5e-3 if D == 1e3 else 5e-4), (
+                f"m=({m_A},{m_B}) chi=({cA},{cB}) D={D}: module {so_mod:.6e} vs "
+                f"Hamiltonian {so_ham:.6e} (ratio {so_mod / so_ham:.4f}; 2/3 gives 0.889)")
+
+
+def test_targeting_twin_honours_pn_order():
+    """``qc_targeting._pt_jax`` added the 1PN term even at ``pn_order=0`` until 2026-11-09."""
+    from lemaitre.initial_data.conformally_flat_puncture.applications import qc_targeting as T
+    for order in (0, 1, 2, 3):
+        ref = qc.pt_nonspinning(5.0, 0.5, 0.5, pn_order=order)
+        assert float(T._pt_jax(5.0, 1.0, 0.0, 0.0, pn_order=order, spin_orbit=False)) == \
+            pytest.approx(ref, rel=1e-14)
+
 # ==========================================================================
 # (c) eccentricity proxy
 # ==========================================================================

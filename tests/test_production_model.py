@@ -296,7 +296,8 @@ def test_value_only_pod_loader_reads_both_tangent_layouts(cross_pod):
 def test_pod_producers_carry_the_source_grid():
     """The two cross-POD producers build the saved file's metadata by hand, from a
     model loaded without a solver, so ``_save_npz_owned`` cannot read the grid off
-    one.  Each must forward the source model's ``bmap``/``radial``; without them a
+    one.  Each must forward the source model's ``bmap``/``radial`` (and, since 2026-11-09, its
+    ``qc_prescription``, or the POD reads as built before the spin-orbit fix); without them a
     "v2" POD reads as "paper-v1" and every consumer that attaches a solver refuses it
     (first seen 2026-10-16, on both shipped PODs)."""
     import inspect
@@ -304,4 +305,5 @@ def test_pod_producers_carry_the_source_grid():
         run_cross_pod_figuredata, run_cross_pod_r250_8d)
     for mod in (run_cross_pod_figuredata, run_cross_pod_r250_8d):
         src = inspect.getsource(mod)
-        assert '**{k: meta[k] for k in ("bmap", "radial") if k in meta}' in src, mod.__name__
+        assert ('**{k: meta[k] for k in ("bmap", "radial", "qc_prescription") '
+                'if k in meta}') in src, mod.__name__

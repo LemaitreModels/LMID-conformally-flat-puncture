@@ -363,6 +363,11 @@ def make_solve_fn(prob: Problem3D, active_names: Sequence[str], M_tot: float = 1
     # to a model checks it (parametric_nd.attach_solve_fn_3d).
     solve_fn.bmap = getattr(prob, "bmap", "cos")
     solve_fn.radial = getattr(prob, "radial", "lobatto")
+    # ...and, for a quasi-circular family, the momentum prescription its slices carry
+    # (parametric_nd._save_npz_owned records it; attach_solve_fn_3d checks it).
+    if (fixed or {}).get("qc"):
+        from .quasicircular import QC_PRESCRIPTION
+        solve_fn.qc_prescription = QC_PRESCRIPTION
     return solve_fn, cache
 
 

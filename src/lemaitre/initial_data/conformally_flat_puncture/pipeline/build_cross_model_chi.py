@@ -76,6 +76,16 @@ def main(model_path, out_path, jac="nk", checkpoint=50, M_tot=1.0, enhanced_name
     names = list(meta["axis_names"])
     fixed = meta.get("fixed", {}) or {}
     Na, Nb, Nphi = int(meta["Na"]), int(meta["Nb"]), int(meta["Nphi"])
+    # The cross tangents are solved now, with the installed momentum prescription; the
+    # values and first tangents they are combined with come from the file.  Refuse a file
+    # built under another one (no key = before the 2026-11-09 spin-orbit fix).
+    if fixed.get("qc"):
+        from lemaitre.initial_data.conformally_flat_puncture.parametric.quasicircular import (
+            QC_PRESCRIPTION)
+        if meta.get("qc_prescription") != QC_PRESCRIPTION:
+            raise ValueError(f"{model_path}: built with momentum prescription "
+                             f"{meta.get('qc_prescription')!r}, the code is on "
+                             f"{QC_PRESCRIPTION!r}; rebuild the input model")
 
     th = np.asarray(data["node_thetas"], dtype=float)     # (N, d)
     U = np.asarray(data["node_U"], dtype=float)           # (N, *fs)
@@ -107,15 +117,36 @@ def main(model_path, out_path, jac="nk", checkpoint=50, M_tot=1.0, enhanced_name
     prob = s3.make_problem(Na=Na, Nb=Nb, Nphi=Nphi, scheme=pm.SCHEME)
 
     ckpt = out_path + ".cross.partial.npy"
+    # The checkpoint is resumed only for the SAME job: same input file (size + mtime),
+    # same prescription, pairs, Jacobian and GMRES tolerance.  A shape match alone let a
+    # checkpoint from other inputs pass.  Anything else is moved aside, never reused.
+    st = os.stat(model_path)
+    ident = {"model": os.path.abspath(model_path), "size": st.st_size,
+             "mtime_ns": st.st_mtime_ns, "qc_prescription": meta.get("qc_prescription"),
+             "pairs": [[names[a], names[b]] for (a, b) in gp], "jac": jac,
+             "gmres_rtol": float(gmres_rtol), "grid": [Na, Nb, Nphi]}
+    ident_path = ckpt + ".id.json"
     node_cross = np.full((N, len(gp)) + fs, np.nan)
     start = 0
     if os.path.exists(ckpt):
-        saved = np.load(ckpt)
-        if saved.shape == node_cross.shape:
+        try:
+            with open(ident_path) as f:
+                same = json.load(f) == ident
+            saved = np.load(ckpt) if same else None
+        except Exception:                          # missing/corrupt id or checkpoint
+            same, saved = False, None
+        if same and saved is not None and saved.shape == node_cross.shape:
             node_cross = saved
             done = np.all(np.isfinite(node_cross.reshape(N, -1)), axis=1)
             start = int(np.argmin(done)) if not done.all() else N
             print(f"[cross] resumed from checkpoint: {start}/{N} already done", flush=True)
+        else:
+            aside = f"{ckpt}.stale-{int(time.time())}"
+            os.replace(ckpt, aside)
+            print(f"[cross] checkpoint is not this job's (inputs differ or unreadable); "
+                  f"moved aside to {os.path.basename(aside)}", flush=True)
+    with open(ident_path, "w") as f:
+        json.dump(ident, f)
 
     tev = time.time()
     for i in range(start, N):
@@ -128,7 +159,9 @@ def main(model_path, out_path, jac="nk", checkpoint=50, M_tot=1.0, enhanced_name
                              gmres_rtol=gmres_rtol)
             node_cross[i, pj] = np.asarray(Uij)
         if (i + 1) % checkpoint == 0 or i == N - 1:
-            np.save(ckpt, node_cross)
+            tmp = ckpt + ".tmp.npy"                  # atomic: a kill mid-write keeps the old one
+            np.save(tmp, node_cross)
+            os.replace(tmp, ckpt)
             el = time.time() - tev
             rate = el / (i + 1 - start)
             eta = rate * (N - 1 - i)

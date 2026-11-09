@@ -60,9 +60,10 @@ def test_committed_figdata_is_current(stem):
 
 
 def test_figdata_of_another_scheme_reads_as_stale(tmp_path, monkeypatch):
-    """A figdata built on another discretisation must not pass as current because its
-    keys still match (meta.scheme; absent = "paper-v1", everything before 2026-10-14).
-    And dump() stamps the current scheme."""
+    """A figdata built on another discretisation, or (for a spin-dependent figure) under
+    another momentum prescription, must not pass as current because its keys still match
+    (meta.scheme, absent = "paper-v1"; meta.code.qc_prescription, absent = before
+    2026-11-09).  And dump() stamps both."""
     import importlib
     from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
     mf = importlib.import_module("make_figdata")
@@ -70,9 +71,17 @@ def test_figdata_of_another_scheme_reads_as_stale(tmp_path, monkeypatch):
     full = {k: 0 for k in reg.keys_for(stem)}
     monkeypatch.setattr(fd, "FIGDATA", str(tmp_path))
     other = "paper-v1" if pm.SCHEME != "paper-v1" else "v2"
-    for meta, want in ((dict(scheme=pm.SCHEME), "figdata OK"),
-                       (dict(scheme=other), "figdata STALE"),
-                       ({}, "figdata OK" if pm.SCHEME == "paper-v1" else "figdata STALE")):
+    # fig01 rides on the spinning quasi-circular family, so a current figdata must also
+    # carry the current momentum prescription (2026-11-09 spin-orbit fix)
+    from lemaitre.initial_data.conformally_flat_puncture.provenance import code_stamp
+    assert stem in reg.SPIN_QC_FIGURES
+    code = code_stamp()
+    for meta, want in ((dict(scheme=pm.SCHEME, code=code), "figdata OK"),
+                       (dict(scheme=pm.SCHEME), "figdata STALE"),
+                       (dict(scheme=pm.SCHEME, code=dict(code, qc_prescription="old")),
+                        "figdata STALE"),
+                       (dict(scheme=other, code=code), "figdata STALE"),
+                       ({}, "figdata STALE")):
         with open(fd.figdata_path(stem), "w") as f:
             json.dump(dict(full, meta=meta), f)
         assert mf._figdata_tag(stem)[0] == want, (meta, mf._figdata_tag(stem))

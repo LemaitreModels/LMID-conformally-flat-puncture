@@ -28,19 +28,30 @@ Brügmann, PRD **77**, 044037 (2008), and Walther, Brügmann & Müller, PRD **79
   with  M = m_A + m_B,  μ = m_A m_B / M,  ν = μ/M  (symmetric mass ratio),
   D = 2b.  Leading (Newtonian) order  **p_t → μ √(M/D) = μ √(M/2b)**.
   The Newtonian and 1PN coefficients were independently cross-verified by
-  converting the frequency-parametrised series of the 2024 revisit (Healy et al.,
-  arXiv:2406.11564, Eqs. 37 & 89) into the separation series — the ν-terms cancel
-  to give the coefficient 2 exactly, and the 1PN separation relation reproduces
-  the standard ADM-coordinate result r/M = (MΩ)^{-2/3} − (1 − ν/3).  The 2PN/3PN
+  converting the frequency-parametrised series of the 2024 revisit (Ciarfella,
+  Healy, Lousto & Nakano, PRD 110, 084031, arXiv:2406.11564, Eq. 6) into the
+  separation series — the ν-terms cancel to give the coefficient 2 exactly, and the
+  1PN separation relation reproduces the standard ADM-coordinate result
+  r/M = (MΩ)^{-2/3} − (1 − ν/3).  The 2PN/3PN
   coefficients are Walther Eq. (45) as transcribed (do not affect the P0 gates —
   the oracle J validates p_t self-consistently and the Newtonian anchor pins the
   leading term; higher-PN accuracy only tightens the residual eccentricity).
 
-* **Leading spin-orbit correction** (aligned spins), from Healy et al. (2024)
-  Eq. (37), converted to the separation parametrisation ((MΩ)^{4/3} → x² at
-  leading order):
+* **Leading spin-orbit correction** (aligned spins), in the SEPARATION
+  parametrisation, Ciarfella et al. (2024) Eq. (A1) (−96/128 inside its braces):
 
-      p_t^{SO} = −μ · [2/(3(1+q)²)] · [(4+3q) χ₁ + q(3+4q) χ₂] · x² ,
+      p_t^{SO} = −μ · [SO_COEFF/(1+q)²] · [(4+3q) χ₁ + q(3+4q) χ₂] · x² ,
+      SO_COEFF = 3/4.
+
+  **Not 2/3.**  −2/3 is the coefficient of (MΩ)^{4/3} in their FREQUENCY series
+  (Eq. 6).  Swapping (MΩ)^{2/3} → x in that term alone misses the spin-orbit
+  shift of Kepler's law, MΩ = x^{3/2}[1 − (k/2)x^{3/2}] with
+  k = [(4+3q)χ₁ + q(3+4q)χ₂]/(2(1+q)²), which the Newtonian term (MΩ)^{1/3} turns
+  into −(1/12)[…]x²: −2/3 − 1/12 = −3/4.  The same −3/4 follows directly from the
+  1.5PN ADM-TT Hamiltonian H_SO = L·K/D³, K = 2 S_eff, at fixed canonical L
+  (∂H/∂D|_L = 0 ⇒ δL = −3μK/(2D), p_t = L/D).  This module used −2/3 until
+  2026-11-09 (``QC_PRESCRIPTION`` below records which), which made the term 11 %
+  too small; every spinning quasi-circular corpus built before then carries it.
 
   with Healy's convention **q = m₂/m₁ ≤ 1, body 1 = the LARGER hole** (the
   paper restates this in the q = m_A/m_B ≥ 1 convention; identical physics), and
@@ -53,8 +64,12 @@ Brügmann, PRD **77**, 044037 (2008), and Walther, Brügmann & Müller, PRD **79
   Walther Eq. (51) procedure ``p_r = μ ṙ`` at leading order, with the quadrupole
   inspiral rate ṙ = dD/dt = −(64/5) μ M²/D³ :
 
-      p_r = −(64/5) μ² M² / D³        (per-puncture, infall; → 0 as b → ∞).
+      |p_r| = (64/5) μ² M² / D³        (per-puncture magnitude; → 0 as b → ∞),
 
+  applied with infall signs, P_Az = −|p_r| at +b and P_Bz = +|p_r| at −b.
+
+  ``pr_radial`` returns the magnitude |p_r| = (64/5) μ² M²/D³; the infall signs
+  are applied when the vectors are assembled (below).
   The full 3.5PN radial momentum (Walther Eq. 51 evaluated with the high-order
   flux) is a Phase-P4 refinement; the leading term suffices for the P0
   "eccentricity proxy small" gate (|p_r|/p_t ∝ ν (M/D)^{5/2} → 0).
@@ -93,6 +108,16 @@ import numpy as np  # noqa: F401  (kept for downstream/interop consistency)
 
 Vec3 = Tuple[float, float, float]
 
+#: Coefficient of the leading (1.5PN) spin-orbit term of ``p_t`` in the separation
+#: parametrisation x = M/D (module docstring).  The ONE copy: the jnp twins in
+#: ``applications.sensitivity_3d_qc`` and ``applications.qc_targeting`` read it.
+SO_COEFF = 3.0 / 4.0
+
+#: Names the momentum prescription every quasi-circular slice is built with, so an
+#: artifact can say which one it carries (``provenance.code_stamp``, model metadata).
+#: "so-3/4" since 2026-11-09; artifacts without the key were built with −2/3.
+QC_PRESCRIPTION = "pt3PN+so1.5[3/4]+pr-quadrupole"
+
 
 # --------------------------------------------------------------------------
 # Scalar PN pieces (functions of the coordinate separation D = 2b)
@@ -126,8 +151,9 @@ def pt_spin_orbit(b: float, m_A: float, m_B: float,
                   chi_A_aligned: float, chi_B_aligned: float) -> float:
     """Leading (1.5PN) spin-orbit correction to ``p_t`` (aligned spins).
 
-    Healy et al. (2024, arXiv:2406.11564) Eq. (37) spin-orbit term, converted to
-    ``x = M/D`` at leading order.  ``chi_X_aligned = (S_X·L̂)/m_X²`` is the
+    Ciarfella et al. (2024, arXiv:2406.11564) Eq. (A1) spin-orbit term, in the
+    separation ``x = M/D`` (coefficient ``SO_COEFF`` = 3/4; see the module
+    docstring for why not the frequency-series 2/3).  ``chi_X_aligned = (S_X·L̂)/m_X²`` is the
     dimensionless spin projected on the orbital angular momentum (= S_Xy/m_X² in
     the LM-initial-data frame, where L∥y).  Evaluated in Healy's internal convention
     q = m₂/m₁ ≤ 1 with body 1 = the LARGER hole, computed here directly from the
@@ -146,8 +172,8 @@ def pt_spin_orbit(b: float, m_A: float, m_B: float,
     else:
         m1, m2, chi1, chi2 = m_B, m_A, chi_B_aligned, chi_A_aligned
     q = m2 / m1
-    coeff = (2.0 / (3.0 * (1.0 + q) ** 2)) * ((4.0 + 3.0 * q) * chi1
-                                              + q * (3.0 + 4.0 * q) * chi2)
+    coeff = (SO_COEFF / (1.0 + q) ** 2) * ((4.0 + 3.0 * q) * chi1
+                                           + q * (3.0 + 4.0 * q) * chi2)
     return -mu * coeff * x ** 2
 
 
