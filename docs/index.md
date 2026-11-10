@@ -30,6 +30,7 @@ overview
 :maxdepth: 1
 :caption: Background
 
+solver
 bernstein
 sensitivities
 smolyak
