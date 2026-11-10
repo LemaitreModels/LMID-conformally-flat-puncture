@@ -1,7 +1,8 @@
 # The constraint solver
 
-Every initial-data set the package returns comes out of the same elliptic solve.
-The parametric model only supplies the starting guess. This page explains that solve
+Every certified initial-data set the package returns comes out of the same elliptic
+solve, whether it starts from zero or from the parametric model's guess. This page
+explains that solve
 step by step: the equation, the single coordinate patch it is discretized on, the
 Newton–Krylov iteration, and the NumPy and SciPy calls that implement each step. The
 method is the single-domain spectral method of Ansorg, Brügmann and Tichy [1], the
@@ -121,7 +122,7 @@ $$
 
 The factor $A - 1$ makes $u$ vanish at infinity. The factor $(1 - B^2)^{k_m/2}$ makes
 each azimuthal mode vanish on the axis as fast as regularity requires. For $|m| > 4$
-the remaining power is a polynomial in $s$ and is carried by $v_m$. Both factors are
+the remaining power is analytic in $s$ and is carried by the polynomial factor $v_m$. Both factors are
 differentiated analytically, and the spectral differentiation matrices act only on
 the smooth factor $v_m$. Because the boundary behavior is built into the basis, every
 collocation equation is the PDE itself, and there are no boundary rows. The $1/A$
@@ -205,8 +206,13 @@ step, and the measured steps below still converge quadratically.
 **5. Stop and certify.** The loop (`newton_loop.py`) keeps the best iterate, stops
 once the residual is a decade below the requested tolerance, and also stops if the
 best residual fails to halve twice in a row. A solve is certified only if
-$\|R\|^{(u)}_\infty \le 10^{-11}$ (`certification.CERT_TOL_U`), and every point where
-data leave the package checks that gate.
+$\|R\|^{(u)}_\infty \le 10^{-11}$ (`certification.CERT_TOL_U`). The solver itself
+only reports whether it met that gate, in `info.converged`. The strict entry points,
+`evaluate_polished(..., strict=True)` and `certification.certified_return(...,
+strict=True)`, raise an error instead, and so do parameter targeting, eccentricity
+reduction and the GRTeclyn export. The gate certifies the discrete solve. How close
+the discrete solution is to the continuum one is a separate question, answered by
+resolution studies and the comparison with TwoPunctures in the paper [8].
 
 ## The preconditioner: fast diagonalization
 
@@ -230,7 +236,8 @@ diagonalization method of Lynch, Rice and Thomas [7].
   (`separable.py`). Both factors are nonsymmetric, and the conditioning of $S_A$ and
   $S_B$ limits the accuracy of the inverse.
 - **One application** costs $O \bigl( N_A N_B (N_A + N_B) \bigr)$ operations, against
-  the $O \bigl( (N_A N_B)^2 \bigr)$ of a dense factorization.
+  $O \bigl( (N_A N_B)^2 \bigr)$ for one solve with a dense LU factorization, whose
+  setup costs $O \bigl( (N_A N_B)^3 \bigr)$.
 - **The binary never enters.** Every coefficient carries exactly one factor of
   $b^{-2}$, which the row scaling cancels, and the nonlinear term is left out. The
   factors are therefore built once per grid and reused for every binary, every Newton
