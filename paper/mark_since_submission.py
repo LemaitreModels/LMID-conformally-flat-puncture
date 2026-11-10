@@ -1,8 +1,16 @@
 """Mark in red, inside paper.tex itself, every piece of text that is not in the submitted paper.
 
-    python mark_since_submission.py            # re-mark paper.tex against the submission
+    python mark_since_submission.py --remark   # re-mark paper.tex against the submission
     python mark_since_submission.py --strip    # remove ALL markup (red and purple): the clean source
-    python mark_since_submission.py --words    # mark only the changed words, not whole sentences
+    python mark_since_submission.py --words    # with --remark: mark only the changed words
+    python mark_since_submission.py --latexdiff OUT.tex   # latexdiff, submission -> clean source
+
+SINCE 2026-11-10 THE RED IS HAND-PLACED, and a bare run refuses.  The automatic red had grown
+to most of the body and no longer showed the referee what changed, so the resubmission marks
+in purple the changes made in reply to the referee and in red only the spin--orbit correction
+(Sec. V A).  Every other change is shown by the latexdiff (``--latexdiff``), which compares
+the submission with the CLEAN source (red and purple removed) and does not touch paper.tex.
+``--remark`` restores the automatic marking and overwrites the hand-placed red.
 
 Run it from ``paper/``.  The submitted text is read from git, commit ``SUBMITTED``
 (b0f2f39, the PRD submission of 2026-08-24); ``--submitted FILE`` and ``--paper FILE``
@@ -27,7 +35,7 @@ import re
 import sys
 
 DEFS = (
-    "% --- new-since-submission markup (mark_since_submission.py; red = not in the submitted paper) ---\n"
+    "% --- new-since-submission markup (red = the spin--orbit correction, by hand since 2026-11-10) ---\n"
     "\\newif\\ifshownew \\shownewtrue\n"
     "\\newcommand{\\newtext}[1]{\\ifshownew{\\color{red}#1}\\else#1\\fi}\n"
     "\\newcommand{\\newtextbegin}{\\ifshownew\\color{red}\\fi}\n"
@@ -407,6 +415,21 @@ def mark(sub, cur):
     return res, stats
 
 
+def _drop_deleted_labels(t):
+    """Remove every ``\\label`` inside a ``\\DIFdel{...}``: a display that moved keeps its label in
+    the new place, and the deleted copy repeating it is an amsmath error."""
+    out, i = [], 0
+    while True:
+        j = t.find("\\DIFdel{", i)
+        if j < 0:
+            out.append(t[i:])
+            return "".join(out)
+        k = _close(t, j + len("\\DIFdel{"))
+        d = re.sub(r"\n[ \t]*\\label\{[^{}]*\}[ \t]*(?=\n)", "", t[j:k])  # whole line: no blank line,
+        out.append(t[i:j] + re.sub(r"\\label\{[^{}]*\}", "", d))   # which would be a \\par
+        i = k
+
+
 SUBMITTED = "b0f2f39"
 WHOLE_SENTENCES = "--words" not in sys.argv
 
@@ -430,6 +453,28 @@ if __name__ == "__main__":
     sub = (open(sub_file).read() if sub_file else
            subprocess.run(["git", "show", f"{SUBMITTED}:paper/paper.tex"], cwd=here,
                           check=True, capture_output=True, text=True).stdout)
+    if "--latexdiff" in sys.argv:
+        import tempfile
+        out = _arg("--latexdiff", None)
+        with tempfile.TemporaryDirectory() as d:
+            a, b = os.path.join(d, "submitted.tex"), os.path.join(d, "current.tex")
+            # cite keys renamed since the submission, same papers (arXiv -> published, author
+            # key): without the map the struck-out copy of each citation prints as [?]
+            for old, new in (("Healy2024", "Ciarfella2024"), ("Ogurol2025", "Ogurol2026")):
+                sub = re.sub(r"(\\cite[a-z]*\{[^}]*)\b" + old + r"\b", r"\g<1>" + new, sub)
+            open(a, "w").write(sub)
+            open(b, "w").write(strip_referee(cur))
+            # section titles are compared whole: diffed word by word, a heading's argument
+            # swallowed the deleted paragraphs after it and broke the build
+            r = subprocess.run(["latexdiff", "--type=UNDERLINE", "--math-markup=whole",
+                                "--exclude-textcmd=section,subsection,subsubsection,paragraph", a, b],
+                               check=True, capture_output=True, text=True)
+        open(out, "w").write(_drop_deleted_labels(r.stdout))
+        print(f"latexdiff written to {out}")
+        sys.exit(0)
+    if "--remark" not in sys.argv:
+        sys.exit("the red is hand-placed since 2026-11-10 (see the docstring): --remark re-marks "
+                 "everything and overwrites it, --latexdiff OUT.tex writes the full diff")
     res, stats = mark(sub, cur)
     assert strip(res) == cur, "stripping the markup does not give back the source; nothing written"
     open(cur_path, "w").write(res)
