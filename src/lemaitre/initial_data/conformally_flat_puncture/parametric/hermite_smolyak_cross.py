@@ -59,6 +59,7 @@ from .parametric_nd import _git_commit, _load_model_npz, _save_npz, _save_npz_ow
 from .parametric_nd_smolyak import combination_coeffs, _node_key   # _node_key is sibling API
 from .hermite_nd import HermiteSolutionND
 from .hermite_smolyak import HermiteSmolyakSolutionND, HermiteSmolyakSolverND
+from .parametric import bary_terms_jax
 from .hermite import cardinal_deriv_at_nodes, _hermite_bases_np, _hermite_bases_jax
 
 
@@ -150,7 +151,6 @@ class HermiteCrossSolutionND(HermiteSolutionND):
                  for pi, pr in enumerate(self.cross_pairs)}
         for k in range(self.d):
             nodes_k = nodes[k]
-            diff = theta[k] - nodes_k
             if k in enh:
                 h, hh = _hermite_bases_jax(theta[k], nodes_k,
                                            weights[k], cvec[k])
@@ -169,8 +169,7 @@ class HermiteCrossSolutionND(HermiteSolutionND):
                          for pr, v in accD2.items() if k not in pr}
                 accV, accD, accD2 = newV, newD, newD2
             else:
-                t = weights[k] / diff
-                s = jnp.sum(t)
+                t, s = bary_terms_jax(theta[k], nodes_k, weights[k])
                 accV = jnp.tensordot(t, accV, axes=(0, 0)) / s
                 accD = {e: jnp.tensordot(t, accD[e], axes=(0, 0)) / s for e in accD}
                 accD2 = {pr: jnp.tensordot(t, v, axes=(0, 0)) / s

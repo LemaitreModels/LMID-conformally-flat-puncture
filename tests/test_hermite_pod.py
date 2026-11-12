@@ -435,5 +435,6 @@ def test_pod_real_corpus_solver_backed():
 
     # ---- (iv) certification unchanged ----
     for th in hold[:2]:
-        U, info = pod.evaluate_polished(th, newton_steps=5, tol=1e-12)
+        U, info = pod.evaluate_polished(th, newton_steps=5, tol=1e-12,
+                                         strict=False)
         assert info.residual_norm <= 1e-10, (th, info.residual_norm)

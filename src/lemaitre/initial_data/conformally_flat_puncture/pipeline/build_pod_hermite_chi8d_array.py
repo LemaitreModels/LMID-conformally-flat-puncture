@@ -258,7 +258,8 @@ def run_merge(args):
     worst = 0.0
     for th in hold:
         _ = pod.evaluate(th)
-        _U, info = pod.evaluate_polished(th, newton_steps=args.newton_steps)
+        _U, info = pod.evaluate_polished(th, newton_steps=args.newton_steps,
+                                         strict=False)
         worst = max(worst, float(info.residual_norm))
         _t(f"   θ={[round(float(x),3) for x in th]}  certified‖R‖={info.residual_norm:.2e}")
     # the polished residual is in the SOLVER's norm (u since 2026-08-25), so the
@@ -313,7 +314,8 @@ def run_pod(args):
     worst = 0.0
     for th in hold:
         _ = pod.evaluate(th)
-        _U, info = pod.evaluate_polished(th, newton_steps=args.newton_steps)
+        _U, info = pod.evaluate_polished(th, newton_steps=args.newton_steps,
+                                         strict=False)
         worst = max(worst, float(info.residual_norm))
         _t(f"   θ={[round(float(x),3) for x in th]}  certified‖R‖={info.residual_norm:.2e}")
     # the polished residual is in the SOLVER's norm (u since 2026-08-25), so the

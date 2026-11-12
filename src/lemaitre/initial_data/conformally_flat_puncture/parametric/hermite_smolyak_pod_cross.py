@@ -246,7 +246,7 @@ def truncate_pod_cross(pod: PODHermiteSmolyakCross, r_new: int,
 # Persistence: load a compressed cross surrogate
 # --------------------------------------------------------------------------
 def load_pod_hermite_smolyak_cross(path) -> PODHermiteSmolyakCross:
-    """Load a :class:`PODHermiteSmolyakCross` saved by :meth:`.save` (zero solves)."""
+    """Load a :class:`PODHermiteSmolyakCross` saved by :meth:`PODHermiteSmolyakCross.save` (zero solves)."""
     def build(data, meta):
         Phi = np.asarray(data["Phi"], dtype=float)
         mean = np.asarray(data["mean"], dtype=float)

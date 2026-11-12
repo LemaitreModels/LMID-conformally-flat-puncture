@@ -161,6 +161,17 @@ where they are not needed. A *dimension-adaptive* index set [5] grows the simple
 greedily along the axes whose surpluses stay large, and is the natural next step
 for the slowly converging spin axes.
 
+## How the shipped models use it
+
+The shipped models are isotropic level-5 sparse grids on the production box, 1105
+solves in four dimensions and 15 713 in eight. Two things are added on top of the
+value construction on this page. On the two aligned-spin axes each node also stores
+its tangent and the subgrids interpolate in Hermite form, with the cross derivative
+of the pair ([Sensitivities](sensitivities.md)); an axis on which a subgrid has a
+single node stays value-only. And the stored fields are compressed onto a reduced
+basis before they are interpolated ([Compression](compression.md)). [From parameters
+to a field](method.md) follows one query through all of it.
+
 The node counts in the table come from the package itself:
 
 ```python

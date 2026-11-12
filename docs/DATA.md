@@ -1,4 +1,7 @@
-# Regenerating the paper's data & figures
+# Reproduce the paper
+
+This page is for rebuilding the paper's models, data and figures. To *use* a shipped
+model, see [Available models](MODELS.md) and [Choose a workflow](workflows.md).
 
 The design *goal* is that figure scripts recompute their numbers from the solver /
 ROM rather than reading a pre-baked cache. **That is Stage 2, and it is not done
@@ -75,11 +78,10 @@ figure→producer→artifact graph). Those producers are the heavy tier below.
   `m≥1` mode below 1e-16 — `axisym_m_ge1_max` is 9.2e-17 in fig08's committed figdata) is
   computed by the same producer's `axisym` block and quoted as text.
 
-  See that producer's docstring for the two findings needed to read the figure: spin
-  combined with `q` drives the disagreement and it converges (~100× worse from `q=1` to
-  `q=3` at fixed spin, a further ~10× from `b=3` to `b=10`); and the certified residual
-  *rises* with resolution — mildly along a fixed-`Nφ` ladder, steeply when `Nφ` rises,
-  because the mechanism is roundoff in unpopulated high-`m` modes, not lost convergence.
+  See that producer's docstring for what is needed to read the figure: spin combined
+  with `q` drives the disagreement and it converges. The paper's appendix *Validation
+  against TwoPunctures* states the current measurements; numbers quoted in docstrings
+  of earlier runs are labelled with the grid and date they were measured on.
 
 - **Constraints on an evolution grid** (fig10) — measured by **GRTeclyn**, an external
   numerical-relativity code, not by the in-house monitor (which stays as an internal
@@ -102,7 +104,7 @@ figure→producer→artifact graph). Those producers are the heavy tier below.
            LMID=<export>/qc_b3.lmid LMREF=<export>/qc_b3_reference.dat
      ```
 
-     See [`../grteclyn/README.md`](../grteclyn/README.md) for the series, the
+     See [`grteclyn/README.md`](https://github.com/LemaitreModels/LMID-conformally-flat-puncture/blob/main/grteclyn/README.md) for the series, the
      configuration defaults and where each of their numbers is pinned. The
      script is account- and cluster-agnostic on purpose: it takes the executable
      and the launcher from the environment and hard-codes no paths. GRTeclyn
@@ -113,8 +115,14 @@ figure→producer→artifact graph). Those producers are the heavy tier below.
      `grteclyn/README.md` says which keys and why an older build silently ignores
      them.
 
+     > **Formats.** The export format follows the grid: `"paper-v1"` is written as
+     > **format 2** (a polynomial in `B` on Lobatto `A`) and `"v2"` as **format 4**
+     > (angular nodes in the ABT angle `s`, Chebyshev–Gauss `A`, `u = (A − 1) V`).
+     > The GRTeclyn reader accepts 2 and 4, each with its own rule, and refuses
+     > anything else; `Export.read` refuses a mismatch from this side too.
+     >
      > **Provenance of the committed numbers: they are format-1 measurements, and
-     > that is deliberate.** The exporter now writes **format 2**, which divides
+     > that is deliberate.** Format 2 divides
      > the axis factor `w_k(B) = (1-B^2)^{k/2}` out of the wavenumber-`k`
      > coefficients so that polynomial interpolation on the consumer side is
      > exact for every `k` rather than only for `k = 0`. The consumer learned to
@@ -123,13 +131,9 @@ figure→producer→artifact graph). Those producers are the heavy tier below.
      > (`94323cd`, 2026-08-06). So a re-run today would exercise a *different*,
      > strictly better consumer-side interpolation, and the committed figure is
      > the conservative measurement rather than the best one available. Re-running
-     > it was weighed and declined for this paper. **The two halves cannot be
-     > mixed:** `LMSpectralData` aborts unless the file says `format 2`, and
-     > `Export.read` refuses the mismatch from this side, because reading a
-     > newer file under an older rule is silently wrong rather than an error.
-     > Since 2026-10-12 there is also **format 4**, the `"v2"` grid (angular nodes in
-     > the ABT angle `s`, Chebyshev–Gauss `A`, `u = (A − 1) V`); the consumer reads 2
-     > and 4, each with its own rule. The committed fig10 is a `"paper-v1"`
+     > it was weighed and declined for this paper. The two halves cannot be mixed,
+     > because reading a newer file under an older rule is silently wrong rather
+     > than an error. The committed fig10 is a `"paper-v1"`
      > measurement, exported at 52 × 36; moving it to `"v2"` means new ladder runs from
      > format-4 exports on the production grid 44 × 40 (`run_export_grteclyn`, whose
      > `--scheme` defaults to `production_model.SCHEME`).
@@ -325,13 +329,13 @@ push `b_circ` onto the lower edge for the smallest `J`, in which case the
 "circular orbit" is an edge artifact rather than a measurement. Check `b_circ` is
 strictly interior for every `J` and stop if it is not.
 
-## The TwoPunctures oracle (fig09)
+## The TwoPunctures oracle (fig08, fig09)
 
-Panels (a) and (b) of fig09 — the quasi-circular ψ and `M_ADM` comparisons *against*
-TwoPunctures — require the binary, and those are irreducibly a comparison. Panel (c),
-the azimuthal spectrum, and the `axisym` block do not (they are internal properties of
-our own solve), but they ride along in the same producer because the expensive part is
-one oracle call per configuration.
+fig08, the quasi-circular ψ and `M_ADM` comparisons *against* TwoPunctures, requires
+the binary, and is irreducibly a comparison. fig09, the azimuthal spectrum, and the
+`axisym` block do not (they are internal properties of our own solve), but they come
+from the same producer because the expensive part is one oracle call per
+configuration.
 
 Two diagnostics that no longer have a panel of their own:
 

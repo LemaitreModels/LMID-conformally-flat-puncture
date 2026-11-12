@@ -125,7 +125,8 @@ def test_cert_tol_is_the_papers_gate():
 
 @pytest.mark.parametrize("cls", POLISHED_CLASSES, ids=lambda c: c.__name__)
 def test_evaluate_polished_defaults_to_the_gate(cls):
-    """`tol` defaults to *the attached solver's* gate, and the gate is opt-in.
+    """`tol` defaults to *the attached solver's* gate, and the gate is closed by default
+    (`strict=True` since 2026-11-12; measuring callers pass `strict=False`).
 
     **The default is `None`, and that is the fix rather than a regression.**  It used
     to be the one threshold, because there was one norm.  Since 2026-08-25 there are
@@ -142,7 +143,7 @@ def test_evaluate_polished_defaults_to_the_gate(cls):
         f"{sig.parameters['tol'].default!r} in its signature; it must defer to "
         f"gate_for(solve_fn), because which norm the residual is in is a property "
         f"of the attached solver and not of the container")
-    assert sig.parameters["strict"].default is False
+    assert sig.parameters["strict"].default is True
 
 
 def test_the_gate_follows_the_solver_not_the_container():
@@ -208,14 +209,22 @@ def test_strict_raises_on_an_uncertified_datum(cls):
 
 
 @pytest.mark.parametrize("cls", POLISHED_CLASSES, ids=lambda c: c.__name__)
+def test_the_default_is_strict(cls):
+    """Since 2026-11-12 the one-line call is the certified one: a user who asks for
+    initial data gets certified data or an error, never an uncertified field."""
+    with pytest.raises(CertificationError):
+        _stub_model(cls, 3.2e-7).evaluate_polished(_theta_for(cls))
+
+
+@pytest.mark.parametrize("cls", POLISHED_CLASSES, ids=lambda c: c.__name__)
 def test_non_strict_still_returns_it(cls):
-    """The deliberate default: measure and report, do not refuse.
+    """``strict=False`` measures and reports, and does not refuse.
 
     The polish-history producers (`run_polish_table.py`, `run_polish_cold.py`)
-    sweep tol=1e-12 to watch the residual fall *through* 1e-10; a library-level
-    raise would make that measurement impossible to take.
+    sweep tol=1e-12 to watch the residual fall *through* the gate; a raise would
+    make that measurement impossible to take, so they pass ``strict=False``.
     """
-    U, info = _stub_model(cls, 3.2e-7).evaluate_polished(_theta_for(cls))
+    U, info = _stub_model(cls, 3.2e-7).evaluate_polished(_theta_for(cls), strict=False)
     assert np.shape(U) == _FIELD.shape
     assert info.residual_norm == 3.2e-7
 

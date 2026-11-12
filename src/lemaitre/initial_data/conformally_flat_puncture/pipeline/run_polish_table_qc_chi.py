@@ -112,7 +112,8 @@ def step_residuals(model, theta, max_steps=4):
     """Certified ||R||_inf after 0..max_steps NK steps, from the history of one
     solve.  Pads with the last (certified) value if NK converged early.  Returns
     ``(res_list, steps_to_certify, certified_residual)``."""
-    _U, info = model.evaluate_polished(theta, newton_steps=max_steps, tol=1e-12)
+    _U, info = model.evaluate_polished(theta, newton_steps=max_steps, tol=1e-12,
+                                       strict=False)
     h = list(info.history)
     res = [float(h[k] if k < len(h) else h[-1]) for k in range(max_steps + 1)]
     stc = next((k for k, r in enumerate(h) if r <= 1e-10), None)

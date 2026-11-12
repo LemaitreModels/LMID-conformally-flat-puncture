@@ -152,7 +152,8 @@ def main(cross_path, n_points=1000, seed=0, n_peraxis=60,
     attach_solve_fn_3d(mc, prob, names, M_tot=1.0, fixed=fixed, use_cache=False, solver="nk")
 
     def u_true_at(theta):
-        U, info = mc.evaluate_polished(theta, newton_steps=u_steps, tol=u_tol)
+        U, info = mc.evaluate_polished(theta, newton_steps=u_steps, tol=u_tol,
+                                          strict=False)
         return np.asarray(U), float(info.residual_norm)
 
     # -------- JOINT field error AND bare-guess EQUILIBRATED residual --------

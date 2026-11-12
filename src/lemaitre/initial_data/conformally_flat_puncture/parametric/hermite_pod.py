@@ -328,7 +328,7 @@ class PODHermiteND(CertifiedEvaluateMixin):
     def evaluate_jax(self, theta):
         """``jnp`` twin of :meth:`evaluate` — the exposed-gradient hook
         (``jax.jacfwd`` gives ``P_r·∂U/∂θ``, the full gradient projected onto ``Φ``).
-        Must NOT be queried exactly at a node."""
+        Finite and differentiable at the nodes too."""
         c = jnp.reshape(self.coeff_hermite.evaluate_jax(theta), (-1,))
         u = self._mean_j + self._Phi_j @ c
         return jnp.reshape(u, self.field_shape)

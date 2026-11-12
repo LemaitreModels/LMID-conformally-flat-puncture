@@ -22,17 +22,17 @@ Two deliberate asymmetries:
   ``if rn < tol: break`` was dead code.  The status flag reported nothing and cost
   an extra Newton step to not report it.
 
-* **The gate is opt-in (``strict=True``), not the default.**  A raise inside the
-  library would be wrong for the callers that legitimately query *below* the
-  gate: the polish-history producers sweep ``tol=1e-12`` precisely to watch the
-  residual fall through 1e-10 and past it, and a sweep over hundreds of θ wants
-  a bad point flagged, not the sweep lost.  So the library measures and reports;
-  the gate is closed at the points where a datum leaves the package — the
-  quasi-circular applications and the evolution export — which is where the
-  paper's claim is made.
-
-Callers that want the gate pass ``strict=True``; callers that want to see the
-number compare ``info.residual_norm`` themselves.
+* **The gate is closed by default (``strict=True``) since 2026-11-12.**  A user
+  who asks a model for initial data gets certified data or an error, never an
+  uncertified field with a flag beside it.  Until then the default was
+  ``strict=False``, so the one-line call returned whatever the Newton steps
+  reached.  The callers that legitimately query *below* the gate say so: the
+  polish-history producers sweep ``tol=1e-12`` precisely to watch the residual
+  fall through the gate and past it, and a sweep over hundreds of θ wants a bad
+  point flagged, not the sweep lost, so they pass ``strict=False`` and compare
+  ``info.residual_norm`` themselves.  The exits where a datum leaves the package
+  (the quasi-circular applications and the evolution export) pass ``strict=True``
+  explicitly, so they stay closed whatever the default.
 """
 
 from __future__ import annotations
@@ -166,8 +166,8 @@ def gate_for_problem(prob) -> float:
 class CertificationError(RuntimeError):
     """A queried datum failed the ``‖R‖∞ ≤ tol`` gate and was therefore not returned.
 
-    Raised only from a ``strict=True`` call.  The message carries the parameter,
-    the achieved residual and the step count, because the actionable question
+    Raised from a ``strict=True`` call, the default of ``evaluate_polished``.
+    The message carries the parameter, the achieved residual and the step count, because the actionable question
     after a failure is *where* in the box it happened — the known mode is a
     global-convergence stall at extreme corners (high ``q`` + strong spin at wide
     separation), for which ``parametric_nd_3d.make_solve_fn`` provides the
@@ -224,15 +224,17 @@ class CertifiedEvaluateMixin:
         return np.asarray(theta, dtype=float)
 
     def evaluate_polished(self, theta, newton_steps: int = 2, tol: Optional[float] = None,
-                          strict: bool = False):
+                          strict: bool = True):
         """Interpolated prediction + 1–2 Newton steps → certified ``‖R‖≤tol`` at θ.
 
         The interpolant is only a *guess*; the attached ``solve_fn`` →
         ``newton_solve`` is the certificate.  Returns ``(U, info)`` with
         ``info.residual_norm`` the certified constraint residual at θ,
-        independent of any interpolation error.  ``strict=True`` closes the
-        gate: a datum that misses ``tol`` raises :class:`CertificationError`
-        instead of being returned.
+        independent of any interpolation error.  By default (``strict=True``) the
+        gate is closed: a datum that misses ``tol`` raises
+        :class:`CertificationError` instead of being returned.  Pass
+        ``strict=False`` to get the field and its residual whatever it is, for a
+        sweep that measures the residual itself.
 
         **``tol=None`` means "this solver's gate", which is not one number** — see
         :func:`gate_for`.  A container is generic: the same class carries a 2-D ABT

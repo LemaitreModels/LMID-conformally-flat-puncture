@@ -383,7 +383,11 @@ def _nudge(theta, node_sets, box, trigger=1e-8, shift_frac=2e-3):
     """Shift any component exactly on a CGL/CC node off it (branchless jax is 0/0
     there).  Used ONLY for the Jacobian evaluation — the iterate itself is never
     nudged, so inactive (fixed) components stay exact and the target stays
-    reachable.  The nudge only perturbs a *search direction*, so it is benign."""
+    reachable.  The nudge only perturbs a *search direction*, so it is benign.
+
+    Since 2026-11-12 ``evaluate_jax`` is finite and differentiable at the nodes
+    (:func:`~..parametric.parametric.bary_terms_jax`), so this nudge is no longer needed for
+    correctness; it is kept so that published runs reproduce."""
     theta = np.array(theta, float)
     for k in range(theta.size):
         nodes_k = np.asarray(node_sets[k])

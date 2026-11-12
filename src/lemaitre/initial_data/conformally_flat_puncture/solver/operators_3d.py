@@ -566,9 +566,8 @@ _U_SCALE_CACHE_MAX = 2    # Nm vectors of length Na·Nb — kilobytes, not the b
 #: production grid, i.e. **~170× LOOSER** than the old ``1e-10``-in-``v``.  No value
 #: in the derived window ``[6.30e−13, 4.56e−07]`` is as tight as the old gate; that
 #: is the same fact as the six field-converged solves the old gate rejected, seen
-#: from the other side.  Both norms remain computable by name, which is the
-#: reversibility Frederik's ruling requires — see
-#: ``context/Lemaitre/LM-initial-data/LMID-curved-puncture/PLAN.md``.
+#: from the other side.  Both norms remain computable by name, so every earlier
+#: measurement stays reproducible.
 EQUIL_NORM_DEFAULT = "u"
 
 

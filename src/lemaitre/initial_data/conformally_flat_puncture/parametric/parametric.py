@@ -49,6 +49,65 @@ def cheb_param_nodes(q_min: float, q_max: float, Q: int):
     return q, lam
 
 
+#: Within this distance of a node, measured in half-widths of the node set,
+#: :func:`bary_terms_jax` uses the first barycentric form instead of the second.
+#: (The numpy evaluators snap to the node's stored field only within ``1e-13``.)
+NEAR_NODE = 1e-3
+
+
+def bary_terms_jax(theta, nodes, weights):
+    """``(t, s)`` with ``ℓ = t / s`` the barycentric Lagrange basis at scalar ``θ``,
+    in ``jnp``: finite and differentiable at every ``θ``, the nodes included.
+
+    Every ``evaluate_jax`` in this package contracts its stored fields with ``t``
+    and divides by ``s``, one axis at a time.
+
+    * **Away from the nodes** this is the second (true) barycentric form,
+      ``t_i = w_i / (θ − θ_i)``, ``s = Σ_i t_i``, exactly as these evaluators always
+      computed it, so the result there is unchanged bit for bit.
+    * **Within** :data:`NEAR_NODE` **of a node** it is the first (modified
+      Lagrange) form, ``t_i = w_i Π_{k≠i} (θ − θ_k)``, ``s = Σ_i t_i``.  Each ``t_i``
+      is a polynomial in ``θ`` and ``s`` a nonzero constant, so the value at a node
+      is the one-hot selector (every other ``t_i`` carries the factor
+      ``θ − θ_j = 0``) and ``jax.jacfwd`` / ``jax.hessian`` return the
+      interpolant's own derivatives there.
+
+    Why the switch.  The second form is ``0/0`` at a node: the value and every
+    derivative used to come back NaN, at any parameter that sits on a node of its
+    axis (a box edge, the box centre, zero spin).  Near a node its *autodiff*
+    derivative also loses digits: measured on 9- and 17-node Chebyshev–Lobatto
+    axes, the relative error of ``jax.grad`` grows from 6e-14 at a gap of 1e-2 to
+    ~3e-8 at 1e-8 and 3e-4 at 1e-12, while the first form stays at ~1e-15 at every
+    gap.  Just outside the switch, at a gap of ``1e-3`` half-widths, the second
+    form's relative error is ~3e-13 in the first derivative and ~3e-10 in the
+    second (against a 50-digit reference).
+
+    Both forms give the same ``ℓ`` for any common scaling of ``w`` (Berrut and
+    Trefethen, *Barycentric Lagrange interpolation*, SIAM Rev. 46, 501 (2004),
+    §§3–4), and the differences are scaled by the half-width so the products stay
+    O(1).  The unselected second form is evaluated at a point past the last node
+    (the "double ``where``"), so no NaN reaches a derivative.
+    """
+    theta = jnp.asarray(theta)
+    nodes = jnp.asarray(nodes)
+    weights = jnp.asarray(weights)
+    span = jnp.max(nodes) - jnp.min(nodes)
+    half = jnp.where(span > 0, 0.5 * span, 1.0)
+    x = (theta - nodes) / half
+    near = jnp.any(jnp.abs(x) < NEAR_NODE)
+    # second form, away from the nodes; near one it is evaluated past the last node
+    theta_far = jnp.where(near, jnp.max(nodes) + half, theta)
+    t_far = weights / (theta_far - nodes)
+    s_far = jnp.sum(t_far)
+    # first form: Π_{k≠i} x_k from prefix and suffix products (no division)
+    one = jnp.ones((1,), dtype=x.dtype)
+    left = jnp.concatenate([one, jnp.cumprod(x[:-1])])
+    right = jnp.concatenate([jnp.cumprod(x[::-1][:-1])[::-1], one])
+    t_near = weights * left * right
+    s_near = jnp.sum(t_near)
+    return jnp.where(near, t_near, t_far), jnp.where(near, s_near, s_far)
+
+
 # --------------------------------------------------------------------------
 # Parametric solution container + sweep
 # --------------------------------------------------------------------------

@@ -1,8 +1,11 @@
 # Sensitivities and Hermite interpolation
 
-*Differentiable* in the title of the paper [5] means that for every queried parameter
-point $\theta$ the model returns the derivative $\partial U/\partial\theta$ of the
-initial data along with the data. In numerical relativity the usual way to see how
+*Differentiable* in the title of the paper [5] means that at every parameter point
+$\theta$ the package can return the derivative $\partial U/\partial\theta$ of the
+initial data along with the data, in two ways: as the derivative of the model's
+interpolant, `jax.jacfwd(model.evaluate_jax)`, and as the sensitivity of a certified
+solve, `applications.sensitivity_3d_qc.certified_tangent_3d_qc` (see [Evaluate a
+model](evaluate.md) and [Solve one binary](solve.md)). In numerical relativity the usual way to see how
 initial data change with a parameter is to solve again at a nearby parameter
 value and take a finite difference. Here the derivative comes out of the solve
 itself, for the price of one linear solve, and the stored derivatives make the
@@ -28,11 +31,14 @@ analytic), and its derivative is the solution of a *linear* equation.
 - **It is cheap.** $J$ is the Jacobian that Newton's method already uses, so each
   tangent is one more linear solve with the same operator and preconditioner [4],
   and no further nonlinear solve. A Newton solve performs several such linear solves.
-- **It is exact.** The right-hand side $\partial R/\partial\theta_k$ is known in
-  closed form on every axis, because each Bowen–York tensor is linear in its own
-  momentum or spin. No finite difference enters, so there is no step size to
-  choose and no loss to cancellation. A finite difference in double precision is
-  limited to about $10^{-8}$ by the competition between truncation and rounding.
+- **It has no step size.** The right-hand side $\partial R/\partial\theta_k$ is
+  known in closed form on every axis, because each Bowen–York tensor is linear in its
+  own momentum or spin. No finite difference enters, so there is no step to choose
+  and no loss to cancellation; the tangent is as accurate as the linear solve that
+  produces it, on the same grid as the solution. A finite difference balances
+  truncation against rounding: in double precision a one-sided difference reaches
+  at best about $10^{-8}$ relative accuracy and a central one a few times $10^{-11}$,
+  each only with a step chosen for the problem.
 - **Forward mode is the right mode.** There are at most eight parameters and the
   output is a whole field, so one linear solve per parameter is the cheap
   direction. An adjoint (reverse-mode) calculation pays off in the opposite case,
@@ -78,6 +84,16 @@ $\sum_i \left( H_i \, U_i + \hat H_i \, \partial_\theta U_i \right)$ reproduces 
 certified value and the certified tangent at every node. The derivative the model
 exposes at a node is then the certified sensitivity itself, not the derivative of
 a value interpolant.
+
+This holds for one tensor-product Hermite interpolant. The shipped models qualify
+it three times. Only the two enhanced axes carry stored tangents, so along the other
+axes the exposed derivative is that of a value interpolant. In the
+[sparse combination](smolyak.md) a subgrid with a single node on an axis stays
+value-only on that axis, so the combined interpolant need not reproduce a stored
+tangent at every node: for $f = xy$, the two-axis level-1 combination is zero, and
+so is its $x$-derivative at the node $(0, 1)$, where the stored one is 1. And the
+stored tangents are compressed onto the model's reduced basis
+([Compression](compression.md)).
 
 For an analytic map the Hermite error falls about twice as many decades per node
 as the Lagrange error, so it needs about half the nonlinear solves for the same

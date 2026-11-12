@@ -381,5 +381,6 @@ def test_evaluate_polished_certifies():
     rng = np.random.default_rng(1)
     pts = _AXIS_B["lo"] + rng.uniform(0.05, 0.95, 6) * (_AXIS_B["hi"] - _AXIS_B["lo"])
     for p in pts:
-        U, info = her.evaluate_polished([float(p)], newton_steps=5, tol=1e-12)
+        U, info = her.evaluate_polished([float(p)], newton_steps=5, tol=1e-12,
+                                         strict=False)
         assert info.residual_norm <= 1e-10, (float(p), info.residual_norm)

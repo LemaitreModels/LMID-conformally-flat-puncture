@@ -28,8 +28,9 @@ not certificates.
 Node-hit semantics mirror the oracle exactly: a θ-component within the
 oracle's ``np.isclose(…, atol=1e-13)`` window of a node turns that axis's value
 basis into the one-hot selector and its Hermite tangent basis into zero.  The
-jax twin is branchless and, like every ``evaluate_jax`` in this package, must
-not be queried exactly at a node.
+jax twin is branchless and, like every ``evaluate_jax`` in this package, is
+finite and differentiable at the nodes too
+(:func:`~.parametric.bary_terms_jax`).
 
 Standalone: numpy + jax + the sibling ``parametric`` modules.
 """
@@ -46,6 +47,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from .parametric_nd_smolyak import _node_key
+from .parametric import bary_terms_jax
 from .hermite import _hermite_bases_np, _hermite_bases_jax
 
 #: the oracle's exact-node window (`np.isclose(diff, 0, atol=1e-13)` with rtol
@@ -280,7 +282,7 @@ class PooledEvaluator:
         return out.reshape((thetas.shape[0],) + self.field_shape)
 
     # ------------------------------------------------------------------
-    # jax twin (branchless, off-node; differentiable in θ; jit-friendly)
+    # jax twin (branchless, node-safe; differentiable in θ; jit-friendly)
     # ------------------------------------------------------------------
     def _jax_consts(self):
         c = self._jax_consts_cache
@@ -303,8 +305,8 @@ class PooledEvaluator:
                                            jnp.asarray(weights), jnp.asarray(cvec))
                 out[(k, m)] = (h, hh)
             else:
-                t = jnp.asarray(weights) / (theta[k] - jnp.asarray(nodes))
-                out[(k, m)] = (t / jnp.sum(t), None)
+                t, s = bary_terms_jax(theta[k], nodes, weights)
+                out[(k, m)] = (t / s, None)
         return out
 
     @staticmethod
@@ -315,7 +317,7 @@ class PooledEvaluator:
         return jnp.ravel(w)
 
     def evaluate_jax(self, theta):
-        """``jnp`` twin of :meth:`evaluate` — same off-node contract as every
+        """``jnp`` twin of :meth:`evaluate`, node-safe like every
         ``evaluate_jax`` in this package; wrap with
         :func:`parametric_nd.jax_evaluator` to compile it once per model."""
         theta = jnp.asarray(theta)

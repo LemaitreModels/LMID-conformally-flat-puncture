@@ -224,12 +224,12 @@ class SmolyakSolutionND(CertifiedEvaluateMixin):
             out = c * v if out is None else out + c * v
         return out
 
-    # ----- JAX-differentiable twin (∂ID/∂θ hook; must not be queried at a node) -----
+    # ----- JAX-differentiable twin (∂ID/∂θ hook; node-safe) -----
     def evaluate_jax(self, theta):
         """``jnp`` twin of :meth:`evaluate`, on the same pool-weight path:
         branchless, differentiable in θ, and jit-friendly — compile it once per
-        model with :func:`parametric_nd.jax_evaluator`.  Must NOT be queried
-        exactly at a node."""
+        model with :func:`parametric_nd.jax_evaluator`.  Finite and
+        differentiable at the nodes too."""
         from .pooled import pooled_evaluator
         return pooled_evaluator(self).evaluate_jax(theta)
 

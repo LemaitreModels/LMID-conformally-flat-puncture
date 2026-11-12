@@ -45,7 +45,7 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import jax.numpy as jnp
 
-from .parametric import cheb_param_nodes            # reused verbatim (the 1-D CGL layer)
+from .parametric import cheb_param_nodes, bary_terms_jax   # reused verbatim (the 1-D CGL layer)
 from .certification import CertifiedEvaluateMixin   # the residual gate (one place)
 from .parametric_nd import (                        # persistence helpers, reused verbatim
     _git_commit,
@@ -131,7 +131,8 @@ def _hermite_bases_np(theta, nodes, weights, cvec):
 
 
 def _hermite_bases_jax(theta, nodes, weights, cvec):
-    """``(h_i, ĥ_i)`` at scalar ``theta`` — branchless jnp (differentiable, OFF-node).
+    """``(h_i, ĥ_i)`` at scalar ``theta`` — branchless jnp, differentiable at every
+    ``theta``, the nodes included (:func:`~.parametric.bary_terms_jax`).
 
     The value bases only; the derivative is obtained by ``jax`` autodiff of the
     assembled field (see :meth:`HermiteSolution1D.evaluate_jax`), so it stays
@@ -142,8 +143,8 @@ def _hermite_bases_jax(theta, nodes, weights, cvec):
     weights = jnp.asarray(weights)
     cvec = jnp.asarray(cvec)
     d = theta - nodes
-    t = weights / d
-    ell = t / jnp.sum(t)
+    t, s = bary_terms_jax(theta, nodes, weights)
+    ell = t / s
     ell2 = ell ** 2
     h = (1.0 - 2.0 * cvec * d) * ell2
     hh = d * ell2
@@ -325,8 +326,7 @@ class HermiteSolution1D(CertifiedEvaluateMixin):
         """``dũ/dθ`` via the analytic Hermite-cardinal derivatives (numpy,
         node-safe).  Scalar or batch ``θ``.  At a node it returns the stored
         tangent ``U_i'`` exactly (the cardinal property ``ũ'(θ_i)=U_i'``); this
-        is the node-safe companion of ``jax.jacfwd(evaluate_jax)`` (which is 0/0
-        exactly at a node)."""
+        agrees with ``jax.jacfwd(evaluate_jax)``, which is node-safe too."""
         te = np.atleast_1d(np.asarray(theta, dtype=float))
         fshape = self.field_shape
         out = np.empty((te.shape[0],) + fshape)
@@ -359,9 +359,8 @@ class HermiteSolution1D(CertifiedEvaluateMixin):
 
     def evaluate_jax(self, theta):
         """``jnp`` twin of :meth:`evaluate` — branchless and differentiable in the
-        scalar ``θ`` (the exposed-gradient hook for the applications).  Must NOT
-        be queried exactly at a node (the barycentric quotient is removable there
-        but not finite for jax; use :meth:`evaluate_grad` at nodes)."""
+        scalar ``θ`` (the exposed-gradient hook for the applications).  Finite and
+        differentiable at the nodes too (:func:`~.parametric.bary_terms_jax`)."""
         U, dU, nodes, weights, cvec = self._jax_consts()
         h, hh = _hermite_bases_jax(theta, nodes, weights, cvec)
         return jnp.tensordot(h, U, axes=(0, 0)) + jnp.tensordot(hh, dU, axes=(0, 0))

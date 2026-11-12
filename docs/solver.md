@@ -207,10 +207,10 @@ step, and the measured steps below still converge quadratically.
 once the residual is a decade below the requested tolerance, and also stops if the
 best residual fails to halve twice in a row. A solve is certified only if
 $\|R\|^{(u)}_\infty \le 10^{-11}$ (`certification.CERT_TOL_U`). The solver itself
-only reports whether it met that gate, in `info.converged`. The strict entry points,
-`evaluate_polished(..., strict=True)` and `certification.certified_return(...,
-strict=True)`, raise an error instead, and so do parameter targeting, eccentricity
-reduction and the GRTeclyn export. The gate certifies the discrete solve. How close
+only reports whether it met that gate, in `info.converged`, and returns either way.
+`certification.certified_return(..., strict=True)` turns that report into an error.
+The model's `evaluate_polished` raises by default, and so do parameter targeting,
+eccentricity reduction and the GRTeclyn export. The gate certifies the discrete solve. How close
 the discrete solution is to the continuum one is a separate question, answered by
 resolution studies and the comparison with TwoPunctures in the paper [8].
 
@@ -275,7 +275,8 @@ automatic-differentiation test that the Bowen–York tensors are transverse.
 ## Try it
 
 A quasi-circular, equal-mass binary with aligned spins, solved on the production grid
-from $u = 0$:
+from $u = 0$. [Solve one binary](solve.md) is the short version of this example, with
+the certification check a script should make.
 
 ```python
 import numpy as np

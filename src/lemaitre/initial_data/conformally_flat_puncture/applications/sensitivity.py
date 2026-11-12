@@ -285,7 +285,11 @@ def _nudge_off_nodes(theta, ps: ParametricSolutionND, box=None,
     (``shift_frac·range``) is comfortable so the nudged point has an accurate
     Jacobian.  Nudging is benign: GN converges to the target regardless of the
     (off-node) start, and the shift is far below the interpolant's parameter
-    resolution.  Returns the nudged θ."""
+    resolution.  Returns the nudged θ.
+
+    Since 2026-11-12 ``evaluate_jax`` is finite and differentiable at the nodes
+    (:func:`~..parametric.parametric.bary_terms_jax`), so this nudge is no longer needed for
+    correctness; it is kept so that published runs reproduce."""
     theta = np.array(theta, dtype=float)
     for k in range(theta.size):
         nodes_k = np.asarray(ps.nodes[k])
@@ -415,7 +419,7 @@ def gauss_newton_target(ps: ParametricSolutionND, control_names: Sequence[str],
     if polish:
         U, info = ps.evaluate_polished(theta, newton_steps=polish_steps,
                                        tol=gate_for_problem(prob) if polish_tol is None
-                                       else polish_tol)
+                                       else polish_tol, strict=False)
         res.certified_residual = float(info.residual_norm)
         res.certified_U = np.asarray(U)
     return res

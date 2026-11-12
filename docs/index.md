@@ -9,45 +9,64 @@ A differentiable parametric model for binary-black-hole initial data.
 Every simulation of a binary black hole starts from initial data: the geometry of space at the first moment, which must satisfy Einstein's constraint equations.
 These are usually solved from scratch for each new binary.
 This model turns that solve into a function of the binary's separation, mass ratio and spins.
-It interpolates between stored solutions to get a good first guess, then takes a few Newton steps until the discrete constraint residual drops below $10^{-11}$, so every answer it returns is certified.
-Because it is written in JAX, it also returns the derivatives of the initial data with respect to the parameters.
+It interpolates between stored solutions to get a good first guess, then takes a few Newton steps until the discrete constraint residual drops below $10^{-11}$, and it refuses to return data that miss this bound.
+Because the interpolant is written in JAX, it also gives the derivatives of the initial data with respect to the parameters.
 These let you aim a binary at a chosen ADM mass and angular momentum in a few solves, reduce its eccentricity, or see how the data respond to each parameter.
 This first version covers quasi-circular, conformally flat Bowen–York punctures, with four parameters (aligned spins) or eight (general spins), checked against TwoPunctures.
 
-These pages hold the implementation: the grids, the solver settings, the
-certification gate, the shipped models, the export format and how every
-figure in the paper is regenerated. The paper explains the method; it links
-here for the details.
+You can use the model's interpolated field on its own, solve a single binary without the model, or combine the two for certified data; [Choose a workflow](workflows.md) compares the three.
+The pages under *Understand the method* explain how the interpolation works, and the paper [arXiv:2609.10173](https://arxiv.org/abs/2609.10173) gives the measurements.
 
 ```{toctree}
 :maxdepth: 1
-:caption: Getting started
+:caption: Start here
 
-overview
+workflows
+install
 ```
 
 ```{toctree}
 :maxdepth: 1
-:caption: Background
+:caption: Get initial data
 
-solver
-bernstein
-sensitivities
+evaluate
+solve
+refine
+field
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: Understand the method
+
+method
 smolyak
+sensitivities
+compression
+accuracy
+solver
 ```
 
 ```{toctree}
 :maxdepth: 1
-:caption: Implementation
+:caption: Further background
 
-MODELS
-DATA
-STRUCTURE
+bernstein
 ```
 
 ```{toctree}
 :maxdepth: 1
 :caption: Reference
 
+MODELS
 api
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: Development
+
+DATA
+STRUCTURE
+overview
 ```

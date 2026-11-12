@@ -69,10 +69,18 @@ one canonical version of each model. Normal engineering hygiene applies.
 > monitors the equilibrated `u`-norm residual — the 3-D definition, because the raw
 > residual's roundoff floor there lies above every gate — and its gate is
 > `CERT_TOL_U`; for a caller holding a problem rather than a `solve_fn`,
-> `certification.gate_for_problem(prob)` answers both cases. The gate is **opt-in**
-> (`strict=True`) because the polish-history producers query below it on purpose —
-> but it is **closed at every point where a datum leaves the package** (`qc_targeting`,
-> `qc_effpot`, the GRTeclyn export). If you add such an exit, close it there too.
+> `certification.gate_for_problem(prob)` answers both cases. The gate is **closed by
+> default** (`evaluate_polished(..., strict=True)`, since 2026-11-12); the polish-history
+> producers and sweeps that query below it on purpose pass `strict=False`. Every point
+> where a datum leaves the package (`qc_targeting`, `qc_effpot`, the GRTeclyn export)
+> also closes it explicitly. If you add such an exit, close it there too.
+>
+> **Every `evaluate_jax` is node-safe** (since 2026-11-12): the per-axis barycentric
+> terms come from `parametric.bary_terms_jax`, which switches to the first barycentric
+> form within `NEAR_NODE` of a node, so values and derivatives are finite at a box edge,
+> the box centre and zero spin. A new jax evaluator must take its terms from there too.
+> The `_nudge`/`_off_node` helpers in `applications/` predate this and are kept so
+> published runs reproduce.
 
 ## Ground rules (load-bearing)
 

@@ -70,6 +70,7 @@ from .parametric_nd import (              # reused verbatim (the N-D primitives 
     _save_npz,
     _save_npz_owned,
 )
+from .parametric import bary_terms_jax    # node-safe barycentric terms (jnp)
 from .hermite import (                    # reused verbatim (the H1 1-D primitives)
     cardinal_deriv_at_nodes,
     _hermite_bases_np,
@@ -188,8 +189,8 @@ class HermiteSolutionND(CertifiedEvaluateMixin):
     def evaluate_jax(self, theta):
         """``jnp`` twin of :meth:`evaluate` — branchless and differentiable in the
         parameter vector ``θ`` (the exposed-gradient hook for the applications:
-        ``jax.jacfwd(evaluate_jax)`` is ``∂U/∂θ`` of the surrogate).  Must NOT be
-        queried exactly at a node (the barycentric quotient is 0/0 there).
+        ``jax.jacfwd(evaluate_jax)`` is ``∂U/∂θ`` of the surrogate).  Finite and
+        differentiable at the nodes too (:func:`~.parametric.bary_terms_jax`).
 
         Reduces bit-for-bit to the committed ``ParametricSolutionND.evaluate_jax``
         (no enhanced axes) / ``HermiteSolution1D.evaluate_jax`` (``d==1``, axis 0
@@ -200,7 +201,6 @@ class HermiteSolutionND(CertifiedEvaluateMixin):
         accD = {e: jnp.take(dU, e, axis=self.d) for e in enh}
         for k in range(self.d):
             nodes_k = nodes[k]
-            diff = theta[k] - nodes_k
             if k in enh:
                 h, hh = _hermite_bases_jax(theta[k], nodes_k,
                                            weights[k], cvec[k])
@@ -210,8 +210,7 @@ class HermiteSolutionND(CertifiedEvaluateMixin):
                         for e in accD if e != k}
                 accV = newV
             else:
-                t = weights[k] / diff
-                s = jnp.sum(t)
+                t, s = bary_terms_jax(theta[k], nodes_k, weights[k])
                 accV = jnp.tensordot(t, accV, axes=(0, 0)) / s
                 accD = {e: jnp.tensordot(t, accD[e], axes=(0, 0)) / s for e in accD}
         return accV

@@ -42,7 +42,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from ..solver import operators_abt as _ops_abt
-from .parametric import cheb_param_nodes   # reused verbatim (the 1-D CGL layer)
+from .parametric import cheb_param_nodes, bary_terms_jax   # reused verbatim (the 1-D CGL layer)
 from .certification import (                # the residual gate + shared polish (one place)
     CERT_TOL_U,
     CertifiedEvaluateMixin,
@@ -164,13 +164,14 @@ class ParametricSolutionND(CertifiedEvaluateMixin):
 
     def evaluate_jax(self, theta):
         """``jnp`` twin of :meth:`evaluate` — branchless and differentiable in θ
-        (the ``∂ID/∂θ`` hook for B3).  Must NOT be queried exactly at a node
-        (the barycentric quotient is removable there but not finite for jax)."""
+        (the ``∂ID/∂θ`` hook for B3).  Finite and differentiable at the nodes
+        too: :func:`~.parametric.bary_terms_jax` switches to the first barycentric
+        form there."""
         theta = jnp.asarray(theta)
         V, nodes, weights = self._jax_consts()
         for k in range(self.d):
-            t = weights[k] / (theta[k] - nodes[k])
-            V = jnp.tensordot(t, V, axes=(0, 0)) / jnp.sum(t)
+            t, s = bary_terms_jax(theta[k], nodes[k], weights[k])
+            V = jnp.tensordot(t, V, axes=(0, 0)) / s
         return V
 
     # ----- certified evaluation: evaluate_polished from CertifiedEvaluateMixin -----
@@ -544,8 +545,7 @@ def jax_evaluator(model):
     (measured 2026-08-16).  XLA fusion may move the result by ulps relative to
     the eager path (observed ≤6e-16 relative), and the pool-weight path itself
     differs from ``evaluate_subgrid_sum`` at roundoff, so a caller that needs
-    the historical summation order must ask for that method by name.  Same
-    off-node contract as ``evaluate_jax``.
+    the historical summation order must ask for that method by name.
     """
     fn = model.__dict__.get("_jax_evaluator")
     if fn is None:

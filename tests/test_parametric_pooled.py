@@ -362,3 +362,75 @@ def test_standalone_imports():
     m = importlib.import_module(
         "lemaitre.initial_data.conformally_flat_puncture.parametric.pooled")
     assert hasattr(m, "pooled_evaluator")
+
+
+# ==========================================================================
+# P7 — the jax twins are finite and differentiable AT the nodes
+# ==========================================================================
+def _on_node_thetas():
+    """One coordinate on a node, two on nodes, and every coordinate on a node
+    (the box centre is the level-0 node of every axis)."""
+    n0, _ = smol.nested_levels(*AXES[0], 2)
+    n2, _ = smol.nested_levels(*AXES[2], 2)
+    centre = np.array([0.5 * (lo + hi) for lo, hi in AXES])
+    return [np.array([n0[1], 0.17, 0.123]),
+            np.array([n0[2], 0.11, n2[0]]),
+            centre]
+
+
+@pytest.mark.parametrize("name", ALL)
+@pytest.mark.parametrize("route", ["evaluate_jax", "evaluate_jax_subgrid_sum"])
+def test_jax_twin_on_nodes(request, name, route):
+    """Before 2026-11-12 every ``evaluate_jax`` was a second-form barycentric
+    quotient, ``0/0`` at a node: the value and ``jacfwd`` came back NaN whenever
+    ONE coordinate sat on a node of its axis (zero spin, the box centre, a box
+    edge).  Now the value must equal the node-safe numpy ``evaluate`` and the
+    Jacobian must match a central difference of it."""
+    model = request.getfixturevalue(name)
+    f = getattr(model, route)
+    fj, jfwd, jrev = jax.jit(f), jax.jit(jax.jacfwd(f)), jax.jit(jax.jacrev(f))
+    sc = _scale(model)
+    span = np.array([hi - lo for lo, hi in AXES])
+    for th in _on_node_thetas():
+        v = np.asarray(fj(jnp.asarray(th)))
+        assert np.all(np.isfinite(v)), f"{name}.{route}: NaN value at a node {th}"
+        assert float(np.max(np.abs(v - np.asarray(model.evaluate(th))))) / sc < 1e-12
+        J = np.asarray(jfwd(jnp.asarray(th)))          # (*field, d)
+        assert np.all(np.isfinite(J)), f"{name}.{route}: NaN Jacobian at a node {th}"
+        for k in range(th.size):
+            h = 1e-4 * span[k]
+            tp, tm = th.copy(), th.copy()
+            tp[k] += h
+            tm[k] -= h
+            fd = (np.asarray(model.evaluate(tp)) - np.asarray(model.evaluate(tm))) / (2 * h)
+            err = float(np.max(np.abs(J[..., k] - fd))) / (sc / span[k])
+            assert err < 1e-6, f"{name}.{route}: d/dθ_{k} off by {err:.1e} at {th}"
+        Jr = np.asarray(jrev(jnp.asarray(th)))
+        assert float(np.max(np.abs(Jr - J))) / (sc / span.min()) < 1e-12
+
+
+def test_dense_and_1d_hermite_on_nodes():
+    """The dense container and the 1-D Hermite one, value and first two
+    derivatives at an interior node and at a box edge (an endpoint node)."""
+    from lemaitre.initial_data.conformally_flat_puncture.parametric import parametric_nd as pnd
+    from lemaitre.initial_data.conformally_flat_puncture.parametric import hermite as h1
+    from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric import (
+        cheb_param_nodes)
+    nodes, weights = cheb_param_nodes(1.0, 2.0, 6)
+    dense = pnd.ParametricSolutionND(
+        axes=[(1.0, 2.0, 6)], nodes=[nodes], weights=[weights],
+        U_nodes=np.stack([np.sin(3 * x) * np.ones((3, 2)) for x in nodes]),
+        iters=np.zeros(nodes.size, dtype=int), residuals=np.zeros(nodes.size))
+    herm1 = h1.HermiteSolution1D.from_nodes(
+        1.0, 2.0, 6, np.stack([np.sin(3 * x) * np.ones((3, 2)) for x in nodes]),
+        np.stack([3 * np.cos(3 * x) * np.ones((3, 2)) for x in nodes]))
+    for x in (nodes[2], nodes[0]):
+        g = jax.grad(lambda t: jnp.sum(dense.evaluate_jax(jnp.reshape(t, (1,)))))
+        H = jax.grad(g)
+        # degree-6 interpolant of sin(3x): derivatives within ~1e-3 of the function's
+        assert np.isclose(float(g(x)) / 6, 3 * np.cos(3 * x), atol=5e-3)
+        assert np.isclose(float(H(x)) / 6, -9 * np.sin(3 * x), atol=5e-2)
+        gh = jax.grad(lambda t: jnp.sum(herm1.evaluate_jax(t)))
+        # the Hermite interpolant reproduces the stored tangent exactly at a node
+        assert np.isclose(float(gh(x)) / 6, 3 * np.cos(3 * x), rtol=0, atol=1e-12)
+        assert np.isfinite(float(jax.grad(gh)(x)))

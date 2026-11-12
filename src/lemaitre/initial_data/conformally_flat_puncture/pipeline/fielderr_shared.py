@@ -276,7 +276,8 @@ def certified_truth(mc, pts, key, *, tag, validate_n=VALIDATE_N, progress=25):
               f"(assert rel-L2 < {VALIDATE_TOL:.0e}) ...", flush=True)
         vmax = 0.0
         for k in range(min(validate_n, n)):
-            u, info = mc.evaluate_polished(pts[k], newton_steps=u_steps, tol=u_tol)
+            u, info = mc.evaluate_polished(pts[k], newton_steps=u_steps, tol=u_tol,
+                                             strict=False)
             rel = rel_l2(u, UT[k])
             vmax = max(vmax, rel)
             print(f"   validate pt {k}: rel-L2(re-solve, cached)={rel:.2e} "
@@ -297,7 +298,8 @@ def certified_truth(mc, pts, key, *, tag, validate_n=VALIDATE_N, progress=25):
     UT, res = [], []
     t0 = time.time()
     for i, th in enumerate(pts):
-        ut, info = mc.evaluate_polished(th, newton_steps=u_steps, tol=u_tol)
+        ut, info = mc.evaluate_polished(th, newton_steps=u_steps, tol=u_tol,
+                                          strict=False)
         UT.append(np.asarray(ut, dtype=float).reshape(-1))
         res.append(float(info.residual_norm))
         if (i + 1) % progress == 0 or i == n - 1 or n <= 10:

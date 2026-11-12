@@ -336,8 +336,7 @@ def linear_apply_nodal(asm: Assembly3D, W: np.ndarray, Nphi: int,
     the tangent reconstructs ``δu_m = w_m δv̂_m`` and the ``w`` undoes the ``1/w``.
     Measured on the ``b``-geometry term of ``∂R/∂θ``: the injected error reaches
     ``1.57e−11`` relative in the RHS itself, and moves the delivered physical tangent
-    by ``3.7e−15``–``1.2e−14``.  See the 2026-08-20 entry in
-    ``context/…/LMID-conformally-flat-puncture/FINDINGS.md``.
+    by ``3.7e−15``–``1.2e−14`` (measured 2026-08-20).
 
     This is the single home of that division.  It used to be copied in
     ``sensitivity_3d.dR_dtheta_node`` and ``sensitivity_3d_cross_bq._lap_nodal``;

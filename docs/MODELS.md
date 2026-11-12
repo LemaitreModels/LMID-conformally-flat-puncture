@@ -1,4 +1,64 @@
-# Which model is shipped
+# Available models
+
+Two models are shipped. Both predict the regular part $u$ of the conformal factor on
+the production grid, for quasi-circular binaries with momenta from
+`quasicircular.QC_PRESCRIPTION`.
+
+| name | parameters θ | box | grid | POD rank | stored arrays |
+|---|---|---|---|---|---|
+| `"4d"` | $(b, q, \chi_{Ay}, \chi_{By})$ | $b \in [3, 10]$, $q \in [1, 3]$, $\chi \in [-0.9, 0.9]$ | $45 \times 40 \times 8$, scheme `"v2"` | 250 | 36.0 MiB |
+| `"8d"` | $(b, q, \chi_{Ax}, \chi_{Ay}, \chi_{Az}, \chi_{Bx}, \chi_{By}, \chi_{Bz})$ | the same, for every spin component | $45 \times 40 \times 8$, scheme `"v2"` | 500 | 294.8 MiB |
+
+[Choose a workflow](workflows.md) gives the conventions behind the parameters, and
+[Accuracy and certification](accuracy.md) where their measured errors are.
+
+## Getting a model
+
+The model files are published on Zenodo, one record with a new version for every
+rebuild, and the package downloads them itself. (The first version is being
+prepared. Until it is published, `models.load(name)` raises `ModelUnavailable`, and
+`models.load(path=...)` reads a file you built yourself.)
+
+```python
+from lemaitre.initial_data.conformally_flat_puncture import models
+
+model = models.load("4d")                     # the newest version this code can read
+model = models.load("4d", version="1.0.0")    # a pinned version, to reproduce a result
+model = models.load(path="my_model.npz")      # a local file
+print(models.fetch("8d"))                     # where the file is cached
+```
+
+The first call downloads the file and checks it against the checksums Zenodo and
+the record's `manifest.json` publish. Later calls check the cached file and reuse it;
+finding the newest version still asks Zenodo on every call, unless `LMID_OFFLINE=1`.
+
+**Which version is chosen.** Every version's `manifest.json` names the model-file
+format, the discretisation scheme and the momentum prescription its files were built
+with, and `models.compatibility()` says which ones this code reads. `load` takes the
+newest compatible version and warns when a newer one needs a newer package, so an
+installed package keeps working after a model rebuild. A model built with another
+prescription or on another grid would polish towards different data, which is why the
+check exists.
+
+**Settings**, all optional environment variables:
+
+| variable | effect |
+|---|---|
+| `LMID_MODEL_CACHE` | the cache directory (default `~/.cache/lemaitre/conformally_flat_puncture`) |
+| `LMID_OFFLINE=1` | no network; use the newest compatible version in the cache |
+| `LMID_ZENODO_RECORD`, `LMID_ZENODO_API` | another record or server, e.g. a test release on `https://sandbox.zenodo.org/api` |
+
+**Releasing a model** is two commands of
+`pipeline/release_models.py`, run where the model files are: `stage` writes the
+checksums, the manifest and the deposit metadata, and `upload` sends them to Zenodo
+as an unpublished draft to review and publish. The module's docstring has the steps.
+
+The rest of this page is for developers: what the shipped model is, what it stores,
+and how that is accounted for.
+
+---
+
+## 1. The shipped model, in one line
 
 **Authoritative source: [`src/lemaitre/initial_data/conformally_flat_puncture/pipeline/production_model.py`](../src/lemaitre/initial_data/conformally_flat_puncture/pipeline/production_model.py).**
 It is executable and tested (`tests/test_production_model.py`); this page is the
@@ -11,10 +71,6 @@ python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.production_mo
 so regenerate it rather than hand-editing. If a number about "the model" appears in
 a producer, a figure, a test or the paper and does **not** come from that module,
 that is a bug.
-
----
-
-## 1. The shipped model, in one line
 
 > Gradient-enhanced sparse (Hermite–Smolyak) collocation on the production box,
 > **enhanced on exactly two axes — the aligned spin components `chi_Ay`, `chi_By` —
@@ -42,16 +98,16 @@ components sit between `q` and the aligned pair in 8-D. Use
 
 ### The grid it is built on: `production_model.SCHEME = "v2"`
 
-Since 2026-10-14 the shipped models are to be built on the production grid
-`44 × 40 × 8` (`production_box.PROD_GRID`) under the `"v2"` discretisation
+The shipped models are built on the production grid `44 × 40 × 8`
+(`production_box.PROD_GRID`) under the `"v2"` discretisation
 (`solver.operators_abt.SCHEMES`): Gauss–Legendre nodes in the ABT angle `s` (`"abt"`)
 and TwoPunctures' radial form `u = (A − 1) V` on Chebyshev–Gauss `A` with no boundary
-rows (`"gauss"`). **Until the rebuild is complete the `.npz` models on disk are the
-first paper's**, on `44 × 32 × 8` under `"paper-v1"` (`"cos"` + `"lobatto"`). They do
-not record `"paper-v1"`, because "no key" has always meant it, and loading one onto a
-`"v2"` problem is refused (`attach_solve_fn_3d`). They also sit in the base of the
-`reports/` tree, while everything built on `"v2"` lives in `<base>/v2`
-(`paths.reports_root`), so a `"v2"` producer cannot pick one up by accident.
+rows (`"gauss"`). Models of the first submitted paper are on `44 × 32 × 8` under
+`"paper-v1"` (`"cos"` + `"lobatto"`). Those files do not record `"paper-v1"`, because
+"no key" has always meant it, and loading one onto a `"v2"` problem is refused
+(`attach_solve_fn_3d`). They also sit in the base of the `reports/` tree, while
+everything built on `"v2"` lives in `<base>/v2` (`paths.reports_root`), so a `"v2"`
+producer cannot pick one up by accident.
 
 The solver also defaults to `"v2"` (`operators_abt.DEFAULT_SCHEME`), but every producer, figure-data script, table,
 model loader and the GRTeclyn export driver still passes

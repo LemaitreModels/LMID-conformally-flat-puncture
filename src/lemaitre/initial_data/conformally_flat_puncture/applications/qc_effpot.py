@@ -230,6 +230,10 @@ def _off_node(b, model, J, box_b, trigger=_NODE_TRIGGER):
     ``nan`` the whole Newton loop then ran on ``nan`` and returned
     ``b_circ = nan`` for every ``J`` — silently, since the reported certified
     residual only covers the scan.
+
+    Since 2026-11-12 ``evaluate_jax`` is finite and differentiable at the nodes
+    (:func:`~..parametric.parametric.bary_terms_jax`), so this nudge is no longer needed for
+    correctness; it is kept so that published runs reproduce.
     """
     if not _on_node(b, model, J, trigger):
         return float(b)

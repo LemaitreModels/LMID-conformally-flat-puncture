@@ -293,8 +293,7 @@ def _tangent_solve_nk(asm: Assembly3D, U: np.ndarray, dR_node: np.ndarray,
     → 7.56e−14`` on the ``b`` axis, and the old form could NOT be tuned to that:
     ``gmres_rtol=1e-13`` reached only ``1.47e−13`` and ``1e-15`` burned 11675 inner
     iterations to come out *worse*, because a Krylov method cannot converge below
-    the noise its own operator injects.  See the ``2026-08-20`` entry of
-    ``context/…/LMID-conformally-flat-puncture/FINDINGS.md``.
+    the noise its own operator injects (measured 2026-08-20).
 
     **The API is unchanged: ``dR_node`` is physical and the returned ``dU`` is
     physical**, reconstructed once at the boundary by a multiply

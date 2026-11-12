@@ -139,7 +139,8 @@ def main(n_points=1000, seed=0, u_tol=1e-11, u_steps=12, flavours=FLAVOURS):
     ures = []
     tev = time.time()
     for i, th in enumerate(pts):
-        ut, info = mc.evaluate_polished(th, newton_steps=u_steps, tol=u_tol)
+        ut, info = mc.evaluate_polished(th, newton_steps=u_steps, tol=u_tol,
+                                          strict=False)
         ut = np.asarray(ut)
         ures.append(float(info.residual_norm))
         if "cross" in flavours:

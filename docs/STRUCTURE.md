@@ -1,4 +1,4 @@
-# Repository structure & migration notes
+# Package architecture
 
 `lemaitre.initial_data.conformally_flat_puncture` (the paper package) was migrated out of the BBHFM
 monorepo (`sandbox/parasol/`) into this standalone repo, de-cluttered and
@@ -131,8 +131,8 @@ appears as a literal in gate comparisons in `pipeline/run_polish_table.py` (`r <
 (three `<= 1e-10` fractions under the same key name), and as a printed gate in
 `pipeline/run_qc_effpot.py`. Moving `CERT_TOL` would not move any of them. **These are
 still `v`-calibrated and are now reading `u` residuals**, which is a bookkeeping
-inconsistency scheduled with the figdata regeneration (step (c) of the norm sweep, see
-the private plan) rather than left unrecorded — no shipped datum passes through them.
+inconsistency to be fixed with the next figdata regeneration, recorded here rather
+than left unrecorded — no shipped datum passes through them.
 `run_tp_random_sweep.py`'s own `CERT_TOL = 1e-10` copy, which this paragraph used to
 list, **was removed on 2026-08-25**: it imports the constant now, and had it not, it
 would have kept the `v` value silently through the norm flip. They are measurement bookkeeping rather than the
@@ -144,10 +144,12 @@ The split to know:
 - **Measuring** is unconditional. Every `evaluate_polished` computes the residual
   of the field it returns (after the last Newton step, on the returned iterate)
   and hands it back as `info.residual_norm`.
-- **Enforcing** is opt-in, via `strict=True`. It has to be: the polish-history
-  producers (`run_polish_table.py`, `run_polish_cold.py`) query at `tol=1e-12`
-  precisely to watch the residual fall *through* `1e-10`, and a library-level
-  raise would make that measurement untakeable.
+- **Enforcing** is the default of `evaluate_polished` (`strict=True`, since
+  2026-11-12): a miss raises `CertificationError`. The polish-history producers
+  (`run_polish_table.py`, `run_polish_cold.py`) query at `tol=1e-12` precisely to
+  watch the residual fall *through* the gate, so they pass `strict=False`, and so
+  does every sweep that records failures instead of stopping. The raw solver
+  `newton_solve_nk` only reports, in `info.converged`.
 - The gate is **closed at every exit** — `applications/qc_targeting.py`,
   `applications/qc_effpot.py`, and `pipeline/run_export_grteclyn.py`. That is what
   makes the paper's "a gate checked before the datum is returned" true of the
@@ -200,9 +202,9 @@ start**, via `CertifiedEvaluateMixin.evaluate_polished`. Anything that changes i
 at roundoff reshuffles mid-convergence Newton iterates, which is what fig04 plots
 — so a change here owes a fig04 re-distill even when held-out accuracy is
 unchanged to 7 digits. `parametric_nd.jax_evaluator(model)` compiles the jax twin
-once per model and is the intended bulk-query path; it is node-unsafe, like every
-`evaluate_jax` here, which is why the certified path deliberately uses the
-node-safe numpy route.
+once per model and is the intended bulk-query path. Since 2026-11-12 every
+`evaluate_jax` is node-safe too (`parametric.bary_terms_jax`); the certified path
+still warm-starts from the numpy route, so its iterates are unchanged.
 
 ## What was kept
 
