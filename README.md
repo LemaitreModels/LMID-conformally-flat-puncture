@@ -47,7 +47,7 @@ dependents — so the runtime stack is installed first, by hand. `sympy` is the
 
 `editable_mode=compat` is not optional either — the modern editable mode makes
 the two namespace levels degrade into PEP 420 portions, and lazy attribute
-access then fails while a direct `import` still works. See `docs/STRUCTURE.md`.
+access then fails while a direct `import` still works.
 
 Pure Python: `jax`, `numpy`, `scipy`, `matplotlib` (float64 throughout), plus the
 dependency-free `lemaitre` / `LM-initial-data` namespace packages. No
@@ -67,7 +67,7 @@ src/lemaitre/initial_data/conformally_flat_puncture/
                     build_*.py  surrogate-model builders (heavy; cluster)
 tests/            acceptance suite (float64, CPU)
 paper/            paper.tex + figures/ (recompute + plot scripts)
-docs/             DATA.md (data regeneration + oracle) · STRUCTURE.md (package map)
+docs/             DATA.md (data regeneration + oracle)
                   · MODELS.md (which surrogate is shipped, and what it stores)
                   · conf.py + index.md: the Sphinx site (`make docs`, Read the Docs)
 ```

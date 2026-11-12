@@ -67,6 +67,5 @@ api
 :caption: Development
 
 DATA
-STRUCTURE
 overview
 ```

@@ -39,7 +39,7 @@ jobs:
 
       # The two namespace parents are separate repositories and REAL runtime
       # dependencies -- `lemaitre` and `lemaitre.initial_data` are owned there,
-      # never vendored here (see docs/STRUCTURE.md).  They are checked out as
+      # never vendored here.  They are checked out as
       # siblings rather than as submodules: this repository is a leaf and does
       # not contain them.
       #

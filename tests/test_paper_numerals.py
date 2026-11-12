@@ -53,7 +53,7 @@ PAPER = os.path.join(ROOT, "paper", "paper.tex")
 FIGDATA = os.path.join(ROOT, "paper", "figures", "figdata")
 DATA_MD = os.path.join(ROOT, "docs", "DATA.md")
 MODELS_MD = os.path.join(ROOT, "docs", "MODELS.md")
-STRUCTURE_MD = os.path.join(ROOT, "docs", "STRUCTURE.md")
+AGENTS_MD = os.path.join(ROOT, "AGENTS.md")
 PYPROJECT = os.path.join(ROOT, "pyproject.toml")
 
 
@@ -419,7 +419,7 @@ def test_the_anchor_is_still_certified():
 # ==========================================================================
 # docs/ -- the same failure class, one directory over
 # ==========================================================================
-# The 2026-08-21 audit found MODELS.md and STRUCTURE.md carrying numbers and
+# The 2026-08-21 audit found MODELS.md and a since-removed page carrying numbers and
 # mechanisms nothing checked.  Everything below is derived from the tree at test
 # time, so the docs cannot drift from the code without going red.
 
@@ -495,51 +495,6 @@ def test_models_md_pod_artifact_name_is_exactly_what_pod_stem_emits():
         "the layout is recorded inside the file as meta['dU_layout']")
 
 
-def test_structure_md_pool_and_slot_counts_are_reproducible():
-    """The pooled-evaluation redundancy figures, recomputed from the index set.
-
-    ``slots`` counts only the NONZERO-coefficient subgrids -- ``combination_coeffs``
-    drops the rest -- which is exactly the 13-slot difference between the naive
-    4-D count (5,270) and the true one (5,257).  Getting that wrong is how a
-    reader concludes the doc is off by a rounding error when it is not.
-    """
-    import numpy as np
-    from lemaitre.initial_data.conformally_flat_puncture.parametric.parametric_nd_smolyak import (
-        isotropic_index_set, combination_coeffs)
-    from lemaitre.initial_data.conformally_flat_puncture.pipeline import production_model as pm
-
-    doc = _text(STRUCTURE_MD)
-    L = pm.pb.SMOLYAK_LEVEL
-    for dim in (4, 8):
-        kept = combination_coeffs(isotropic_index_set(dim, L))
-        slots = sum(int(np.prod([1 if i == 0 else 2 ** i + 1 for i in l])) for l in kept)
-        pool = pm.N_NODES[dim]
-        assert f"{pool:,}" in doc, f"{dim}-D pool node count {pool:,} missing"
-        assert f"{slots:,}" in doc, (
-            f"{dim}-D expands {pool:,} pool nodes into {slots:,} subgrid slots "
-            f"({slots / pool:.1f}x) and STRUCTURE.md does not say {slots:,}")
-
-
-def test_the_slow_test_count_is_stated_identically_in_both_places():
-    """One number, written down twice, and never compared.
-
-    ``pyproject.toml``'s marker description states it and ``docs/STRUCTURE.md``
-    restates it, which is the shape every defect in this file has had.  The mark
-    count itself is deliberately NOT re-derived here: parametrized marks expand at
-    collection (21 ``@pytest.mark.slow`` decorators become 30 collected tests), so
-    a static count would pin the wrong number and read as authoritative.  Check
-    that with ``pytest --collect-only -q -m slow``; what this pins is that the two
-    prose copies cannot drift apart.
-    """
-    m = re.search(r"slow: needs an external oracle[^\"]*?\((\d+) tests", _text(PYPROJECT))
-    assert m, "pyproject.toml's `slow` marker description no longer states a count"
-    n = int(m.group(1))
-    assert f"{n} `slow`" in _text(STRUCTURE_MD) or f"{n} slow" in _text(STRUCTURE_MD), (
-        f"pyproject.toml says the suite has {n} slow tests; docs/STRUCTURE.md "
-        "states a different number, or none. Re-measure with "
-        "`pytest --collect-only -q -m slow` and fix both.")
-
-
 def test_cert_tol_is_stated_once_and_correctly_in_the_docs():
     """The thresholds, in the docs that name them — **both**, with their norms.
 
@@ -551,10 +506,10 @@ def test_cert_tol_is_stated_once_and_correctly_in_the_docs():
     from lemaitre.initial_data.conformally_flat_puncture.parametric import certification
     want_u = f"CERT_TOL_U = {certification.CERT_TOL_U:.0e}"
     want_v = f"CERT_TOL = {certification.CERT_TOL:.0e}"
-    txt = _text(STRUCTURE_MD)
+    txt = _text(AGENTS_MD)
     assert want_u in txt, (
-        f"STRUCTURE.md should state the live gate {want_u} (read from "
+        f"AGENTS.md should state the live gate {want_u} (read from "
         f"parametric.certification)")
     assert want_v in txt, (
-        f"STRUCTURE.md should still state the historical v-norm gate {want_v} — it "
+        f"AGENTS.md should still state the historical v-norm gate {want_v} — it "
         f"is the submitted paper's number and is kept, not replaced")

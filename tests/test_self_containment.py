@@ -100,7 +100,7 @@ def test_namespace_levels_are_not_owned_here():
     ):
         assert not os.path.exists(level), (
             f"{os.path.relpath(level, REPO)} exists — this repo must not own a "
-            f"namespace level (see docs/STRUCTURE.md, 'Family bookkeeping')"
+            f"namespace level (see the family AGENTS.md, 'Ground rules')"
         )
     assert os.path.isfile(os.path.join(PKG, "__init__.py")), \
         "the leaf package itself must have an __init__.py"
@@ -126,7 +126,7 @@ INSTALL_HINT = (
     "Reinstall every family distribution with the static-path mode:\n"
     "    pip install -e . --config-settings editable_mode=compat\n\n"
     "Normal (non-editable) installs are unaffected — they all land in one "
-    "site-packages tree. See docs/STRUCTURE.md, 'Family bookkeeping'."
+    "site-packages tree. See the family AGENTS.md, 'Ground rules'."
 )
 
 

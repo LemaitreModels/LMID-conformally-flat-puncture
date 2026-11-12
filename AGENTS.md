@@ -13,7 +13,7 @@ parametric** reduced-order model of the binary-black-hole *constraint (initial
 data)* solve — quasi-circular Bowen–York punctures up to the 8-D general-spin
 model θ₈ = (b, q, χ_A, χ_B). It is the `conformally_flat_puncture` model of the
 `initial_data` domain of the **Lemaitre** package family (see `README.md` for the
-namespace, and `docs/STRUCTURE.md` for who owns which namespace level). Its
+namespace, and the family `AGENTS.md` for who owns which namespace level). Its
 sibling `lemaitre.initial_data.curved_puncture` (repo `LMID-curved-puncture`) is the
 non-conformally-flat successor and **depends on this package** — it reuses the
 ABT chart, the Newton–Krylov solver and the ROM. Never invert that: nothing here
@@ -177,8 +177,7 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
   The axisymmetric two-centre base
   (`operators_abt`, `source`, `solver_abt`) is a **transitively-required base
   layer** of the 3-D stack — not dead code. The 1-D pedagogical rung
-  (`solver.py`, `operators.py`, `diagnostics.py`) was pruned on 2026-08-15; see
-  `docs/STRUCTURE.md`.
+  (`solver.py`, `operators.py`, `diagnostics.py`) was pruned on 2026-08-15.
 
   **Who owns the linear operator.** `operators_3d` owns the *dense* per-m blocks
   and is the only place they are built; `operators_3d.mode_operators_cached`
@@ -326,7 +325,7 @@ caffeinate -i pytest -q tests/test_self_containment.py tests/test_certification.
 
 `pipeline/` holds the canonical producers/builders directly — `run_*.py` producers
 and `build_*.py` model builders, no subdirectories; `paper/figures/` holds the
-recompute+plot scripts. See `docs/STRUCTURE.md`.
+recompute+plot scripts.
 
 ## Figure pipeline (two-tier)
 
@@ -341,7 +340,7 @@ GRTeclyn constraint runs) are the `make models` / `make oracle` tier — see
 script goes through `_figdata.load_source`. The two partial exceptions are fig07,
 which evaluates a shipped surrogate `.npz` through the ROM, and fig10, which
 distils an external GRTeclyn run tree. Rewiring them to compute from the
-solver/ROM is Stage 2 and is **not done** (`docs/STRUCTURE.md`, `docs/DATA.md`).
+solver/ROM is Stage 2 and is **not done** (`docs/DATA.md`).
 Note also that `make figdata` **skips any figdata already present**, and all ten
 are committed — so `make figures` on a clone replots and rebuilds nothing.
 
