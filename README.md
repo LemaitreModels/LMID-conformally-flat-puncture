@@ -105,8 +105,7 @@ paper's:
   committed — so on a clone it rebuilds nothing and `make figures` only replots.
   `--force` re-distils, and then needs the heavy tier.
 
-Rewiring the data scripts to compute from the solver/ROM instead of distilling
-cached run output is **Stage 2, and is not done**. See `docs/DATA.md`.
+See `docs/DATA.md` for the heavy runs and how to rebuild each figure's data.
 
 ## License
 

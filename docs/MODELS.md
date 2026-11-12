@@ -54,33 +54,29 @@ checksums, the manifest and the deposit metadata, and `upload` sends them to Zen
 as an unpublished draft to review and publish. The module's docstring has the steps.
 
 The rest of this page is for developers: what the shipped model is, what it stores,
-and how that is accounted for.
+and what to do when it changes.
 
 ---
 
-## 1. The shipped model, in one line
+## The shipped model
 
-**Authoritative source: [`src/lemaitre/initial_data/conformally_flat_puncture/pipeline/production_model.py`](../src/lemaitre/initial_data/conformally_flat_puncture/pipeline/production_model.py).**
-It is executable and tested (`tests/test_production_model.py`); this page is the
-narrative. Every table below is printed by
+**Authoritative source:
+`src/lemaitre/initial_data/conformally_flat_puncture/pipeline/production_model.py`.**
+Every number about "the model", in a producer, a figure, a test or the paper, comes
+from that module, and the tables below are what it prints:
 
 ```bash
 python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.production_model
 ```
 
-so regenerate it rather than hand-editing. If a number about "the model" appears in
-a producer, a figure, a test or the paper and does **not** come from that module,
-that is a bug.
-
 > Gradient-enhanced sparse (Hermite–Smolyak) collocation on the production box,
 > **enhanced on exactly two axes — the aligned spin components `chi_Ay`, `chi_By` —
 > plus their one bilinear cross term**, reduced-basis (POD) compressed to
-> **r = 250 (4-D) / r = 500 (8-D)**, stored in the **slim** layout.
+> **r = 250 (4-D) / r = 500 (8-D)**.
 
-Both the 4-D aligned-spin and the 8-D general-spin model enhance the *same two
-axes*. The 8-D model does **not** enhance its other four spin components —
-enhancing a larger axis set measurably degrades held-out accuracy — and the
-paper's `sec:model:enhanced` reports the measurement.
+Both models enhance the same two axes. Enhancing a larger set of axes makes the
+held-out accuracy worse, which the paper measures (*Offline cost and certified
+refinement*).
 
 | | 4-D aligned | 8-D general-spin |
 |---|---|---|
@@ -92,43 +88,35 @@ paper's `sec:model:enhanced` reports the measurement.
 | solver nodes | 1105 | 15713 |
 | shipped POD rank | **250** | **500** |
 
-The names are the same in both boxes and the indices are **not** — the six spin
+The names are the same in both boxes and the indices are not, because the six spin
 components sit between `q` and the aligned pair in 8-D. Use
 `production_model.enhanced_indices(dim)`, never a literal.
 
-### The grid it is built on: `production_model.SCHEME = "v2"`
+### The grid: `production_model.SCHEME = "v2"`
 
-The shipped models are built on the production grid `44 × 40 × 8`
-(`production_box.PROD_GRID`) under the `"v2"` discretisation
-(`solver.operators_abt.SCHEMES`): Gauss–Legendre nodes in the ABT angle `s` (`"abt"`)
-and TwoPunctures' radial form `u = (A − 1) V` on Chebyshev–Gauss `A` with no boundary
-rows (`"gauss"`). Models of the first submitted paper are on `44 × 32 × 8` under
-`"paper-v1"` (`"cos"` + `"lobatto"`). Those files do not record `"paper-v1"`, because
-"no key" has always meant it, and loading one onto a `"v2"` problem is refused
-(`attach_solve_fn_3d`). They also sit in the base of the `reports/` tree, while
-everything built on `"v2"` lives in `<base>/v2` (`paths.reports_root`), so a `"v2"`
-producer cannot pick one up by accident.
+The models are built on the production grid `44 × 40 × 8` (`production_box.PROD_GRID`)
+under the `"v2"` discretisation (`solver.operators_abt.SCHEMES`): Gauss–Legendre nodes
+in the ABT angle `s` (`"abt"`) and TwoPunctures' radial form `u = (A − 1) V` on
+Chebyshev–Gauss `A` (`"gauss"`). The first submitted paper used `44 × 32 × 8` under
+`"paper-v1"` (`"cos"` + `"lobatto"`); a model file without a `bmap` key is on that
+grid, and attaching the solver of the other grid to it is refused.
 
-The solver also defaults to `"v2"` (`operators_abt.DEFAULT_SCHEME`), but every producer, figure-data script, table,
-model loader and the GRTeclyn export driver still passes
-`scheme=production_model.SCHEME`, and `tests/test_scheme_v2.py` scans the source for
-any grid built there without a name. The paper's grid must never follow a later change
-of the default silently.
+The solver also defaults to `"v2"` (`operators_abt.DEFAULT_SCHEME`), but every
+producer, figure-data script, table, model loader and the export driver passes
+`scheme=production_model.SCHEME`, and `tests/test_scheme_v2.py` fails on a grid built
+there without a name, so the paper's grid never follows a change of the default.
 
----
+## What a node stores, and what that costs
 
-## 2. What a node stores, and what that costs
-
-The interpolant reads `dU_nodes` **only at the enhanced axes** — both
-`HermiteCrossSolutionND.evaluate` and its jax twin do
-`{e: take(dU_nodes, e) for e in enhanced}`. So the shipped model stores
+The interpolant reads stored tangents only on the enhanced axes, so a node stores
 
 ```
-1 value  +  n_enh (=2) tangents  +  n_pairs (=1) cross  =  4 fields per node
+1 value  +  n_enh (=2) tangents  +  n_pairs (=1) cross  =  4 fields
 ```
 
-independently of the dimension `d`. Anything keyed on `1 + d` or `1 + d + npair`
-is counting tangents the model never reads.
+whatever the dimension. The other rows of the table are the alternatives the paper
+compares against: value-only, tangents on every axis, and tangents plus cross terms on
+every axis.
 
 | family | blocks/node | 4-D bare | 4-D POD | 8-D bare | 8-D POD |
 |---|---|---|---|---|---|
@@ -137,100 +125,42 @@ is counting tangents the model never reads.
 | `cross_all` | 6 / 10 | 728 MiB | 40.2 MiB | 17,263 MiB | 654.4 MiB |
 | `shipped` **(shipped)** | 4 | 486 MiB | 36.0 MiB | 6,905 MiB | 294.8 MiB |
 
-POD columns are at the shipped ranks, on the `"v2"` production grid (44, 40, 8): **13.5×** (4-D), **23.4×** (8-D). The ranks are to be re-measured on the v2 corpora (fig05's knee), and every number here moves with them. The first submitted paper quoted the `"paper-v1"` grid's numbers (§4).
+POD columns are at the shipped ranks, on the `"v2"` production grid (44, 40, 8): **13.5×** (4-D), **23.4×** (8-D) smaller than the bare corpus.
 
-The non-shipped families are kept *named* so that every number the project has ever
-quoted stays reproducible and labelled — see §4.
-
-### The slim layout
-
-`PODHermiteSmolyakCross.save(..., slim=True)` (the default) writes the tangent block
-only for the enhanced axes. This is **lossless**, not an approximation: the dropped
-blocks are the ones `evaluate` never reads, and the loader restores them as zeros, so
-a slim round-trip evaluates **bit-for-bit** like a full one
-(`tests/test_production_model.py::test_slim_roundtrip_is_lossless`). Files record
-their layout in `meta['dU_layout']`; pre-existing full-`d` artifacts still load.
-
-Artifact names carry the model and the rank, and deliberately **not** the layout:
+`PODHermiteSmolyakCross.save(..., slim=True)`, the default, writes tangent blocks only
+for the enhanced axes. This is lossless: the loader restores the others as zeros, which
+the interpolant never reads (`tests/test_production_model.py::test_slim_roundtrip_is_lossless`).
+The layout is recorded inside the file as `meta['dU_layout']`, not in its name:
 
 ```
 pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross_r250.npz
 ```
 
-`production_model.pod_stem` builds that stem, and its docstring gives the reason the
-layout is left out: the layout is recorded *inside* the file as `meta['dU_layout']`
-and both layouts load, so a name cannot go stale against its contents. Read the
-layout from the file, never from the filename.
+`production_model.pod_stem(dim)` builds that name.
 
----
-
-## 3. Where each figure's model comes from
-
-Provenance is recorded in each figure's figdata `meta` block, and unevenly:
-`fig05_guess_vs_memory` carries the full set (`model`, `enhanced_axes`,
-`shipped_rank`, `blocks_per_node`, `bare_mib`, `shipped_pod_mib`, `compression`),
-`fig04_polish_staircase` carries `shipped_rank`, `smolyak_level` and a `code_tag`,
-and `fig03_joint_dist` carries per-source box, grid and `code_tag` but **no model
-stem at all**.
-
-**What that does and does not catch.** `registry.FIGURES[stem]["keys"]` pins only the
-*presence of top-level keys*: `make_figdata._figdata_tag` calls a figdata STALE when
-it "lacks a top-level key its plotter reads", and nothing more. A figdata whose `meta`
-names an older model therefore reads as `figdata OK`, and `make figdata` skips it. The
-guards that do fire are producer-side, and only once the producer is re-run —
-`fig04`'s rank guard and `fig05`'s blocks/node guard each `raise SystemExit` on a
-sweep that is a different model than the panel claims, and `fig07` refuses a model
-built on a different grid. In the suite,
-`test_paper_figures.py::test_producer_module_exists_and_ranks_match_the_shipped_model`
-pins the *registry's* rank to `SHIPPED_RANK`. **Nothing compares a committed figdata's
-`meta` to `production_model`,** so a figdata can name a different model from the prose
-that cites it with the suite green.
+## Which model each figure uses
 
 | figure | model plotted |
 |---|---|
-| `fig03_joint_dist` | value-only vs cross-enhanced, both **bare** — its sources (`run_qc_joint_dist_chi`, `run_qc_joint_dist_cross_chi`) pass no rank, and the json's two series are keyed `bare`/`cross` |
-| `fig04_polish_staircase` | cold / value-only POD / shipped cross POD, at the shipped ranks |
-| `fig05_guess_vs_memory` | value-only vs shipped cross, POD rank ladder |
+| `fig03_joint_dist` | value-only and cross-enhanced, both uncompressed |
+| `fig04_polish_staircase` | cold start, value-only POD and the shipped cross POD, at the shipped ranks |
+| `fig05_guess_vs_memory` | value-only and the shipped cross model, over the POD rank ladder |
 
-`fig05_guess_vs_memory_data.py` **recomputes** every byte count from
-`production_model` rather than trusting the sweeps' stored `mem_bytes`. That is what
-lets a memory-accounting fix be a re-distill (`make_figdata.py --fig
-fig05_guess_vs_memory --force`) instead of a re-sweep:
-the accuracy statistics were never affected by it.
+Each figdata records its provenance in `meta`, `fig05_guess_vs_memory` most fully
+(model, enhanced axes, rank, blocks per node, memory). Nothing compares a committed
+figdata's `meta` with `production_model`, so after changing the model re-distil the
+figures that use it; do not rely on `make figdata` to notice. `fig05` recomputes every
+byte count from `production_model` rather than trusting the sweeps' stored sizes.
 
----
+## If you change the model
 
-## 4. Superseded numbers (so they are never mistaken for current)
-
-| number | what it actually was |
-|---|---|
-| 388 MiB / 5.4 GiB bare, 30.5 / 284 MiB POD, 12.7× / 19.5× | the shipped model on the `"paper-v1"` grid (44, 32, 8), N_FEAT 11 520 — the first submitted paper |
-| 486 MiB / 12.1 GiB corpus | `gradient_all` — all-`d` tangents, **no** cross, on the `"paper-v1"` grid (the 4-D 486 MiB coincides with the v2 shipped bare corpus; they are different models) |
-| 583 MiB / 13.5 GiB bare star | `cross_all` — all-`d` tangents **+** cross, on the `"paper-v1"` grid |
-| 10.0 MiB / 420 MiB compressed | `gradient_all` at the **old** ranks r=76 / r=359 |
-| compression 49× / 30× | the two rows above, combined |
-| POD rank 75/76, 359 | the first shipped bases, below the Fig. 5 saturation knee |
-
-The old bases held only 76 and 359 modes and the loaders truncate *downward only*,
-so requesting a higher rank silently clamped; raising to 250/500 required rebuilding
-the cross POD bases from the full Hermite corpora.
-
----
-
-## 5. If you change the model
-
-1. Change `production_model.py` — nothing else defines the model. Moving `SCHEME`
-   moves every producer, figure, table and the export with it. The shipped `.npz`
-   models of the old grid stop loading and the `reports/` root moves to the new
-   scheme's subdirectory, so it means rebuilding them (this was done for `"paper-v1"` →
-   `"v2"` on 2026-10-14). The GRTeclyn export follows the grid (format 2 for
-   `"paper-v1"`, 4 for `"v2"`), so fig10 needs new constraint runs.
-2. `pytest tests/test_production_model.py` (identity, accounting, slim losslessness).
-3. Rebuild the affected figdata — `python paper/figures/make_figdata.py --fig <stem>
-   --force`; most sources are cluster-side, see [`DATA.md`](DATA.md). **Do not wait for
-   a guard to tell you.** Plain `make figdata` skips a figdata that is present, and its
-   staleness check reads only the keys and `meta.scheme` (§3). A model change that
-   keeps the scheme leaves the old numbers reading as `figdata OK`. `fig04` and
-   `fig05` refuse a mismatched sweep, but only once their producer actually runs.
-4. Update this page by re-running the self-report.
-5. Only then touch `paper/paper.tex`.
+1. Change `production_model.py`; nothing else defines the model. Changing `SCHEME`
+   moves every producer, figure, table and the export with it, and means rebuilding
+   the model files, because a model refuses a solver on another grid. The export
+   format follows the grid, so fig10 needs new evolution runs.
+2. Run `pytest tests/test_production_model.py`.
+3. Rebuild the affected figdata with `python paper/figures/make_figdata.py --fig <stem>
+   --force`; most sources are cluster runs ([Reproduce the paper](DATA.md)).
+4. Regenerate the tables on this page with the command above.
+5. Then update `paper/paper.tex`, and publish a new model version
+   ([Getting a model](#getting-a-model)).

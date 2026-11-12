@@ -3,306 +3,181 @@
 This page is for rebuilding the paper's models, data and figures. To *use* a shipped
 model, see [Available models](MODELS.md) and [Choose a workflow](workflows.md).
 
-The design *goal* is that figure scripts recompute their numbers from the solver /
-ROM rather than reading a pre-baked cache. **That is Stage 2, and it is not done
-— see the status note at the end of this file.** What the scripts do today is
-*distil*: each reads a raw run artifact a heavy-tier job already produced and
-reshapes it into the committed `figdata/*.json`. State it that way in any doc you
-write; `README.md` and `CLAUDE.md` claimed the recompute for a while and a referee
-checking it would have found the opposite.
+The paper's figures are made in two steps, and a clone can do the second on its own:
 
-There are two tiers.
+1. **Distil.** Each `paper/figures/figNN_*_data.py` reads the raw output of a heavy
+   run (a model build, a validation sweep, an evolution) and writes the numbers its
+   figure needs to `paper/figures/figdata/figNN_*.json`. These scripts reshape
+   existing run output; none of them reruns the solver. The figdata files are
+   committed.
+2. **Plot.** Each `figNN_*_plot.py` draws its PDF from that json and nothing else.
 
 ## Entry points
 
 ```bash
-make figdata     # distil any MISSING paper/figures/figdata/*.json (--force to redo present ones)
-make figures     # figdata, then plot every fig??_*_plot.py -> PDF
-make tabdata     # recompute paper/tables/tabdata/*.json (instant; no solve)
-make tables      # tabdata, then render every tab??_*_tex.py -> .tex
-make test        # the FULL acceptance suite: ~40 min, not a fast tier
-make models      # heavy: (re)build the chi surrogate corpora  [cluster]
-make oracle      # build the external TwoPunctures validation binary
+make figures     # plot every figure from the committed figdata (only matplotlib needed)
+make figdata     # distil any MISSING figdata (--force to redo present ones; needs the heavy runs)
+make tables      # recompute and render the table (no solve)
+make test        # the full test suite, tens of minutes
+make models      # build the model corpora (cluster)
+make oracle      # build the TwoPunctures validation binary
 ```
 
-## Tables
+`make figdata` skips every figdata file that already exists, and all ten are
+committed, so on a clone it does nothing. `python paper/figures/make_figdata.py --all
+--force` re-distils everything, and then needs the heavy runs below.
 
-There is **one** table, `tab01_production_box`, and it uses the same two-tier
-pattern as the figures but sits entirely in the laptop tier — and unlike the
-figures it genuinely recomputes: it derives every box edge, the Smolyak level, the
-spatial grid and the enhanced axis set from `pipeline/production_box.py`, and the
-sparse-grid node count from `parametric_nd_2c.smolyak_points`. No corpus, no
-oracle, no solve; retargeting an edge in `production_box` moves the paper's number
-with it. `tabdata/*.json` is a gitignored build output while the rendered
-`paper/tables/tab??_*.tex` is committed (as the figure PDFs are), and `paper.tex`
-`\input`s it. See `paper/tables/README.md`.
+## What a clone can rebuild
 
-`pipeline/run_tangent_verification.py` is **not** the table producer — it fed a
-paper appendix that was withdrawn, and its own docstring says so. It stays as the
-runnable end-to-end cross-check behind the sensitivity claims of Sec. IV.
-
-## Two tiers
-
-**Laptop tier (fast).** The *distil* step — turning a raw run artifact into
-`figdata/*.json` — is seconds per figure and needs only that artifact. Only fig07
-touches the ROM at this tier, evaluating a *shipped surrogate model artifact* (the
-χ Smolyak/Hermite/POD models) to precompute its smooth curves. The per-figure
-producers of the raw artifacts live in
-`src/lemaitre/initial_data/conformally_flat_puncture/pipeline/` and are mapped to
-figures by `paper/figures/registry.py` (the single source of truth for the
-figure→producer→artifact graph). Those producers are the heavy tier below.
-
-**Heavy tier (cluster / oracle).**
-- **χ surrogate corpora** — built by `pipeline/{build_surrogate_chi, run_8d_chi_array,
-  build_pod_hermite_model_chi, build_pod_hermite_model_chi_8d,
-  build_pod_hermite_chi8d_array, build_cross_model_chi}`. Multi-GB; produced on the
-  cluster. Not committed (`reports/` is gitignored). Point the figure scripts at
-  the built artifacts (see `registry.py` / Stage-2 wiring).
-- **TwoPunctures validation** (the fig08/fig09 sweep) — `run_tp_random_sweep.py --n 100
-  --workers 6`, and the external oracle binary (`make oracle`; the build script is
-  bundled). One oracle call dominates each configuration
-  (~2–8 min, markedly slower for spinning ones), so budget hours of wall-clock even in
-  parallel; every rung of `--ladder` shares that one call, which is what makes a whole
-  resolution ladder per configuration affordable.
-
-  Each curve in fig08 is a **min/median/max band over configurations** sampled from the
-  production box, so no panel depends on an arbitrary parameter point. This one source
-  replaced two earlier figures: the former fig08 (a separate non-axisymmetric validation
-  at `b=1.5`, head-on — below the production `B_MIN`) and the former
-  single-configuration fig09.
-  The separate non-axisymmetric figure was redundant because **the quasi-circular data
-  are already non-axisymmetric**: measured, the tangential momentum puts ~2% of the field
-  in `m=2` and generic spins add ~2% at `m=1`, so the QC family exercises the
-  Fourier-in-φ solver by itself. The spectrum is now a figure of its own, fig09; the one
-  check QC cannot supply (a head-on slice with spin along the collision axis keeps every
-  `m≥1` mode below 1e-16 — `axisym_m_ge1_max` is 9.2e-17 in fig08's committed figdata) is
-  computed by the same producer's `axisym` block and quoted as text.
-
-  See that producer's docstring for what is needed to read the figure: spin combined
-  with `q` drives the disagreement and it converges. The paper's appendix *Validation
-  against TwoPunctures* states the current measurements; numbers quoted in docstrings
-  of earlier runs are labelled with the grid and date they were measured on.
-
-- **Constraints on an evolution grid** (fig10) — measured by **GRTeclyn**, an external
-  numerical-relativity code, not by the in-house monitor (which stays as an internal
-  check: `validation/constraints.py` + its tests). Three stages:
-
-  1. `python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_export_grteclyn
-     --tp` (~3 min; needs a machine with AVX, so on a cluster submit it as a batch
-     job; the default `--out` is `<reports_root()>/grteclyn_export`) — solves each
-     configuration on the production grid (`SPECTRAL = PROD_GRID[:2]`) and writes `<name>.lmid` plus a `<name>_reference.dat` table of `psi`
-     and `Ahat` values that the C++ evaluator is validated against. With `--tp` it also
-     writes the TwoPunctures conformal factor **on the identical spectral grid**, so the
-     cross-code comparison shares the interpolation operator too.
-  2. the GRTeclyn runs (~30 min for the six-series ladder, plus the
-     refined-hierarchy AMR runs). Each rung leaves one `constraint_norms.json`;
-     the rungs of one series are collected into `<tag>/ladder.json` by
-
-     ```bash
-     LM_GRTECLYN_EXE=/path/to/BinaryBH3d.gnu.MPI.OMP.ex \
-       ./grteclyn/run_ladder.sh lm_anchor "48 64 96 128 192" \
-           LMID=<export>/qc_b3.lmid LMREF=<export>/qc_b3_reference.dat
-     ```
-
-     See [`grteclyn/README.md`](https://github.com/LemaitreModels/LMID-conformally-flat-puncture/blob/main/grteclyn/README.md) for the series, the
-     configuration defaults and where each of their numbers is pinned. The
-     script is account- and cluster-agnostic on purpose: it takes the executable
-     and the launcher from the environment and hard-codes no paths. GRTeclyn
-     itself is **not** vendored here — you need a build of our fork's
-     `lm-initial-data-constraints` branch at commit `087f827` or later, which reads
-     GRTeclyn's prefixed parameter keys (upstream PR #215) and our `lm.*` keys,
-     including the `lm.id_file` runtime switch and the format-4 reader;
-     `grteclyn/README.md` says which keys and why an older build silently ignores
-     them.
-
-     > **Formats.** The export format follows the grid: `"paper-v1"` is written as
-     > **format 2** (a polynomial in `B` on Lobatto `A`) and `"v2"` as **format 4**
-     > (angular nodes in the ABT angle `s`, Chebyshev–Gauss `A`, `u = (A − 1) V`).
-     > The GRTeclyn reader accepts 2 and 4, each with its own rule, and refuses
-     > anything else; `Export.read` refuses a mismatch from this side too.
-     >
-     > **Provenance of the committed numbers: they are format-1 measurements, and
-     > that is deliberate.** Format 2 divides
-     > the axis factor `w_k(B) = (1-B^2)^{k/2}` out of the wavenumber-`k`
-     > coefficients so that polynomial interpolation on the consumer side is
-     > exact for every `k` rather than only for `k = 0`. The consumer learned to
-     > restore it on 2026-08-19 (`510dd01` on `lm-initial-data-constraints`); the
-     > ladder behind fig10 was run against the earlier format-1 consumer
-     > (`94323cd`, 2026-08-06). So a re-run today would exercise a *different*,
-     > strictly better consumer-side interpolation, and the committed figure is
-     > the conservative measurement rather than the best one available. Re-running
-     > it was weighed and declined for this paper. The two halves cannot be mixed,
-     > because reading a newer file under an older rule is silently wrong rather
-     > than an error. The committed fig10 is a `"paper-v1"`
-     > measurement, exported at 52 × 36; moving it to `"v2"` means new ladder runs from
-     > format-4 exports on the production grid 44 × 40 (`run_export_grteclyn`, whose
-     > `--scheme` defaults to `production_model.SCHEME`).
-  3. `python paper/figures/fig10_constraints_data.py --runs <that tree>` (seconds, reads
-     files only) then the plotter. Set `$LM_GRTECLYN_RUNS` instead of `--runs` if you
-     prefer.
-
-  The oracle cost collapses in this arrangement: it is queried at ~15 000 **spectral
-  nodes** (~26 s) instead of the ~26 million Cartesian points the in-house comparison
-  needed (~13 h serial). The cluster sweep that drove the old arrangement is retired
-  along with it.
-
-## What is committed vs regenerated
-
-- **Committed:** the figure **PDFs** (so `pdflatex paper/paper.tex` works out of
-  the box), the source scripts, and **`paper/figures/figdata/*.json`**.
-- **Why figdata is committed:** the plotters read `figdata/figNN_*.json` and
-  nothing else — no `reports/`, no model corpus, no jax. Committing it (~110 kB
-  for all ten) is what lets anyone **replot from a bare clone**, with only
-  matplotlib and no copy step:
+- **Every figure PDF**, from the committed figdata:
 
   ```bash
   cd paper/figures && for f in fig??_*_plot.py; do python "$f"; done
   ```
 
-- **Regenerated:** `make figdata` re-distils that json from the raw sources, and
-  needs the heavy tier (`$LM_REPORTS`, the multi-GB corpora, the cluster). That is
-  the only step a clone cannot do — and note it **skips every figdata already on
-  disk**, so on a clone (where all ten are committed) it does nothing at all.
-  `python paper/figures/make_figdata.py --all --force` is what actually rebuilds.
+- **The table**, `tab01_production_box`, from scratch. It derives every box edge,
+  the Smolyak level, the spatial grid and the enhanced axes from
+  `pipeline/production_box.py`, and the sparse-grid node count from
+  `parametric_nd_2c.smolyak_points`, with no corpus and no solve. `paper.tex` inputs
+  the rendered `paper/tables/tab01_*.tex`; see `paper/tables/README.md`.
 
-### Residual provenance of the committed figdata (ruled 2026-08-25, document-only)
+## The heavy runs
 
-**Every residual or residual threshold inside a committed `figdata/*.json` that
-predates the norm flip (`1eec8c7`, 2026-08-25) is a `v`-norm number by
-construction** — the artifacts were produced when the certified monitor was the
-`v`-norm `CERT_TOL = 1e-10`, and each one's last commit predates the flip. The
-artifacts stay **byte-stable**: they are the submitted paper's record, and the
-ruling of 2026-08-25 is to document their ruler here rather than restamp or
-rebuild them. The instances that motivated this note:
+Everything else needs runs measured in cluster hours. Their outputs live under one
+directory, set by `$LM_REPORTS` (`paths.reports_root()`), separated by
+discretisation: artifacts of the production scheme `"v2"` are under
+`$LM_REPORTS/v2/`, those of the first submitted paper's `"paper-v1"` grid directly
+under `$LM_REPORTS`. Every committed figdata records its `meta.scheme`, and
+`make_figdata.py --check` reports one that is not on the current scheme as STALE.
 
-- `fig04_polish_staircase.json` — explicit `meta.certify_tol = 1e-10` (`v`), with
-  `steps_to_certify` keyed on it;
-- `fig08_tp_validation.json` — explicit `meta.cert_tol = 1e-10` (`v`); its values
-  clear both rulers;
-- `fig06_targeting.json` — `meta.worst_certified_residual` = `9.88e-11` /
-  `5.64e-11` / `3.64e-11` with **no tol or norm field qualifying "certified"**.
-  These are `v`-certified (at 0.99× that gate in the cold arm). **Do not read
-  them against the `u` gate `CERT_TOL_U = 1e-11`** — they would misread as
-  3.6–9.9× misses, and no single factor converts between the norms (the measured
-  `v/u` ratio is grid-dependent, `1×` to `6.6e+08`).
-
-A figdata regenerated after `1eec8c7` carries the live `u` gate and should stamp
-its norm explicitly (the curved leaf's fig04 producer writes `gate_norm`; new
-producers here should do the same).
-
-## Model-artifact location convention
-
-**One setting: `$LM_REPORTS`.** Every producer in `src/lemaitre/initial_data/conformally_flat_puncture/pipeline/`
-and `paper/figures/_figdata` resolves the heavy tree through
-`lemaitre.initial_data.conformally_flat_puncture.paths.reports_root()`:
-
-1. `$LM_REPORTS` — explicit, `~` expanded, absolutised. Use this always.
-2. `<pipeline>/reports` — the producers' historical location, so their behaviour
-   is unchanged when the variable is unset.
-
-**Scoped by discretisation (since 2026-10-14).** That base holds the `"paper-v1"`
-artifacts, everything built before then. For any other `production_model.SCHEME`,
-`reports_root()` is `<base>/<scheme>`, so on `"v2"` every producer writes, and every
-figure-data script reads, `<base>/v2/...`. A `"paper-v1"` source is therefore absent
-to a `"v2"` figure rather than silently re-distilled under new code, and the error
-names the producer. `paths.reports_base()` is the unscoped base. Every committed
-figdata records `meta.scheme`, absent meaning `"paper-v1"`, and `make_figdata.py
---check` reports one that is not on the current scheme as STALE.
-
-Before this, producers wrote to `<pipeline>/reports` (off their own `__file__`)
-while the figure scripts read `<repo_root>/reports`, so a figure could not see
-the output of the producer that fed it and every source read as absent.
-`tests/test_paths.py` fails if either half regresses.
-
-## Which source comes from which producer
-
-`paper/figures/registry.py` names a producer per source, but several of those
-strings were stale or wrong. The verified mapping, and the decisions behind the
-non-obvious ones.
-
-The rank and artifact strings below are the **rendered** form of the registry's
-structured producers, which take the rank and the POD filename from
-`production_model.SHIPPED_RANK` / `production_model.pod_stem(dim)` — their single
-source. If a shipped rank moves, re-render rather than hand-editing this table:
+`paper/figures/registry.py` maps each figure to its sources and each source to the
+producer command that makes it:
 
 ```bash
 cd paper/figures && python -c "import registry as R; print(R.producer_cmd('polish_pod_8d'))"
 ```
 
+### Model corpora
+
+Built by `pipeline/{build_surrogate_chi, run_8d_chi_array, build_pod_hermite_model_chi,
+build_pod_hermite_model_chi_8d, build_pod_hermite_chi8d_array, build_cross_model_chi}`
+on a cluster. They are multi-GB and not committed. fig07 is the one figure-data script
+that evaluates a model (to draw its smooth curves); the others read sweep outputs.
+
+### The TwoPunctures comparison (fig08, fig09)
+
+`run_tp_random_sweep --n 100 --workers 6`, with the oracle binary from `make oracle`.
+Each configuration costs one oracle call (2–8 minutes, longer with spins), shared by
+every rung of its resolution ladder, so budget hours of wall-clock even in parallel.
+
+- **fig08** compares ψ and $M_{\rm ADM}$ against TwoPunctures, as min/median/max
+  bands over configurations sampled from the production box.
+- **fig09** is the azimuthal spectrum of the same solves. The quasi-circular data are
+  not axisymmetric: the tangential momentum puts about 2 % of the field in $m = 2$
+  and generic spins about 2 % in $m = 1$, so this family exercises the Fourier
+  directions of the solver.
+- The same producer measures the **axisymmetric anchor** the appendix quotes, a
+  head-on slice at $b = 3$, $P = 0.5$. On the `"v2"` grid (top rung 64 × 56 × 8) ψ
+  agrees to 4.9e-14 in the supremum norm, $M_{\rm ADM}$ to 1.2e-12 relative, with
+  certified residual 2.7e-16 in the `u` norm. It is stored in fig08's figdata
+  (`meta.anchor`). A head-on slice with spin along the axis keeps every $m \ge 1$
+  mode below 1e-16 (`axisym_m_ge1_max`).
+
+### Constraints on an evolution grid (fig10)
+
+The constraint violation is measured by **GRTeclyn**, an independent evolution code,
+in three stages:
+
+1. Export. `python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.run_export_grteclyn --tp`
+   (a few minutes; needs AVX, so on a cluster submit it as a job) solves each
+   configuration and writes `<name>.lmid`, plus a `<name>_reference.dat` table of ψ
+   and $\hat A_{ij}$ values against which the C++ reader is checked. With `--tp` it
+   also writes the TwoPunctures conformal factor on the same spectral grid, so the
+   two codes share the interpolation.
+2. Evolve. Each rung of a resolution ladder leaves one `constraint_norms.json`, and
+   `grteclyn/run_ladder.sh` collects a series into `<tag>/ladder.json`:
+
+   ```bash
+   LM_GRTECLYN_EXE=/path/to/BinaryBH3d.gnu.MPI.OMP.ex \
+     ./grteclyn/run_ladder.sh lm_anchor "48 64 96 128 192" \
+         LMID=<export>/qc_b3.lmid LMREF=<export>/qc_b3_reference.dat
+   ```
+
+   GRTeclyn is not vendored: it needs a build of the fork's
+   `lm-initial-data-constraints` branch at commit `087f827` or later.
+   [`grteclyn/README.md`](https://github.com/LemaitreModels/LMID-conformally-flat-puncture/blob/main/grteclyn/README.md)
+   lists the series, their parameters and the keys an older build would silently
+   ignore.
+3. Distil. `python paper/figures/fig10_constraints_data.py --runs <that tree>` (or set
+   `$LM_GRTECLYN_RUNS`), then the plotter.
+
+The export format follows the grid: `"paper-v1"` is written as format 2 (a polynomial
+in $B$ on Lobatto $A$) and `"v2"` as format 4 (angular nodes in the ABT angle $s$,
+Chebyshev–Gauss $A$, $u = (A - 1) V$). The GRTeclyn reader accepts 2 and 4, each with
+its own rule, and refuses anything else, and `Export.read` refuses a mismatch from this
+side, because reading a file under the wrong rule is silently wrong.
+
+The committed fig10 is a `"paper-v1"` measurement, exported at 52 × 36 and read with
+the earlier format-1 reader, which interpolates the angular factor less accurately
+than format 2; it is therefore the conservative measurement. A `"v2"` fig10 needs new
+ladder runs from format-4 exports on the production grid.
+
+## Residual norms in the committed figdata
+
+The certification gate is the `u`-norm `CERT_TOL_U = 1e-11`. Figdata produced while it
+was the `v`-norm `CERT_TOL = 1e-10` carries `v`-norm residuals: `fig04_polish_staircase`
+and `fig08_tp_validation` say so in `meta` (`certify_tol`, `cert_tol` = 1e-10), and the
+`worst_certified_residual` values in `fig06_targeting` (9.88e-11, 5.64e-11, 3.64e-11)
+are `v`-norm too. Do not read them against the `u` gate; no single factor converts
+between the norms. New producers should stamp the norm of every residual they write.
+
+## Which source comes from which producer
+
+The rendered form of the registry's producers for the sources whose choice is not
+obvious. The ranks and filenames come from `production_model.SHIPPED_RANK` and
+`production_model.pod_stem(dim)`; re-render with `registry.producer_cmd` rather than
+editing this table.
+
 | source | produced by | note |
 |---|---|---|
-| `tp_band_sweep` | `run_tp_random_sweep --n 100 --workers 6` | the single validation source. Supersedes `sweep_3d` (`run_3d_sweep`) and `tp_validation` (`run_qc_tp_validation`), which fed the former fig08 and the former single-configuration fig09; both are now unreferenced by any figure, and by any paper numeral. `run_3d_sweep` remains useful standalone for its ADM-`J` diagnostics, which the manuscript does not quote. |
-| `polish_pod_4d` | `run_polish_table --model pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross_r250.npz --tag chi4d_pod_r250_cross` | the shipped rank-250 **cross** POD. `run_polish_podrank` hardcodes the *non-cross* POD per dimension, so it cannot emit the `_cross` name. |
-| `polish_table_4d_cross` | `run_polish_table --model hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz --tag qc_chi_prod_cross` | the *untruncated* cross corpus — corroborated by the `8·N·(1+d+npair)·nfeat` memory fig05 applies to it. |
-| `polish_table_8d_value` | `run_polish_table --model surrogate_smolyak_spin8_qc_chi_prod_L5.npz --tag chi8d_value` | the 8-D **value** surrogate — corroborated by fig05's `8·N·nfeat` value-only memory. |
-| `polish_pod_8d` | `run_polish_table --model pod_hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross_r500.npz --tag chi8d_pod_r500_cross` | the shipped rank-500 **cross** POD — the same model family as the 4-D row. It was `run_polish_podrank --dim 8 --rank 250`, i.e. the six-axis *non-cross* POD, which made this column's residual row and its field-error row two different models, masked by a shared `r=250`. |
-| `gvm_4d_value` | `run_value_pod_gapfill_4d` | the 4-D sibling of the 8-D producer; same value-only POD construction, so `gvm_4d_value` and `gvm_4d_field` describe one model at two metrics. |
-| `gvm_4d_field` | `run_cross_fielderr_sweep --flavours value` | the value flavour lives in the *cross* sweep so both fig05 bottom-left curves are measured against the same certified `u_true` (the expensive part), mirroring the 8-D `_sweep_flavor` design. |
-| `qc_targeting` | `run_qc_targeting --n 100` | a parameter, not a missing producer. `run_qc_targeting_hermite` writes `P6/qc_targeting_hermite.json` and is a different study. |
+| `tp_band_sweep` | `run_tp_random_sweep --n 100 --workers 6` | the one validation source (fig08, fig09, the anchor). |
+| `polish_pod_4d` | `run_polish_table --model pod_hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross_r250.npz --tag chi4d_pod_r250_cross` | the shipped rank-250 cross POD model. |
+| `polish_table_4d_cross` | `run_polish_table --model hermite_smolyak_d4qc_L5_enh-chi_Ay-chi_By_cross.npz --tag qc_chi_prod_cross` | the uncompressed cross model. |
+| `polish_table_8d_value` | `run_polish_table --model surrogate_smolyak_spin8_qc_chi_prod_L5.npz --tag chi8d_value` | the 8-D value-only model. |
+| `polish_pod_8d` | `run_polish_table --model pod_hermite_smolyak_spin8qc_L5_enh-chi_Ay-chi_By_cross_r500.npz --tag chi8d_pod_r500_cross` | the shipped rank-500 cross POD model, the same family as the 4-D row. |
+| `gvm_4d_value` | `run_value_pod_gapfill_4d` | the value-only POD model, the 4-D counterpart of the 8-D producer. |
+| `gvm_4d_field` | `run_cross_fielderr_sweep --flavours value` | measured in the cross sweep, so both fig05 curves use the same certified reference fields. |
+| `qc_targeting` | `run_qc_targeting --n 100` | |
 
-Producers that do **not** produce what the registry once implied:
-`make_polish_summary` writes only figures and a `.tex` (no JSON at all);
-`run_cross_pod_r250_8d` is a model builder; `run_qc_dense_stats` carries a
-pre-χ box (`b∈[1.5,4]`, dimensionful `S_Ay∈[-0.4,0.4]`) and would silently build a
-different model against the production corpus.
+## A producer that gates a solver default
 
-Still without any producer: `gvm_4d_value`/`gvm_4d_field` are now covered by the
-two entries above; nothing else in `registry.SOURCES` is orphaned.
+`run_separable_sweep --n 240` checks that the separable preconditioner can stay the
+default (`solver_3d.assemble(separable=)`, chosen by `choose_separable`). It solves each
+sampled point twice from the same warm start, separable and dense, through the
+production forward map `parametric_nd_3d.make_solve_fn`, and passes when:
 
-## Producers that gate a decision rather than feed a figure
+1. separable certifies wherever dense does (a point that fails both is reported
+   separately);
+2. the two fields agree to `FIELD_TOL = 1e-9` relative;
+3. separable needs at most one extra Newton step at a point, at no more than
+   `MAX_EXTRA_FRAC = 0.05` of the points.
 
-Not every producer under `pipeline/` writes figure data. One gates a **solver
-default**, and it is the one to re-run after any change to the preconditioner or
-the linear algebra underneath it.
+The last criterion is a rate because dropping the nonlinear term from the
+preconditioner does cost a step at the largest spins: at 240 points, three (1.25 %)
+needed one, all above the 90th percentile of $|\chi_A| + |\chi_B|$. Exit status 0 means
+a clean pass, so it can gate a cluster job. Re-run it after any change to the
+preconditioner or the linear algebra under it.
 
-| producer | what it gates | pass criteria |
-|---|---|---|
-| `run_separable_sweep --n 240` | the **separable preconditioner being the default** (`solver_3d.assemble(separable=)` via `choose_separable`). Solves each sampled point twice from the *same* warm start — separable vs dense — through the shipped forward map `parametric_nd_3d.make_solve_fn`, so it measures production rather than a reimplementation. | three, all in the module docstring and enforced in code: (1) separable certifies **wherever dense does** (a point failing on *both* is a solver limitation, reported separately and not charged to this gate); (2) the two converged fields agree to `FIELD_TOL = 1e-9` relative; (3) extra Newton steps are at most **one** per point at no more than `MAX_EXTRA_FRAC = 0.05` of points. Exit status is 0 only on a clean pass, so it can gate a cluster job. |
+## The eccentricity model (fig07)
 
-The gate on extra Newton steps is a **rate, not an absolute**. It read "zero
-extra steps" until 2026-08-15, a criterion inherited from a 24-point prototype
-sweep; at 240 points three of them (1.25 %) cost one step, every one at or above
-the 90th percentile of total spin `|χ_A|+|χ_B|` — exactly where dropping the
-nonlinear diagonal from the preconditioner should first show. Do not re-tighten
-it to zero without re-reading that reasoning.
-
-The certification threshold is imported from
-`parametric.certification.CERT_TOL_U`, never restated — see the single-source rule in
-`AGENTS.md`. Since 2026-08-25 that is the **`u`**-norm gate `1e-11`; the `v`-norm
-`CERT_TOL = 1e-10` this line used to name is kept beside it as the submitted paper's
-number and is no longer any default.
-
-## The eccentricity family (fig07)
-
-`run_qc_effpot` needs a 2-D `(b, P_t)` surrogate, `surrogate_bpt_ecc.npz`, which
-does not exist anywhere and had no builder. `build_surrogate` now declares the
-family as `bpt_ecc` — the only box with a **free momentum**; every other family
-either fixes head-on infall or takes the deterministic PN quasi-circular momenta
-(`FIXED[...]["qc"]=1.0`), and freeing `P_t` is precisely what makes eccentricity
-measurable.
-
-Both edges are derived, not chosen:
-
-- `b` = `production_box.B_MIN..B_MAX`, so the study shares the separations of
-  every other figure. (The historical `run_qc_effpot.BOX_B=(2.6,6.4)` predates
-  the box retarget and its lower edge sits below `B_MIN`.)
-- `P_t = J/(2b)`, because `qc_effpot` fixes `J = 2 b P_t`. The momentum axis is
-  `P_x`: `theta_to_slice3d` builds `P_A=(P_x,0,−P)`, `P_B=(−P_x,0,P)`, so for
-  punctures at `z=±b` the orbital term gives `J=(0, 2 b P_x, 0)` — hence
-  `P_t ≡ P_x`. Covering the study's `J∈[1.00,1.10]` therefore needs
-  `P_x ∈ [J_min/(2 B_MAX), J_max/(2 B_MIN)]`.
-- `FIXED["bpt_ecc"] = {"P": 0.0, "q": 1.0}` — `P` is the *radial* momentum, and
-  the apsis condition is `P_r=0`; the default is `P=0.5` head-on infall, which
-  would not be an apsis at all, so it must be overridden explicitly.
-
-**The consumer needs the DENSE artifact, under a fixed name.** `run_qc_effpot`
-loads the model through `qc_effpot.load_model` →
-`parametric_nd.load_parametric`, which asserts `meta["kind"] == "dense"` and so
-rejects a Smolyak file outright; it reads the fixed basename
-`surrogate_bpt_ecc.npz` (`run_qc_effpot.MODEL`, and the `effpot_model` entry in
-`registry.SOURCES`). A `--level`-only build therefore does *not* feed fig07: it
-writes `surrogate_smolyak_bpt_ecc_L5.npz`, which is both the wrong kind and the
-wrong name. The build must pass `--dense-Q` and `--dense-name`:
+`run_qc_effpot` needs a dense 2-D model in $(b, P_t)$, the one family with a free
+momentum; every other family takes the quasi-circular momenta. Its box is derived:
+$b$ spans the production range `production_box.B_MIN..B_MAX`, and $P_t = J / (2b)$
+covers the study's $J \in [1.00, 1.10]$, so
+$P_x \in [J_{\min} / (2 B_{\max}), J_{\max} / (2 B_{\min})]$ (with punctures at
+$z = \pm b$ the orbital angular momentum is $J = 2 b P_x$, so $P_t \equiv P_x$). The
+radial momentum is fixed to zero, as an apsis requires. The consumer loads a *dense*
+model under a fixed name, so build it with `--dense-Q` and `--dense-name`:
 
 ```bash
 python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_surrogate \
@@ -310,93 +185,42 @@ python -m lemaitre.initial_data.conformally_flat_puncture.pipeline.build_surroga
     --solver nk --store --code-tag chi-rebuild
 ```
 
-The grid is the builder's default, `production_box.PROD_GRID`, and the bare `--store`
-and the default `--outdir` both resolve under the scheme-scoped `reports_root()`
-(`<root>/3D_parametric/solve_store/` and `<root>/3D_parametric/models/`, the latter
-being where `run_qc_effpot.MODEL` looks). Passing an explicit grid here is how the
-first paper's `--Nb 32` would outlive a grid change.
+`Q = 16` gives 17 nodes per axis, on the nested Chebyshev–Lobatto ladder (1, 3, 5, 9,
+17, 33), so the sparse build's solves are reused from the solve store. The grid is the
+builder's default, `production_box.PROD_GRID`.
 
-`--dense-name` exists for exactly this: a consumer that hardcodes the filename.
-`Q=16` (17 nodes/axis) is derived the same way as the edges — the historical
-model was dense at `Q=7`/`Q=6` (8 and 7 nodes) over the narrower `b∈[2.5,6.5]`,
-so 17 nodes holds that resolution density across the ~1.75× wider production `b`
-range, and 17 is on the nested Chebyshev–Lobatto ladder (1,3,5,9,17,33) so the
-sparse build's nodes are reused from the solve store rather than re-solved.
+Before using the model, check that the circular orbit, the interior minimum of
+$\partial E_b / \partial b|_J$, lies strictly inside the box for every $J$. On the
+lower edge it would be an artifact of the box, not a measurement.
 
-**Verification gate before this model is used:** the study locates the circular
-orbit as the *interior* minimum of `∂E_b/∂b|_J`. Raising `b_min` to `B_MIN` can
-push `b_circ` onto the lower edge for the smallest `J`, in which case the
-"circular orbit" is an edge artifact rather than a measurement. Check `b_circ` is
-strictly interior for every `J` and stop if it is not.
+## The TwoPunctures oracle
 
-## The TwoPunctures oracle (fig08, fig09)
-
-fig08, the quasi-circular ψ and `M_ADM` comparisons *against* TwoPunctures, requires
-the binary, and is irreducibly a comparison. fig09, the azimuthal spectrum, and the
-`axisym` block do not (they are internal properties of our own solve), but they come
-from the same producer because the expensive part is one oracle call per
-configuration.
-
-Two diagnostics that no longer have a panel of their own:
-
-- the **axisymmetric-limit code-to-code anchor** at `b=3`, `P=0.5` head-on, quoted in the
-  appendix text — the most stringent TwoPunctures number in the paper, and not obtainable
-  from a quasi-circular configuration, which is never axisymmetric. It is measured by this
-  same producer and read out of fig08's committed figdata meta (`anchor`). On the v2 grid
-  (64 × 56 × 8 top rung) it is ψ to 4.9e-14 in the supremum norm, `M_ADM` to 1.2e-12
-  relative, certified residual 2.7e-16 in `u` (gate `CERT_TOL_U` = 1e-11). The paper-v1
-  values (2.5e-10, 1.2e-11, 9.3e-15 in `v`) and the older 4.7e-12 / 1.0e-11 pair from the
-  superseded `tp_validation` source no longer appear in the manuscript.
-- the **ADM-`J` tilt against the spin tilt** (measured, θ_J tracked θ_S to ~1e-14 deg for
-  every |S| and every TP anchor, so the panel was three coincident curves on the line
-  y=x). This one is *not* quoted in the manuscript at all; it survives only as a
-  `run_3d_sweep` diagnostic.
-
-### Where the source comes from, and how the binary is built
-
-`make oracle` runs `oracle/build.sh`, which is **in this repo**. What is *not* in
-this repo is the oracle's own source: the build generates it, so "agrees with
-TwoPunctures" still means agreement with upstream code we did not write or edit.
+`make oracle` runs `oracle/build.sh`, which is in this repository. The oracle's own
+source is not: the build generates it, so "agrees with TwoPunctures" means agreement
+with upstream code we did not write or edit.
 
 ```bash
 make oracle                                   # -> ~/.cache/lemaitre/tp-oracle/tp_solve
 LM_TP_PREFIX=/elsewhere ./oracle/build.sh     # install somewhere else
 ```
 
-Provenance of everything the build compiles:
-
 | layer | origin |
 |---|---|
 | physics | Einstein Toolkit thorn **`TwoPunctures`** (M. Ansorg, E. Schnetter, F. Löffler) — the single-domain spectral puncture solver of Ansorg, Brügmann & Tichy, *PRD* **70**, 064011 (2004), arXiv:gr-qc/0404056. Upstream `https://bitbucket.org/einsteintoolkit/einsteininitialdata`. **LGPL v2.0+.** |
 | C port | Z. B. Etienne's Cactus-free port, shipped inside the `nrpy` package as `nrpy/infrastructures/BHaH/general_relativity/TwoPunctures/` (`https://github.com/nrpy/nrpy`, PyPI `nrpy`). The build pins **`nrpy==2.2026.6`**, the version the committed oracle numbers were produced with. |
-| numerics | GSL (BiCGStab + linear algebra), taken from the build environment. The binary here was built against **GSL 2.8** and links it dynamically via `-rpath`, so it is tied to the environment that built it — rebuild rather than copying it between machines. |
+| numerics | GSL (BiCGStab and linear algebra), from the build environment, linked dynamically, so rebuild rather than copy the binary between machines. |
 
-`oracle/gen_tp.py` writes the six TwoPunctures translation units and their two
-headers to `oracle/src/` **verbatim** from `nrpy` (no upstream C is edited or
-retyped), plus a minimal `BHaH_defines.h` — the small subset of BH@H's generated
-header the solver uses (`REAL`, `derivs`, `ID_persist_struct`), transcribed from
-nrpy's own `ID_persist_str()`. Those generated files are **gitignored**: they are
-third-party code and are produced at build time rather than vendored.
+`oracle/gen_tp.py` writes the six TwoPunctures translation units and their two headers
+to `oracle/src/` verbatim from `nrpy`, plus a minimal `BHaH_defines.h` with the few
+definitions the solver uses. These generated files are gitignored. The one hand-written
+file, `oracle/src/main.c`, reads the configuration, calls the unmodified `TP_solve()`
+and evaluates the result with the unmodified `PunctIntPolAtArbitPosition()`.
 
-The one hand-written file, and the only one committed under `oracle/src/`, is
-`main.c` — argv/stdin/stdout glue that fills `ID_persist_struct`, calls the
-unmodified `TP_solve()`, and evaluates the result with the unmodified
-`PunctIntPolAtArbitPosition()`. BH@H's `TP_Interp()` is not built; it exists only
-to fill a BH@H grid.
+The build passes no OpenMP flag, so the oracle is serial and deterministic across runs,
+which `tests/test_validation_spin.py::test_spin_axisymmetry_nphi` relies on when it
+compares ψ across two runs at 1e-10.
 
-The build passes no OpenMP flag, so the oracle is **serial and deterministic
-across invocations** — which is what
-`tests/test_validation_spin.py::test_spin_axisymmetry_nphi` relies on when it
-diffs ψ across two separate runs at `1e-10`. Upstream parallelises the BiCGStab
-line-relaxation preconditioner; building that would make the Krylov path
-schedule-dependent, so a paper oracle should stay serial.
-
-Set `LM_TP_BIN` to point at a binary somewhere else; otherwise
-`~/.cache/lemaitre/tp-oracle/tp_solve` — where `oracle/build.sh` installs — is the
-default `validation/twopunctures.py` looks for. If it is absent,
-`validation.twopunctures.available()` returns `False` and the 29 oracle-dependent
-tests skip rather than fail.
-
-> Status: the recompute wiring (rewriting `figNN_*_data.py` to compute from the
-> solver/ROM instead of reading `reports/*.json`) is **Stage 2** — not yet done.
-> Today the data scripts still carry the old cache-read logic.
+Set `LM_TP_BIN` to use a binary elsewhere; otherwise `validation/twopunctures.py` looks
+in `~/.cache/lemaitre/tp-oracle/tp_solve`. Without it,
+`validation.twopunctures.available()` returns `False` and the oracle-dependent tests
+skip rather than fail.
