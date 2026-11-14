@@ -5,8 +5,16 @@ and `matplotlib`. Everything runs in double precision on a CPU; no GPU is needed
 
 It lives in the `lemaitre` namespace, `lemaitre.initial_data.conformally_flat_puncture`,
 which spans three distributions: the namespace root `lemaitre`, the `initial_data`
-level `LM-initial-data`, and this package. Install all three from one checkout of
-the family repository:
+level `LM-initial-data`, and this package. All three are on PyPI, and installing
+this one brings the other two:
+
+```bash
+python -m pip install LMID-conformally-flat-puncture
+```
+
+## Development install
+
+To work on the code, install all three from one checkout of the family repository:
 
 ```bash
 git clone https://github.com/LemaitreModels/Lemaitre.git

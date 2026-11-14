@@ -16,6 +16,7 @@ import hashlib
 import http.server
 import json
 import threading
+import urllib.parse
 
 import numpy as np
 import pytest
@@ -80,8 +81,23 @@ class _FakeZenodo:
                         return
                     return self._send(200, json.dumps(fake.record(rid, base)).encode())
                 if parts[:2] == ["api", "records"] and parts[3:] == ["versions"]:
-                    hits = [fake.record(r, base) for r, _ in sorted(fake.records, reverse=True)]
-                    return self._send(200, json.dumps({"hits": {"hits": hits}}).encode())
+                    # Zenodo's rules for an anonymous request: a page larger than 25 is a
+                    # 400 (the 1.0.0 code asked for 100 and failed against the real
+                    # service while this fake answered it), and the server pages, with a
+                    # `next` link.  It serves 2 per page here so the link is followed.
+                    q = urllib.parse.parse_qs(self.path.partition("?")[2])
+                    size, page = int(q.get("size", ["10"])[0]), int(q.get("page", ["1"])[0])
+                    if size > 25:
+                        return self._send(400, b'{"status": 400}')
+                    ordered = sorted(fake.records, reverse=True)
+                    per = min(size, 2)
+                    hits = [fake.record(r, base) for r, _ in ordered[(page - 1) * per:page * per]]
+                    links = {}
+                    if page * per < len(ordered):
+                        links["next"] = (f"{base}/records/{parts[2]}/versions?"
+                                         f"size={size}&page={page + 1}")
+                    return self._send(200, json.dumps({"hits": {"hits": hits},
+                                                       "links": links}).encode())
                 if parts[:2] == ["api", "records"] and parts[3] == "files":
                     body = fake.files[int(parts[2])][parts[4]]
                     if fake.corrupt and parts[4].endswith(".npz"):

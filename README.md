@@ -22,12 +22,23 @@ installed alongside.
 
 ## Install
 
-This distribution declares two namespace parents, `lemaitre` and
-`LM-initial-data`. **Both are published on PyPI**; this distribution is not. A
-bare `pip install -e .` here therefore resolves the parents from PyPI rather
-than failing — which is not what you want while developing against a checkout.
-Install all three from a checkout of the family superproject, outermost first,
-with `--no-deps` so pip uses the checked-out parents:
+```bash
+pip install LMID-conformally-flat-puncture
+python -c "import lemaitre as lm; lm.initial_data.conformally_flat_puncture"   # smoke check
+```
+
+This installs the package with its two namespace parents, `lemaitre` and
+`LM-initial-data`, and the solver stack. The trained models download themselves
+from Zenodo on first use (see the
+[documentation](https://lmid-conformally-flat-puncture.readthedocs.io/)).
+
+### Development install
+
+All three distributions are on PyPI, so a bare `pip install -e .` here resolves
+the two parents from PyPI rather than from your checkout — which is not what you
+want while developing against one. Install all three from a checkout of the
+family superproject, outermost first, with `--no-deps` so pip uses the
+checked-out parents:
 
 ```bash
 pip install numpy scipy jax matplotlib pytest sympy    # the solver stack + test deps

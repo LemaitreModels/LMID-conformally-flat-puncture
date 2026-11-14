@@ -158,7 +158,9 @@ def releases() -> list:
             "(models.ZENODO_CONCEPT_RECORD is None); load a local file with "
             "models.load(path=...) or set LMID_ZENODO_RECORD")
     latest = _get_json(f"{_api()}/records/{concept}")       # redirects to the newest
-    out, url = [], f"{_api()}/records/{latest['id']}/versions?size=100&sort=version"
+    # 25 is Zenodo's largest page for an anonymous request: size=100 is refused with
+    # HTTP 400 ("Page size cannot be greater than 25").  Further pages follow `next`.
+    out, url = [], f"{_api()}/records/{latest['id']}/versions?size=25&sort=version"
     while url:
         page = _get_json(url)
         out += [_release_of(h) for h in page["hits"]["hits"]]

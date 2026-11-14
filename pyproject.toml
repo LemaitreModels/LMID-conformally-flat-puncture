@@ -1,5 +1,6 @@
 [build-system]
-requires = ["setuptools>=68"]
+# >= 77 for the PEP 639 licence fields below.
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,22 +9,22 @@ version = "1.0.0"
 description = "Certified, differentiable, parametric conformally-flat binary-black-hole puncture initial data — lemaitre.initial_data.conformally_flat_puncture"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { file = "LICENSE" }
+# PEP 639: an SPDX expression plus the file.  The LICENSE file's own wording ("either
+# version 3 of the License, or (at your option) any later version") makes it GPLv3+.
+# The older `license = {file = ...}` put the whole licence text into the PyPI page's
+# licence field, and with an SPDX expression a `License ::` classifier is an error.
+# This leaf is the first family distribution on the new form; the other three still
+# use the old one and move when they are next released.
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 # One author here, two on the paper (paper.tex:40-49), and that is deliberate
 # (decided 2026-08-21): this field records who maintains the distribution, not
 # who wrote the physics.  Do not "fix" the apparent mismatch -- the paper's
 # author list is the authorship of record.
 authors = [{ name = "Frederik De Ceuster" }]
-# The classifier restates the LICENSE file's own wording ("either version 3 of
-# the License, or (at your option) any later version"), so it is GPLv3+, not
-# GPLv3.  Note for a future family-wide pass: setuptools >= 77 deprecates BOTH
-# `license = {file = ...}` and the `License ::` classifier in favour of a PEP 639
-# SPDX string.  All four family distributions use the old form, so modernising
-# is one coordinated change across four repositories, not a leaf-local edit.
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
