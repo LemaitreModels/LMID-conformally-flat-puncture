@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "LMID-conformally-flat-puncture"
-version = "0.1.0"
+version = "1.0.0"
 description = "Certified, differentiable, parametric conformally-flat binary-black-hole puncture initial data — lemaitre.initial_data.conformally_flat_puncture"
 readme = "README.md"
 requires-python = ">=3.10"

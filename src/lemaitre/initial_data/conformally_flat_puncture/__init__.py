@@ -13,7 +13,7 @@ its figure scripts in ``paper/``.  See ``docs/`` for the data-regeneration
 and validation-oracle setup.
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 
 def __getattr__(name):
