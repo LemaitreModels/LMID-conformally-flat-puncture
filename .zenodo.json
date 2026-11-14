@@ -1,0 +1,16 @@
+{
+  "title": "LMID-conformally-flat-puncture: certified parametric conformally flat puncture initial data",
+  "upload_type": "software",
+  "description": "Source code of lemaitre.initial_data.conformally_flat_puncture: a spectral solver for conformally flat Bowen-York puncture initial data and the certified, differentiable, parametric reduced-order models built on it. The trained models are archived separately (doi:10.5281/zenodo.24219765).",
+  "creators": [
+    {"name": "De Ceuster, Frederik", "affiliation": "KU Leuven"},
+    {"name": "Li, Tjonnie G.-F.", "affiliation": "KU Leuven"}
+  ],
+  "license": "GPL-3.0-or-later",
+  "keywords": ["numerical relativity", "initial data", "binary black holes", "reduced-order model", "spectral methods"],
+  "related_identifiers": [
+    {"identifier": "arXiv:2609.10173", "relation": "isSupplementTo", "scheme": "arxiv"},
+    {"identifier": "10.5281/zenodo.24219765", "relation": "isSourceOf", "scheme": "doi"},
+    {"identifier": "https://lemaitre.readthedocs.io/projects/lmid-conformally-flat-puncture/", "relation": "isDocumentedBy", "scheme": "url"}
+  ]
+}

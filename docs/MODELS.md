@@ -15,9 +15,8 @@ the production grid, for quasi-circular binaries with momenta from
 ## Getting a model
 
 The model files are published on Zenodo, one record with a new version for every
-rebuild, and the package downloads them itself. (The first version is being
-prepared. Until it is published, `models.load(name)` raises `ModelUnavailable`, and
-`models.load(path=...)` reads a file you built yourself.)
+rebuild, and the package downloads them itself. Version 1.0.0 holds the models of the
+paper, [doi:10.5281/zenodo.24219765](https://doi.org/10.5281/zenodo.24219765).
 
 ```python
 from lemaitre.initial_data.conformally_flat_puncture import models

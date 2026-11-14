@@ -48,9 +48,10 @@ from typing import Optional
 ZENODO_API = "https://zenodo.org/api"
 
 #: The Zenodo *concept* record of the shipped models: the id that always resolves to
-#: the newest version.  ``None`` until the first version is published; set it from
-#: the id ``pipeline/release_models.py upload`` prints when it creates the deposit.
-ZENODO_CONCEPT_RECORD: Optional[int] = None
+#: the newest version (``pipeline/release_models.py upload`` prints it when it creates
+#: the first deposit).  Version 1.0.0, the models of the paper, is
+#: doi:10.5281/zenodo.24219765.
+ZENODO_CONCEPT_RECORD: Optional[int] = 24219764
 
 #: The model-file format this code reads.  Bump it only when a change to the
 #: ``.npz`` layout makes old code unable to read new files.
@@ -304,9 +305,12 @@ def problem(model):
     meta = model.meta
     bmap, radial = str(meta.get("bmap", "cos")), str(meta.get("radial", "lobatto"))
     name = scheme_of(bmap, radial)
-    grid = {"scheme": name} if name is not None else {"bmap": bmap, "radial": radial}
-    return solver_3d.make_problem(int(meta["Na"]), int(meta["Nb"]), int(meta["Nphi"]),
-                                  **grid)
+    Na, Nb, Nphi = int(meta["Na"]), int(meta["Nb"]), int(meta["Nphi"])
+    # Both branches name the grid as keywords, so tests/test_scheme_v2.py's source scan
+    # can see it (a **kwargs call cannot be verified there and is reported).
+    if name is not None:
+        return solver_3d.make_problem(Na, Nb, Nphi, scheme=name)
+    return solver_3d.make_problem(Na, Nb, Nphi, bmap=bmap, radial=radial)
 
 
 def load(name: str = "8d", *, version: Optional[str] = None, path=None,

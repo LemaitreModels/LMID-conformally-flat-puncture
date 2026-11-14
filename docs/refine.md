@@ -5,9 +5,8 @@ and a few Newton steps of the full solver bring the constraint residual below th
 gate. The answer is then as good as a direct solve, and it costs fewer Newton steps
 because it starts close.
 
-The models are downloaded from Zenodo ([Available models](MODELS.md)). Until the first
-version is published there, `models.load(name)` raises `ModelUnavailable`; pass
-`path=` to load a model file you built yourself.
+The models are downloaded from Zenodo ([Available models](MODELS.md)); pass `path=` to
+load a model file you built yourself.
 
 ```python
 import numpy as np

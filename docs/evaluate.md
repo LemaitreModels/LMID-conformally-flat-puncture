@@ -5,9 +5,8 @@ when the model's interpolation error is small enough for what you do with the
 answer, for example in a parameter scan, a plot or a gradient. For data that must
 satisfy the constraints to the gate, [refine the prediction](refine.md).
 
-The models are downloaded from Zenodo ([Available models](MODELS.md)). Until the first
-version is published there, `models.load(name)` raises `ModelUnavailable`; pass
-`path=` to load a model file you built yourself.
+The models are downloaded from Zenodo ([Available models](MODELS.md)); pass `path=` to
+load a model file you built yourself.
 
 ```python
 import numpy as np
