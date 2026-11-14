@@ -59,6 +59,21 @@ def test_committed_figdata_is_current(stem):
         f"Rebuild: python paper/figures/make_figdata.py --fig {stem} --force")
 
 
+@pytest.mark.parametrize("stem", reg.figure_stems())
+def test_committed_figdata_is_on_the_current_grid_and_prescription(stem):
+    """The COMMITTED figdata passes make_figdata.py's own staleness test: built on
+    ``production_model.SCHEME`` and, for a spin-dependent figure (``registry.SPIN_QC_FIGURES``),
+    under the current ``quasicircular.QC_PRESCRIPTION``.  The test below checks that the tag
+    can say STALE; this one checks that it does not say it of what the paper is built from.
+    Without it a figdata distilled before the 2026-11-09 spin-orbit fix stayed green here."""
+    import importlib
+    mf = importlib.import_module("make_figdata")
+    tag, why = mf._figdata_tag(stem)
+    assert tag == "figdata OK", (
+        f"figdata/{stem}.json: {tag} ({why}). "
+        f"Rebuild: python paper/figures/make_figdata.py --fig {stem} --force")
+
+
 def test_figdata_of_another_scheme_reads_as_stale(tmp_path, monkeypatch):
     """A figdata built on another discretisation, or (for a spin-dependent figure) under
     another momentum prescription, must not pass as current because its keys still match

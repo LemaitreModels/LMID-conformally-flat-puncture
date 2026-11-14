@@ -5,4 +5,4 @@ producer that wrote them. Each file is the producer's output with only the host 
 
 | file | producer | quoted in |
 |---|---|---|
-| `solve_timing_4d.json`, `solve_timing_8d.json` | `pipeline/run_solve_timing.py --dim {4,8} --n 50`, one thread on an exclusive AMD EPYC 7643 node | Sec. III B (dense-to-separable cost ratio of one certified solve, 56–58, and the 1e-9 field agreement) |
+| `solve_timing_4d.json`, `solve_timing_8d.json` | `pipeline/run_solve_timing.py --dim {4,8} --n 50`, one thread on an exclusive AMD EPYC 7643 node | Sec. III B (dense-to-separable cost ratio of one certified solve, 56–57 (medians 57.0 in 4-D and 56.1 in 8-D), and the 1e-9 field agreement) |

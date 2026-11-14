@@ -355,7 +355,7 @@ For $N_\phi>1$ we precondition with the inverse of the Laplacian alone, omitting
 In the azimuthal Fourier basis, $M_0$ is block diagonal, with one block $M_0^{(m)}$ per mode $m$.
 After a row scaling, each block is a Kronecker sum of one-dimensional operators that depend only on the grid, not on the binary parameters, so the preconditioner is built once for all configurations and inverted by fast diagonalization~\cite{Lynch1964} (App.~\ref{sec:separable}).
 This parameter independence also means that differentiation in Sec.~\ref{sec:param:diff} need not pass through the eigendecompositions.
-On the production grid, the separable preconditioner makes a certified solve $56$ to $58$ times cheaper than with dense LU factorizations of the same blocks, with solutions that agree to $10^{-9}$.
+On the production grid, the separable preconditioner makes a certified solve $56$ to $57$ times cheaper than with dense LU factorizations of the same blocks, with solutions that agree to $10^{-9}$.
 
 
 \paragraph{Convergence and certification.}
@@ -404,7 +404,8 @@ So far we have described how to obtain one constraint-satisfying datum. The
 contribution of this paper is to obtain the datum \emph{as a function of} the
 physical para\-meters, without a cold elliptic solve at query time.
 An interpolant over the parameters supplies the guess, Newton refinement certifies it, and the resulting map is differentiable.
-The last three subsections reduce the cost of this construction in solves, in dimension, and in memory.
+Sections~\ref{sec:param:setup}--\ref{sec:param:diff} build the method by defining the parameter box and interpolant, then adding certified refinement and derivatives.
+The remaining subsections reduce the node count needed for a given accuracy (Sec.~\ref{sec:param:hermite}), its growth with dimension (Sec.~\ref{sec:param:smolyak}), and the memory needed to store the fields (Sec.~\ref{sec:param:pod}).
 
 \subsection{The parametric problem}
 \label{sec:param:setup}
@@ -412,8 +413,10 @@ The last three subsections reduce the cost of this construction in solves, in di
 We parametrize a binary by $\vect{\theta} \equiv (b, q, \boldsymbol{\chi}^{A}, \boldsymbol{\chi}^{B})$ at fixed total bare mass $M \equiv m_A + m_B = 1$, with $m_A = Mq/(1+q)$ and $m_B = M/(1+q)$.
 The spins enter as the \emph{dimensionless} vectors $\boldsymbol{\chi}^{X} \equiv \vect{S}^{X}/m_X^2$, referred to the bare puncture mass $m_X$, so the Bowen--York spin in the source is $\vect{S}^{X} = \boldsymbol{\chi}^{X}\, m_X^2$.
 The interpolation axes are $b$, $q$, and the individual spin \emph{components} $\chi^{X}_{i}$, up to eight scalar axes for the full two-spin family.
-Because each $\boldsymbol{\chi}^{X}$ is normalized to its own puncture mass, its range does not depend on $q$, and the spin axes are symmetric about zero, so the parameter domain is a hypercube.
-Each axis is mapped affinely onto $[-1,1]$, the natural domain of the Chebyshev basis.
+We choose the parameter domain to be a box, a product of intervals in $b$, $q$, and $\chi^{X}_{i}$, with spin intervals symmetric about zero.
+Normalizing each $\boldsymbol{\chi}^{X}$ to its own puncture mass makes it natural to choose the same spin range for every $q$, although the Bowen--York spin $\vect{S}^{X}$ still varies with $q$.
+Because $\boldsymbol{\chi}^{X}$ is referred to the bare mass, it is a free-data parameter rather than a horizon spin, so the box does not fix a range of horizon spins.
+Mapping each axis affinely onto $[-1,1]$, the natural domain of the Chebyshev basis, turns this box into a hypercube.
 The puncture momenta are not interpolation axes. The quasi-circularity condition of Sec.~\ref{sec:model:qc} fixes them as functions of $\vect{\theta}$.
 
 \subsection{Value (Lagrange) collocation}
@@ -460,7 +463,8 @@ The tensor-product interpolant is evaluated by contracting one parameter axis at
 Where the parameter-to-solution map is analytic, the
 interpolation error decays exponentially in the number of parameter nodes, at a
 rate fixed by the nearest singularity in the complex parameter plane.
-Section~\ref{sec:model:walls} measures this rate on every axis of the box.
+The rate is set by the largest Bernstein ellipse within which the map stays analytic, an ellipse in the complex parameter plane around the sampled interval whose size is fixed by the nearest singularity.
+Section~\ref{sec:model:walls} defines this ellipse and measures the rate on every axis of the box.
 
 % ===========================================================================
 \subsection{Certified refinement}
@@ -512,6 +516,7 @@ The gradient-based applications of Sec.~\ref{sec:applications} rely on this comb
 \subsection{Gradient-enhanced (Hermite) collocation}
 \label{sec:param:hermite}
 % ===========================================================================
+Hermite collocation reduces the number of parameter nodes, and hence nonlinear solves, needed for a given interpolation accuracy.
 The offline build obtains the certified tangent of Eq.~\eqref{eq:tangent} at each node for the cost of one linear solve against the node's Jacobian.
 Interpolating only the stored values $U_i$ would discard this information.
 Gradient-enhanced (Hermite) collocation uses it, matching values \emph{and} parameter derivatives at each node.
@@ -543,7 +548,7 @@ whose four terms are the value, the two certified first tangents, and the single
 bilinear cross tangent stored at the node (Sec.~\ref{sec:param:diff} and App.~\ref{sec:solverdetails:tangent}). Each
 non-enhanced axis carries only its Lagrange cardinal, so restoring $L$ on the two
 enhanced axes and dropping the tangents recovers
-Eq.~\eqref{eq:surrogate}. The osculatory
+Eq.~\eqref{eq:surrogate}. The
 Hermite cardinals are built from the same barycentric Lagrange cardinal $L_i$ of
 Eq.~\eqref{eq:barycentric},
 \begin{align}
@@ -564,7 +569,8 @@ elliptic solves.
 
 For both shipped models the enhanced set is the pair of aligned spin components,
 $\mathcal{E}=\{\chi^{A}_{y},\chi^{B}_{y}\}$, identified as the slowest axes in
-Sec.~\ref{sec:model:peraxis}. The remaining axes carry plain Lagrange cardinals.
+Sec.~\ref{sec:model:peraxis}. We choose these axes empirically, using the measurements in that subsection.
+The remaining axes carry plain Lagrange cardinals.
 These are $b$ and $q$ in the four-dimensional aligned-spin model
 $\vect{\theta}=(b,q,\chi^{A}_{y},\chi^{B}_{y})$, and in the
 eight-dimensional general-spin model
@@ -606,6 +612,7 @@ levels, $\bigotimes_k I_{L}=\sum_{\vect{l}}\bigotimes_k\Delta_{l_k}$, which is a
 the $O(Q^d)$ tensor grid.
 A mixed surplus refines several parameters at once, and its size is set by how strongly the map couples them.
 When the coupling is weak, these contributions are small, and retaining only the \emph{simplex} $|\vect{l}|_1=\sum_k l_k\le\ell$ discards little.
+We call $\ell$ the Smolyak level, which sets the finest resolution on any single axis, $2^{\ell}+1$ nodes.
 The retained surpluses recombine
 into the Smolyak combination technique,
 \begin{equation}
@@ -648,7 +655,8 @@ the $N$ stored fields as rows of a matrix and subtracting their mean $\bar U$, a
 singular-value decomposition yields orthonormal \emph{spatial} modes, the columns of $\Phi$, ordered by singular value $\sigma_k$.
 Each stored field can then be written as $U=\bar U + \Phi\,c$ with coefficients $c=\Phi^{\!\top}(U-\bar U)$.
 The singular values decay exponentially, because the map is analytic in $\vect{\theta}$, the same analyticity that governs the interpolation error.
-Keeping the leading $r$ modes, we store $\Phi$ together with the length-$r$ coefficient vector at each node, $r$ numbers per node instead of the full field.
+We keep the leading $r$ modes, calling their number the truncation rank.
+We store $\Phi$ together with the length-$r$ coefficient vector at each node, $r$ numbers per node instead of the full field.
 At query time we interpolate the \emph{coefficients} with the same barycentric and Smolyak machinery and decode $\tilde U(\vect{\theta})=\bar U+\Phi\,c(\vect{\theta})$.
 
 Two properties make the truncation compatible with certified refinement. First,
@@ -671,8 +679,10 @@ Both are \emph{quasi-circular} orbiting initial data, built by the same machiner
 The four-dimensional \emph{aligned-spin} model has $\vect{\theta}=(b,q,\chi^{A}_{y},\chi^{B}_{y})$, and the eight-dimensional \emph{general-spin} model has $\vect{\theta}=(b,q,\boldsymbol{\chi}^{A},\boldsymbol{\chi}^{B})$.
 Its in-plane spin axes are centered on zero, so the aligned model nests, node for node, inside it.
 Table~\ref{tab:box} collects the box and the build configuration the two models share.
-At the corners of the spin hypercube the components combine into $|\boldsymbol{\chi}^{X}|=0.9\sqrt3\approx1.56$.
-These are Bowen--York free-data parameters, not horizon spins.
+At the corners of the spin box the components combine into $|\boldsymbol{\chi}^{X}|=0.9\sqrt3\approx1.56$, a free-data value rather than a horizon spin (Sec.~\ref{sec:param:setup}).
+
+Section~\ref{sec:model:qc} fixes the quasi-circular momenta that make the family orbiting, and Sec.~\ref{sec:model:peraxis} explains the per-axis convergence rates through the analyticity walls and identifies which axes to enhance.
+Section~\ref{sec:model:joint} weighs joint accuracy against offline cost and measures certified refinement, and Sec.~\ref{sec:model:pod} assesses compression.
 
 \begin{table}[t]
   \caption{\label{tab:box}%
@@ -685,7 +695,7 @@ These are Bowen--York free-data parameters, not horizon spins.
   \input{tables/tab01_production_box.tex}
 \end{table}
 
-The accuracy metric throughout is the \emph{held-out} interpolation error.
+The accuracy metric throughout is the \emph{held-out} interpolation error, measured at points not used to build the model.
 At a parameter point that is \emph{not} a collocation node we compare the interpolant to a direct elliptic solve on the \emph{same} spatial grid ($N_A=44$, $N_B=40$, $N_\phi=8$) and take the largest nodal difference between the two fields.
 Because both are represented on the same grid, the spatial
 discretization error cancels and what remains is the pure
@@ -762,7 +772,9 @@ The large-separation Newtonian limit of Eq.~\eqref{eq:pt} is the cross-check tha
 \label{sec:model:peraxis}
 \label{sec:model:walls}
 Sweeping one parameter at a time, every axis converges exponentially
-(Fig.~\ref{fig:peraxis}). The separation $b$ and mass ratio $q$ converge fastest, at $0.55$ and $0.60$ decades per node, and the six spin components at $0.47$--$0.48$. Gradient enhancement (Sec.~\ref{sec:param:hermite}) roughly doubles every
+(Fig.~\ref{fig:peraxis}). The separation $b$ and mass ratio $q$ converge fastest, at $0.55$ and $0.60$ decades per node, and the six spin components at $0.47$--$0.48$.
+These rates count the factors of ten by which the error falls per added node.
+Gradient enhancement (Sec.~\ref{sec:param:hermite}) roughly doubles every
 rate for the price of one extra linear solve per node.
 Because the joint held-out error is governed by the slowest of these axes, the spin directions set the offline cost of the model (Sec.~\ref{sec:model:joint}).
 
@@ -779,7 +791,8 @@ Because the joint held-out error is governed by the slowest of these axes, the s
     Every axis decays geometrically, and matching the tangent roughly doubles each rate.}
 \end{figure*}
 
-The rates are set by the analyticity of the parameter-to-solution map.
+To explain why the spin axes converge slowest despite being physically the most benign, we examine the analyticity of the parameter-to-solution map.
+We locate the nearest singularity on each axis and check that none lies close to the physical box.
 We map the sampling interval of a parameter affinely onto $\xi\in[-1,1]$ and consider the \emph{Bernstein ellipse} $E_\varrho$, the ellipse in the complex $\xi$-plane with foci at $\pm1$ whose semi-major and semi-minor axes sum to $\varrho>1$.
 If the map is analytic and bounded inside $E_\varrho$, its Chebyshev interpolant on $Q$ nodes converges as $\varrho^{-Q}$ up to a constant factor, a rate of $\zeta\equiv\log_{10}\varrho$ decades per node (Theorem~8.2 of Ref.~\cite{Trefethen2019}, going back to \cite{Bernstein1912}).\footnote{\raggedright\url{https://lmid-conformally-flat-puncture.readthedocs.io/en/latest/bernstein.html} explains the bound in more detail, with an interactive figure.}
 The largest such ellipse passes through the nearest singularity of the map.
@@ -789,7 +802,7 @@ We use this bound in reverse to locate the singularity.
 The measured rate $\zeta$ fixes $\varrho$, and the real point of $E_\varrho$ outside the interval, $|\xi_\ast|=\tfrac12(\varrho+\varrho^{-1})$, mapped back on the physically singular side (small $b$ toward merger, large $q$ toward the test-mass limit, large $|\chi|$ toward the extremal limit), gives an inferred singularity $\theta_\ast$.
 Repeating this for several sampling ranges separates two kinds of wall.
 A real branch point stays at a fixed $\theta_\ast$.
-A complex-conjugate pair has no real singularity, and its inferred $\theta_\ast$ recedes as the range grows.
+A complex-conjugate pair consists of singularities at parameter values off the real axis and reflected across it, and its inferred $\theta_\ast$ recedes as the range grows.
 The legends of Fig.~\ref{fig:walls} give $\zeta$ and $\theta_\ast$ for each range.
 
 The quasi-circular family has three walls, one hard and two soft
@@ -819,6 +832,15 @@ singularity near the physical box. The family's
 only hard wall lies on one of its two fastest axes, while its slowest axes carry
 only soft, receding ones, so the convergence rate is set by
 the \emph{distance} of the nearest singularity and not by its hardness.
+
+\label{sec:model:enhanced}
+The slowest axes are the natural choice for gradient enhancement, so we also tested whether the gradient-enhanced subspace $\mathcal{E}$ should be enlarged beyond the two aligned-spin axes. It should
+not. Enhancing a \emph{single} axis always improves on the value interpolant, but
+enhancing several axes with tangents alone degrades it, whichever axes are chosen.
+Extending $\mathcal{E}$ to all four axes of the aligned-spin box at the same Smolyak level raises the held-out median by two orders of magnitude relative to enhancing nothing, and completing the pairwise-bilinear crosses does not repair that.
+The two-axis case is the one that can be rescued.
+With tangents alone the aligned-spin pair is also worse than value-only, and the bilinear cross term lifts it above the value-only model.
+$\mathcal{E}$ should therefore be kept small and spent on the slowest axes, and the shipped $\mathcal{E}=\{\chi^{A}_{y},\chi^{B}_{y}\}$, completed to full bilinear, is at or near the optimum of the configurations we measured.
 
 % One row of three panels (fig02_walls_row.pdf).  The stacked one-column original,
 % fig02_walls.pdf, is kept: revert by restoring figure[tbp] at \columnwidth.
@@ -856,20 +878,11 @@ the \emph{distance} of the nearest singularity and not by its hardness.
 \label{sec:model:joint}
 
 Figure~\ref{fig:joint} shows the joint held-out error against the number of elliptic solves that bought it, level by level.
-At isotropic Smolyak level $\ell=5$ the four-dimensional model has $1105$ nodes and the eight-dimensional one $15{,}713$.
+At Smolyak level $\ell=5$ the four-dimensional model has $1105$ nodes and the eight-dimensional one $15{,}713$.
 The nested lower levels $\ell=1\subset\cdots\subset5$ are contained in each corpus, so they cost no additional solves.
 At $\ell=5$ the median joint error is $6.3\times10^{-6}$ for the value-only and $1.5\times10^{-6}$ for the gradient-enhanced four-dimensional model, and $5.7\times10^{-4}$ and $3.3\times10^{-4}$ in eight dimensions, where enhancement lowers the median from $\ell=2$ on.
 A full tensor grid at the same finest level ($33$ nodes per axis) would need about $10^3$ times as many nodes in four dimensions, but it would also be far more accurate.
 At the value-only accuracy above, extrapolating the per-axis rates of Fig.~\ref{fig:peraxis} to independent axes gives a tensor grid with about four times as many nodes in four dimensions and about sixteen times as many in eight.
-
-\label{sec:model:enhanced}
-We also tested whether the gradient-enhanced subspace $\mathcal{E}$ should be enlarged beyond the two aligned-spin axes. It should
-not. Enhancing a \emph{single} axis always improves on the value interpolant, but
-enhancing several axes with tangents alone degrades it, whichever axes are chosen.
-Extending $\mathcal{E}$ to all four axes of the aligned-spin box at the same Smolyak level raises the held-out median by two orders of magnitude relative to enhancing nothing, and completing the pairwise-bilinear crosses does not repair that.
-The two-axis case is the one that can be rescued.
-With tangents alone the aligned-spin pair is also worse than value-only, and the bilinear cross term lifts it above the value-only model.
-$\mathcal{E}$ should therefore be kept small and spent on the slowest axes, and the shipped $\mathcal{E}=\{\chi^{A}_{y},\chi^{B}_{y}\}$, completed to full bilinear, is at or near the optimum of the configurations we measured.
 
 A bare query is a single contraction over the stored nodal solves, with no Newton iteration and no factorization.
 Its cost is dominated by streaming the stored fields, which the reduced-basis re-encoding reduces (Sec.~\ref{sec:model:pod}).
@@ -904,7 +917,7 @@ Figure~\ref{fig:pod} shows the resulting memory--accuracy tradeoff. At the shipp
 ranks ($r=250$ and $r=500$) the four-dimensional model shrinks by a factor of $13.5$
 ($486$~MiB to $36.0$~MiB) and the eight-dimensional one by $23.4$ ($6.7$~GiB to $295$~MiB).
 The bare-guess field error and residual decrease together toward their full-rank interpolation floors.
-Gradient enhancement lowers the median residual floor from $3.45\times10^{-6}$ to $9.77\times10^{-7}$ in four dimensions, and from $1.01\times10^{-4}$ to $6.45\times10^{-5}$ in eight.
+Gradient enhancement lowers the median residual floor from $3.45\times10^{-6}$ to $9.82\times10^{-7}$ in four dimensions, and from $1.01\times10^{-4}$ to $6.45\times10^{-5}$ in eight.
 These floors remain above the certification gate, so every decoded guess still undergoes Newton refinement.
 Over $200$ test points of the four-dimensional gradient-enhanced model, every tested rank $r\ge150$ certifies in two or three Newton steps, as at full rank, whereas at $r=42$ every point needs three.
 Compression to the shipped rank therefore adds no Newton step on balance.
@@ -1092,7 +1105,7 @@ More broadly, this work is a first step toward a differentiable, parametric mode
 
 % ===========================================================================
 \begin{acknowledgments}
-We thank Miguel Bezares Figueroa, Thiago Assump\c{c}\~ao, Ignacio Brevis, and Lli\-bert Arest\'e Sal\'o for interesting discussions.
+We thank Miguel Bezares Figueroa, Thiago Assump\c{c}\~ao, Ignacio Brevis, Lli\-bert Arest\'e Sal\'o, and Thomas Zhi Cheng Yeo for interesting discussions.
 This work was developed with the assistance of Claude Code (Anthropic).
 This research was supported by the Research Foundation -- Flanders (FWO; Grant No.\ I000725N and I002123N).
 \end{acknowledgments}
