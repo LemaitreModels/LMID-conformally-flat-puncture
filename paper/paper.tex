@@ -507,7 +507,7 @@ tangent of Eq.~\eqref{eq:tangent} is stored at every node, so the gradient expos
 a node equals that certified sensitivity. Away from the nodes, and on the axes
 carrying plain Lagrange cardinals, the exposed gradient carries the interpolation error
 of the derivative, which also decays exponentially in the number of nodes.
-This error is the derivative of the field interpolation error, so it is not bounded by that error.\footnote{\raggedright\url{https://lmid-conformally-flat-puncture.readthedocs.io/en/latest/sensitivities.html} discusses the tangent equation, the two kinds of derivative and the Hermite interpolant in more detail, with an interactive figure.}
+This error is the derivative of the field interpolation error, so it is not bounded by that error.\footnote{\raggedright\url{https://lmid-conformally-flat-puncture.readthedocs.io/en/v1.0.0/sensitivities.html} discusses the tangent equation, the two kinds of derivative and the Hermite interpolant in more detail, with an interactive figure.}
 
 Every returned datum therefore satisfies the discretized constraints to tolerance and comes with an analytic parameter gradient.
 The gradient-based applications of Sec.~\ref{sec:applications} rely on this combination.
@@ -632,7 +632,7 @@ solved only once.
 The number of nodes then grows as $O(m\,(\log m)^{d-1})$ rather than $O(m^d)$, nearly linearly in the per-axis resolution $m$ at fixed $d$.
 The polylogarithmic factor still grows with $d$, so the dependence on dimension is mitigated rather than removed.
 At the same finest level the sparse grid is less accurate than the tensor grid, because it omits the mixed surpluses.
-Its advantage is fewer nodes at equal accuracy, which requires weakly coupled parameters.\footnote{\raggedright\url{https://lmid-conformally-flat-puncture.readthedocs.io/en/latest/smolyak.html} illustrates the construction and the role of the coupling between parameters with an interactive figure.}
+Its advantage is fewer nodes at equal accuracy, which requires weakly coupled parameters.\footnote{\raggedright\url{https://lmid-conformally-flat-puncture.readthedocs.io/en/v1.0.0/smolyak.html} illustrates the construction and the role of the coupling between parameters with an interactive figure.}
 Section~\ref{sec:model:joint} measures this saving for the two models.
 Each subgrid interpolant in Eq.~\eqref{eq:smolyak} is itself an instance of Eq.~\eqref{eq:surrogate}, so the certified refinement and the differentiability described above carry over unchanged.
 
@@ -794,7 +794,7 @@ Because the joint held-out error is governed by the slowest of these axes, the s
 To explain why the spin axes converge slowest despite being physically the most benign, we examine the analyticity of the parameter-to-solution map.
 We locate the nearest singularity on each axis and check that none lies close to the physical box.
 We map the sampling interval of a parameter affinely onto $\xi\in[-1,1]$ and consider the \emph{Bernstein ellipse} $E_\varrho$, the ellipse in the complex $\xi$-plane with foci at $\pm1$ whose semi-major and semi-minor axes sum to $\varrho>1$.
-If the map is analytic and bounded inside $E_\varrho$, its Chebyshev interpolant on $Q$ nodes converges as $\varrho^{-Q}$ up to a constant factor, a rate of $\zeta\equiv\log_{10}\varrho$ decades per node (Theorem~8.2 of Ref.~\cite{Trefethen2019}, going back to \cite{Bernstein1912}).\footnote{\raggedright\url{https://lmid-conformally-flat-puncture.readthedocs.io/en/latest/bernstein.html} explains the bound in more detail, with an interactive figure.}
+If the map is analytic and bounded inside $E_\varrho$, its Chebyshev interpolant on $Q$ nodes converges as $\varrho^{-Q}$ up to a constant factor, a rate of $\zeta\equiv\log_{10}\varrho$ decades per node (Theorem~8.2 of Ref.~\cite{Trefethen2019}, going back to \cite{Bernstein1912}).\footnote{\raggedright\url{https://lmid-conformally-flat-puncture.readthedocs.io/en/v1.0.0/bernstein.html} explains the bound in more detail, with an interactive figure.}
 The largest such ellipse passes through the nearest singularity of the map.
 A singularity close to the sampled interval therefore gives $\varrho$ just above unity and slow convergence, and a distant one gives fast convergence.
 
@@ -1113,9 +1113,7 @@ This research was supported by the Research Foundation -- Flanders (FWO; Grant N
 % ===========================================================================
 \section*{Data and code availability}
 % ===========================================================================
-The source code for the models in this paper is publicly available at
-\url{https://github.com/LemaitreModels/LMID-conformally-flat-puncture}.
-Its documentation, at \url{https://lmid-conformally-flat-puncture.readthedocs.io/}, describes the implementation and includes background pages on the Bernstein ellipse, parameter sensitivities and sparse grids.
+The source code (version~1.0.0) and the models are archived at \href{https://doi.org/10.5281/zenodo.24236386}{doi:10.5281/zenodo.24236386} and \href{https://doi.org/10.5281/zenodo.24219765}{doi:10.5281/zenodo.24219765}, respectively.
 
 
 \appendix
