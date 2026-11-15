@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Generates fig09_tp_spectrum.pdf (the azimuthal spectrum of the quasi-circular data).
 
-A 1x1 figure at \\columnwidth, flatter than the standard 3:2 panel, which left most of a column
-blank for four points.  Its height, PANEL_H_FIG9, is set so the printed axes box is as tall as each
-of Fig. 8's three (88 pt at \\columnwidth, measured from the tight bounding boxes), because the
-two figures print side by side.  The azimuthal Fourier
+A 1x1 figure at \\columnwidth.  Its height, PANEL_H_FIG9, is set so the printed axes box is as
+tall as Fig. 10's (117 pt at \\columnwidth, measured from the tight bounding boxes), because the
+two figures print side by side at the top of a page.  (Until 2026-11-15 it matched Fig. 8's
+panels, 88 pt, when Fig. 8 was its neighbour.)  The azimuthal Fourier
 spectrum |u_m|/|u_0| at the best-resolved rung, as a median with min--max whiskers over the
 same sampled configurations as fig08.  It shows how many phi modes the quasi-circular data
 actually need, i.e. what sets the azimuthal truncation N_phi.
@@ -52,9 +52,10 @@ sys.path.insert(0, HERE)
 from _figdata import load
 from _figstyle import figdims
 
-# Matches the printed axes-box height of each Fig. 8 panel (87.8 pt; this gives 87.7 pt) --
-# re-measure both if either plotter's labels, titles or panel height change.
-PANEL_H_FIG9 = 2.39
+# Matches the printed axes-box height of Fig. 10 (116.8 pt at a 246 pt \columnwidth; this gives
+# 116.8 pt; Fig. 10 is on the default PANEL_H) -- re-measure both if either plotter's labels,
+# titles or panel height change.
+PANEL_H_FIG9 = 2.98
 
 SPEC_C = "C2"          # non-model diagnostic: the cycle starts at C2 (see README)
 

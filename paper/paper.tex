@@ -507,7 +507,7 @@ tangent of Eq.~\eqref{eq:tangent} is stored at every node, so the gradient expos
 a node equals that certified sensitivity. Away from the nodes, and on the axes
 carrying plain Lagrange cardinals, the exposed gradient carries the interpolation error
 of the derivative, which also decays exponentially in the number of nodes.
-This error is the derivative of the field interpolation error, so it is not bounded by that error.\footnote{\raggedright\url{https://lmid-conformally-flat-puncture.readthedocs.io/en/v1.0.0/sensitivities.html} discusses the tangent equation, the two kinds of derivative and the Hermite interpolant in more detail, with an interactive figure.}
+This error is the derivative of the field interpolation error, so it is not bounded by that error.\footnotemark
 
 Every returned datum therefore satisfies the discretized constraints to tolerance and comes with an analytic parameter gradient.
 The gradient-based applications of Sec.~\ref{sec:applications} rely on this combination.
@@ -544,6 +544,9 @@ The parametric model of Eq.~\eqref{eq:surrogate} then generalizes to
   \label{eq:hermite}
 \end{equation}
 \end{widetext}
+% The footnote of Sec. IV D is set here, after the wide Eq. (hermite): placed in
+% its own paragraph it landed mid-column, splitting a sentence above the equation.
+\addtocounter{footnote}{-1}\footnotetext{\raggedright\url{https://lmid-conformally-flat-puncture.readthedocs.io/en/v1.0.0/sensitivities.html} discusses the tangent equation, the two kinds of derivative and the Hermite interpolant in more detail, with an interactive figure.}%
 whose four terms are the value, the two certified first tangents, and the single
 bilinear cross tangent stored at the node (Sec.~\ref{sec:param:diff} and App.~\ref{sec:solverdetails:tangent}). Each
 non-enhanced axis carries only its Lagrange cardinal, so restoring $L$ on the two
